@@ -1,18 +1,28 @@
-"""Generate a Neo4j Browser-importable favorites JSON from the .cypher files.
+"""Generate Neo4j Browser-importable favorites from the .cypher files.
 
 Neo4j Browser stores saved Cypher in localStorage. There's no DBMS-side
-way to seed it for Community Edition, so we deliver an importable JSON
+way to seed it for Community Edition, so we deliver importable files
 the user loads once via Browser → ☰ → Favorites → "Import favorites".
 
-Run:
-  uv run python -m scripts.build_cypher_favorites > cypher/saved-cypher.json
+Different Browser versions accept different formats:
+  - Older builds: JSON list with name/content/id/parentId/isFolder
+  - Newer 5.x:    CSV with columns name,query,id,parentId,isFolder
 
-Or via:
-  make cypher-favorites
+This script emits both — invoke with --csv for the CSV form.
+
+Run:
+  uv run python -m scripts.build_cypher_favorites             # JSON to stdout
+  uv run python -m scripts.build_cypher_favorites --csv       # CSV to stdout
+
+Or via Makefile:
+  make cypher-favorites       # writes JSON
+  make cypher-favorites-csv   # writes CSV
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import re
 import sys
@@ -78,8 +88,23 @@ def main() -> None:
 
     # Neo4j Browser's import expects either a list directly or
     # `{"scripts": [...]}`. The list form is the most widely accepted.
-    json.dump(favorites, sys.stdout, indent=2, ensure_ascii=False)
-    sys.stdout.write("\n")
+    if "--csv" in sys.argv:
+        # CSV form — newer Browser builds expect this exact column order:
+        # name, query, id, parentId, isFolder
+        # csv module auto-quotes fields containing commas / quotes / newlines.
+        writer = csv.writer(sys.stdout, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["name", "query", "id", "parentId", "isFolder"])
+        for f in favorites:
+            writer.writerow([
+                f["name"],
+                f.get("content", ""),
+                f["id"],
+                f.get("parentId", ""),
+                "true" if f.get("isFolder") else "false",
+            ])
+    else:
+        json.dump(favorites, sys.stdout, indent=2, ensure_ascii=False)
+        sys.stdout.write("\n")
 
 
 if __name__ == "__main__":

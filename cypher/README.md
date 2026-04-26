@@ -79,22 +79,26 @@ Each `.cypher` file is plain text, with section headers (`// N.M Title`)
 above every query and a brief comment explaining what it does.
 Open in any editor, copy a block, paste into Neo4j Browser, run.
 
-### C. Browser-favorites import (fragile across versions)
+### C. Browser-favorites import (format varies by Browser version)
 
 ```
 1. Open http://localhost:7474
 2. Click ☰ (top-left) → Favorites
 3. Click the ⋮ menu next to "My Favorites" → "Import favorites"
-4. Select cypher/saved-cypher.json
+4. Select one of:
+     cypher/saved-cypher.csv    ← try this first (newer Browser 5.x)
+     cypher/saved-cypher.json   ← fallback (older builds)
 ```
 
-Some Browser versions silently reject the format. If A or B work for you,
-use those instead.
+If the import dialog rejects one with "Failed to Parse" or "missing
+required columns name, query, id, parentId, isFolder", try the other
+file. Browser's import format changes between releases; we ship both.
 
-To regenerate the JSON:
+To regenerate after editing a `.cypher` file:
 
 ```bash
 make cypher-favorites
+# writes cypher/saved-cypher.json AND cypher/saved-cypher.csv
 ```
 
 ### D. localStorage paste (if all else fails) — last resort

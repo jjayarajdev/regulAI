@@ -85,8 +85,12 @@ demo-new-bulletin:
 
 cypher-favorites:
 	uv run python -m scripts.build_cypher_favorites > cypher/saved-cypher.json
-	@echo "Wrote cypher/saved-cypher.json"
+	uv run python -m scripts.build_cypher_favorites --csv > cypher/saved-cypher.csv
+	@echo "Wrote cypher/saved-cypher.json (older Browser builds)"
+	@echo "Wrote cypher/saved-cypher.csv  (newer Browser 5.x — try this if JSON import fails)"
+	@echo ""
 	@echo "Import in Neo4j Browser: ☰ → Favorites → ⋮ → Import favorites"
+	@echo "  Pick whichever file your Browser accepts."
 
 cypher-guide:
 	uv run python -m scripts.build_cypher_guide
