@@ -634,12 +634,16 @@ def build_extraction(
     for i, pf in enumerate(parsed_fields):
         lk = _layout_key(pf.layout_name)
         field_temp = f"field-{lk}-{pf.short_code.lower()}-{pf.position_start}-{pf.position_length}"
-        # Compute char span — locate the field-name line in text for CITES provenance.
+        # Compute char span — locate the field-name line in text for CITES
+        # provenance. A 60-80 char window is enough to cover the field
+        # heading plus its first code line in rich markdown; longer windows
+        # bleed into the next field and produce visually chaotic highlights
+        # that span multiple <h2>/<li>/<table> elements.
         anchor = f"({pf.short_code})"
         char_start = text.find(anchor)
         if char_start < 0:
             char_start = 0
-        char_end = min(len(text), char_start + 200)
+        char_end = min(len(text), char_start + 80)
 
         # FieldRequirement names are scoped to their layout — same column
         # in different layouts (e.g. HO Premium vs Stat-Plan Premium) is

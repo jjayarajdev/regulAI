@@ -222,10 +222,21 @@
     }
     .doc-rich th { background: var(--paper-warm); font-weight: 600; }
     .doc-rich hr { border: none; border-top: 1px solid var(--rule-soft); margin: 24px 0; }
+    /* Subtle highlight — multi-block citations otherwise look chaotic.
+       The first <mark> gets a thicker border via .first-mark for focus. */
     .doc-rich mark.cite.active {
-      background: rgba(245, 158, 11, 0.5);
-      padding: 1px 2px; border-radius: 2px;
+      background: rgba(250, 204, 21, 0.45);
+      padding: 0 1px; border-radius: 2px;
+      mix-blend-mode: multiply;
+      color: inherit;
+    }
+    .doc-rich mark.cite.active.first-mark {
       box-shadow: 0 0 0 1px var(--accent) inset;
+      animation: cite-flash 0.6s ease;
+    }
+    @keyframes cite-flash {
+      0%   { background: rgba(250, 204, 21, 0.85); }
+      100% { background: rgba(250, 204, 21, 0.45); }
     }
 
     /* ---- Markdown / text view (default) ---- */
@@ -899,51 +910,74 @@
       return findAndHighlight(text, currentDoc?.pdf_start_page, currentDoc?.pdf_end_page);
     }
 
-    /** Highlight a [srcStart, srcEnd) range from the source markdown
-     *  inside the rendered rich-HTML, using the source-char → DOM map
-     *  built at render time. Char-perfect because both come from the
-     *  same source-of-truth.
+    /** Highlight a [srcStart, srcEnd) range in the rich view. Wraps the
+     *  intersecting portion of EACH text node in its own <mark>, so DOM
+     *  structure is preserved even when the range spans multiple block
+     *  elements (the common case in Section C with its many headings).
      */
     function highlightInRichMarkdownBySrcRange(srcStart, srcEnd) {
       const wrap = document.getElementById('doc-rich');
-      if (!wrap || !wrap._sourceMap) return false;
-      // Restore from cache to clear prior highlights.
+      if (!wrap) return false;
+      // Restore from cache so previous highlights are removed AND the
+      // source map references the now-current DOM.
       if (wrap.dataset.cleanHtml) {
         wrap.innerHTML = wrap.dataset.cleanHtml;
-        wrap._sourceMap = buildSourceMap(wrap, currentDoc.text);
       } else {
         wrap.dataset.cleanHtml = wrap.innerHTML;
       }
+      wrap._sourceMap = buildSourceMap(wrap, currentDoc.text);
       const map = wrap._sourceMap;
-      // Find the first non-null map entry at or after srcStart, and the
-      // last non-null entry before srcEnd. Source positions that are
-      // markdown markers (mapped to null) are simply skipped.
-      let startEntry = null, endEntry = null;
-      for (let i = srcStart; i < srcEnd && i < map.length; i++) {
-        if (map[i]) { startEntry = map[i]; break; }
-      }
-      for (let i = Math.min(srcEnd - 1, map.length - 1); i >= srcStart; i--) {
-        if (map[i]) { endEntry = map[i]; break; }
-      }
-      if (!startEntry || !endEntry) return false;
-      try {
-        const range = document.createRange();
-        range.setStart(startEntry.node, startEntry.off);
-        range.setEnd(endEntry.node, endEntry.off + 1);
-        const mark = document.createElement('mark');
-        mark.className = 'cite active';
-        try {
-          range.surroundContents(mark);
-        } catch {
-          mark.appendChild(range.extractContents());
-          range.insertNode(mark);
+
+      // Group source-positions in [srcStart, srcEnd) by their containing
+      // text node. For each node we record the min and max offset that
+      // got mapped from the source range — those become the wrap span.
+      const byNode = new Map(); // node → {minOff, maxOff, order}
+      let order = 0;
+      for (let s = srcStart; s < srcEnd && s < map.length; s++) {
+        const e = map[s];
+        if (!e) continue;
+        const cur = byNode.get(e.node);
+        if (cur) {
+          if (e.off < cur.minOff) cur.minOff = e.off;
+          if (e.off > cur.maxOff) cur.maxOff = e.off;
+        } else {
+          byNode.set(e.node, { minOff: e.off, maxOff: e.off, order: order++ });
         }
-        mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return true;
-      } catch (e) {
-        console.warn('[rich highlight] wrap failed', e);
+      }
+      if (byNode.size === 0) {
+        console.warn('[rich highlight] no source-map entries in range', srcStart, srcEnd);
         return false;
       }
+
+      // Process in REVERSE DOM order so wrapping early nodes doesn't
+      // invalidate later nodes' references.
+      const entries = [...byNode.entries()].sort((a, b) => b[1].order - a[1].order);
+      let firstMark = null;
+      for (const [node, span] of entries) {
+        if (!node.parentNode) continue; // got detached somehow
+        const start = Math.max(0, span.minOff);
+        const end = Math.min(node.nodeValue.length, span.maxOff + 1);
+        if (end <= start) continue;
+        try {
+          const range = document.createRange();
+          range.setStart(node, start);
+          range.setEnd(node, end);
+          const mark = document.createElement('mark');
+          mark.className = 'cite active';
+          range.surroundContents(mark);
+          firstMark = mark; // first in DOM order = last we set (we processed reverse)
+        } catch (e) {
+          console.warn('[rich highlight] node wrap failed:', e);
+        }
+      }
+      if (firstMark) {
+        // Give the first DOM-order mark a focus class — visible anchor
+        // for the user when a citation spans multiple block elements.
+        firstMark.classList.add('first-mark');
+        firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return true;
+      }
+      return false;
     }
 
     /** Best-effort highlight inside the rich-markdown rendered HTML.

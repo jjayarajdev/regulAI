@@ -16528,169 +16528,169 @@
     {
       "node_temp_id": "field-lossrecordlayoutdbff-sp-1-1",
       "char_start": 324,
-      "char_end": 524,
+      "char_end": 404,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-acdt-2-3",
       "char_start": 395,
-      "char_end": 595,
+      "char_end": 475,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-policy-7-10",
       "char_start": 609,
-      "char_end": 809,
+      "char_end": 689,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-place-26-5",
       "char_start": 1078,
-      "char_end": 1278,
+      "char_end": 1158,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-lob-41-2",
       "char_start": 2760,
-      "char_end": 2960,
+      "char_end": 2840,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-co-43-3",
       "char_start": 3723,
-      "char_end": 3923,
+      "char_end": 3803,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-f-50-1",
       "char_start": 3863,
-      "char_end": 4063,
+      "char_end": 3943,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-fm-51-1",
       "char_start": 4064,
-      "char_end": 4264,
+      "char_end": 4144,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-cv-52-1",
       "char_start": 4196,
-      "char_end": 4396,
+      "char_end": 4276,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-ct-53-1",
       "char_start": 4328,
-      "char_end": 4528,
+      "char_end": 4408,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-ppc-56-1",
       "char_start": 4783,
-      "char_end": 4983,
+      "char_end": 4863,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-ded-57-2",
       "char_start": 4961,
-      "char_end": 5161,
+      "char_end": 5041,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-roofcov-83-1",
       "char_start": 6884,
-      "char_end": 7084,
+      "char_end": 6964,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-roofcred-84-1",
       "char_start": 7323,
-      "char_end": 7523,
+      "char_end": 7403,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-roofyear-85-4",
       "char_start": 7592,
-      "char_end": 7792,
+      "char_end": 7672,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-cosmetic-89-1",
       "char_start": 7806,
-      "char_end": 8006,
+      "char_end": 7886,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-deprec-93-5",
       "char_start": 8641,
-      "char_end": 8841,
+      "char_end": 8721,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-bcc-134-2",
       "char_start": 10037,
-      "char_end": 10237,
+      "char_end": 10117,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-loc-136-1",
       "char_start": 10539,
-      "char_end": 10739,
+      "char_end": 10619,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-rcb-151-1",
       "char_start": 11886,
-      "char_end": 12086,
+      "char_end": 11966,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-rcpp-152-1",
       "char_start": 12131,
-      "char_end": 12331,
+      "char_end": 12211,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-rct-153-1",
       "char_start": 12487,
-      "char_end": 12687,
+      "char_end": 12567,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-yoc-162-4",
       "char_start": 14912,
-      "char_end": 15112,
+      "char_end": 14992,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-ale-166-3",
       "char_start": 15080,
-      "char_end": 15280,
+      "char_end": 15160,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-ncc-173-1",
       "char_start": 16199,
-      "char_end": 16399,
+      "char_end": 16279,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-cs-174-1",
       "char_start": 16642,
-      "char_end": 16842,
+      "char_end": 16722,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-claimid-175-2",
       "char_start": 17890,
-      "char_end": 18090,
+      "char_end": 17970,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-rcc-177-1",
       "char_start": 18202,
-      "char_end": 18402,
+      "char_end": 18282,
       "kind": "defines"
     }
   ],
