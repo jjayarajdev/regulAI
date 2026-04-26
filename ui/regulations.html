@@ -899,87 +899,99 @@
     }
 
     /** Best-effort highlight inside the rich-markdown rendered HTML.
-     *  Walks text nodes, finds the snippet, wraps it in <mark>. Tries
-     *  progressively shorter prefixes until one matches.
+     *
+     *  Builds an EXACT position map from collapsed-whitespace text
+     *  positions back to (textNode, offset) in the DOM, then searches
+     *  for the cited snippet (also whitespace-collapsed, lowercased).
+     *  Tries the full cleaned snippet first, then progressively
+     *  shorter prefixes, so we still find SOMETHING when the citation
+     *  spans content the rich markdown formatted differently.
      */
     function highlightInRichMarkdown(snippet) {
       const wrap = document.getElementById('doc-rich');
-      if (!wrap || !snippet || snippet.length < 8) return false;
-      // Strip prior highlight; rebuild from cached HTML so we don't
-      // accumulate <mark>s.
+      if (!wrap || !snippet) return false;
+
+      // Restore from cached clean HTML so we don't accumulate <mark>s
+      // from previous clicks (and the position map below is built
+      // against pristine markup).
       if (wrap.dataset.cleanHtml) {
         wrap.innerHTML = wrap.dataset.cleanHtml;
       } else {
         wrap.dataset.cleanHtml = wrap.innerHTML;
       }
-      const candidates = [];
-      const cleaned = snippet.replace(/\s+/g, ' ').trim();
-      [cleaned, cleaned.slice(0, 180), cleaned.slice(0, 120),
-       cleaned.slice(0, 80), cleaned.slice(0, 50)].forEach(c => {
-        c = c.trim();
-        if (c.length >= 12 && !candidates.includes(c)) candidates.push(c);
-      });
 
-      for (const candidate of candidates) {
-        const found = wrapMatchInTextNodes(wrap, candidate);
-        if (found) {
-          found.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return true;
-        }
-      }
-      return false;
-    }
-
-    /** Walk text nodes under `root`, find `needle` (case-insensitive,
-     *  whitespace-tolerant), wrap the match in <mark.cite.active>.
-     *  Returns the mark element or null.
-     */
-    function wrapMatchInTextNodes(root, needle) {
-      const haystackText = (root.innerText || root.textContent || '').replace(/\s+/g, ' ');
-      const needleNorm = needle.toLowerCase();
-      const idx = haystackText.toLowerCase().indexOf(needleNorm);
-      if (idx < 0) return null;
-      // Walk text nodes, count chars (with whitespace collapsed) until
-      // we span [idx, idx+needle.length).
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-      let consumed = 0;
-      let startNode = null, startOff = 0, endNode = null, endOff = 0;
-      const target = idx;
-      const targetEnd = idx + needle.length;
+      // Build position map: positions[k] = {node, off} where the
+      // k-th character of the collapsed-lowercase haystack maps back
+      // to that DOM (textNode, offset).
+      const positions = [];
+      let chars = '';
+      let prevWs = true;  // treat leading whitespace as already-collapsed
+      const walker = document.createTreeWalker(wrap, NodeFilter.SHOW_TEXT);
       while (walker.nextNode()) {
         const n = walker.currentNode;
-        const t = n.nodeValue.replace(/\s+/g, ' ');
-        const len = t.length;
-        if (!startNode && consumed + len > target) {
-          startNode = n;
-          startOff = Math.max(0, target - consumed);
+        const orig = n.nodeValue;
+        for (let i = 0; i < orig.length; i++) {
+          const ch = orig[i];
+          const isWs = /\s/.test(ch);
+          if (isWs) {
+            if (prevWs) continue;
+            positions.push({ node: n, off: i });
+            chars += ' ';
+            prevWs = true;
+          } else {
+            positions.push({ node: n, off: i });
+            chars += ch.toLowerCase();
+            prevWs = false;
+          }
         }
-        if (consumed + len >= targetEnd) {
-          endNode = n;
-          endOff = Math.min(n.nodeValue.length, targetEnd - consumed);
-          break;
-        }
-        consumed += len;
       }
-      if (!startNode || !endNode) return null;
-      try {
-        const range = document.createRange();
-        range.setStart(startNode, startOff);
-        range.setEnd(endNode, endOff);
-        const mark = document.createElement('mark');
-        mark.className = 'cite active';
-        // surroundContents fails when the range crosses element boundaries;
-        // fall back to extractContents + wrap in that case.
+      const haystack = chars;
+      if (haystack.length < 8) return false;
+
+      // Build candidates from the snippet (collapsed + lowercased).
+      const cleaned = snippet.toLowerCase().replace(/\s+/g, ' ').trim();
+      const candidates = [];
+      const add = (c) => {
+        c = c.trim();
+        if (c.length >= 10 && !candidates.includes(c)) candidates.push(c);
+      };
+      add(cleaned);
+      for (const n of [180, 120, 80, 50, 30]) if (cleaned.length > n) add(cleaned.slice(0, n));
+      // Suffix in case the snippet starts with a heading the rich view
+      // formatted away.
+      for (const n of [120, 60]) if (cleaned.length > n) add(cleaned.slice(-n));
+
+      for (const candidate of candidates) {
+        const idx = haystack.indexOf(candidate);
+        if (idx < 0) continue;
+        const startPos = positions[idx];
+        const endPos = positions[idx + candidate.length - 1];
+        if (!startPos || !endPos) continue;
         try {
-          range.surroundContents(mark);
-        } catch {
-          mark.appendChild(range.extractContents());
-          range.insertNode(mark);
+          const range = document.createRange();
+          range.setStart(startPos.node, startPos.off);
+          range.setEnd(endPos.node, endPos.off + 1);
+          const mark = document.createElement('mark');
+          mark.className = 'cite active';
+          // Across-element ranges break surroundContents — fall back
+          // to extracting and wrapping. The next click restores the
+          // original markup from cleanHtml so any structural damage
+          // is transient.
+          try {
+            range.surroundContents(mark);
+          } catch {
+            mark.appendChild(range.extractContents());
+            range.insertNode(mark);
+          }
+          mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return true;
+        } catch (e) {
+          console.warn('[rich highlight] wrap failed for candidate:', candidate.slice(0, 40), e);
         }
-        return mark;
-      } catch {
-        return null;
       }
+      console.warn('[rich highlight] no candidate matched. First 3:',
+                   candidates.slice(0, 3).map(c => c.slice(0, 40)));
+      return false;
     }
 
     /** Highlight a char range [cs, ce) in the rendered markdown view. */
