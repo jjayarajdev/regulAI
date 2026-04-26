@@ -920,15 +920,43 @@
         wrap.dataset.cleanHtml = wrap.innerHTML;
       }
 
-      // Build position map: positions[k] = {node, off} where the
-      // k-th character of the collapsed-lowercase haystack maps back
-      // to that DOM (textNode, offset).
+      // Block-level tags that markdown-it produces. When we move from one
+      // block to the next we have to insert a synthetic space — the DOM has
+      // no whitespace text node between e.g. </h2><p>, but the source text
+      // (and any sane reader) treats them as separate words.
+      const BLOCK_TAGS = new Set([
+        'H1','H2','H3','H4','H5','H6','P','LI','BLOCKQUOTE','PRE','HR',
+        'TABLE','TR','TD','TH','UL','OL','DIV','SECTION','ARTICLE','HEADER'
+      ]);
+      const blockAncestor = (node, root) => {
+        let p = node.parentElement;
+        while (p && p !== root && !BLOCK_TAGS.has(p.tagName)) {
+          p = p.parentElement;
+        }
+        return p || root;
+      };
+
+      // Build position map: positions[k] = {node, off} where the k-th char
+      // of the collapsed-lowercase haystack maps back to that DOM
+      // (textNode, offset).  Synthetic-space entries map to the start of
+      // the next text node; they're never used as range endpoints because
+      // a space character is never inside the candidate substring at a
+      // boundary position.
       const positions = [];
       let chars = '';
-      let prevWs = true;  // treat leading whitespace as already-collapsed
+      let prevWs = true;
+      let prevBlock = null;
       const walker = document.createTreeWalker(wrap, NodeFilter.SHOW_TEXT);
       while (walker.nextNode()) {
         const n = walker.currentNode;
+        const block = blockAncestor(n, wrap);
+        // New block + previous wasn't whitespace → emit synthetic space.
+        if (prevBlock && block !== prevBlock && !prevWs) {
+          positions.push({ node: n, off: 0, synthetic: true });
+          chars += ' ';
+          prevWs = true;
+        }
+        prevBlock = block;
         const orig = n.nodeValue;
         for (let i = 0; i < orig.length; i++) {
           const ch = orig[i];
@@ -949,17 +977,34 @@
       if (haystack.length < 8) return false;
 
       // Build candidates from the snippet (collapsed + lowercased).
+      // The strategy is to try long-and-likely first, then fall back
+      // to short distinctive substrings that almost certainly exist
+      // in any reasonable rendering of the same content.
       const cleaned = snippet.toLowerCase().replace(/\s+/g, ' ').trim();
       const candidates = [];
       const add = (c) => {
         c = c.trim();
-        if (c.length >= 10 && !candidates.includes(c)) candidates.push(c);
+        if (c.length >= 8 && !candidates.includes(c)) candidates.push(c);
       };
       add(cleaned);
-      for (const n of [180, 120, 80, 50, 30]) if (cleaned.length > n) add(cleaned.slice(0, n));
-      // Suffix in case the snippet starts with a heading the rich view
-      // formatted away.
-      for (const n of [120, 60]) if (cleaned.length > n) add(cleaned.slice(-n));
+      for (const n of [220, 160, 110, 75, 50, 35, 22]) {
+        if (cleaned.length > n) add(cleaned.slice(0, n));
+      }
+      for (const n of [120, 60, 30]) {
+        if (cleaned.length > n) add(cleaned.slice(-n));
+      }
+      // Distinctive sub-phrases — code refs, capitalized multi-word sequences,
+      // quoted strings. These tend to survive any structural reflow.
+      const codeRefs = snippet.match(/\b[A-Z]{2,}[\s-]?\d+(?:\.\d+)?(?:\([a-z]\))?\b/g);
+      if (codeRefs) codeRefs.forEach(s => add(s.toLowerCase()));
+      const quoted = snippet.match(/"([^"]{6,80})"/g);
+      if (quoted) quoted.forEach(s => add(s.replace(/"/g, '').toLowerCase()));
+      // Sliding 8-word windows from the middle of the snippet.
+      const words = cleaned.split(' ');
+      if (words.length >= 12) {
+        const mid = Math.floor(words.length / 2) - 4;
+        add(words.slice(mid, mid + 8).join(' '));
+      }
 
       for (const candidate of candidates) {
         const idx = haystack.indexOf(candidate);
@@ -967,6 +1012,11 @@
         const startPos = positions[idx];
         const endPos = positions[idx + candidate.length - 1];
         if (!startPos || !endPos) continue;
+        // Don't try to set range endpoints on synthetic-space slots —
+        // they don't have a corresponding character in the DOM. Nudge
+        // start/end inward to nearest non-synthetic position.
+        if (startPos.synthetic) continue;
+        if (endPos.synthetic) continue;
         try {
           const range = document.createRange();
           range.setStart(startPos.node, startPos.off);
