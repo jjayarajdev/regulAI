@@ -1,19 +1,47 @@
 # Saved Cypher — RegulAI POC queries
 
-Curated Cypher queries that exercise every facet of the LHS slice. Six folders, **32 queries**.
+Two layers of queries:
+
+**For compliance / business stakeholders** → start with `00_business_questions.cypher`.
+These are titled as plain-English questions an insurance compliance officer or
+auditor would actually ask. The graph technology is invisible; what comes back
+is a business answer. Run these in a demo.
+
+**For engineers** → files `01_*` through `06_*` show the same KG from the
+infrastructure side: counts, joins, hygiene checks, schema views.
+
+Total: **7 folders, 42 queries**.
 
 ```
 cypher/
-├── 01_overview.cypher              what's in the KG
+├── 00_business_questions.cypher    ⭐ START HERE — 10 questions in plain English
+├── 01_overview.cypher              KG infrastructure overview
 ├── 02_wire_format.cypher           the executable schema (records/columns/codes)
 ├── 03_provenance.cypher            "how do you know?" (citations + PDF rects)
 ├── 04_temporal_bulletin.cypher     rules-level loop (before/after bulletin)
 ├── 05_validation.cypher            KG hygiene checks
-├── 06_demo_killer.cypher           the 5 queries to run during a demo
-├── guide.html                      Neo4j Browser-loadable guide
+├── 06_demo_killer.cypher           condensed demo set (5 queries)
+├── guide.html                      Neo4j Browser-loadable :play guide
 ├── saved-cypher.json               Browser-importable favorites JSON
 └── README.md                       this file
 ```
+
+## The 10 business questions
+
+| # | Question | What the KG provides that flat tables don't |
+|---|---|---|
+| 0.1 | What does Texas require us to file? | Schema-as-data: the 4 reports + their structure |
+| 0.2 | What are the legal Cause-of-Loss codes RIGHT NOW? | Edition pinning at "today" |
+| 0.3 | What WAS legal as of August 2026? | Edition pinning at any date |
+| 0.4 | What changed when the Q3 2026 bulletin took effect? | Single-query change report |
+| 0.5 | What goes in column 5–6 of every Premium record? | Schema as a query |
+| 0.6 | For an audit: prove the regulatory basis for one of our fields | Provenance walk to PDF |
+| 0.7 | If our system emits Cause-of-Loss = 25 in Nov 2026, will TICO accept? | Edition-pinned validity check |
+| 0.8 | How big is the compliance burden? | Aggregate count, schema-wide |
+| 0.9 | Show me everything the bulletin changed (memo-ready) | Change summary in business prose |
+| 0.10 | Are there any inconsistencies in our regulatory data? | KG hygiene as a sign-off check |
+
+Pull up the .cypher file in any editor and the questions are at the top of every block.
 
 ---
 
