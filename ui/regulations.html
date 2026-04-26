@@ -201,6 +201,102 @@
     .stat.coverage .v { color: var(--ok); }
     .stat.uncited .v { color: var(--warn); }
 
+    /* ---- Extraction Report (compliance officer's sign-off panel) ---- */
+    .extraction-report {
+      margin-bottom: 24px;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      background: var(--paper);
+      padding: 14px 16px;
+    }
+    .extraction-report .report-h {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 6px;
+    }
+    .extraction-report .title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--ink-4); font-weight: 600;
+    }
+    .extraction-report .verdict {
+      font-size: 13px; font-weight: 600;
+      padding: 3px 10px; border-radius: 12px;
+    }
+    .extraction-report .verdict.ok   { background: var(--ok-soft);   color: var(--ok); }
+    .extraction-report .verdict.warn { background: var(--warn-soft); color: var(--warn); }
+    .extraction-report .verdict.bad  { background: #FEE2E2;          color: var(--danger); }
+    .extraction-report .verdict-detail {
+      font-size: 12px; color: var(--ink-3); line-height: 1.55; margin-bottom: 12px;
+    }
+    .extraction-report .cov-bar {
+      height: 6px; background: var(--paper-deep); border-radius: 3px;
+      overflow: hidden; margin-bottom: 4px;
+    }
+    .extraction-report .cov-fill {
+      height: 100%; background: linear-gradient(90deg, var(--accent), var(--ok));
+      transition: width 0.4s ease;
+    }
+    .extraction-report .cov-meta {
+      font-size: 11px; color: var(--ink-5); font-family: var(--font-mono);
+      margin-bottom: 12px;
+    }
+    .extraction-report details.report-section {
+      border-top: 1px solid var(--rule-soft);
+      padding-top: 8px; margin-top: 8px;
+    }
+    .extraction-report details summary {
+      font-size: 12px; font-weight: 600; color: var(--ink-2);
+      cursor: pointer; padding: 4px 0;
+      list-style: none;
+    }
+    .extraction-report details summary::before {
+      content: '▸'; display: inline-block;
+      width: 12px; color: var(--ink-5);
+      transition: transform 0.15s ease;
+    }
+    .extraction-report details[open] summary::before {
+      transform: rotate(90deg);
+    }
+    .extraction-report ul.type-counts {
+      list-style: none; padding: 0; margin: 8px 0 4px 0;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 16px;
+    }
+    .extraction-report ul.type-counts li {
+      display: flex; justify-content: space-between;
+      font-size: 12px; padding: 3px 0;
+      border-bottom: 1px dotted var(--rule-soft);
+    }
+    .extraction-report ul.type-counts .t { color: var(--ink-2); }
+    .extraction-report ul.type-counts .n {
+      font-family: var(--font-mono); color: var(--accent); font-weight: 500;
+    }
+    .extraction-report ul.uncited-list {
+      list-style: none; padding: 0; margin: 8px 0 0 0;
+    }
+    .extraction-report .uncited-row {
+      padding: 8px 10px; margin-bottom: 4px;
+      background: var(--paper-warm); border: 1px solid var(--rule-soft);
+      border-radius: var(--radius-sm); cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+    .extraction-report .uncited-row:hover { border-color: var(--accent); }
+    .extraction-report .uncited-row.non-substantive { opacity: 0.7; }
+    .extraction-report .uncited-row .head {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; font-family: var(--font-mono);
+    }
+    .extraction-report .uncited-row .rng { color: var(--accent); font-weight: 500; }
+    .extraction-report .uncited-row .dim { color: var(--ink-5); }
+    .extraction-report .uncited-row .note {
+      margin-top: 4px; font-size: 12px; color: var(--ink-3);
+    }
+    .extraction-report .badge {
+      font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 2px 6px; border-radius: 8px; font-weight: 600;
+      margin-left: auto;
+    }
+    .extraction-report .badge.ok   { background: var(--ok-soft);   color: var(--ok); }
+    .extraction-report .badge.warn { background: var(--warn-soft); color: var(--warn); }
+
     .group {
       margin-bottom: 22px; border: 1px solid var(--rule);
       border-radius: var(--radius-md); overflow: hidden;
@@ -1066,6 +1162,122 @@
       paintColumns();
     }
 
+    // ---------- Extraction Report (completeness view) ----------
+
+    /** Heuristic check: does an uncited-span note describe non-substantive content?
+     *  These are spans the agent deliberately skipped (preamble, signatures, page
+     *  numbers) — they don't represent gaps in extraction.
+     */
+    const NON_SUBSTANTIVE_KEYWORDS = [
+      'preamble', 'page header', 'page footer', 'page number', 'page label',
+      'header', 'footer', 'signature', 'signatures', 'signature block',
+      'table of contents', 'toc', 'cover page', 'cover', 'title page',
+      'blank', 'whitespace', 'non-substantive', 'non substantive',
+      'cross-reference only', 'cross reference', 'reference only',
+      'contact info', 'contact information', 'masthead',
+    ];
+
+    function isNonSubstantive(note) {
+      if (!note) return false;
+      const lower = note.toLowerCase();
+      return NON_SUBSTANTIVE_KEYWORDS.some(kw => lower.includes(kw));
+    }
+
+    function renderExtractionReport(extraction, sourceText, coveragePct) {
+      const right = $('right-body');
+      const wrap = document.createElement('div');
+      wrap.className = 'extraction-report';
+
+      const uncited = extraction.uncited_spans || [];
+      const substantiveUncited = uncited.filter(s => !isNonSubstantive(s.note));
+      const totalChars = extraction.document_total_chars || sourceText.length || 1;
+
+      // Per-type counts — what kinds of facts the extraction captured.
+      const typeCounts = {};
+      for (const n of (extraction.proposed_nodes || [])) {
+        const t = n.type || 'Unknown';
+        typeCounts[t] = (typeCounts[t] || 0) + 1;
+      }
+      const typeRows = Object.entries(typeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([t, n]) => `<li><span class="t">${escapeHtml(t)}</span><span class="n">${n}</span></li>`)
+        .join('');
+
+      // 5-second verdict.
+      let verdict, verdictClass, verdictDetail;
+      if (coveragePct >= 90 && substantiveUncited.length === 0) {
+        verdict = '✓ Looks complete';
+        verdictClass = 'ok';
+        verdictDetail = `${coveragePct.toFixed(1)}% of source text cited; ${uncited.length} uncited span${uncited.length === 1 ? '' : 's'}, all flagged as non-substantive (page chrome, signatures, etc.).`;
+      } else if (coveragePct >= 70 || substantiveUncited.length <= 2) {
+        verdict = '⚠ Review uncited spans';
+        verdictClass = 'warn';
+        verdictDetail = `${coveragePct.toFixed(1)}% cited. ${substantiveUncited.length} uncited span${substantiveUncited.length === 1 ? '' : 's'} may be substantive — open them below to check.`;
+      } else {
+        verdict = '✗ Likely incomplete';
+        verdictClass = 'bad';
+        verdictDetail = `Only ${coveragePct.toFixed(1)}% of source text cited. Re-extracting (or extending the prompt) is recommended before approval.`;
+      }
+
+      // Uncited spans list — clickable to highlight in the PDF / markdown.
+      const uncitedRows = uncited.length === 0
+        ? '<li style="color:var(--ink-5); padding:8px 0;">No uncited spans — every paragraph cites at least one extracted entity.</li>'
+        : uncited.map((u, i) => {
+            const non = isNonSubstantive(u.note);
+            const len = (u.char_end - u.char_start);
+            const marker = non
+              ? '<span class="badge ok">non-substantive</span>'
+              : '<span class="badge warn">review</span>';
+            return `
+              <li class="uncited-row${non ? ' non-substantive' : ''}" data-cs="${u.char_start}" data-ce="${u.char_end}">
+                <div class="head">
+                  <span class="rng">cols ${u.char_start}–${u.char_end}</span>
+                  <span class="dim">(${len.toLocaleString()} chars)</span>
+                  ${marker}
+                </div>
+                <div class="note">${escapeHtml(u.note || '(no reason given)')}</div>
+              </li>
+            `;
+          }).join('');
+
+      wrap.innerHTML = `
+        <div class="report-h">
+          <span class="title">Extraction Report</span>
+          <span class="verdict ${verdictClass}">${verdict}</span>
+        </div>
+        <div class="verdict-detail">${escapeHtml(verdictDetail)}</div>
+        <div class="cov-bar"><div class="cov-fill" style="width: ${Math.min(100, coveragePct).toFixed(1)}%"></div></div>
+        <div class="cov-meta">${coveragePct.toFixed(1)}% of ${totalChars.toLocaleString()} source chars covered by ${(extraction.citations || []).length} citation spans</div>
+
+        <details class="report-section" open>
+          <summary>What was captured (${(extraction.proposed_nodes || []).length} entities)</summary>
+          <ul class="type-counts">${typeRows}</ul>
+        </details>
+
+        <details class="report-section">
+          <summary>What was NOT captured (${uncited.length} uncited span${uncited.length === 1 ? '' : 's'}${substantiveUncited.length > 0 ? `, ${substantiveUncited.length} flagged for review` : ''})</summary>
+          <ul class="uncited-list">${uncitedRows}</ul>
+        </details>
+      `;
+      right.appendChild(wrap);
+
+      // Click an uncited span → highlight the corresponding range in the
+      // left pane (PDF if there's a PDF, markdown otherwise).
+      wrap.querySelectorAll('.uncited-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const cs = parseInt(row.dataset.cs, 10);
+          const ce = parseInt(row.dataset.ce, 10);
+          if (currentDoc?.has_pdf) {
+            // Find the snippet, search the text-layer for it.
+            const snippet = sourceText.slice(cs, ce).replace(/\s+/g, ' ').trim().slice(0, 120);
+            findAndHighlight(snippet, currentDoc?.pdf_start_page, currentDoc?.pdf_end_page);
+          } else {
+            highlightInMarkdown(cs, ce);
+          }
+        });
+      });
+    }
+
     function renderExtraction(extraction, sourceText) {
       const right = $('right-body');
       right.innerHTML = '';
@@ -1094,6 +1306,11 @@
         <div class="stat uncited"><div class="v">${extraction.uncited_spans.length}</div><div class="k">Uncited</div></div>
       `;
       right.appendChild(stats);
+
+      // Extraction Report — the compliance officer's sign-off view.
+      // Shows what was captured, what wasn't, and a 5-second verdict on
+      // whether the extraction looks complete enough to approve.
+      renderExtractionReport(extraction, sourceText, coverage);
 
       // Wire-format studio — shown only when this doc maps to one or more
       // RecordLayouts that the parser fully populated. This is the section
