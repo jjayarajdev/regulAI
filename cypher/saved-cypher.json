@@ -1,329 +1,399 @@
 [
   {
-    "id": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "name": "Business Questions (Compliance Officer's View)",
     "isFolder": true
   },
   {
-    "id": "f986a1da-3a42-4f37-8893-4a63c056b970",
-    "parentId": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "174c176d-d1c9-4627-a4d0-24b21d2a4894",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "isFolder": false,
     "name": "0.1  \"What does Texas require us to file?\"",
     "content": "//      The four monthly reports an insurer must submit to TICO. Each has\n//      its own record layout — a fixed-width 200-character format. This\n//      is the universe of regulatory output the rest of our compliance\n//      stack has to produce.\nMATCH (l:RecordLayout)\nWHERE l.name IN [\"Premium Record Layout\", \"Loss Record Layout\",\n                 \"Notice Record Layout\", \"Notice Count Record Layout\"]\nOPTIONAL MATCH (l)<-[:CONTAINED_IN]-(f:FieldRequirement)\nRETURN\n  l.name                           AS report_we_must_file,\n  count(DISTINCT f)                AS fields_per_record,\n  \"200-character fixed-width\"      AS wire_format\nORDER BY l.name"
   },
   {
-    "id": "c02431d6-7449-4583-bbcf-dc1c92b88ea8",
-    "parentId": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "90ee39c6-12cf-4b52-92f8-d5f0189bf816",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "isFolder": false,
     "name": "0.2  \"What are the legal Cause-of-Loss codes RIGHT NOW?\"",
     "content": "//      Filed today (any \"today\"), here are the values our claim system\n//      may emit. Notice this query has NO hard-coded date — it asks the\n//      KG for \"what's in effect at this moment\" and the KG answers\n//      using its versioning. Codes that have been retired or aren't\n//      yet effective are excluded automatically.\nMATCH (cl:CodeList {name: \"Cause of Loss Code List\"})-[:HAS_VALUE]->(cv:CodeValue)\nWHERE coalesce(cv.effective_from, date(\"1970-01-01\")) <= date()\n  AND (cv.effective_to IS NULL OR cv.effective_to > date())\nRETURN\n  cv.code                AS code_value,\n  cv.name                AS what_it_means,\n  cv.effective_from      AS in_effect_since\nORDER BY cv.code"
   },
   {
-    "id": "df876d7a-9542-4de3-a627-aa295f7bec4d",
-    "parentId": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "336636be-bdc3-4e88-bb1f-6840888e41c9",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "isFolder": false,
     "name": "0.3  \"What WAS legal as of August 2026, before the Named Storm bulletin?\"",
     "content": "//      Same query, different date. Compliance officers ask this all the\n//      time during audits: \"what was the rule on the day this claim was\n//      filed?\" The KG knows.\nMATCH (cl:CodeList {name: \"Cause of Loss Code List\"})-[:HAS_VALUE]->(cv:CodeValue)\nWHERE coalesce(cv.effective_from, date(\"1970-01-01\")) <= date(\"2026-08-01\")\n  AND (cv.effective_to IS NULL OR cv.effective_to > date(\"2026-08-01\"))\nRETURN cv.code AS code_value, cv.name AS what_it_means\nORDER BY cv.code"
   },
   {
-    "id": "42a0ca85-18f0-4bb2-a297-21c3dcfccdc0",
-    "parentId": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "5c5ecd21-6cef-456c-ba99-70bc1daa68a2",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "isFolder": false,
     "name": "0.4  \"What changed when the Q3 2026 bulletin took effect?\"",
     "content": "//      The complete impact of one regulation event, in one query.\n//      Tells you: what got retired, what's new, when the change kicks in.\n//      Without the KG, this would be a multi-page memo with footnotes.\nMATCH (b:BulletinOverride {name: \"Named Storm Cause of Loss Reporting Override\"})\nWITH b, date(b.effective_date) AS eff\nOPTIONAL MATCH (b)-[:OVERRIDES]->(retired)\nOPTIONAL MATCH (:CodeList {name: \"Cause of Loss Code List\"})-[:HAS_VALUE]->(new_code:CodeValue)\n  WHERE new_code.effective_from = eff\nOPTIONAL MATCH (:RecordLayout {name: \"Loss Record Layout\"})-[:REQUIRES]->(new_field:FieldRequirement)\n  WHERE new_field.effective_from = eff\nRETURN\n  eff                                                                                  AS change_takes_effect,\n  [x IN collect(DISTINCT retired.name)   WHERE x IS NOT NULL][..10]                    AS what_was_retired,\n  [x IN collect(DISTINCT new_code.name)  WHERE x IS NOT NULL][..10]                    AS new_codes_introduced,\n  [x IN collect(DISTINCT new_field.name) WHERE x IS NOT NULL]                          AS new_fields_now_required"
   },
   {
-    "id": "8231a1ac-b3ae-4eab-b3dd-050a3401f7ae",
-    "parentId": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "32a978f6-a422-4d71-aa5d-d0ff498dd903",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "isFolder": false,
     "name": "0.5  \"What does TICO want in column 5–6 of every Premium record?\"",
     "content": "//      The most concrete schema question. The result IS the spec.\n//      An IT system shipping anything other than these values for col 5-6\n//      will be rejected.\nMATCH (f:FieldRequirement {field_name: \"Record Type\", position_start: 5})\n      -[:CODED_BY]->(:CodeList)-[:HAS_VALUE]->(cv:CodeValue)\nRETURN\n  cv.code                          AS valid_value,\n  cv.notes                         AS meaning"
   },
   {
-    "id": "768c8fa5-36b7-4da4-a7c8-6488aaa9cdca",
-    "parentId": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "477fcb9b-0dda-4430-9c8e-a99e016d3c6c",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "isFolder": false,
     "name": "0.6  \"For an audit: prove the regulatory basis for one of our reporting fields\"",
     "content": "//      Pick ANY field that appears on our filings; the KG walks the chain\n//      back to the page in the source PDF. This is the audit answer to\n//      \"why does your system code this column this way?\"\n//      For demo: pick the Notice Record Layout's RSI (Reason Source Indicator).\nMATCH (f:FieldRequirement {field_name: \"Reason Source Indicator\"})\nOPTIONAL MATCH (f)-[c:CITES]->(d:RegulationDocument)\nRETURN\n  f.field_name                     AS field_in_our_report,\n  f.position_start                 AS column_position,\n  f.position_length                AS column_width,\n  d.name                           AS regulatory_source,\n  c.char_start                     AS span_in_source,\n  c.char_end                       AS span_end,\n  c.rects_json IS NOT NULL         AS has_pdf_rectangle_provenance"
   },
   {
-    "id": "ee63ea1f-ad53-483f-b75e-d7f2fb535b86",
-    "parentId": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "c4b50ed4-1cb1-49c3-b6fc-079582b47beb",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "isFolder": false,
     "name": "0.7  \"If our claim system emits a record with Cause of Loss = 25 for a",
     "content": "//       loss filed November 2026, will TICO accept it?\"\n//      The most concrete operational compliance question. Answer the KG\n//      gives: \"no, code 25 was superseded effective 2026-09-30; for losses\n//       on or after 2026-10-01 you must use 25 (Other Wind) or 26 (Named\n//       Storm Wind) and provide the new NAMED_STORM fields.\"\nMATCH (cv:CodeValue {code: \"25\"})<-[:HAS_VALUE]-(cl:CodeList {name: \"Cause of Loss Code List\"})\nRETURN\n  cv.code                                 AS code,\n  cv.status                               AS status_today,\n  cv.effective_to                         AS retired_on,\n  CASE WHEN cv.effective_to < date(\"2026-11-01\")\n       THEN \"INVALID — superseded before this filing date\"\n       ELSE \"valid\"\n  END                                     AS verdict_for_2026_11_01_filing"
   },
   {
-    "id": "ed25426e-941b-4007-b6ae-ca39b274fca5",
-    "parentId": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "46c6ad03-66b5-4b84-bc4f-a3d44f3f7f09",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "isFolder": false,
     "name": "0.8  \"How big is the compliance burden? How many distinct values does our",
     "content": "//       IT system need to know about?\"\n//      Headline number for the CIO. Every code listed below is a value the\n//      claim/policy system must support emitting correctly.\nMATCH (n:GRENode)\nWHERE labels(n)[1] IN [\"FieldRequirement\", \"CodeValue\", \"RecordLayout\"]\nWITH labels(n)[1] AS thing, count(n) AS n\nRETURN\n  CASE thing\n    WHEN \"RecordLayout\"     THEN \"Reports we file\"\n    WHEN \"FieldRequirement\" THEN \"Distinct fields across all reports\"\n    WHEN \"CodeValue\"        THEN \"Distinct enumerated values our IT must support\"\n  END                              AS item,\n  n                                AS count\nORDER BY count"
   },
   {
-    "id": "00fed8ca-b08d-4dcb-af4f-de80e9e092ef",
-    "parentId": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "d97ad6ca-72d8-4284-b628-faa32b525ba4",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "isFolder": false,
     "name": "0.9  \"Show me everything the bulletin changed — for the change-management memo\"",
     "content": "//      A natural-language summary of the bulletin's effects, ready to drop\n//      into an email to underwriting. The KG produces the change report.\nMATCH (b:BulletinOverride {name: \"Named Storm Cause of Loss Reporting Override\"})\nOPTIONAL MATCH (b)-[:CITES]->(rule:Rule)\nRETURN\n  b.name                                                       AS regulation_change,\n  b.effective_date                                             AS effective_from,\n  collect(DISTINCT rule.name)                                  AS sections_in_bulletin,\n  b.notes                                                      AS plain_english_summary"
   },
   {
-    "id": "5438328a-fb84-49fb-be6d-106312bd5712",
-    "parentId": "9832e885-68fd-4bd6-b233-ee1627014cb6",
+    "id": "1c562bec-4bd2-4234-a1ed-9920e5519ea0",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
     "isFolder": false,
     "name": "0.10  \"Are there any inconsistencies in our regulatory data set?\"",
-    "content": "//      Three sanity checks rolled into one. Empty result = clean.\n//      This is what a compliance officer wants to see before sign-off:\n//      \"no orphan rules, no missing layouts, no fields without source.\"\nCALL {\n  MATCH (l:RecordLayout) WHERE NOT (l)<-[:CONTAINED_IN]-(:FieldRequirement)\n                          AND NOT (l)-[:REQUIRES]->(:FieldRequirement)\n  RETURN \"report layout has no fields\" AS issue, l.name AS detail\n  UNION\n  MATCH (f:FieldRequirement) WHERE NOT (f)-[:CONTAINED_IN]->(:RecordLayout)\n                              AND NOT (:RecordLayout)-[:REQUIRES]->(f)\n  RETURN \"field not assigned to any report\" AS issue, f.name AS detail\n  UNION\n  MATCH (n:GRENode)\n  WHERE NOT (n)-[:CITES]->(:RegulationDocument)\n    AND NOT n:RegulationDocument\n    AND NOT n:Organization\n    AND NOT n:StatPlanEdition\n    AND NOT n:CodeValue\n    AND NOT n:CodeList\n  RETURN \"node has no regulatory citation\" AS issue, labels(n)[1] + \": \" + n.name AS detail\n}\nRETURN issue, detail\nORDER BY issue, detail\nLIMIT 20"
+    "content": "//      Three sanity checks rolled into one. Empty result = clean.\n//      This is what a compliance officer wants to see before sign-off:\n//      \"no orphan rules, no missing layouts, no fields without source.\"\nCALL {\n  MATCH (l:RecordLayout) WHERE NOT (l)<-[:CONTAINED_IN]-(:FieldRequirement)\n                          AND NOT (l)-[:REQUIRES]->(:FieldRequirement)\n  RETURN \"report layout has no fields\" AS issue, l.name AS detail\n  UNION\n  MATCH (f:FieldRequirement) WHERE NOT (f)-[:CONTAINED_IN]->(:RecordLayout)\n                              AND NOT (:RecordLayout)-[:REQUIRES]->(f)\n  RETURN \"field not assigned to any report\" AS issue, f.name AS detail\n  UNION\n  MATCH (n:GRENode)\n  WHERE NOT (n)-[:CITES]->(:RegulationDocument)\n    AND NOT n:RegulationDocument\n    AND NOT n:Organization\n    AND NOT n:StatPlanEdition\n    AND NOT n:CodeValue\n    AND NOT n:CodeList\n  RETURN \"node has no regulatory citation\" AS issue, labels(n)[1] + \": \" + n.name AS detail\n}\nRETURN issue, detail\nORDER BY issue, detail\nLIMIT 20;\n\n\n// ─────────────────────────────────────────────────────────────────────\n//  Operational questions (daily decisions)\n// ─────────────────────────────────────────────────────────────────────"
   },
   {
-    "id": "e4f2c5c0-2eb1-4888-8a25-dee16c6e4fcd",
+    "id": "d4b06c14-883d-4a81-aa4b-77266b60186a",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
+    "isFolder": false,
+    "name": "0.11  \"What does an HB 2067 cancellation/nonrenewal/declination notice",
+    "content": "//       need to contain?\"\n//      A claims-systems analyst's question — they're building the\n//      Notice extract pipeline and need the complete spec in one view.\nMATCH (l:RecordLayout {name: \"Notice Record Layout\"})<-[:CONTAINED_IN]-(f:FieldRequirement)\nWHERE NOT f.name STARTS WITH \"SKIP\"\nOPTIONAL MATCH (f)-[:CODED_BY]->(:CodeList)-[:HAS_VALUE]->(cv:CodeValue)\nRETURN\n  f.position_start                          AS column,\n  f.position_length                         AS width,\n  f.field_name                              AS field,\n  CASE WHEN f.is_required THEN \"yes\" ELSE \"no\" END  AS required,\n  count(DISTINCT cv)                        AS legal_codes\nORDER BY f.position_start"
+  },
+  {
+    "id": "4d0812bf-a478-4f91-9a47-00607a2095a7",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
+    "isFolder": false,
+    "name": "0.12  \"Which Cause-of-Loss code applies to a wind/hail claim from a",
+    "content": "//       named storm filed today?\"\n//      Decision support — \"the system flagged this claim as wind, but\n//      it was during a hurricane; what code is correct as of the\n//      filing date?\" The KG answers with the codes active right now,\n//      letting the underwriter pick the right one.\nMATCH (cl:CodeList {name: \"Cause of Loss Code List\"})-[:HAS_VALUE]->(cv:CodeValue)\nWHERE coalesce(cv.effective_from, date(\"1970-01-01\")) <= date()\n  AND (cv.effective_to IS NULL OR cv.effective_to > date())\n  AND (toLower(cv.name) CONTAINS \"wind\"\n       OR toLower(cv.name) CONTAINS \"storm\"\n       OR toLower(cv.name) CONTAINS \"hail\")\nRETURN\n  cv.code                                  AS code_to_use,\n  cv.name                                  AS what_it_means,\n  cv.effective_from                        AS in_effect_since"
+  },
+  {
+    "id": "09fb5780-da45-43ad-9ae7-edc230d1e912",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
+    "isFolder": false,
+    "name": "0.13  \"Show me all the HB 2067 reason codes our underwriters can use",
+    "content": "//       on a non-renewal notice.\"\n//      An underwriting team's question — they want the dropdown to\n//      populate with every legal value, sorted by code.\nMATCH (cl:CodeList {name: \"Reason Code List (RCL) — Notice Record Layout col36\"})\n      -[:HAS_VALUE]->(cv:CodeValue)\nRETURN cv.code AS code, cv.notes AS reason\nORDER BY cv.code;\n\n\n// ─────────────────────────────────────────────────────────────────────\n//  Audit & governance questions\n// ─────────────────────────────────────────────────────────────────────"
+  },
+  {
+    "id": "61accae0-e6ea-4a39-a222-e56b5ffb868d",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
+    "isFolder": false,
+    "name": "0.14  \"Show me every regulatory document our Texas filings depend on.\"",
+    "content": "//      Sources-of-truth catalog — what an external auditor would\n//      ask to see first. One row per regulation, grouped by kind.\nMATCH (d:RegulationDocument)\nRETURN\n  d.kind                                  AS kind,\n  d.name                                  AS document,\n  d.effective_from                        AS effective_from,\n  d.source_url                            AS source_url\nORDER BY d.kind, d.name"
+  },
+  {
+    "id": "32808f42-9edc-4c36-a557-7f4ffc99369d",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
+    "isFolder": false,
+    "name": "0.15  \"Who is TICO and what authorizes them to require these filings?\"",
+    "content": "//      Provenance for the regulatory authority itself, not just the\n//      rules. Walks: TICO → DESIGNATED_BY → TDI (the regulator) and\n//      shows the rule that establishes the designation.\nMATCH (tico:Organization {name: \"TICO\"})\nOPTIONAL MATCH (tico)-[:DESIGNATED_BY]->(tdi:Organization)\nOPTIONAL MATCH (rule:Rule) WHERE toLower(rule.name) CONTAINS \"designated\"\nRETURN\n  tico.name                                AS statistical_agent,\n  tico.org_kind                            AS role,\n  tdi.name                                 AS designated_by,\n  collect(rule.name)[..3]                  AS authorizing_rules"
+  },
+  {
+    "id": "947e294b-bbe5-4165-8127-6bf62399807f",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
+    "isFolder": false,
+    "name": "0.16  \"Which of our reports has had the most regulatory churn?\"",
+    "content": "//      Risk indicator: reports with many superseded fields/codes are\n//      the ones where IT systems are most likely to drift out of\n//      compliance. Helps prioritize re-validation cycles.\nMATCH (l:RecordLayout)<-[:CONTAINED_IN]-(f:FieldRequirement)\nOPTIONAL MATCH (f)-[:CODED_BY]->(:CodeList)-[:HAS_VALUE]->(cv:CodeValue)\n  WHERE cv.status = \"superseded\" OR cv.effective_from IS NOT NULL\nRETURN\n  l.name                                   AS report,\n  count(DISTINCT cv)                       AS values_with_lifecycle_changes\nORDER BY values_with_lifecycle_changes DESC;\n\n\n// ─────────────────────────────────────────────────────────────────────\n//  IT planning & cost questions\n// ─────────────────────────────────────────────────────────────────────"
+  },
+  {
+    "id": "2448c184-023d-4a1a-a158-0455de8fd77d",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
+    "isFolder": false,
+    "name": "0.17  \"Which fields require the most distinct codes?\"",
+    "content": "//      A CIO's question: \"what are the high-cardinality fields our\n//      claim/policy systems must support?\" Top entries are the ones\n//      where data-quality is hardest, reference-table maintenance\n//      is most costly, and validation is most error-prone.\nMATCH (f:FieldRequirement)-[:CODED_BY]->(cl:CodeList)-[:HAS_VALUE]->(cv:CodeValue)\nWHERE NOT f.name STARTS WITH \"SKIP\"\nWITH f, count(DISTINCT cv) AS n_codes\nRETURN\n  f.field_name                             AS field,\n  f.position_start                         AS column,\n  n_codes                                  AS distinct_legal_values\nORDER BY n_codes DESC LIMIT 10"
+  },
+  {
+    "id": "0aceee3d-740e-4c57-a179-0fb1aae1d6a0",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
+    "isFolder": false,
+    "name": "0.18  \"Compare the broad Stat Plan Premium layout vs the Homeowners-",
+    "content": "//       specific one — what's different?\"\n//      A scoping question for IT: \"do we need to support the wide\n//      schema or just the HO subset?\" Differences below show columns\n//      that exist in one but not the other.\nMATCH (l1:RecordLayout {name: \"Premium Record Layout\"})<-[:CONTAINED_IN]-(f1:FieldRequirement)\nWITH collect(DISTINCT [f1.position_start, f1.field_name]) AS broad\nMATCH (l2:RecordLayout {name: \"Homeowners Premium Record Layout\"})<-[:CONTAINED_IN]-(f2:FieldRequirement)\nWITH broad, collect(DISTINCT [f2.position_start, f2.field_name]) AS ho\nRETURN\n  size(broad)                              AS broad_layout_field_count,\n  size(ho)                                 AS ho_specific_field_count,\n  size([x IN broad WHERE NOT x IN ho])    AS in_broad_only,\n  size([x IN ho WHERE NOT x IN broad])    AS in_ho_only;\n\n\n// ─────────────────────────────────────────────────────────────────────\n//  Strategic oversight questions\n// ─────────────────────────────────────────────────────────────────────"
+  },
+  {
+    "id": "997239bd-763e-4d7a-98cf-373f3fc2f254",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
+    "isFolder": false,
+    "name": "0.19  \"What's the latest regulation update applied to our system?\"",
+    "content": "//      Recency / freshness — answer to \"when was our regulatory\n//      knowledge base last updated?\" Looks across BulletinOverrides\n//      and document effective dates.\nMATCH (b:BulletinOverride)\nWITH b ORDER BY b.effective_date DESC LIMIT 5\nRETURN\n  b.name                                   AS update_name,\n  b.effective_date                         AS effective_date,\n  b.notes                                  AS summary"
+  },
+  {
+    "id": "61ba9be5-ce1e-4049-95c2-51476dd5ac43",
+    "parentId": "294e91cb-3284-451d-8ceb-652cd9f9665e",
+    "isFolder": false,
+    "name": "0.20  \"What's the complete spec for a Premium filing in November 2026?\"",
+    "content": "//      Point-in-time complete spec — what fields are active, what\n//      codes are legal, all pinned to the as-of date. Useful for\n//      \"rebuild our pipeline for the November cutover\" or \"what\n//       would we have filed if it had been November already.\"\nWITH date(\"2026-11-01\") AS as_of\nMATCH (l:RecordLayout {name: \"Premium Record Layout\"})<-[:CONTAINED_IN]-(f:FieldRequirement)\nWHERE coalesce(f.effective_from, date(\"1970-01-01\")) <= as_of\n  AND (f.effective_to IS NULL OR f.effective_to > as_of)\n  AND NOT f.name STARTS WITH \"SKIP\"\nOPTIONAL MATCH (f)-[:CODED_BY]->(:CodeList)-[:HAS_VALUE]->(cv:CodeValue)\n  WHERE coalesce(cv.effective_from, date(\"1970-01-01\")) <= as_of\n    AND (cv.effective_to IS NULL OR cv.effective_to > as_of)\nRETURN\n  f.position_start                         AS column,\n  f.field_name                             AS field,\n  count(DISTINCT cv)                       AS active_codes_in_nov\nORDER BY f.position_start"
+  },
+  {
+    "id": "2b675cda-c968-45c5-ba25-2fa08a047090",
     "name": "KG Overview",
     "isFolder": true
   },
   {
-    "id": "324acd25-34ab-47e5-9dec-329dac7d089a",
-    "parentId": "e4f2c5c0-2eb1-4888-8a25-dee16c6e4fcd",
+    "id": "7fc3e24f-8d97-4cae-9c04-503632f89f67",
+    "parentId": "2b675cda-c968-45c5-ba25-2fa08a047090",
     "isFolder": false,
     "name": "1.1  Node count by type",
     "content": "//      What is in the KG, in one row per node type.\nMATCH (n:GRENode)\nRETURN labels(n)[1] AS type, count(n) AS count\nORDER BY count DESC"
   },
   {
-    "id": "4f076550-3017-43b0-9b01-0a4c1a43c964",
-    "parentId": "e4f2c5c0-2eb1-4888-8a25-dee16c6e4fcd",
+    "id": "7cea9518-f655-4b6c-8b0d-94471363aa0d",
+    "parentId": "2b675cda-c968-45c5-ba25-2fa08a047090",
     "isFolder": false,
     "name": "1.2  Relationship count by type",
     "content": "MATCH ()-[r]->()\nRETURN type(r) AS rel_type, count(r) AS count\nORDER BY count DESC"
   },
   {
-    "id": "6c6c8a29-885d-462d-8684-da3a3969c1f9",
-    "parentId": "e4f2c5c0-2eb1-4888-8a25-dee16c6e4fcd",
+    "id": "f023e9d8-181d-44ff-8ce2-f2f865ed6366",
+    "parentId": "2b675cda-c968-45c5-ba25-2fa08a047090",
     "isFolder": false,
     "name": "1.3  All RegulationDocuments + their kind",
     "content": "MATCH (d:RegulationDocument)\nRETURN d.name AS document, d.kind AS kind, d.effective_from AS effective_from\nORDER BY d.name"
   },
   {
-    "id": "e6e62c37-e7e1-4735-8bb7-f840313f5abc",
-    "parentId": "e4f2c5c0-2eb1-4888-8a25-dee16c6e4fcd",
+    "id": "b82170d7-ad1c-4553-bf5b-c46a99e2a005",
+    "parentId": "2b675cda-c968-45c5-ba25-2fa08a047090",
     "isFolder": false,
     "name": "1.4  All RecordLayouts with their connected field counts",
     "content": "//      (any layout with 0 fields is a phantom — `make rebuild-kg` keeps the canonical 6)\nMATCH (l:RecordLayout)\nOPTIONAL MATCH (f:FieldRequirement)\n  WHERE (f)-[:CONTAINED_IN]->(l) OR (l)-[:REQUIRES]->(f)\nRETURN l.name AS layout, count(DISTINCT f) AS field_count\nORDER BY field_count DESC, l.name"
   },
   {
-    "id": "28f50c61-5f89-4d25-aa8a-fa8b998caddf",
-    "parentId": "e4f2c5c0-2eb1-4888-8a25-dee16c6e4fcd",
+    "id": "ce3cf432-a8fa-4328-965e-7403c0882502",
+    "parentId": "2b675cda-c968-45c5-ba25-2fa08a047090",
     "isFolder": false,
     "name": "1.5  Top 20 nodes with the most outgoing relationships (graph hubs)",
     "content": "MATCH (n:GRENode)-[r]->()\nRETURN labels(n)[1] AS type, n.name AS name, count(r) AS out_degree\nORDER BY out_degree DESC LIMIT 20"
   },
   {
-    "id": "fe85a2ad-6c98-49ce-bd6d-f18c0adf0a6c",
+    "id": "c0dc585b-3582-4875-b62a-f8f99e784cd1",
     "name": "Wire Format Exploration",
     "isFolder": true
   },
   {
-    "id": "275bfb3e-8996-4b0b-99ca-9edca4e4d784",
-    "parentId": "fe85a2ad-6c98-49ce-bd6d-f18c0adf0a6c",
+    "id": "97354105-ac04-462b-abfd-501ea47b1593",
+    "parentId": "c0dc585b-3582-4875-b62a-f8f99e784cd1",
     "isFolder": false,
     "name": "2.1  Premium Record Layout — full column-by-column structure",
     "content": "//      The 71 fields covering cols 1..200 of a Premium record, with\n//      their format and code-list size.\nMATCH (l:RecordLayout {name: \"Premium Record Layout\"})<-[:CONTAINED_IN]-(f:FieldRequirement)\nOPTIONAL MATCH (f)-[:CODED_BY]->(cl:CodeList)\nOPTIONAL MATCH (cl)-[:HAS_VALUE]->(cv:CodeValue)\nRETURN\n  f.position_start          AS col,\n  f.position_length         AS len,\n  f.field_name              AS field,\n  f.format                  AS format,\n  count(DISTINCT cv)        AS n_codes\nORDER BY f.position_start"
   },
   {
-    "id": "7a837eb2-d6b6-44a4-83da-b0b69a763769",
-    "parentId": "fe85a2ad-6c98-49ce-bd6d-f18c0adf0a6c",
+    "id": "c8e45a97-a497-4909-aaac-63b75828de67",
+    "parentId": "c0dc585b-3582-4875-b62a-f8f99e784cd1",
     "isFolder": false,
     "name": "2.2  What does column 5–6 (RECORD TYPE) mean?",
     "content": "//      The KG's answer to \"what are the legal values at this column?\"\nMATCH (f:FieldRequirement {field_name: \"Record Type\", position_start: 5})\n      -[:CODED_BY]->(cl:CodeList)-[:HAS_VALUE]->(cv:CodeValue)\nRETURN cv.code AS code, cv.notes AS meaning\nORDER BY cv.code"
   },
   {
-    "id": "3bcf0f9e-3bcf-4b4a-883c-8863e4b537a1",
-    "parentId": "fe85a2ad-6c98-49ce-bd6d-f18c0adf0a6c",
+    "id": "1c26aa1c-6acf-408a-bf25-537c374d7258",
+    "parentId": "c0dc585b-3582-4875-b62a-f8f99e784cd1",
     "isFolder": false,
     "name": "2.3  Compare Stat Plan Premium Record vs Homeowners Premium Record",
     "content": "//      The Stat Plan layout is the broad residential schema; the HO layout\n//      is the operational subset insurers actually ship.\nMATCH (l:RecordLayout)\nWHERE l.name IN [\"Premium Record Layout\", \"Homeowners Premium Record Layout\"]\nOPTIONAL MATCH (l)<-[:CONTAINED_IN]-(f:FieldRequirement)\nRETURN l.name AS layout, count(DISTINCT f) AS fields\nORDER BY l.name"
   },
   {
-    "id": "7c66b98d-0e25-4c1a-bf26-6838ca692db5",
-    "parentId": "fe85a2ad-6c98-49ce-bd6d-f18c0adf0a6c",
+    "id": "c7d4d196-f7e9-463c-8ab4-3c2a6a261ca3",
+    "parentId": "c0dc585b-3582-4875-b62a-f8f99e784cd1",
     "isFolder": false,
     "name": "2.4  Which fields have NO code list (free-form)?",
     "content": "//      Useful as a coverage check: free-form fields can't be enum-validated;\n//      in the demo they're things like POLICY identifiers, dates, dollar amounts.\nMATCH (l:RecordLayout {name: \"Premium Record Layout\"})<-[:CONTAINED_IN]-(f:FieldRequirement)\nWHERE NOT (f)-[:CODED_BY]->(:CodeList)\n  AND NOT f.name STARTS WITH \"SKIP\"\nRETURN f.position_start AS col, f.field_name AS field, f.format AS format\nORDER BY f.position_start"
   },
   {
-    "id": "85743d10-464d-466a-a72c-49ee5a54b9eb",
-    "parentId": "fe85a2ad-6c98-49ce-bd6d-f18c0adf0a6c",
+    "id": "a585663b-2522-4f4a-bde9-f7561c8eecc5",
+    "parentId": "c0dc585b-3582-4875-b62a-f8f99e784cd1",
     "isFolder": false,
     "name": "2.5  Show the whole graph slice for one layout — visual rendering in Browser",
     "content": "//      Triggers the graph-view canvas: layout → fields → codelists → codevalues.\nMATCH (l:RecordLayout {name: \"Notice Record Layout\"})<-[:CONTAINED_IN]-(f:FieldRequirement)\nOPTIONAL MATCH (f)-[:CODED_BY]->(cl:CodeList)-[:HAS_VALUE]->(cv:CodeValue)\nRETURN l, f, cl, cv LIMIT 200"
   },
   {
-    "id": "ddae31f0-87ee-48b3-92dd-ae00b6e6f7bd",
+    "id": "0617f8c2-52ea-431d-9e21-440e2edbc5c1",
     "name": "Citation Provenance",
     "isFolder": true
   },
   {
-    "id": "0abd1bb7-f88c-413a-b938-7d97d2c17a43",
-    "parentId": "ddae31f0-87ee-48b3-92dd-ae00b6e6f7bd",
+    "id": "917a78b0-cfa6-4d68-9ec9-aaf5b103c7d3",
+    "parentId": "0617f8c2-52ea-431d-9e21-440e2edbc5c1",
     "isFolder": false,
     "name": "3.1  How a FieldRequirement traces to a regulation span",
     "content": "//      Pick a field, see the doc it cites, the char offset, and the\n//      number of bytes of stored PDF rectangle JSON.\nMATCH (f:FieldRequirement {field_name: \"Record Type\", position_start: 5})\n      -[c:CITES]->(d:RegulationDocument)\nRETURN\n  f.field_name                          AS field,\n  d.name                                AS document,\n  c.char_start                          AS span_start,\n  c.char_end                            AS span_end,\n  size(c.rects_json)                    AS rect_payload_bytes,\n  c.rects_json                          AS rects_json"
   },
   {
-    "id": "53b4d734-2c00-4ca9-a5fb-c0989f08173a",
-    "parentId": "ddae31f0-87ee-48b3-92dd-ae00b6e6f7bd",
+    "id": "a8ad202e-1c09-4775-a611-6f95710f7a79",
+    "parentId": "0617f8c2-52ea-431d-9e21-440e2edbc5c1",
     "isFolder": false,
     "name": "3.2  Click-through chain for code 25 (Windstorm)",
     "content": "//      CodeValue → CodeList → FieldRequirement → RecordLayout → RegulationDocument\nMATCH path = (cv:CodeValue {code: \"25\"})\n            <-[:HAS_VALUE]-(cl:CodeList)\nRETURN cv, cl, path LIMIT 5"
   },
   {
-    "id": "309ea359-205d-46bf-8c8a-147bc83b48a6",
-    "parentId": "ddae31f0-87ee-48b3-92dd-ae00b6e6f7bd",
+    "id": "618091c0-1fec-493e-88fe-87a060badd13",
+    "parentId": "0617f8c2-52ea-431d-9e21-440e2edbc5c1",
     "isFolder": false,
     "name": "3.3  All citations carrying PDF rectangle data",
     "content": "//      The hard provenance — every row corresponds to a highlighted region\n//      visible in the side-by-side UI.\nMATCH (n:GRENode)-[c:CITES]->(d:RegulationDocument)\nWHERE c.rects_json IS NOT NULL\nRETURN\n  labels(n)[1]              AS node_type,\n  n.name                    AS name,\n  d.name                    AS doc,\n  c.char_start              AS char_start,\n  c.char_end                AS char_end\nORDER BY d.name, c.char_start LIMIT 20"
   },
   {
-    "id": "cfeb0579-f4a8-44e1-a74d-1477c75365ce",
-    "parentId": "ddae31f0-87ee-48b3-92dd-ae00b6e6f7bd",
+    "id": "e87d808a-e2d5-4501-ba08-0a18d49a4bef",
+    "parentId": "0617f8c2-52ea-431d-9e21-440e2edbc5c1",
     "isFolder": false,
     "name": "3.4  Citation count per document (extraction quality at a glance)",
     "content": "MATCH (d:RegulationDocument)<-[c:CITES]-(n:GRENode)\nRETURN d.name AS document, count(c) AS citations\nORDER BY citations DESC"
   },
   {
-    "id": "c35ad7c0-d5c0-4d48-b63e-15f8661cc897",
-    "parentId": "ddae31f0-87ee-48b3-92dd-ae00b6e6f7bd",
+    "id": "cb10486c-d25b-423d-9d44-9200b1b8cd48",
+    "parentId": "0617f8c2-52ea-431d-9e21-440e2edbc5c1",
     "isFolder": false,
     "name": "3.5  Show me the full provenance for ONE node — used as the audit demo",
     "content": "//      Walks every CITES edge from a chosen node, with span info.\nMATCH (n:GRENode)-[c:CITES]->(d:RegulationDocument)\nWHERE n.name CONTAINS \"Cause of Loss Code 25\"\nRETURN n, c, d"
   },
   {
-    "id": "55897967-a016-4a0c-a31d-4ab180343088",
+    "id": "8c89a2a8-50f2-4d1d-ae17-5368dabbb81b",
     "name": "Temporal Pinning + Bulletin Re-evaluation",
     "isFolder": true
   },
   {
-    "id": "2461db35-dc31-46bf-b944-50b2c6f43ff4",
-    "parentId": "55897967-a016-4a0c-a31d-4ab180343088",
+    "id": "13af92ba-734a-42ea-ad03-536254a3ba4f",
+    "parentId": "8c89a2a8-50f2-4d1d-ae17-5368dabbb81b",
     "isFolder": false,
     "name": "4.1  Cause-of-Loss codes ACTIVE as of 2026-08-01 (BEFORE bulletin)",
     "content": "//      Should show codes 05, 10, 25 (Windstorm), 30, 32, 75.\nMATCH (cl:CodeList {name: \"Cause of Loss Code List\"})-[:HAS_VALUE]->(n:CodeValue)\nWHERE coalesce(n.effective_from, date(\"1970-01-01\")) <= date(\"2026-08-01\")\n  AND (n.effective_to IS NULL OR n.effective_to > date(\"2026-08-01\"))\nRETURN n.code AS code, n.name AS name,\n       n.effective_from AS eff_from, n.effective_to AS eff_to\nORDER BY n.code"
   },
   {
-    "id": "cdb1dbaf-a074-4f32-a004-1ac9b83ac6d9",
-    "parentId": "55897967-a016-4a0c-a31d-4ab180343088",
+    "id": "a8a12b0a-109f-4357-ab52-a1f7e56f77b9",
+    "parentId": "8c89a2a8-50f2-4d1d-ae17-5368dabbb81b",
     "isFolder": false,
     "name": "4.2  Cause-of-Loss codes ACTIVE as of 2026-11-01 (AFTER bulletin)",
     "content": "//      Should show codes 05, 10, 26 (Named Storm Wind), 30, 32, 75\n//      — code 25 is now superseded; code 26 has taken effect.\nMATCH (cl:CodeList {name: \"Cause of Loss Code List\"})-[:HAS_VALUE]->(n:CodeValue)\nWHERE coalesce(n.effective_from, date(\"1970-01-01\")) <= date(\"2026-11-01\")\n  AND (n.effective_to IS NULL OR n.effective_to > date(\"2026-11-01\"))\nRETURN n.code AS code, n.name AS name,\n       n.effective_from AS eff_from, n.effective_to AS eff_to\nORDER BY n.code"
   },
   {
-    "id": "adb310c8-fb44-4aba-8d89-642194b0f700",
-    "parentId": "55897967-a016-4a0c-a31d-4ab180343088",
+    "id": "c62f177b-d166-4827-9d19-a72c950261a2",
+    "parentId": "8c89a2a8-50f2-4d1d-ae17-5368dabbb81b",
     "isFolder": false,
     "name": "4.3  Show every BulletinOverride and what it overrides",
     "content": "MATCH (b:BulletinOverride)-[:OVERRIDES]->(target)\nRETURN\n  b.name                 AS bulletin,\n  b.effective_date       AS effective,\n  labels(target)[1]      AS target_type,\n  target.name            AS target_name,\n  target.status          AS target_status,\n  target.effective_to    AS target_eff_to\nORDER BY b.name, target_type"
   },
   {
-    "id": "870186b8-2fab-4b26-b884-060522411af6",
-    "parentId": "55897967-a016-4a0c-a31d-4ab180343088",
+    "id": "20dee590-1287-42d8-8471-92c8b7fd523e",
+    "parentId": "8c89a2a8-50f2-4d1d-ae17-5368dabbb81b",
     "isFolder": false,
     "name": "4.4  Bulletin's full impact graph (visual)",
     "content": "//      Renders the bulletin → rules it cites → nodes it overrides\n//      → new content it introduces.\nMATCH (b:BulletinOverride {name: \"Named Storm Cause of Loss Reporting Override\"})\nOPTIONAL MATCH (b)-[r1:CITES]->(rule:Rule)\nOPTIONAL MATCH (b)-[r2:OVERRIDES]->(target)\nOPTIONAL MATCH (rule)<-[:CITES]-(new_node)\n  WHERE NOT (b)-[:OVERRIDES]->(new_node)\n  AND NOT new_node:Rule AND NOT new_node:RegulationDocument\nRETURN b, r1, rule, r2, target, new_node LIMIT 50"
   },
   {
-    "id": "6c4891b5-2371-4b3c-9016-81f42908e955",
-    "parentId": "55897967-a016-4a0c-a31d-4ab180343088",
+    "id": "1a765d57-9707-4d14-979d-3faed4958765",
+    "parentId": "8c89a2a8-50f2-4d1d-ae17-5368dabbb81b",
     "isFolder": false,
     "name": "4.5  New required Loss Record fields introduced by the bulletin",
     "content": "//      The 3 NAMED_STORM_* fields and their effective dates.\nMATCH (l:RecordLayout {name: \"Loss Record Layout\"})-[:REQUIRES]->(f:FieldRequirement)\nWHERE f.name CONTAINS \"NAMED_STORM\"\nRETURN\n  f.position_start          AS col,\n  f.position_length         AS len,\n  f.name                    AS field,\n  f.format                  AS format,\n  f.effective_from          AS effective_from\nORDER BY f.position_start"
   },
   {
-    "id": "4a19f461-8dd9-4141-af9d-ea03ab88a5f7",
-    "parentId": "55897967-a016-4a0c-a31d-4ab180343088",
+    "id": "43634103-efa3-4523-a001-db6f49069a61",
+    "parentId": "8c89a2a8-50f2-4d1d-ae17-5368dabbb81b",
     "isFolder": false,
     "name": "4.6  All SUPERSEDES chains (versioning history)",
     "content": "//      Today only one chain (B-0008-25 → A.34) — but as bulletins\n//      accumulate this query shows the full edit history of any rule.\nMATCH (newer)-[s:SUPERSEDES]->(older)\nRETURN labels(newer)[1] AS type,\n       older.name AS old, newer.name AS new,\n       newer.effective_from AS new_effective_from"
   },
   {
-    "id": "279c86c6-a8e2-417f-ad7e-b8378dffb99c",
+    "id": "119f46f0-0f80-4fb2-88b3-fa585983bb82",
     "name": "KG Hygiene & Validation",
     "isFolder": true
   },
   {
-    "id": "bb6eb27d-b37e-4690-98f8-f2514632887d",
-    "parentId": "279c86c6-a8e2-417f-ad7e-b8378dffb99c",
+    "id": "ab80dd43-1f89-4d93-a45c-84c6e6132ae3",
+    "parentId": "119f46f0-0f80-4fb2-88b3-fa585983bb82",
     "isFolder": false,
     "name": "5.1  Phantom RecordLayouts (no field connected)",
     "content": "//      Should be EMPTY after cleanup. Anything here is an LLM-extraction\n//      variant of a parser-owned name.\nMATCH (l:RecordLayout)\nWHERE NOT (l)<-[:CONTAINED_IN]-(:FieldRequirement)\n  AND NOT (l)-[:REQUIRES]->(:FieldRequirement)\nRETURN l.name AS phantom_layout"
   },
   {
-    "id": "f808d05e-5eae-482b-b4ae-aa7450669a99",
-    "parentId": "279c86c6-a8e2-417f-ad7e-b8378dffb99c",
+    "id": "130d0c41-a342-4726-8d3d-5f34424a38c5",
+    "parentId": "119f46f0-0f80-4fb2-88b3-fa585983bb82",
     "isFolder": false,
     "name": "5.2  Orphan FieldRequirements (no layout)",
     "content": "//      Should be EMPTY. Anything here was extracted by Sentinel without\n//      a layout binding.\nMATCH (f:FieldRequirement)\nWHERE NOT (f)-[:CONTAINED_IN]->(:RecordLayout)\n  AND NOT (:RecordLayout)-[:REQUIRES]->(f)\nRETURN f.name AS orphan_field, f.position_start AS col"
   },
   {
-    "id": "75fa2b8d-2fe8-46e7-867f-95cadee6590b",
-    "parentId": "279c86c6-a8e2-417f-ad7e-b8378dffb99c",
+    "id": "011cf3d3-b419-4a6c-9b3a-38ac836e2da5",
+    "parentId": "119f46f0-0f80-4fb2-88b3-fa585983bb82",
     "isFolder": false,
     "name": "5.3  Fields with NULL position_start (cannot byte-validate)",
     "content": "//      Should be EMPTY for parser-owned layouts. A few may exist on\n//      LLM-extracted prose nodes.\nMATCH (f:FieldRequirement)\nWHERE f.position_start IS NULL\nRETURN f.name, f.field_name LIMIT 25"
   },
   {
-    "id": "adf4b38f-8502-485a-943c-7b6a35bc6d9c",
-    "parentId": "279c86c6-a8e2-417f-ad7e-b8378dffb99c",
+    "id": "e5ea1cb5-c2bc-4025-9c4b-45c1a3df543b",
+    "parentId": "119f46f0-0f80-4fb2-88b3-fa585983bb82",
     "isFolder": false,
     "name": "5.4  Layout coverage map — sum of field lengths per layout",
     "content": "//      For every canonical layout this should add up to ~200 (after\n//      excluding parents-with-subfields). Use this to spot gaps.\nMATCH (l:RecordLayout)<-[:CONTAINED_IN]-(f:FieldRequirement)\nRETURN l.name AS layout,\n       count(f) AS fields,\n       sum(coalesce(f.position_length, 0)) AS bytes_covered,\n       max(f.position_start + coalesce(f.position_length, 1) - 1) AS max_col\nORDER BY l.name"
   },
   {
-    "id": "f49fb462-8fdc-4e90-92cc-5b9f6031fed9",
-    "parentId": "279c86c6-a8e2-417f-ad7e-b8378dffb99c",
+    "id": "0c365536-3483-4774-a8e0-66069f781478",
+    "parentId": "119f46f0-0f80-4fb2-88b3-fa585983bb82",
     "isFolder": false,
     "name": "5.5  Citation rect coverage per document (data-quality signal)",
     "content": "//      Number of citations vs how many have rect data attached.\nMATCH (n:GRENode)-[c:CITES]->(d:RegulationDocument)\nRETURN d.name AS document,\n       count(c) AS total_citations,\n       count(CASE WHEN c.rects_json IS NOT NULL THEN 1 END) AS with_rects\nORDER BY d.name"
   },
   {
-    "id": "a9424019-ef48-485c-b061-6b99d10f855f",
-    "parentId": "279c86c6-a8e2-417f-ad7e-b8378dffb99c",
+    "id": "5fa4209b-8686-4ada-ae77-2268ce979317",
+    "parentId": "119f46f0-0f80-4fb2-88b3-fa585983bb82",
     "isFolder": false,
     "name": "5.6  Duplicate detection — same name + type",
     "content": "//      Should be EMPTY. If anything appears, there's a dedup bug.\nMATCH (a:GRENode), (b:GRENode)\nWHERE a.id < b.id\n  AND a.name = b.name\n  AND labels(a) = labels(b)\nRETURN a.name, labels(a)[1] AS type, count(*) AS duplicates"
   },
   {
-    "id": "6ec42501-7d5f-4fa2-acfb-63965589594d",
+    "id": "0894dc7f-5366-49ad-8718-5af1c3ad9145",
     "name": "The Killer Demo Queries",
     "isFolder": true
   },
   {
-    "id": "764ba5ca-331e-45c4-a9c6-c887f224ea80",
-    "parentId": "6ec42501-7d5f-4fa2-acfb-63965589594d",
+    "id": "a6485a22-0701-42d9-9d7c-7eb90927052d",
+    "parentId": "0894dc7f-5366-49ad-8718-5af1c3ad9145",
     "isFolder": false,
     "name": "6.1  ONE QUERY — Premium record's entire schema",
     "content": "//      \"What does TICO actually want in a Premium submission?\"\nMATCH (l:RecordLayout {name: \"Premium Record Layout\"})<-[:CONTAINED_IN]-(f:FieldRequirement)\nOPTIONAL MATCH (f)-[:CODED_BY]->(cl:CodeList)-[:HAS_VALUE]->(cv:CodeValue)\nRETURN\n  f.position_start AS col,\n  f.field_name     AS field,\n  f.format         AS format,\n  collect(DISTINCT cv.code)[..6] AS first_6_codes\nORDER BY f.position_start"
   },
   {
-    "id": "8cd70eae-0ea0-4e0e-87ec-880e3e6296b5",
-    "parentId": "6ec42501-7d5f-4fa2-acfb-63965589594d",
+    "id": "f18d9b82-3cde-42c8-9495-5b10cb86503f",
+    "parentId": "0894dc7f-5366-49ad-8718-5af1c3ad9145",
     "isFolder": false,
     "name": "6.2  ONE QUERY — what goes in column 5–6 today?",
     "content": "//      Live point-in-time question, answered in ms.\nMATCH (f:FieldRequirement {field_name: \"Record Type\", position_start: 5})\n      -[:CODED_BY]->(:CodeList)-[:HAS_VALUE]->(cv:CodeValue)\nWHERE coalesce(cv.effective_from, date(\"1970-01-01\")) <= date()\n  AND (cv.effective_to IS NULL OR cv.effective_to > date())\nRETURN cv.code AS code, cv.notes AS meaning\nORDER BY cv.code"
   },
   {
-    "id": "fa5166ab-8143-4fc7-ab59-57a1aabb65d0",
-    "parentId": "6ec42501-7d5f-4fa2-acfb-63965589594d",
+    "id": "19ad7eb9-3720-4e96-b986-d56a0d234b4e",
+    "parentId": "0894dc7f-5366-49ad-8718-5af1c3ad9145",
     "isFolder": false,
     "name": "6.3  ONE QUERY — full provenance for a single fact",
     "content": "//      \"How do you know Cause-of-Loss code 26 means Named Storm Wind?\"\n//      Walks all the way from the value, through the codelist, to the\n//      bulletin override that introduced it, to the bulletin's effective\n//      date and the rule it cites.\nMATCH (cv:CodeValue {code: \"26\"})\nWHERE cv.name CONTAINS \"Named Storm\"\nOPTIONAL MATCH (cl:CodeList)-[:HAS_VALUE]->(cv)\nOPTIONAL MATCH (b:BulletinOverride)\n  WHERE (b)-[:OVERRIDES]->(cl) OR (b)-[:OVERRIDES]->(:CodeValue)\nOPTIONAL MATCH (cv)-[:CITES]->(rule:Rule)-[:CONTAINED_IN]->(d:RegulationDocument)\nRETURN cv, cl, b, rule, d"
   },
   {
-    "id": "468b2eef-a980-4684-9eb1-4889e49069f1",
-    "parentId": "6ec42501-7d5f-4fa2-acfb-63965589594d",
+    "id": "33646e22-075e-4710-8624-a7ee0c0a7a03",
+    "parentId": "0894dc7f-5366-49ad-8718-5af1c3ad9145",
     "isFolder": false,
     "name": "6.4  ONE QUERY — bulletin diff visualization",
     "content": "//      Renders: bulletin → CodeList it overrides → before/after CodeValues.\n//      The most visually punchy slide in Browser's graph view.\nMATCH (b:BulletinOverride {name: \"Named Storm Cause of Loss Reporting Override\"})\nOPTIONAL MATCH (b)-[o:OVERRIDES]->(target)\nOPTIONAL MATCH (cl:CodeList {name: \"Cause of Loss Code List\"})-[:HAS_VALUE]->(cv:CodeValue)\nRETURN b, o, target, cl, cv LIMIT 30"
   },
   {
-    "id": "c63425a8-d368-4f19-8f98-6ba14bb6dcc2",
-    "parentId": "6ec42501-7d5f-4fa2-acfb-63965589594d",
+    "id": "fc5f6bc7-c007-4b8b-bd43-4992fb7a109a",
+    "parentId": "0894dc7f-5366-49ad-8718-5af1c3ad9145",
     "isFolder": false,
     "name": "6.5  ONE QUERY — KG can simulate an insurer submission",
     "content": "//      Returns the data the sample-record generator uses to produce\n//      a compliant 200-char Premium record.\nMATCH (l:RecordLayout {name: \"Premium Record Layout\"})<-[:CONTAINED_IN]-(f:FieldRequirement)\nOPTIONAL MATCH (f)-[:CODED_BY]->(:CodeList)-[:HAS_VALUE]->(cv:CodeValue)\n  WHERE coalesce(cv.effective_from, date(\"1970-01-01\")) <= date()\n    AND (cv.effective_to IS NULL OR cv.effective_to > date())\nRETURN\n  f.position_start AS col,\n  f.position_length AS len,\n  f.field_name AS field,\n  collect(DISTINCT cv.code) AS legal_codes_today\nORDER BY f.position_start"

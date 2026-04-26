@@ -169,3 +169,169 @@ CALL {
 RETURN issue, detail
 ORDER BY issue, detail
 LIMIT 20;
+
+
+// ─────────────────────────────────────────────────────────────────────
+//  Operational questions (daily decisions)
+// ─────────────────────────────────────────────────────────────────────
+
+
+// 0.11 "What does an HB 2067 cancellation/nonrenewal/declination notice
+//       need to contain?"
+//      A claims-systems analyst's question — they're building the
+//      Notice extract pipeline and need the complete spec in one view.
+MATCH (l:RecordLayout {name: "Notice Record Layout"})<-[:CONTAINED_IN]-(f:FieldRequirement)
+WHERE NOT f.name STARTS WITH "SKIP"
+OPTIONAL MATCH (f)-[:CODED_BY]->(:CodeList)-[:HAS_VALUE]->(cv:CodeValue)
+RETURN
+  f.position_start                          AS column,
+  f.position_length                         AS width,
+  f.field_name                              AS field,
+  CASE WHEN f.is_required THEN "yes" ELSE "no" END  AS required,
+  count(DISTINCT cv)                        AS legal_codes
+ORDER BY f.position_start;
+
+
+// 0.12 "Which Cause-of-Loss code applies to a wind/hail claim from a
+//       named storm filed today?"
+//      Decision support — "the system flagged this claim as wind, but
+//      it was during a hurricane; what code is correct as of the
+//      filing date?" The KG answers with the codes active right now,
+//      letting the underwriter pick the right one.
+MATCH (cl:CodeList {name: "Cause of Loss Code List"})-[:HAS_VALUE]->(cv:CodeValue)
+WHERE coalesce(cv.effective_from, date("1970-01-01")) <= date()
+  AND (cv.effective_to IS NULL OR cv.effective_to > date())
+  AND (toLower(cv.name) CONTAINS "wind"
+       OR toLower(cv.name) CONTAINS "storm"
+       OR toLower(cv.name) CONTAINS "hail")
+RETURN
+  cv.code                                  AS code_to_use,
+  cv.name                                  AS what_it_means,
+  cv.effective_from                        AS in_effect_since;
+
+
+// 0.13 "Show me all the HB 2067 reason codes our underwriters can use
+//       on a non-renewal notice."
+//      An underwriting team's question — they want the dropdown to
+//      populate with every legal value, sorted by code.
+MATCH (cl:CodeList {name: "Reason Code List (RCL) — Notice Record Layout col36"})
+      -[:HAS_VALUE]->(cv:CodeValue)
+RETURN cv.code AS code, cv.notes AS reason
+ORDER BY cv.code;
+
+
+// ─────────────────────────────────────────────────────────────────────
+//  Audit & governance questions
+// ─────────────────────────────────────────────────────────────────────
+
+
+// 0.14 "Show me every regulatory document our Texas filings depend on."
+//      Sources-of-truth catalog — what an external auditor would
+//      ask to see first. One row per regulation, grouped by kind.
+MATCH (d:RegulationDocument)
+RETURN
+  d.kind                                  AS kind,
+  d.name                                  AS document,
+  d.effective_from                        AS effective_from,
+  d.source_url                            AS source_url
+ORDER BY d.kind, d.name;
+
+
+// 0.15 "Who is TICO and what authorizes them to require these filings?"
+//      Provenance for the regulatory authority itself, not just the
+//      rules. Walks: TICO → DESIGNATED_BY → TDI (the regulator) and
+//      shows the rule that establishes the designation.
+MATCH (tico:Organization {name: "TICO"})
+OPTIONAL MATCH (tico)-[:DESIGNATED_BY]->(tdi:Organization)
+OPTIONAL MATCH (rule:Rule) WHERE toLower(rule.name) CONTAINS "designated"
+RETURN
+  tico.name                                AS statistical_agent,
+  tico.org_kind                            AS role,
+  tdi.name                                 AS designated_by,
+  collect(rule.name)[..3]                  AS authorizing_rules;
+
+
+// 0.16 "Which of our reports has had the most regulatory churn?"
+//      Risk indicator: reports with many superseded fields/codes are
+//      the ones where IT systems are most likely to drift out of
+//      compliance. Helps prioritize re-validation cycles.
+MATCH (l:RecordLayout)<-[:CONTAINED_IN]-(f:FieldRequirement)
+OPTIONAL MATCH (f)-[:CODED_BY]->(:CodeList)-[:HAS_VALUE]->(cv:CodeValue)
+  WHERE cv.status = "superseded" OR cv.effective_from IS NOT NULL
+RETURN
+  l.name                                   AS report,
+  count(DISTINCT cv)                       AS values_with_lifecycle_changes
+ORDER BY values_with_lifecycle_changes DESC;
+
+
+// ─────────────────────────────────────────────────────────────────────
+//  IT planning & cost questions
+// ─────────────────────────────────────────────────────────────────────
+
+
+// 0.17 "Which fields require the most distinct codes?"
+//      A CIO's question: "what are the high-cardinality fields our
+//      claim/policy systems must support?" Top entries are the ones
+//      where data-quality is hardest, reference-table maintenance
+//      is most costly, and validation is most error-prone.
+MATCH (f:FieldRequirement)-[:CODED_BY]->(cl:CodeList)-[:HAS_VALUE]->(cv:CodeValue)
+WHERE NOT f.name STARTS WITH "SKIP"
+WITH f, count(DISTINCT cv) AS n_codes
+RETURN
+  f.field_name                             AS field,
+  f.position_start                         AS column,
+  n_codes                                  AS distinct_legal_values
+ORDER BY n_codes DESC LIMIT 10;
+
+
+// 0.18 "Compare the broad Stat Plan Premium layout vs the Homeowners-
+//       specific one — what's different?"
+//      A scoping question for IT: "do we need to support the wide
+//      schema or just the HO subset?" Differences below show columns
+//      that exist in one but not the other.
+MATCH (l1:RecordLayout {name: "Premium Record Layout"})<-[:CONTAINED_IN]-(f1:FieldRequirement)
+WITH collect(DISTINCT [f1.position_start, f1.field_name]) AS broad
+MATCH (l2:RecordLayout {name: "Homeowners Premium Record Layout"})<-[:CONTAINED_IN]-(f2:FieldRequirement)
+WITH broad, collect(DISTINCT [f2.position_start, f2.field_name]) AS ho
+RETURN
+  size(broad)                              AS broad_layout_field_count,
+  size(ho)                                 AS ho_specific_field_count,
+  size([x IN broad WHERE NOT x IN ho])    AS in_broad_only,
+  size([x IN ho WHERE NOT x IN broad])    AS in_ho_only;
+
+
+// ─────────────────────────────────────────────────────────────────────
+//  Strategic oversight questions
+// ─────────────────────────────────────────────────────────────────────
+
+
+// 0.19 "What's the latest regulation update applied to our system?"
+//      Recency / freshness — answer to "when was our regulatory
+//      knowledge base last updated?" Looks across BulletinOverrides
+//      and document effective dates.
+MATCH (b:BulletinOverride)
+WITH b ORDER BY b.effective_date DESC LIMIT 5
+RETURN
+  b.name                                   AS update_name,
+  b.effective_date                         AS effective_date,
+  b.notes                                  AS summary;
+
+
+// 0.20 "What's the complete spec for a Premium filing in November 2026?"
+//      Point-in-time complete spec — what fields are active, what
+//      codes are legal, all pinned to the as-of date. Useful for
+//      "rebuild our pipeline for the November cutover" or "what
+//       would we have filed if it had been November already."
+WITH date("2026-11-01") AS as_of
+MATCH (l:RecordLayout {name: "Premium Record Layout"})<-[:CONTAINED_IN]-(f:FieldRequirement)
+WHERE coalesce(f.effective_from, date("1970-01-01")) <= as_of
+  AND (f.effective_to IS NULL OR f.effective_to > as_of)
+  AND NOT f.name STARTS WITH "SKIP"
+OPTIONAL MATCH (f)-[:CODED_BY]->(:CodeList)-[:HAS_VALUE]->(cv:CodeValue)
+  WHERE coalesce(cv.effective_from, date("1970-01-01")) <= as_of
+    AND (cv.effective_to IS NULL OR cv.effective_to > as_of)
+RETURN
+  f.position_start                         AS column,
+  f.field_name                             AS field,
+  count(DISTINCT cv)                       AS active_codes_in_nov
+ORDER BY f.position_start;

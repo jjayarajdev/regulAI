@@ -17,7 +17,7 @@
         <p>Curated queries that walk every facet of the LHS slice. Click <code>▶</code> on any code block to run it. Use the slide controls (top-right of this guide) to page through.</p>
         <p>Source: <code>cypher/*.cypher</code> in the repo. Runs against the local Neo4j (use <code>make rebuild-kg</code> first).</p>
         <h4>What's in here</h4>
-        <ol><li>Business Questions (Compliance Officer&#x27;s View) <em>(10 queries)</em></li>
+        <ol><li>Business Questions (Compliance Officer&#x27;s View) <em>(20 queries)</em></li>
       <li>KG Overview <em>(5 queries)</em></li>
       <li>Wire Format Exploration <em>(5 queries)</em></li>
       <li>Citation Provenance <em>(5 queries)</em></li>
@@ -28,7 +28,7 @@
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>1 / 42</h3>
+        <h3>1 / 52</h3>
         <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
       </div>
       <div class="col-sm-9">
@@ -50,7 +50,7 @@ ORDER BY l.name</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>2 / 42</h3>
+        <h3>2 / 52</h3>
         <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
       </div>
       <div class="col-sm-9">
@@ -71,7 +71,7 @@ ORDER BY cv.code</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>3 / 42</h3>
+        <h3>3 / 52</h3>
         <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
       </div>
       <div class="col-sm-9">
@@ -89,7 +89,7 @@ ORDER BY cv.code</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>4 / 42</h3>
+        <h3>4 / 52</h3>
         <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
       </div>
       <div class="col-sm-9">
@@ -114,7 +114,7 @@ RETURN
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>5 / 42</h3>
+        <h3>5 / 52</h3>
         <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
       </div>
       <div class="col-sm-9">
@@ -132,7 +132,7 @@ RETURN
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>6 / 42</h3>
+        <h3>6 / 52</h3>
         <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
       </div>
       <div class="col-sm-9">
@@ -155,7 +155,7 @@ RETURN
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>7 / 42</h3>
+        <h3>7 / 52</h3>
         <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
       </div>
       <div class="col-sm-9">
@@ -177,7 +177,7 @@ RETURN
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>8 / 42</h3>
+        <h3>8 / 52</h3>
         <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
       </div>
       <div class="col-sm-9">
@@ -201,7 +201,7 @@ ORDER BY count</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>9 / 42</h3>
+        <h3>9 / 52</h3>
         <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
       </div>
       <div class="col-sm-9">
@@ -221,7 +221,7 @@ RETURN
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>10 / 42</h3>
+        <h3>10 / 52</h3>
         <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
       </div>
       <div class="col-sm-9">
@@ -248,14 +248,246 @@ RETURN
 }
 RETURN issue, detail
 ORDER BY issue, detail
-LIMIT 20</pre>
+LIMIT 20;
+
+
+// ─────────────────────────────────────────────────────────────────────
+//  Operational questions (daily decisions)
+// ─────────────────────────────────────────────────────────────────────</pre>
           <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
         </figure>
       </div>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>11 / 42</h3>
+        <h3>11 / 52</h3>
+        <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>0.11  &quot;What does an HB 2067 cancellation/nonrenewal/declination notice</h3>
+        <p>need to contain?&quot; A claims-systems analyst&#x27;s question — they&#x27;re building the Notice extract pipeline and need the complete spec in one view.</p>
+        <figure>
+          <pre mode="cypher" class="pre-scrollable code runnable">MATCH (l:RecordLayout {name: &quot;Notice Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
+WHERE NOT f.name STARTS WITH &quot;SKIP&quot;
+OPTIONAL MATCH (f)-[:CODED_BY]-&gt;(:CodeList)-[:HAS_VALUE]-&gt;(cv:CodeValue)
+RETURN
+  f.position_start                          AS column,
+  f.position_length                         AS width,
+  f.field_name                              AS field,
+  CASE WHEN f.is_required THEN &quot;yes&quot; ELSE &quot;no&quot; END  AS required,
+  count(DISTINCT cv)                        AS legal_codes
+ORDER BY f.position_start</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>12 / 52</h3>
+        <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>0.12  &quot;Which Cause-of-Loss code applies to a wind/hail claim from a</h3>
+        <p>named storm filed today?&quot; Decision support — &quot;the system flagged this claim as wind, but it was during a hurricane; what code is correct as of the filing date?&quot; The KG answers with the codes active right now, letting the underwriter pick the right one.</p>
+        <figure>
+          <pre mode="cypher" class="pre-scrollable code runnable">MATCH (cl:CodeList {name: &quot;Cause of Loss Code List&quot;})-[:HAS_VALUE]-&gt;(cv:CodeValue)
+WHERE coalesce(cv.effective_from, date(&quot;1970-01-01&quot;)) &lt;= date()
+  AND (cv.effective_to IS NULL OR cv.effective_to &gt; date())
+  AND (toLower(cv.name) CONTAINS &quot;wind&quot;
+       OR toLower(cv.name) CONTAINS &quot;storm&quot;
+       OR toLower(cv.name) CONTAINS &quot;hail&quot;)
+RETURN
+  cv.code                                  AS code_to_use,
+  cv.name                                  AS what_it_means,
+  cv.effective_from                        AS in_effect_since</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>13 / 52</h3>
+        <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>0.13  &quot;Show me all the HB 2067 reason codes our underwriters can use</h3>
+        <p>on a non-renewal notice.&quot; An underwriting team&#x27;s question — they want the dropdown to populate with every legal value, sorted by code.</p>
+        <figure>
+          <pre mode="cypher" class="pre-scrollable code runnable">MATCH (cl:CodeList {name: &quot;Reason Code List (RCL) — Notice Record Layout col36&quot;})
+      -[:HAS_VALUE]-&gt;(cv:CodeValue)
+RETURN cv.code AS code, cv.notes AS reason
+ORDER BY cv.code;
+
+
+// ─────────────────────────────────────────────────────────────────────
+//  Audit &amp; governance questions
+// ─────────────────────────────────────────────────────────────────────</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>14 / 52</h3>
+        <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>0.14  &quot;Show me every regulatory document our Texas filings depend on.&quot;</h3>
+        <p>Sources-of-truth catalog — what an external auditor would ask to see first. One row per regulation, grouped by kind.</p>
+        <figure>
+          <pre mode="cypher" class="pre-scrollable code runnable">MATCH (d:RegulationDocument)
+RETURN
+  d.kind                                  AS kind,
+  d.name                                  AS document,
+  d.effective_from                        AS effective_from,
+  d.source_url                            AS source_url
+ORDER BY d.kind, d.name</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>15 / 52</h3>
+        <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>0.15  &quot;Who is TICO and what authorizes them to require these filings?&quot;</h3>
+        <p>Provenance for the regulatory authority itself, not just the rules. Walks: TICO → DESIGNATED_BY → TDI (the regulator) and shows the rule that establishes the designation.</p>
+        <figure>
+          <pre mode="cypher" class="pre-scrollable code runnable">MATCH (tico:Organization {name: &quot;TICO&quot;})
+OPTIONAL MATCH (tico)-[:DESIGNATED_BY]-&gt;(tdi:Organization)
+OPTIONAL MATCH (rule:Rule) WHERE toLower(rule.name) CONTAINS &quot;designated&quot;
+RETURN
+  tico.name                                AS statistical_agent,
+  tico.org_kind                            AS role,
+  tdi.name                                 AS designated_by,
+  collect(rule.name)[..3]                  AS authorizing_rules</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>16 / 52</h3>
+        <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>0.16  &quot;Which of our reports has had the most regulatory churn?&quot;</h3>
+        <p>Risk indicator: reports with many superseded fields/codes are the ones where IT systems are most likely to drift out of compliance. Helps prioritize re-validation cycles.</p>
+        <figure>
+          <pre mode="cypher" class="pre-scrollable code runnable">MATCH (l:RecordLayout)&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
+OPTIONAL MATCH (f)-[:CODED_BY]-&gt;(:CodeList)-[:HAS_VALUE]-&gt;(cv:CodeValue)
+  WHERE cv.status = &quot;superseded&quot; OR cv.effective_from IS NOT NULL
+RETURN
+  l.name                                   AS report,
+  count(DISTINCT cv)                       AS values_with_lifecycle_changes
+ORDER BY values_with_lifecycle_changes DESC;
+
+
+// ─────────────────────────────────────────────────────────────────────
+//  IT planning &amp; cost questions
+// ─────────────────────────────────────────────────────────────────────</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>17 / 52</h3>
+        <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>0.17  &quot;Which fields require the most distinct codes?&quot;</h3>
+        <p>A CIO&#x27;s question: &quot;what are the high-cardinality fields our claim/policy systems must support?&quot; Top entries are the ones where data-quality is hardest, reference-table maintenance is most costly, and validation is most error-prone.</p>
+        <figure>
+          <pre mode="cypher" class="pre-scrollable code runnable">MATCH (f:FieldRequirement)-[:CODED_BY]-&gt;(cl:CodeList)-[:HAS_VALUE]-&gt;(cv:CodeValue)
+WHERE NOT f.name STARTS WITH &quot;SKIP&quot;
+WITH f, count(DISTINCT cv) AS n_codes
+RETURN
+  f.field_name                             AS field,
+  f.position_start                         AS column,
+  n_codes                                  AS distinct_legal_values
+ORDER BY n_codes DESC LIMIT 10</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>18 / 52</h3>
+        <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>0.18  &quot;Compare the broad Stat Plan Premium layout vs the Homeowners-</h3>
+        <p>specific one — what&#x27;s different?&quot; A scoping question for IT: &quot;do we need to support the wide schema or just the HO subset?&quot; Differences below show columns that exist in one but not the other.</p>
+        <figure>
+          <pre mode="cypher" class="pre-scrollable code runnable">MATCH (l1:RecordLayout {name: &quot;Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f1:FieldRequirement)
+WITH collect(DISTINCT [f1.position_start, f1.field_name]) AS broad
+MATCH (l2:RecordLayout {name: &quot;Homeowners Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f2:FieldRequirement)
+WITH broad, collect(DISTINCT [f2.position_start, f2.field_name]) AS ho
+RETURN
+  size(broad)                              AS broad_layout_field_count,
+  size(ho)                                 AS ho_specific_field_count,
+  size([x IN broad WHERE NOT x IN ho])    AS in_broad_only,
+  size([x IN ho WHERE NOT x IN broad])    AS in_ho_only;
+
+
+// ─────────────────────────────────────────────────────────────────────
+//  Strategic oversight questions
+// ─────────────────────────────────────────────────────────────────────</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>19 / 52</h3>
+        <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>0.19  &quot;What&#x27;s the latest regulation update applied to our system?&quot;</h3>
+        <p>Recency / freshness — answer to &quot;when was our regulatory knowledge base last updated?&quot; Looks across BulletinOverrides and document effective dates.</p>
+        <figure>
+          <pre mode="cypher" class="pre-scrollable code runnable">MATCH (b:BulletinOverride)
+WITH b ORDER BY b.effective_date DESC LIMIT 5
+RETURN
+  b.name                                   AS update_name,
+  b.effective_date                         AS effective_date,
+  b.notes                                  AS summary</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>20 / 52</h3>
+        <p class="lead">Business Questions (Compliance Officer&#x27;s View)</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>0.20  &quot;What&#x27;s the complete spec for a Premium filing in November 2026?&quot;</h3>
+        <p>Point-in-time complete spec — what fields are active, what codes are legal, all pinned to the as-of date. Useful for &quot;rebuild our pipeline for the November cutover&quot; or &quot;what would we have filed if it had been November already.&quot;</p>
+        <figure>
+          <pre mode="cypher" class="pre-scrollable code runnable">WITH date(&quot;2026-11-01&quot;) AS as_of
+MATCH (l:RecordLayout {name: &quot;Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
+WHERE coalesce(f.effective_from, date(&quot;1970-01-01&quot;)) &lt;= as_of
+  AND (f.effective_to IS NULL OR f.effective_to &gt; as_of)
+  AND NOT f.name STARTS WITH &quot;SKIP&quot;
+OPTIONAL MATCH (f)-[:CODED_BY]-&gt;(:CodeList)-[:HAS_VALUE]-&gt;(cv:CodeValue)
+  WHERE coalesce(cv.effective_from, date(&quot;1970-01-01&quot;)) &lt;= as_of
+    AND (cv.effective_to IS NULL OR cv.effective_to &gt; as_of)
+RETURN
+  f.position_start                         AS column,
+  f.field_name                             AS field,
+  count(DISTINCT cv)                       AS active_codes_in_nov
+ORDER BY f.position_start</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>21 / 52</h3>
         <p class="lead">KG Overview</p>
       </div>
       <div class="col-sm-9">
@@ -271,7 +503,7 @@ ORDER BY count DESC</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>12 / 42</h3>
+        <h3>22 / 52</h3>
         <p class="lead">KG Overview</p>
       </div>
       <div class="col-sm-9">
@@ -287,7 +519,7 @@ ORDER BY count DESC</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>13 / 42</h3>
+        <h3>23 / 52</h3>
         <p class="lead">KG Overview</p>
       </div>
       <div class="col-sm-9">
@@ -303,7 +535,7 @@ ORDER BY d.name</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>14 / 42</h3>
+        <h3>24 / 52</h3>
         <p class="lead">KG Overview</p>
       </div>
       <div class="col-sm-9">
@@ -321,7 +553,7 @@ ORDER BY field_count DESC, l.name</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>15 / 42</h3>
+        <h3>25 / 52</h3>
         <p class="lead">KG Overview</p>
       </div>
       <div class="col-sm-9">
@@ -337,7 +569,7 @@ ORDER BY out_degree DESC LIMIT 20</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>16 / 42</h3>
+        <h3>26 / 52</h3>
         <p class="lead">Wire Format Exploration</p>
       </div>
       <div class="col-sm-9">
@@ -360,7 +592,7 @@ ORDER BY f.position_start</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>17 / 42</h3>
+        <h3>27 / 52</h3>
         <p class="lead">Wire Format Exploration</p>
       </div>
       <div class="col-sm-9">
@@ -377,7 +609,7 @@ ORDER BY cv.code</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>18 / 42</h3>
+        <h3>28 / 52</h3>
         <p class="lead">Wire Format Exploration</p>
       </div>
       <div class="col-sm-9">
@@ -395,7 +627,7 @@ ORDER BY l.name</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>19 / 42</h3>
+        <h3>29 / 52</h3>
         <p class="lead">Wire Format Exploration</p>
       </div>
       <div class="col-sm-9">
@@ -413,7 +645,7 @@ ORDER BY f.position_start</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>20 / 42</h3>
+        <h3>30 / 52</h3>
         <p class="lead">Wire Format Exploration</p>
       </div>
       <div class="col-sm-9">
@@ -429,7 +661,7 @@ RETURN l, f, cl, cv LIMIT 200</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>21 / 42</h3>
+        <h3>31 / 52</h3>
         <p class="lead">Citation Provenance</p>
       </div>
       <div class="col-sm-9">
@@ -451,7 +683,7 @@ RETURN
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>22 / 42</h3>
+        <h3>32 / 52</h3>
         <p class="lead">Citation Provenance</p>
       </div>
       <div class="col-sm-9">
@@ -467,7 +699,7 @@ RETURN cv, cl, path LIMIT 5</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>23 / 42</h3>
+        <h3>33 / 52</h3>
         <p class="lead">Citation Provenance</p>
       </div>
       <div class="col-sm-9">
@@ -489,7 +721,7 @@ ORDER BY d.name, c.char_start LIMIT 20</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>24 / 42</h3>
+        <h3>34 / 52</h3>
         <p class="lead">Citation Provenance</p>
       </div>
       <div class="col-sm-9">
@@ -505,7 +737,7 @@ ORDER BY citations DESC</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>25 / 42</h3>
+        <h3>35 / 52</h3>
         <p class="lead">Citation Provenance</p>
       </div>
       <div class="col-sm-9">
@@ -521,7 +753,7 @@ RETURN n, c, d</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>26 / 42</h3>
+        <h3>36 / 52</h3>
         <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
       </div>
       <div class="col-sm-9">
@@ -540,7 +772,7 @@ ORDER BY n.code</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>27 / 42</h3>
+        <h3>37 / 52</h3>
         <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
       </div>
       <div class="col-sm-9">
@@ -559,7 +791,7 @@ ORDER BY n.code</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>28 / 42</h3>
+        <h3>38 / 52</h3>
         <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
       </div>
       <div class="col-sm-9">
@@ -581,7 +813,7 @@ ORDER BY b.name, target_type</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>29 / 42</h3>
+        <h3>39 / 52</h3>
         <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
       </div>
       <div class="col-sm-9">
@@ -601,7 +833,7 @@ RETURN b, r1, rule, r2, target, new_node LIMIT 50</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>30 / 42</h3>
+        <h3>40 / 52</h3>
         <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
       </div>
       <div class="col-sm-9">
@@ -623,7 +855,7 @@ ORDER BY f.position_start</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>31 / 42</h3>
+        <h3>41 / 52</h3>
         <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
       </div>
       <div class="col-sm-9">
@@ -640,7 +872,7 @@ RETURN labels(newer)[1] AS type,
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>32 / 42</h3>
+        <h3>42 / 52</h3>
         <p class="lead">KG Hygiene &amp; Validation</p>
       </div>
       <div class="col-sm-9">
@@ -657,7 +889,7 @@ RETURN l.name AS phantom_layout</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>33 / 42</h3>
+        <h3>43 / 52</h3>
         <p class="lead">KG Hygiene &amp; Validation</p>
       </div>
       <div class="col-sm-9">
@@ -674,7 +906,7 @@ RETURN f.name AS orphan_field, f.position_start AS col</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>34 / 42</h3>
+        <h3>44 / 52</h3>
         <p class="lead">KG Hygiene &amp; Validation</p>
       </div>
       <div class="col-sm-9">
@@ -690,7 +922,7 @@ RETURN f.name, f.field_name LIMIT 25</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>35 / 42</h3>
+        <h3>45 / 52</h3>
         <p class="lead">KG Hygiene &amp; Validation</p>
       </div>
       <div class="col-sm-9">
@@ -709,7 +941,7 @@ ORDER BY l.name</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>36 / 42</h3>
+        <h3>46 / 52</h3>
         <p class="lead">KG Hygiene &amp; Validation</p>
       </div>
       <div class="col-sm-9">
@@ -727,7 +959,7 @@ ORDER BY d.name</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>37 / 42</h3>
+        <h3>47 / 52</h3>
         <p class="lead">KG Hygiene &amp; Validation</p>
       </div>
       <div class="col-sm-9">
@@ -745,7 +977,7 @@ RETURN a.name, labels(a)[1] AS type, count(*) AS duplicates</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>38 / 42</h3>
+        <h3>48 / 52</h3>
         <p class="lead">The Killer Demo Queries</p>
       </div>
       <div class="col-sm-9">
@@ -766,7 +998,7 @@ ORDER BY f.position_start</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>39 / 42</h3>
+        <h3>49 / 52</h3>
         <p class="lead">The Killer Demo Queries</p>
       </div>
       <div class="col-sm-9">
@@ -785,7 +1017,7 @@ ORDER BY cv.code</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>40 / 42</h3>
+        <h3>50 / 52</h3>
         <p class="lead">The Killer Demo Queries</p>
       </div>
       <div class="col-sm-9">
@@ -805,7 +1037,7 @@ RETURN cv, cl, b, rule, d</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>41 / 42</h3>
+        <h3>51 / 52</h3>
         <p class="lead">The Killer Demo Queries</p>
       </div>
       <div class="col-sm-9">
@@ -822,7 +1054,7 @@ RETURN b, o, target, cl, cv LIMIT 30</pre>
     </slide>
     <slide class="row-fluid">
       <div class="col-sm-3">
-        <h3>42 / 42</h3>
+        <h3>52 / 52</h3>
         <p class="lead">The Killer Demo Queries</p>
       </div>
       <div class="col-sm-9">
