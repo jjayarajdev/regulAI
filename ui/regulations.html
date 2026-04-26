@@ -697,11 +697,46 @@
       if (rectsList && rectsList[citationIdx] && rectsList[citationIdx].length) {
         if (highlightByRects(rectsList[citationIdx])) return true;
       }
-      // Fallback: text-layer search (less reliable but a safety net).
       const c = extraction.citations[citationIdx];
       if (!c) return false;
+
+      // For markdown-only docs (synthetic bulletins, HB 2067 statute when
+      // not bound to a PDF) — highlight the cited char range in the
+      // rendered .doc-text element, since there's no PDF text-layer to
+      // search.
+      if (!currentDoc?.has_pdf) {
+        return highlightInMarkdown(c.char_start, c.char_end);
+      }
+      // PDF docs: text-layer fuzzy search as a last resort.
       const text = citedText(extraction, sourceText, c);
       return findAndHighlight(text, currentDoc?.pdf_start_page, currentDoc?.pdf_end_page);
+    }
+
+    /** Highlight a char range [cs, ce) in the rendered markdown view. */
+    function highlightInMarkdown(charStart, charEnd) {
+      const txt = document.querySelector('#left-body .doc-text');
+      if (!txt) return false;
+      // Use the original full text (cached on the element on first highlight)
+      // so we can re-highlight without permanent DOM mutation.
+      let full = txt.dataset.fullText;
+      if (full == null) {
+        full = txt.textContent;
+        txt.dataset.fullText = full;
+      }
+      const cs = Math.max(0, charStart | 0);
+      const ce = Math.min(full.length, charEnd | 0);
+      if (ce <= cs) return false;
+
+      // Rebuild as before-text + <mark.cite.active> + after-text.
+      txt.innerHTML = '';
+      txt.appendChild(document.createTextNode(full.slice(0, cs)));
+      const mark = document.createElement('mark');
+      mark.className = 'cite active';
+      mark.textContent = full.slice(cs, ce);
+      txt.appendChild(mark);
+      txt.appendChild(document.createTextNode(full.slice(ce)));
+      mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return true;
     }
 
     /** Highlight `snippet` in the PDF, restricted to [minPage..maxPage] when given. */
