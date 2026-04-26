@@ -74,6 +74,13 @@ if MOCK_UI_DIR.exists():
 
 @app.get("/")
 def root() -> FileResponse:
+    """Stakeholder-friendly landing page."""
+    return FileResponse(UI_DIR / "index.html")
+
+
+@app.get("/explore")
+def explore() -> FileResponse:
+    """Side-by-side regulation review UI (the working tool)."""
     return FileResponse(UI_DIR / "regulations.html")
 
 
@@ -285,6 +292,122 @@ def cypher_guide() -> HTMLResponse:
             detail=f"Guide not built yet. Run `make cypher-guide` to generate {guide_path}.",
         )
     return HTMLResponse(content=guide_path.read_text(encoding="utf-8"))
+
+
+# -- Landing-page data --------------------------------------------------------
+
+
+@app.get("/api/landing/stats")
+def landing_stats() -> JSONResponse:
+    """Headline numbers for the stakeholder landing page.
+
+    Pulled live so the demo cannot accidentally show stale numbers.
+    """
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session() as s:
+            totals = s.run("""
+                MATCH (n:GRENode) WITH count(n) AS nodes
+                MATCH ()-[r]->() WITH nodes, count(r) AS rels
+                MATCH (l:RecordLayout)
+                  WHERE l.name IN ["Premium Record Layout", "Loss Record Layout",
+                                   "Notice Record Layout", "Notice Count Record Layout",
+                                   "Homeowners Premium Record Layout",
+                                   "Homeowners Loss Record Layout"]
+                  AND (l)<-[:CONTAINED_IN]-(:FieldRequirement)
+                WITH nodes, rels, count(l) AS complete_layouts
+                MATCH (b:BulletinOverride)
+                RETURN nodes, rels, complete_layouts, count(b) AS active_bulletins
+            """).single()
+            # Citation rect coverage from the on-disk artefacts
+            rects_total = rects_with = 0
+            for p in Path("materialized/extractions").glob("*.rects.json"):
+                bundle = json.loads(p.read_text(encoding="utf-8"))
+                cs = bundle.get("citation_rects") or []
+                rects_total += len(cs)
+                rects_with += sum(1 for r in cs if r)
+            rect_pct = round(100.0 * rects_with / max(1, rects_total), 1)
+
+            return JSONResponse({
+                "kg_nodes": totals["nodes"],
+                "kg_relationships": totals["rels"],
+                "complete_layouts": totals["complete_layouts"],
+                "total_canonical_layouts": 6,
+                "active_bulletins": totals["active_bulletins"],
+                "rect_coverage_pct": rect_pct,
+                "rect_coverage_str": f"{rects_with}/{rects_total}",
+            })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=503)
+
+
+@app.get("/api/landing/sample-column")
+def landing_sample_column() -> JSONResponse:
+    """The 'what TICO actually requires' showcase — column 5-6 of a Premium record."""
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session() as s:
+            rows = s.run("""
+                MATCH (f:FieldRequirement {field_name: "Record Type", position_start: 5})
+                      -[:CODED_BY]->(:CodeList)-[:HAS_VALUE]->(cv:CodeValue)
+                RETURN cv.code AS code, cv.notes AS meaning
+                ORDER BY cv.code
+            """).data()
+            return JSONResponse({
+                "field_name": "Record Type",
+                "column_range": "5-6",
+                "values": [
+                    {"code": r["code"], "meaning": (r["meaning"] or "").strip()[:120]}
+                    for r in rows
+                ],
+            })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=503)
+
+
+@app.get("/api/landing/recent-change")
+def landing_recent_change() -> JSONResponse:
+    """The 'what changed recently' showcase — most recent BulletinOverride summary."""
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session() as s:
+            r = s.run("""
+                MATCH (b:BulletinOverride)
+                WITH b ORDER BY b.effective_date DESC LIMIT 1
+                WITH b, date(b.effective_date) AS eff
+                OPTIONAL MATCH (b)-[:OVERRIDES]->(retired)
+                  WHERE NOT retired:RecordLayout AND NOT retired:RegulationDocument
+                OPTIONAL MATCH (:CodeList)-[:HAS_VALUE]->(new_code:CodeValue)
+                  WHERE new_code.effective_from = eff
+                OPTIONAL MATCH (:RecordLayout)-[:REQUIRES]->(new_field:FieldRequirement)
+                  WHERE new_field.effective_from = eff
+                RETURN
+                  b.name AS bulletin_name,
+                  eff AS effective_date,
+                  b.notes AS summary,
+                  [x IN collect(DISTINCT retired.name)        WHERE x IS NOT NULL] AS retired_names,
+                  [x IN collect(DISTINCT new_code.code)       WHERE x IS NOT NULL] AS new_codes,
+                  [x IN collect(DISTINCT new_field.field_name) WHERE x IS NOT NULL] AS new_fields
+            """).single()
+            if r is None:
+                return JSONResponse({"bulletin_name": None})
+            # Provide a sensible fallback summary if the LLM/seed didn't fill notes.
+            summary = r["summary"] or (
+                f"Retires: {', '.join(r['retired_names'])}. "
+                f"Introduces new codes and fields effective {r['effective_date']}."
+                if r["retired_names"] else
+                "Bulletin override applied."
+            )
+            return JSONResponse({
+                "bulletin_name": r["bulletin_name"],
+                "effective_date": str(r["effective_date"]) if r["effective_date"] else None,
+                "summary": summary,
+                "retired_names": r["retired_names"],
+                "new_codes": r["new_codes"],
+                "new_fields": r["new_fields"],
+            })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=503)
+
+
+# -- Landing page routes ------------------------------------------------------
 
 
 @app.get("/api/health")

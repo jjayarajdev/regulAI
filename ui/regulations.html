@@ -1250,6 +1250,13 @@
       await loadDocs();
       await loadStats();
       setInterval(loadStats, 15000);
+      // Deep-link support: ?slug=<slug> auto-selects a doc on load.
+      // Used by the landing page to route stakeholders to the right view.
+      const urlSlug = new URLSearchParams(window.location.search).get('slug');
+      if (urlSlug) {
+        $('doc-select').value = urlSlug;
+        await selectDoc(urlSlug);
+      }
     });
   </script>
 </body>

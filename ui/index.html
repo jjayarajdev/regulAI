@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RegulAI — Texas Statistical Reporting, automated</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --ink-1: #0F172A;
+    --ink-2: #1E293B;
+    --ink-3: #334155;
+    --ink-4: #64748B;
+    --ink-5: #94A3B8;
+    --paper: #FFFFFF;
+    --paper-warm: #F8F7F3;
+    --paper-deep: #F1F5F9;
+    --rule: #CBD5E1;
+    --rule-soft: #E2E8F0;
+    --accent: #1E3A8A;
+    --accent-2: #3B5BDB;
+    --accent-soft: #DBE4FF;
+    --accent-warm: #F4F1FF;
+    --ok: #166534;
+    --ok-soft: #DCFCE7;
+    --warn: #92400E;
+    --warn-soft: #FEF3C7;
+    --danger: #991B1B;
+    --danger-soft: #FEE2E2;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    --font-mono: 'SF Mono', Menlo, Consolas, monospace;
+    --font-display: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--paper-warm);
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---- Top bar ---- */
+  .topbar {
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule-soft);
+    padding: 14px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brand {
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 600; color: var(--ink-1);
+    letter-spacing: -0.01em;
+  }
+  .brand .accent { color: var(--accent); }
+  .topbar nav a {
+    margin-left: 24px; font-size: 13px; color: var(--ink-3);
+  }
+  .topbar nav a:hover { color: var(--accent); }
+
+  /* ---- Hero ---- */
+  .hero {
+    max-width: 1100px; margin: 0 auto;
+    padding: 80px 32px 48px;
+  }
+  .hero .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: 56px; font-weight: 600; color: var(--ink-1);
+    line-height: 1.05; letter-spacing: -0.02em;
+    margin: 12px 0 16px;
+  }
+  .hero .lead {
+    font-size: 19px; color: var(--ink-3); max-width: 720px;
+    line-height: 1.55;
+  }
+  .hero .lead strong { color: var(--ink-1); }
+
+  /* ---- Live stats strip ---- */
+  .stats {
+    max-width: 1100px; margin: 0 auto;
+    padding: 0 32px 48px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .stat {
+    background: var(--paper);
+    border: 1px solid var(--rule-soft);
+    border-radius: 8px;
+    padding: 24px 22px;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .stat:hover { transform: translateY(-2px); border-color: var(--accent-soft); }
+  .stat .v {
+    font-family: var(--font-display);
+    font-size: 36px; font-weight: 600; color: var(--ink-1);
+    line-height: 1; letter-spacing: -0.01em;
+  }
+  .stat .v.green { color: var(--ok); }
+  .stat .v.amber { color: var(--warn); }
+  .stat .l {
+    font-size: 12px; color: var(--ink-4); margin-top: 8px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .stat .sub {
+    font-size: 13px; color: var(--ink-3); margin-top: 4px;
+  }
+
+  /* ---- The story ---- */
+  .story {
+    max-width: 1100px; margin: 0 auto;
+    padding: 0 32px 48px;
+  }
+  .story-row {
+    display: grid; grid-template-columns: 220px 1fr;
+    gap: 32px; align-items: start;
+    padding: 32px 0;
+    border-top: 1px solid var(--rule-soft);
+  }
+  .story-row .marker {
+    font-family: var(--font-display);
+    font-size: 13px; font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .story-row .marker .num {
+    font-family: var(--font-display); font-size: 38px;
+    color: var(--ink-1); display: block; margin-top: 8px; line-height: 1;
+  }
+  .story-row h3 {
+    font-family: var(--font-display);
+    font-size: 26px; font-weight: 500; color: var(--ink-1);
+    margin: 0 0 12px; letter-spacing: -0.01em;
+  }
+  .story-row p { color: var(--ink-3); font-size: 16px; max-width: 700px; }
+
+  /* ---- Live preview cards ---- */
+  .preview {
+    background: var(--paper);
+    border: 1px solid var(--rule-soft);
+    border-radius: 8px;
+    padding: 24px;
+    margin-top: 16px;
+    max-width: 720px;
+  }
+  .preview .preview-h {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-5); margin-bottom: 12px;
+  }
+  .preview table {
+    width: 100%; border-collapse: collapse; font-size: 14px;
+  }
+  .preview td {
+    padding: 6px 12px 6px 0; vertical-align: top;
+  }
+  .preview td.code {
+    font-family: var(--font-mono); font-size: 13px;
+    color: var(--accent); width: 60px; font-weight: 500;
+  }
+  .preview td.meaning { color: var(--ink-3); }
+  .preview tr + tr td { border-top: 1px solid var(--rule-soft); }
+  .preview .meta {
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid var(--rule-soft);
+    font-size: 12px; color: var(--ink-4);
+    font-family: var(--font-mono);
+  }
+
+  /* ---- Action cards ---- */
+  .actions {
+    max-width: 1100px; margin: 0 auto;
+    padding: 16px 32px 80px;
+  }
+  .actions h2 {
+    font-family: var(--font-display);
+    font-size: 28px; font-weight: 500; color: var(--ink-1);
+    margin: 0 0 24px;
+    letter-spacing: -0.01em;
+  }
+  .grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--rule-soft);
+    border-radius: 8px;
+    padding: 24px 24px 18px;
+    color: inherit;
+    transition: border-color .15s ease, transform .15s ease;
+    display: block;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+  .card .badge {
+    display: inline-block; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--accent); background: var(--accent-warm);
+    padding: 3px 9px; border-radius: 4px;
+    margin-bottom: 12px; font-weight: 600;
+  }
+  .card .badge.live  { color: var(--ok);  background: var(--ok-soft); }
+  .card .badge.demo  { color: var(--accent); background: var(--accent-warm); }
+  .card .badge.cli   { color: var(--ink-3); background: var(--paper-deep); }
+  .card h3 {
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 500; color: var(--ink-1);
+    margin: 0 0 8px; letter-spacing: -0.01em;
+  }
+  .card p {
+    color: var(--ink-3); font-size: 14px;
+    margin: 0 0 14px;
+  }
+  .card .cta {
+    color: var(--accent); font-weight: 500; font-size: 14px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .card.disabled { opacity: 0.55; cursor: not-allowed; }
+  .card.disabled:hover { transform: none; border-color: var(--rule-soft); }
+  .card .cli-hint {
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--ink-4); background: var(--paper-deep);
+    padding: 8px 12px; border-radius: 4px;
+    margin-top: 6px;
+  }
+
+  /* ---- Footer ---- */
+  footer {
+    border-top: 1px solid var(--rule-soft);
+    padding: 32px;
+    text-align: center;
+    font-size: 13px; color: var(--ink-5);
+    background: var(--paper);
+  }
+  footer a { color: var(--ink-4); }
+
+  @media (max-width: 800px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .grid  { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 40px; }
+    .hero { padding: 48px 24px 32px; }
+    .story-row { grid-template-columns: 1fr; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">RegulAI · <span class="accent">Texas Statistical Reporting</span></div>
+  <nav>
+    <a href="/explore">Explore</a>
+    <a href="http://localhost:7474" target="_blank">Neo4j Browser</a>
+    <a href="https://github.com/jjayarajdev/regulAI" target="_blank">GitHub</a>
+  </nav>
+</div>
+
+<section class="hero">
+  <div class="eyebrow">An LHS-first POC</div>
+  <h1>The regulation,<br>made executable.</h1>
+  <p class="lead">
+    RegulAI extracts every column, every code value, and every rule from
+    Texas statistical reporting regulations into a citation-grounded
+    Knowledge Graph. <strong>Every byte of every TICO filing traces back
+    to the source PDF.</strong> When the regulation changes, the system
+    adapts in minutes — with a human in the loop.
+  </p>
+</section>
+
+<section class="stats">
+  <div class="stat">
+    <div class="v" id="stat-nodes">…</div>
+    <div class="l">KG nodes</div>
+    <div class="sub" id="stat-rels">extracted from regulation</div>
+  </div>
+  <div class="stat">
+    <div class="v green" id="stat-layouts">…</div>
+    <div class="l">Wire layouts complete</div>
+    <div class="sub">200/200 columns each</div>
+  </div>
+  <div class="stat">
+    <div class="v" id="stat-rect">…%</div>
+    <div class="l">Citation provenance</div>
+    <div class="sub" id="stat-rect-sub">PDF rectangles per citation</div>
+  </div>
+  <div class="stat">
+    <div class="v amber" id="stat-bulletins">…</div>
+    <div class="l">Active bulletins applied</div>
+    <div class="sub">version-bumped in the KG</div>
+  </div>
+</section>
+
+<section class="story">
+
+  <div class="story-row">
+    <div class="marker">Step 1<span class="num">📄</span></div>
+    <div>
+      <h3>The regulation as it lands today</h3>
+      <p>
+        TICO publishes the Texas Statistical Plan as a 89-page PDF. Every
+        Texas residential insurer hand-codes ETL to translate it. When the
+        regulation changes, that ETL is rewritten — months of work,
+        compliance risk, and tribal knowledge.
+      </p>
+    </div>
+  </div>
+
+  <div class="story-row">
+    <div class="marker">Step 2<span class="num">🧠</span></div>
+    <div>
+      <h3>The KG that read the regulation</h3>
+      <p>
+        Sentinel (LLM) reads the prose. A deterministic parser handles
+        the tabular wire-format sections. Both feed a closed-vocabulary
+        KG with citation-grounded provenance. Below: live data showing
+        the legal values for column 5–6 of every Premium record TICO
+        accepts. The result <em>is</em> the spec.
+      </p>
+      <div class="preview" id="preview-column">
+        <div class="preview-h">Column 5–6 (RECORD TYPE) — Premium Record Layout · live from KG</div>
+        <table id="preview-column-table"><tbody></tbody></table>
+        <div class="meta" id="preview-column-meta">loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="story-row">
+    <div class="marker">Step 3<span class="num">⚡</span></div>
+    <div>
+      <h3>What changed when the latest bulletin landed</h3>
+      <p>
+        TDI publishes a Commissioner's Bulletin. It arrives in our
+        intake. Sentinel reads it with the existing KG as RAG context;
+        the human reviews the diff; the KG is version-bumped. Below:
+        the most recent bulletin's effect, summarised live. No code
+        changes were required.
+      </p>
+      <div class="preview" id="preview-bulletin">
+        <div class="preview-h">Most recent bulletin · live from KG</div>
+        <div id="preview-bulletin-body">loading…</div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<section class="actions">
+  <h2>Where to go from here</h2>
+  <div class="grid">
+
+    <a href="/explore?slug=tico-section-c" class="card">
+      <span class="badge live">interactive</span>
+      <h3>Explore a regulation</h3>
+      <p>
+        Side-by-side review: the source PDF on the left, the
+        KG-extracted entities on the right, click-through provenance
+        between them. Wire Format Studio shows a sample 200-character
+        TICO record live.
+      </p>
+      <span class="cta">Open Section C — Record Layout for Premiums →</span>
+    </a>
+
+    <a href="/explore?slug=bulletin-2026-q3-104" class="card">
+      <span class="badge live">interactive</span>
+      <h3>See a bulletin's effect</h3>
+      <p>
+        Open the synthetic Named Storm bulletin. Click any extracted
+        entity → the cited PDF region highlights. The Wire Format
+        Studio shows that <code>code 25</code> is now historical and
+        <code>code 26</code> is in effect.
+      </p>
+      <span class="cta">Open the Named Storm bulletin →</span>
+    </a>
+
+    <a href="http://localhost:7474" target="_blank" class="card">
+      <span class="badge demo">Cypher</span>
+      <h3>Query the KG yourself</h3>
+      <p>
+        20 plain-English business questions from
+        <em>"What does Texas require us to file?"</em> to
+        <em>"Will TICO accept this record on Nov 1, 2026?"</em>
+        Each query is the question, the result is the answer.
+      </p>
+      <span class="cta">Open Neo4j Browser, then run<br><code>:play http://localhost:8765/cypher-guide</code> →</span>
+    </a>
+
+    <div class="card">
+      <span class="badge cli">CLI</span>
+      <h3>Watch a new bulletin land</h3>
+      <p>
+        End-to-end demo of the rules-level loop: a synthetic bulletin
+        arrives, Sentinel extracts with KG context as RAG, the diff is
+        reviewed, the KG updates. Six narrated steps in one command.
+      </p>
+      <div class="cli-hint">$ make rebuild-kg && make demo-new-bulletin</div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <a href="https://github.com/jjayarajdev/regulAI">github.com/jjayarajdev/regulAI</a>
+  &nbsp;·&nbsp;
+  Texas Homeowners → TICO POC, LHS slice
+  &nbsp;·&nbsp;
+  Local-only · Neo4j Community
+</footer>
+
+<script>
+  // ---------- live data fetch ----------
+  async function loadStats() {
+    try {
+      const r = await fetch('/api/landing/stats');
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      document.getElementById('stat-nodes').textContent = (d.kg_nodes ?? 0).toLocaleString();
+      document.getElementById('stat-rels').textContent = `${(d.kg_relationships ?? 0).toLocaleString()} relationships`;
+      document.getElementById('stat-layouts').textContent = `${d.complete_layouts}/${d.total_canonical_layouts}`;
+      document.getElementById('stat-rect').textContent = `${d.rect_coverage_pct}%`;
+      document.getElementById('stat-rect-sub').textContent = `${d.rect_coverage_str} citations · live`;
+      document.getElementById('stat-bulletins').textContent = d.active_bulletins;
+    } catch (e) {
+      ['stat-nodes','stat-layouts','stat-rect','stat-bulletins'].forEach(id => {
+        document.getElementById(id).textContent = '—';
+      });
+      console.warn('stats fetch failed', e);
+    }
+  }
+
+  async function loadColumnPreview() {
+    try {
+      const r = await fetch('/api/landing/sample-column');
+      const d = await r.json();
+      const tb = document.querySelector('#preview-column-table tbody');
+      const meta = document.getElementById('preview-column-meta');
+      tb.innerHTML = '';
+      d.values.slice(0, 7).forEach(v => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="code">${v.code}</td><td class="meaning">${v.meaning}</td>`;
+        tb.appendChild(tr);
+      });
+      const more = d.values.length > 7 ? ` (+${d.values.length - 7} more)` : '';
+      meta.textContent = `${d.values.length} legal values${more} · queried live from Neo4j`;
+    } catch (e) {
+      document.getElementById('preview-column-meta').textContent = '(failed to load)';
+    }
+  }
+
+  async function loadBulletinPreview() {
+    try {
+      const r = await fetch('/api/landing/recent-change');
+      const d = await r.json();
+      const body = document.getElementById('preview-bulletin-body');
+      if (!d.bulletin_name) {
+        body.innerHTML = '<em style="color:var(--ink-5)">No bulletins applied yet.</em>';
+        return;
+      }
+      const retired = d.retired_names && d.retired_names.length
+        ? `<div style="margin-top:8px; font-size:13px;"><strong style="color:var(--warn)">Retired:</strong> ${d.retired_names.slice(0,3).join(', ')}${d.retired_names.length > 3 ? '…' : ''}</div>`
+        : '';
+      const newCodes = d.new_codes && d.new_codes.length
+        ? `<div style="margin-top:4px; font-size:13px;"><strong style="color:var(--ok)">New codes:</strong> <code>${d.new_codes.join(', ')}</code></div>`
+        : '';
+      const newFields = d.new_fields && d.new_fields.length
+        ? `<div style="margin-top:4px; font-size:13px;"><strong style="color:var(--ok)">New required fields:</strong> ${d.new_fields.join(', ')}</div>`
+        : '';
+      body.innerHTML = `
+        <div style="font-size:15px; font-weight:500; color: var(--ink-1);">${d.bulletin_name}</div>
+        <div style="margin-top:4px; font-size:13px; color: var(--ink-4);">Effective ${d.effective_date}</div>
+        <div style="margin-top:12px; color: var(--ink-3); font-size:14px;">${d.summary || ''}</div>
+        ${retired}${newCodes}${newFields}
+      `;
+    } catch (e) {
+      document.getElementById('preview-bulletin-body').innerHTML = '<em style="color:var(--ink-5)">(failed to load)</em>';
+    }
+  }
+
+  loadStats();
+  loadColumnPreview();
+  loadBulletinPreview();
+</script>
+
+</body>
+</html>
