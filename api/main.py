@@ -138,6 +138,31 @@ def get_regulation(slug: str) -> JSONResponse:
     })
 
 
+@app.get("/api/regulations/{slug}/rich")
+def get_regulation_rich(slug: str) -> JSONResponse:
+    """Return a structurally-richer markdown view (pymupdf4llm-derived).
+
+    Char offsets in this text DO NOT match the cached extractions —
+    those reference the plain-text extract. Use this view for visual
+    presentation; highlights in this view rely on text search rather
+    than char offsets.
+    """
+    doc = get_doc(slug)
+    if doc is None:
+        raise HTTPException(status_code=404, detail=f"Document {slug!r} not found")
+    rich_path = Path("materialized/rich") / f"{slug}.rich.md"
+    if not rich_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"No rich variant for {slug!r}. Run `make extract-rich`.",
+        )
+    return JSONResponse({
+        "slug": slug,
+        "rich_markdown": rich_path.read_text(encoding="utf-8"),
+        "source_pdf": str(doc.pdf_path) if doc.pdf_path else None,
+    })
+
+
 @app.get("/api/regulations/{slug}/pdf")
 def get_regulation_pdf(slug: str):
     """Serve the source PDF for a document, if it has one."""

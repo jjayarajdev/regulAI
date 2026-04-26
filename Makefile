@@ -46,6 +46,9 @@ seed:
 extract-pdfs:
 	uv run python -m scripts.extract_pdfs
 
+extract-rich:
+	uv run python -m scripts.extract_pdfs_rich
+
 split-sections:
 	uv run python -m scripts.split_sections
 

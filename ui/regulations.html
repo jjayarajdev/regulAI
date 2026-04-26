@@ -187,6 +187,47 @@
     }
     .view-toggle .view-original:hover { color: var(--accent); text-decoration: underline; }
 
+    /* ---- Rich markdown view (pymupdf4llm + markdown-it) ---- */
+    .doc-rich {
+      padding: 24px 28px;
+      background: var(--paper); color: var(--ink-1);
+      border: 1px solid var(--rule); border-radius: var(--radius-md);
+      font-size: 14px; line-height: 1.7;
+    }
+    .doc-rich h1, .doc-rich h2, .doc-rich h3, .doc-rich h4 {
+      font-family: var(--font-display, var(--font-sans));
+      color: var(--ink); font-weight: 600;
+      margin-top: 1.4em; margin-bottom: 0.4em;
+    }
+    .doc-rich h1 { font-size: 22px; }
+    .doc-rich h2 { font-size: 18px; border-bottom: 1px solid var(--rule-soft); padding-bottom: 4px; }
+    .doc-rich h3 { font-size: 15px; color: var(--accent); }
+    .doc-rich h4 { font-size: 14px; }
+    .doc-rich p  { margin: 0 0 12px; color: var(--ink-2); }
+    .doc-rich ul, .doc-rich ol { margin: 0 0 12px; padding-left: 24px; }
+    .doc-rich li { margin-bottom: 4px; color: var(--ink-2); }
+    .doc-rich strong { color: var(--ink); }
+    .doc-rich code {
+      font-family: var(--font-mono); font-size: 12.5px;
+      background: var(--paper-warm); padding: 1px 5px;
+      border-radius: 3px; color: var(--accent-2, var(--accent));
+    }
+    .doc-rich table {
+      border-collapse: collapse; width: 100%;
+      margin: 12px 0; font-size: 13px;
+    }
+    .doc-rich th, .doc-rich td {
+      border: 1px solid var(--rule-soft);
+      padding: 6px 10px; text-align: left; vertical-align: top;
+    }
+    .doc-rich th { background: var(--paper-warm); font-weight: 600; }
+    .doc-rich hr { border: none; border-top: 1px solid var(--rule-soft); margin: 24px 0; }
+    .doc-rich mark.cite.active {
+      background: rgba(245, 158, 11, 0.5);
+      padding: 1px 2px; border-radius: 2px;
+      box-shadow: 0 0 0 1px var(--accent) inset;
+    }
+
     /* ---- Markdown / text view (default) ---- */
     .doc-text {
       font-family: var(--font-mono); font-size: 12px; line-height: 1.65;
@@ -554,6 +595,8 @@
 
   <script type="module">
     import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/+esm';
+    import markdownit from 'https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm';
+    const md = markdownit({ html: false, linkify: true, breaks: false });
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
 
@@ -561,11 +604,13 @@
     let currentDoc = null;
     let pdfDocument = null;
     let pageTextCache = []; // [{ pageNum, items: [{str, transform, ...}], pageText }]
-    // 'text' = render the extracted text with char-perfect <mark> highlights
-    // 'pdf'  = render the source PDF with PyMuPDF rect overlays
-    // Default to text — faster page load, char-accurate highlights, easier
-    // for non-technical reviewers. PDF view is one click away for auditors.
+    // 'text' = char-perfect <mark> highlights in the plain extracted text
+    // 'rich' = pymupdf4llm-derived markdown rendered as HTML (pretty;
+    //          highlights are best-effort text-search since char offsets
+    //          don't translate)
+    // 'pdf'  = source PDF with PyMuPDF rect overlays
     let currentViewMode = 'text';
+    let richMarkdownCache = null; // {slug, rendered HTML}
     let activeChipId = null;
 
     // ---------- toast / utils ----------
@@ -586,9 +631,15 @@
 
     // ---------- PDF rendering ----------
     async function renderPdf(pdfUrl, startPage = 1) {
-      const container = $('left-body');
-      container.innerHTML = '<div id="pdf-container"></div>';
-      const pdfContainer = $('pdf-container');
+      // Don't clobber siblings (e.g. the .view-toggle bar that lives
+      // inside #left-body alongside the PDF). Append a fresh container
+      // and remove any previous PDF container in place.
+      const left = $('left-body');
+      let pdfContainer = document.getElementById('pdf-container');
+      if (pdfContainer) pdfContainer.remove();
+      pdfContainer = document.createElement('div');
+      pdfContainer.id = 'pdf-container';
+      left.appendChild(pdfContainer);
       pdfContainer.innerHTML = '<div class="empty"><span class="spinner"></span>Loading PDF…</div>';
 
       try {
@@ -823,21 +874,112 @@
       const c = extraction.citations[citationIdx];
       if (!c) return false;
 
-      // Text view (default) — char-accurate <mark> highlight in the
-      // rendered .doc-text. Works the same for PDF-backed docs and
-      // markdown-only docs since both display the extracted text.
+      // Text view (default) — char-accurate <mark> in plain extracted text.
       if (currentViewMode === 'text' || !currentDoc?.has_pdf) {
         return highlightInMarkdown(c.char_start, c.char_end);
       }
 
-      // PDF view — PyMuPDF rect overlays first, text-layer fuzzy
-      // search as a last resort.
+      // Rich markdown view — text-search the rendered HTML for the
+      // cited substring. Char offsets don't translate (rich markdown
+      // has different content than plain text) so we rely on a
+      // distinctive substring of the cited text.
+      if (currentViewMode === 'rich') {
+        const snippet = (sourceText.slice(c.char_start, c.char_end) || '')
+          .replace(/[\r\n#*`_]+/g, ' ').replace(/\s+/g, ' ').trim();
+        return highlightInRichMarkdown(snippet);
+      }
+
+      // PDF view — PyMuPDF rect overlays first, text-layer fuzzy search fallback.
       const rectsList = currentDoc?.citation_rects;
       if (rectsList && rectsList[citationIdx] && rectsList[citationIdx].length) {
         if (highlightByRects(rectsList[citationIdx])) return true;
       }
       const text = citedText(extraction, sourceText, c);
       return findAndHighlight(text, currentDoc?.pdf_start_page, currentDoc?.pdf_end_page);
+    }
+
+    /** Best-effort highlight inside the rich-markdown rendered HTML.
+     *  Walks text nodes, finds the snippet, wraps it in <mark>. Tries
+     *  progressively shorter prefixes until one matches.
+     */
+    function highlightInRichMarkdown(snippet) {
+      const wrap = document.getElementById('doc-rich');
+      if (!wrap || !snippet || snippet.length < 8) return false;
+      // Strip prior highlight; rebuild from cached HTML so we don't
+      // accumulate <mark>s.
+      if (wrap.dataset.cleanHtml) {
+        wrap.innerHTML = wrap.dataset.cleanHtml;
+      } else {
+        wrap.dataset.cleanHtml = wrap.innerHTML;
+      }
+      const candidates = [];
+      const cleaned = snippet.replace(/\s+/g, ' ').trim();
+      [cleaned, cleaned.slice(0, 180), cleaned.slice(0, 120),
+       cleaned.slice(0, 80), cleaned.slice(0, 50)].forEach(c => {
+        c = c.trim();
+        if (c.length >= 12 && !candidates.includes(c)) candidates.push(c);
+      });
+
+      for (const candidate of candidates) {
+        const found = wrapMatchInTextNodes(wrap, candidate);
+        if (found) {
+          found.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /** Walk text nodes under `root`, find `needle` (case-insensitive,
+     *  whitespace-tolerant), wrap the match in <mark.cite.active>.
+     *  Returns the mark element or null.
+     */
+    function wrapMatchInTextNodes(root, needle) {
+      const haystackText = (root.innerText || root.textContent || '').replace(/\s+/g, ' ');
+      const needleNorm = needle.toLowerCase();
+      const idx = haystackText.toLowerCase().indexOf(needleNorm);
+      if (idx < 0) return null;
+      // Walk text nodes, count chars (with whitespace collapsed) until
+      // we span [idx, idx+needle.length).
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let consumed = 0;
+      let startNode = null, startOff = 0, endNode = null, endOff = 0;
+      const target = idx;
+      const targetEnd = idx + needle.length;
+      while (walker.nextNode()) {
+        const n = walker.currentNode;
+        const t = n.nodeValue.replace(/\s+/g, ' ');
+        const len = t.length;
+        if (!startNode && consumed + len > target) {
+          startNode = n;
+          startOff = Math.max(0, target - consumed);
+        }
+        if (consumed + len >= targetEnd) {
+          endNode = n;
+          endOff = Math.min(n.nodeValue.length, targetEnd - consumed);
+          break;
+        }
+        consumed += len;
+      }
+      if (!startNode || !endNode) return null;
+      try {
+        const range = document.createRange();
+        range.setStart(startNode, startOff);
+        range.setEnd(endNode, endOff);
+        const mark = document.createElement('mark');
+        mark.className = 'cite active';
+        // surroundContents fails when the range crosses element boundaries;
+        // fall back to extractContents + wrap in that case.
+        try {
+          range.surroundContents(mark);
+        } catch {
+          mark.appendChild(range.extractContents());
+          range.insertNode(mark);
+        }
+        return mark;
+      } catch {
+        return null;
+      }
     }
 
     /** Highlight a char range [cs, ce) in the rendered markdown view. */
@@ -1446,21 +1588,26 @@
       const left = $('left-body');
       left.innerHTML = '';
 
-      // Toggle bar — only when the doc has a PDF to switch to.
+      // Meta line (top-right of left pane).
       const meta = data.has_pdf
         ? (currentViewMode === 'pdf'
             ? `PDF · jump to p.${data.pdf_start_page || 1}`
-            : `${data.text.length.toLocaleString()} chars · text view (highlights are char-accurate)`)
+            : currentViewMode === 'rich'
+              ? `Rich markdown · best-effort highlights`
+              : `${data.text.length.toLocaleString()} chars · text view (char-accurate highlights)`)
         : `${data.text.length.toLocaleString()} chars · markdown`;
       $('left-meta').textContent = meta;
 
+      // Toggle bar (PDF-backed docs only — markdown-only docs have
+      // nothing to switch to).
       if (data.has_pdf) {
         const toggle = document.createElement('div');
         toggle.className = 'view-toggle';
         toggle.innerHTML = `
-          <button data-mode="text" class="${currentViewMode === 'text' ? 'active' : ''}">Text view</button>
-          <button data-mode="pdf"  class="${currentViewMode === 'pdf'  ? 'active' : ''}">PDF view</button>
-          <a class="view-original" href="${data.pdf_url}" target="_blank" rel="noopener">Open PDF in new tab ↗</a>
+          <button data-mode="text" class="${currentViewMode === 'text' ? 'active' : ''}">Text</button>
+          <button data-mode="rich" class="${currentViewMode === 'rich' ? 'active' : ''}">Rich</button>
+          <button data-mode="pdf"  class="${currentViewMode === 'pdf'  ? 'active' : ''}">PDF</button>
+          <a class="view-original" href="${data.pdf_url}" target="_blank" rel="noopener">Open source PDF ↗</a>
         `;
         toggle.querySelectorAll('button').forEach(btn => {
           btn.addEventListener('click', async () => {
@@ -1474,10 +1621,10 @@
 
       if (currentViewMode === 'pdf' && data.has_pdf && data.pdf_url) {
         await renderPdf(data.pdf_url, data.pdf_start_page || 1);
+      } else if (currentViewMode === 'rich' && data.has_pdf) {
+        await renderRichMarkdown(data.slug, left);
       } else {
-        // Text view — works for both PDF-backed docs (showing the
-        // PyMuPDF-extracted text with char-perfect <mark> highlights)
-        // AND markdown-only docs (bulletins).
+        // Plain text view — char-accurate highlights via <mark> wrapping.
         const blurb = document.createElement('div');
         blurb.className = 'doc-blurb';
         blurb.textContent = data.blurb;
@@ -1486,6 +1633,42 @@
         txt.className = 'doc-text';
         txt.textContent = data.text;
         left.appendChild(txt);
+      }
+    }
+
+    async function renderRichMarkdown(slug, container) {
+      const blurb = document.createElement('div');
+      blurb.className = 'doc-blurb';
+      blurb.textContent = currentDoc.blurb;
+      container.appendChild(blurb);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'doc-rich';
+      wrap.id = 'doc-rich';
+      wrap.innerHTML = '<div class="empty"><span class="spinner"></span>Loading rich markdown…</div>';
+      container.appendChild(wrap);
+
+      try {
+        let mdText;
+        if (richMarkdownCache && richMarkdownCache.slug === slug) {
+          mdText = richMarkdownCache.markdown;
+        } else {
+          const r = await fetch(`/api/regulations/${slug}/rich`);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const data = await r.json();
+          mdText = data.rich_markdown;
+          richMarkdownCache = { slug, markdown: mdText };
+        }
+        wrap.innerHTML = md.render(mdText);
+      } catch (e) {
+        wrap.innerHTML = `
+          <div class="empty" style="color: var(--warn);">
+            Rich markdown not available for this doc.<br>
+            <span style="font-size:11px; color: var(--ink-5);">
+              Run <code>make extract-rich</code> to generate it
+              (only PDF-backed docs are supported).
+            </span>
+          </div>`;
       }
     }
 
