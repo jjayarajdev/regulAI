@@ -161,7 +161,33 @@
       color: var(--ink-5); padding: 4px 8px; align-self: flex-start;
     }
 
-    /* ---- Markdown / text fallback (for synthetic bulletin without PDF) ---- */
+    /* ---- View-mode toggle (text vs PDF) ---- */
+    .view-toggle {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 12px; margin-bottom: 12px;
+      background: var(--paper-warm); border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+    }
+    .view-toggle button {
+      font-family: inherit; font-size: 12px;
+      padding: 4px 12px; border-radius: 4px;
+      border: 1px solid var(--rule); background: var(--paper);
+      cursor: pointer; color: var(--ink-3);
+      transition: all 0.12s ease;
+    }
+    .view-toggle button:hover { border-color: var(--accent); color: var(--accent); }
+    .view-toggle button.active {
+      background: var(--accent); color: white; border-color: var(--accent);
+    }
+    .view-toggle .view-original {
+      margin-left: auto;
+      font-size: 11px; color: var(--ink-4);
+      text-decoration: none;
+    }
+    .view-toggle .view-original:hover { color: var(--accent); text-decoration: underline; }
+
+    /* ---- Markdown / text view (default) ---- */
     .doc-text {
       font-family: var(--font-mono); font-size: 12px; line-height: 1.65;
       white-space: pre-wrap; word-break: break-word; color: var(--ink-2);
@@ -535,6 +561,11 @@
     let currentDoc = null;
     let pdfDocument = null;
     let pageTextCache = []; // [{ pageNum, items: [{str, transform, ...}], pageText }]
+    // 'text' = render the extracted text with char-perfect <mark> highlights
+    // 'pdf'  = render the source PDF with PyMuPDF rect overlays
+    // Default to text — faster page load, char-accurate highlights, easier
+    // for non-technical reviewers. PDF view is one click away for auditors.
+    let currentViewMode = 'text';
     let activeChipId = null;
 
     // ---------- toast / utils ----------
@@ -789,21 +820,22 @@
      *  fuzzy search only when rects weren't located for this citation.
      */
     function highlightCitation(citationIdx, sourceText, extraction) {
+      const c = extraction.citations[citationIdx];
+      if (!c) return false;
+
+      // Text view (default) — char-accurate <mark> highlight in the
+      // rendered .doc-text. Works the same for PDF-backed docs and
+      // markdown-only docs since both display the extracted text.
+      if (currentViewMode === 'text' || !currentDoc?.has_pdf) {
+        return highlightInMarkdown(c.char_start, c.char_end);
+      }
+
+      // PDF view — PyMuPDF rect overlays first, text-layer fuzzy
+      // search as a last resort.
       const rectsList = currentDoc?.citation_rects;
       if (rectsList && rectsList[citationIdx] && rectsList[citationIdx].length) {
         if (highlightByRects(rectsList[citationIdx])) return true;
       }
-      const c = extraction.citations[citationIdx];
-      if (!c) return false;
-
-      // For markdown-only docs (synthetic bulletins, HB 2067 statute when
-      // not bound to a PDF) — highlight the cited char range in the
-      // rendered .doc-text element, since there's no PDF text-layer to
-      // search.
-      if (!currentDoc?.has_pdf) {
-        return highlightInMarkdown(c.char_start, c.char_end);
-      }
-      // PDF docs: text-layer fuzzy search as a last resort.
       const text = citedText(extraction, sourceText, c);
       return findAndHighlight(text, currentDoc?.pdf_start_page, currentDoc?.pdf_end_page);
     }
@@ -1267,8 +1299,7 @@
         row.addEventListener('click', () => {
           const cs = parseInt(row.dataset.cs, 10);
           const ce = parseInt(row.dataset.ce, 10);
-          if (currentDoc?.has_pdf) {
-            // Find the snippet, search the text-layer for it.
+          if (currentViewMode === 'pdf' && currentDoc?.has_pdf) {
             const snippet = sourceText.slice(cs, ce).replace(/\s+/g, ' ').trim().slice(0, 120);
             findAndHighlight(snippet, currentDoc?.pdf_start_page, currentDoc?.pdf_end_page);
           } else {
@@ -1406,6 +1437,58 @@
       showActionBar(true, false, false);
     }
 
+    // ---------- Left-pane rendering (text/PDF toggle) ----------
+
+    /** Re-render the left pane based on currentViewMode + currentDoc. */
+    async function renderLeftPane() {
+      const data = currentDoc;
+      if (!data) return;
+      const left = $('left-body');
+      left.innerHTML = '';
+
+      // Toggle bar — only when the doc has a PDF to switch to.
+      const meta = data.has_pdf
+        ? (currentViewMode === 'pdf'
+            ? `PDF · jump to p.${data.pdf_start_page || 1}`
+            : `${data.text.length.toLocaleString()} chars · text view (highlights are char-accurate)`)
+        : `${data.text.length.toLocaleString()} chars · markdown`;
+      $('left-meta').textContent = meta;
+
+      if (data.has_pdf) {
+        const toggle = document.createElement('div');
+        toggle.className = 'view-toggle';
+        toggle.innerHTML = `
+          <button data-mode="text" class="${currentViewMode === 'text' ? 'active' : ''}">Text view</button>
+          <button data-mode="pdf"  class="${currentViewMode === 'pdf'  ? 'active' : ''}">PDF view</button>
+          <a class="view-original" href="${data.pdf_url}" target="_blank" rel="noopener">Open PDF in new tab ↗</a>
+        `;
+        toggle.querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (btn.dataset.mode === currentViewMode) return;
+            currentViewMode = btn.dataset.mode;
+            await renderLeftPane();
+          });
+        });
+        left.appendChild(toggle);
+      }
+
+      if (currentViewMode === 'pdf' && data.has_pdf && data.pdf_url) {
+        await renderPdf(data.pdf_url, data.pdf_start_page || 1);
+      } else {
+        // Text view — works for both PDF-backed docs (showing the
+        // PyMuPDF-extracted text with char-perfect <mark> highlights)
+        // AND markdown-only docs (bulletins).
+        const blurb = document.createElement('div');
+        blurb.className = 'doc-blurb';
+        blurb.textContent = data.blurb;
+        left.appendChild(blurb);
+        const txt = document.createElement('div');
+        txt.className = 'doc-text';
+        txt.textContent = data.text;
+        left.appendChild(txt);
+      }
+    }
+
     // ---------- Document selection ----------
     async function selectDoc(slug) {
       clearHighlights();
@@ -1421,26 +1504,9 @@
       const r = await fetch(`/api/regulations/${slug}`);
       const data = await r.json();
       currentDoc = data;
-      $('left-meta').textContent = data.has_pdf
-        ? `PDF · jump to p.${data.pdf_start_page || 1}`
-        : `${data.text.length.toLocaleString()} chars · markdown`;
-
-      // Render left pane (PDF or markdown fallback)
-      if (data.has_pdf && data.pdf_url) {
-        await renderPdf(data.pdf_url, data.pdf_start_page || 1);
-      } else {
-        // Markdown / text fallback
-        const left = $('left-body');
-        left.innerHTML = '';
-        const blurb = document.createElement('div');
-        blurb.className = 'doc-blurb';
-        blurb.textContent = data.blurb;
-        left.appendChild(blurb);
-        const txt = document.createElement('div');
-        txt.className = 'doc-text';
-        txt.textContent = data.text;
-        left.appendChild(txt);
-      }
+      // For markdown-only docs, force text mode (no PDF to switch to).
+      if (!data.has_pdf) currentViewMode = 'text';
+      await renderLeftPane();
 
       // Right pane
       if (data.extraction) {
