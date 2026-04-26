@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Filings &amp; Submissions — RegulAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-v2.css" />
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">R</span>
+      <span>RegulAI</span>
+    </a>
+    <div class="topbar-crumbs">
+      <span>Workspace</span>
+      <span class="sep">/</span>
+      <span>Filings</span>
+      <span class="sep">/</span>
+      <span class="current">Submissions</span>
+    </div>
+    <div class="topbar-center"></div>
+    <div class="topbar-right">
+      <div class="search-field">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span>Search filings, acknowledgments…</span>
+        <span class="kbd">⌘ K</span>
+      </div>
+      <span class="env-chip">PROD</span>
+      <div class="user-chip"><div class="avatar">HS</div><span>Hannah Salazar</span></div>
+    </div>
+  </header>
+
+  <nav class="rail">
+    <a href="dashboard.html" class="rail-btn" title="Dashboard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></a>
+    <a href="workbench.html" class="rail-btn" title="Workbench"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h6v10H3zM15 7h6v10h-6z"/><path d="M9 12h6"/></svg></a>
+    <a href="review.html" class="rail-btn" title="HITL"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></a>
+    <a href="pipeline.html" class="rail-btn" title="Pipeline"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></a>
+    <a href="ontology.html" class="rail-btn" title="Ontology"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M10 13l-4 4M14 13l4 4"/></svg></a>
+    <a href="filings.html" class="rail-btn active" title="Filings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg></a>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+  </nav>
+
+  <div class="subheader">
+    <div class="subheader-title">
+      <span class="page-name">Filings &amp; Submissions</span>
+      <span class="page-sub">· Regulators · 2026 · multi-carrier view</span>
+    </div>
+    <div class="subheader-stats">
+      <span class="stat"><span class="n">4</span><span>active filings</span></span>
+      <span class="stat ok"><span class="n">27</span><span>submitted YTD</span></span>
+      <span class="stat ok"><span class="n">0</span><span>rejections</span></span>
+      <span class="stat"><span class="n">$3.91M</span><span>DQIP at stake</span></span>
+    </div>
+  </div>
+
+  <div class="subnav">
+    <div class="subnav-item active">Active <span class="count">4</span></div>
+    <div class="subnav-item">Submitted <span class="count">27</span></div>
+    <div class="subnav-item">Rejected <span class="count">0</span></div>
+    <div class="subnav-item">Archive <span class="count">118</span></div>
+    <div class="subhead-actions">
+      <button class="btn sm">Export · CSV</button>
+      <button class="btn sm primary">+ New filing</button>
+    </div>
+  </div>
+
+  <main class="work scroll">
+    <div class="canvas">
+
+      <!-- Masthead -->
+      <div class="page-masthead">
+        <div class="intro">
+          <div class="kicker">Regulatory filings · 2026</div>
+          <h1>Three <em>regulators,</em><br/>one immutable archive.</h1>
+          <p>Every submission — TICO, NAIC, NCCI — is serialized from the Gold layer
+             into the regulator's required wire format, transmitted under PGP signature,
+             and archived for seven years with full record-level lineage back to the source carrier system.</p>
+        </div>
+        <div class="intro-meta">
+          <div class="im"><div class="lbl">Record retention</div><div class="val">7 years</div></div>
+          <div class="im"><div class="lbl">Wire protocol</div><div class="val">SFTP · PGP</div></div>
+          <div class="im accent"><div class="lbl">Next deadline</div><div class="val">Jun 15</div></div>
+        </div>
+      </div>
+
+      <!-- Active filings cards -->
+      <div class="sec-title">
+        <h2><span class="numeral">01</span>Active filings</h2>
+        <div class="tools"><span class="pill">4 deadlines in next 90d</span></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column;">
+
+        <!-- TICO Q1 2026 -->
+        <div class="filing-card active">
+          <div>
+            <div class="fn-reg">TICO</div>
+            <div class="fn-period">Q1 · 2026</div>
+          </div>
+          <div>
+            <div class="fn-title">Texas Residential Statistical Plan</div>
+            <div class="fn-sub">
+              Multi-carrier · HO/DP · submission due in 57 days.
+              12,483 of 14,218 loss records classified, 1,735 pending
+              classification in tonight's run.
+              <div style="margin-top: var(--s-2);">
+                <span class="pill">ATIC</span>
+                <span class="pill">TWC</span>
+                <span class="pill">NTP</span>
+                <span class="pill">SRC</span>
+              </div>
+            </div>
+          </div>
+          <div class="fn-stats">
+            <div class="fn-stat"><div class="l">Records</div><div class="v">14,218</div></div>
+            <div class="fn-stat accent"><div class="l">Progress</div><div class="v">87.8<span style="font-size:14px; font-family:var(--font-ui); color:var(--ink-3);">%</span></div></div>
+            <div class="fn-stat"><div class="l">Variance</div><div class="v" style="color:var(--ok);">0.03%</div></div>
+          </div>
+          <div class="fn-act">
+            <div class="fn-due urgent">57d · JUN 15</div>
+            <button class="btn primary sm">Open</button>
+          </div>
+        </div>
+
+        <!-- NAIC MAR 2025 -->
+        <div class="filing-card">
+          <div>
+            <div class="fn-reg">NAIC</div>
+            <div class="fn-period">FY · 2025</div>
+          </div>
+          <div>
+            <div class="fn-title">Model Audit Rule · Annual Statement Attestation</div>
+            <div class="fn-sub">
+              Annual. Reconciliation of statistical filing totals to Annual Statement lines
+              1.1 / 2.1 / 4.1. All four carriers rolled up.
+              <div style="margin-top: var(--s-2);">
+                <span class="pill">all carriers</span>
+                <span class="pill">Bridge-validated</span>
+              </div>
+            </div>
+          </div>
+          <div class="fn-stats">
+            <div class="fn-stat"><div class="l">Entities</div><div class="v">4</div></div>
+            <div class="fn-stat"><div class="l">Tie-out</div><div class="v" style="color:var(--ok);">clean</div></div>
+            <div class="fn-stat"><div class="l">Variance</div><div class="v" style="color:var(--ok);">0.01%</div></div>
+          </div>
+          <div class="fn-act">
+            <div class="fn-due">88d · JUL 16</div>
+            <button class="btn sm">Open</button>
+          </div>
+        </div>
+
+        <!-- NCCI 2025 -->
+        <div class="filing-card">
+          <div>
+            <div class="fn-reg">NCCI</div>
+            <div class="fn-period">FY · 2025</div>
+          </div>
+          <div>
+            <div class="fn-title">Workers' Compensation Statistical Plan</div>
+            <div class="fn-sub">
+              Single carrier (Southern Regional Carriers). Injury cause, class code,
+              and payroll/premium validation. Ontology extension pending for new class code 8834.
+              <div style="margin-top: var(--s-2);">
+                <span class="pill">SRC only</span>
+                <span class="pill">class code gap</span>
+              </div>
+            </div>
+          </div>
+          <div class="fn-stats">
+            <div class="fn-stat"><div class="l">Records</div><div class="v">4,118</div></div>
+            <div class="fn-stat"><div class="l">Progress</div><div class="v">62<span style="font-size:14px; font-family:var(--font-ui); color:var(--ink-3);">%</span></div></div>
+            <div class="fn-stat"><div class="l">Blockers</div><div class="v" style="color:var(--warn);">1</div></div>
+          </div>
+          <div class="fn-act">
+            <div class="fn-due">32d · MAY 21</div>
+            <button class="btn sm">Open</button>
+          </div>
+        </div>
+
+        <!-- TICO Q2 prep -->
+        <div class="filing-card">
+          <div>
+            <div class="fn-reg">TICO</div>
+            <div class="fn-period">Q2 · 2026</div>
+          </div>
+          <div>
+            <div class="fn-title">Texas Residential Statistical Plan · Q2 prep</div>
+            <div class="fn-sub">
+              Early ingestion window now open. Data crawls beginning nightly.
+              Sentinel monitoring TDI for Q2 territory schedule update
+              (expected 2026-05-15).
+              <div style="margin-top: var(--s-2);">
+                <span class="pill">ingestion · active</span>
+                <span class="pill">sentinel watch</span>
+              </div>
+            </div>
+          </div>
+          <div class="fn-stats">
+            <div class="fn-stat"><div class="l">Records</div><div class="v">3,912</div></div>
+            <div class="fn-stat"><div class="l">Progress</div><div class="v">22<span style="font-size:14px; font-family:var(--font-ui); color:var(--ink-3);">%</span></div></div>
+            <div class="fn-stat"><div class="l">Cycle day</div><div class="v">12 / 104</div></div>
+          </div>
+          <div class="fn-act">
+            <div class="fn-due ok">145d · SEP 15</div>
+            <button class="btn sm">Open</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TICO Q1 2026 detail -->
+      <div class="sec-title">
+        <h2><span class="numeral">02</span>TICO Q1 2026 · filing detail</h2>
+        <div class="tools"><span class="pill">4 carriers</span><span class="pill">due 57d</span></div>
+      </div>
+
+      <div class="split-2">
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Per-carrier progress</span>
+            <span class="m">records</span>
+          </div>
+          <table class="runs-table" style="background: transparent; border: 0; margin-top: var(--s-2);">
+            <thead>
+              <tr>
+                <th>Carrier</th>
+                <th>Form</th>
+                <th class="num">Premium</th>
+                <th class="num">Loss</th>
+                <th class="num">HITL</th>
+                <th class="num">Ready</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="run-id">ATIC</td>
+                <td>HO-3 / HO-5</td>
+                <td class="num">12,483</td>
+                <td class="num">2,091</td>
+                <td class="num">7</td>
+                <td class="num" style="color: var(--ok);">97%</td>
+                <td><span class="status ok">● On track</span></td>
+              </tr>
+              <tr>
+                <td class="run-id">TWC</td>
+                <td>HO-3 / DP-3</td>
+                <td class="num">8,914</td>
+                <td class="num">1,442</td>
+                <td class="num">2</td>
+                <td class="num" style="color: var(--ok);">99%</td>
+                <td><span class="status ok">● On track</span></td>
+              </tr>
+              <tr>
+                <td class="run-id">NTP</td>
+                <td>HO-3</td>
+                <td class="num">5,208</td>
+                <td class="num">821</td>
+                <td class="num">2</td>
+                <td class="num" style="color: var(--ok);">98%</td>
+                <td><span class="status ok">● On track</span></td>
+              </tr>
+              <tr>
+                <td class="run-id">SRC</td>
+                <td>HO-5</td>
+                <td class="num">3,402</td>
+                <td class="num">518</td>
+                <td class="num">1</td>
+                <td class="num" style="color: var(--warn);">78%</td>
+                <td><span class="status warn">⊘ Shadow</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Cause-of-loss mix · TICO Q1</span>
+            <span class="m">2,091 loss records</span>
+          </div>
+          <div class="vol-list" style="margin-top: var(--s-2);">
+            <div class="vol-row accent">
+              <span class="vn">03 · Windstorm or Hail</span>
+              <span class="vbar"><span class="vf" style="width:92%;"></span></span>
+              <span class="vp">642</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">01 · Fire</span>
+              <span class="vbar"><span class="vf" style="width:45%;"></span></span>
+              <span class="vp">318</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">14 · Accidental Discharge of Water</span>
+              <span class="vbar"><span class="vf" style="width:38%;"></span></span>
+              <span class="vp">267</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">15 · Freezing of Plumbing</span>
+              <span class="vbar"><span class="vf" style="width:32%;"></span></span>
+              <span class="vp">228</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">11 · Theft</span>
+              <span class="vbar"><span class="vf" style="width:24%;"></span></span>
+              <span class="vp">172</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">12 · Vandalism / Malicious Mischief</span>
+              <span class="vbar"><span class="vf" style="width:18%;"></span></span>
+              <span class="vp">128</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">40 · Liability · Bodily Injury</span>
+              <span class="vbar"><span class="vf" style="width:14%;"></span></span>
+              <span class="vp">98</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">17 · Falling Objects</span>
+              <span class="vbar"><span class="vf" style="width:9%;"></span></span>
+              <span class="vp">62</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">99 · All Other</span>
+              <span class="vbar"><span class="vf" style="width:24%;"></span></span>
+              <span class="vp">176</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submission history -->
+      <div class="sec-title">
+        <h2><span class="numeral">03</span>Submission timeline · last 30 days</h2>
+        <div class="tools"><span class="pill">all regulators</span></div>
+      </div>
+
+      <div class="card" style="padding: 0;">
+        <div class="sub-timeline">
+          <div class="sub-row">
+            <span class="sd">04-18 04:14</span>
+            <span class="dot pending"></span>
+            <span class="desc">Scheduled · <strong style="font-family: var(--font-mono); font-size: 12px;">TICO Q1 2026</strong> nightly Gold run<span class="meta">run_2026_04_19_0412 · tonight 04:12</span></span>
+            <span class="sn">14,218 rec</span>
+            <span class="st">—</span>
+            <button class="btn sm ghost">view</button>
+          </div>
+          <div class="sub-row">
+            <span class="sd">04-15 05:48</span>
+            <span class="dot ok"></span>
+            <span class="desc">Acknowledged · <strong style="font-family: var(--font-mono); font-size: 12px;">NAIC MAR 2024 amendment</strong> accepted<span class="meta">naic-ack-2026-0415-0031</span></span>
+            <span class="sn">1 filing</span>
+            <span class="st ok">accepted</span>
+            <button class="btn sm ghost">view</button>
+          </div>
+          <div class="sub-row">
+            <span class="sd">04-14 23:28</span>
+            <span class="dot ok"></span>
+            <span class="desc">Submitted · <strong style="font-family: var(--font-mono); font-size: 12px;">NAIC MAR 2024</strong> supplement · ATIC, TWC, NTP, SRC<span class="meta">SFTP · 847 KB · pgp signed</span></span>
+            <span class="sn">4 entities</span>
+            <span class="st ok">submitted</span>
+            <button class="btn sm ghost">view</button>
+          </div>
+          <div class="sub-row">
+            <span class="sd">04-10 04:32</span>
+            <span class="dot ok"></span>
+            <span class="desc">Acknowledged · <strong style="font-family: var(--font-mono); font-size: 12px;">TICO Q4 2025</strong> final acceptance<span class="meta">tico-ack-Q4-2025-FIN · 0 rejections</span></span>
+            <span class="sn">38,912 rec</span>
+            <span class="st ok">final</span>
+            <button class="btn sm ghost">view</button>
+          </div>
+          <div class="sub-row">
+            <span class="sd">04-09 16:04</span>
+            <span class="dot ok"></span>
+            <span class="desc">Submitted · <strong style="font-family: var(--font-mono); font-size: 12px;">TICO Q4 2025</strong> correction run · 218 records<span class="meta">SFTP · tico-corr-2026-0409</span></span>
+            <span class="sn">218 rec</span>
+            <span class="st ok">accepted</span>
+            <button class="btn sm ghost">view</button>
+          </div>
+          <div class="sub-row">
+            <span class="sd">04-02 10:21</span>
+            <span class="dot warn"></span>
+            <span class="desc">Partial acknowledgment · <strong style="font-family: var(--font-mono); font-size: 12px;">TICO Q4 2025</strong> · 218 records flagged for DQIP re-examination<span class="meta">tico-ack-Q4-2025-PART</span></span>
+            <span class="sn">218 of 38,694</span>
+            <span class="st warn">partial</span>
+            <button class="btn sm ghost">view</button>
+          </div>
+          <div class="sub-row">
+            <span class="sd">03-31 22:18</span>
+            <span class="dot ok"></span>
+            <span class="desc">Submitted · <strong style="font-family: var(--font-mono); font-size: 12px;">TICO Q4 2025</strong> Statistical Plan · 4 carriers<span class="meta">SFTP · 22.4 MB · pgp signed · submission-id tico-2026-0331-041</span></span>
+            <span class="sn">38,694 rec</span>
+            <span class="st ok">submitted</span>
+            <button class="btn sm ghost">view</button>
+          </div>
+          <div class="sub-row">
+            <span class="sd">03-28 09:10</span>
+            <span class="dot ok"></span>
+            <span class="desc">Acknowledged · <strong style="font-family: var(--font-mono); font-size: 12px;">NCCI WC 2025-Q1</strong> accepted<span class="meta">ncci-ack-2026-0328-A · 0 rejections</span></span>
+            <span class="sn">1,208 rec</span>
+            <span class="st ok">accepted</span>
+            <button class="btn sm ghost">view</button>
+          </div>
+          <div class="sub-row">
+            <span class="sd">03-27 14:02</span>
+            <span class="dot ok"></span>
+            <span class="desc">Submitted · <strong style="font-family: var(--font-mono); font-size: 12px;">NCCI WC 2025-Q1</strong> · SRC only<span class="meta">SFTP · ncci-2026-0327-SRC</span></span>
+            <span class="sn">1,208 rec</span>
+            <span class="st ok">submitted</span>
+            <button class="btn sm ghost">view</button>
+          </div>
+          <div class="sub-row">
+            <span class="sd">03-22 04:18</span>
+            <span class="dot ok"></span>
+            <span class="desc">Acknowledged · <strong style="font-family: var(--font-mono); font-size: 12px;">TICO Q3 2025</strong> re-file · DQIP cleared<span class="meta">tico-ack-Q3-2025-REF</span></span>
+            <span class="sn">742 rec</span>
+            <span class="st ok">cleared</span>
+            <button class="btn sm ghost">view</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Regulator health -->
+      <div class="sec-title">
+        <h2><span class="numeral">04</span>Regulator connection health</h2>
+        <div class="tools"><span class="pill">3 connectors</span></div>
+      </div>
+
+      <div class="split-3">
+        <div class="card">
+          <div class="card-h">
+            <span class="t">TICO · Texas</span>
+            <span class="m"><span class="status-live" style="display:inline-flex;">operational</span></span>
+          </div>
+          <div class="field-list" style="margin-top: var(--s-1);">
+            <div class="fl-row"><span class="fl-label">Protocol</span><span class="fl-value">SFTP · PGP signed</span></div>
+            <div class="fl-row"><span class="fl-label">Host</span><span class="fl-value">submit.tico-tx.org</span></div>
+            <div class="fl-row"><span class="fl-label">Last ack</span><span class="fl-value">2026-04-10 · 05:48 UTC</span></div>
+            <div class="fl-row"><span class="fl-label">Uptime 90d</span><span class="fl-value" style="color:var(--ok);">99.98%</span></div>
+            <div class="fl-row"><span class="fl-label">Avg. ack time</span><span class="fl-value">38 hours</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <span class="t">NAIC</span>
+            <span class="m"><span class="status-live" style="display:inline-flex;">operational</span></span>
+          </div>
+          <div class="field-list" style="margin-top: var(--s-1);">
+            <div class="fl-row"><span class="fl-label">Protocol</span><span class="fl-value">HTTPS · OAuth 2.0</span></div>
+            <div class="fl-row"><span class="fl-label">Host</span><span class="fl-value">api.naic.org/mar/v2</span></div>
+            <div class="fl-row"><span class="fl-label">Last ack</span><span class="fl-value">2026-04-15 · 05:48 UTC</span></div>
+            <div class="fl-row"><span class="fl-label">Uptime 90d</span><span class="fl-value" style="color:var(--ok);">99.91%</span></div>
+            <div class="fl-row"><span class="fl-label">Avg. ack time</span><span class="fl-value">4 minutes</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <span class="t">NCCI</span>
+            <span class="m"><span class="status-live warn" style="display:inline-flex;">ptl window</span></span>
+          </div>
+          <div class="field-list" style="margin-top: var(--s-1);">
+            <div class="fl-row"><span class="fl-label">Protocol</span><span class="fl-value">SFTP · PGP signed</span></div>
+            <div class="fl-row"><span class="fl-label">Host</span><span class="fl-value">ems.ncci.com</span></div>
+            <div class="fl-row"><span class="fl-label">Last ack</span><span class="fl-value">2026-03-28 · 09:10 UTC</span></div>
+            <div class="fl-row"><span class="fl-label">Uptime 90d</span><span class="fl-value" style="color:var(--warn);">98.2%</span></div>
+            <div class="fl-row"><span class="fl-label">Next window</span><span class="fl-value">2026-05-21 · 05:00 CT</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: var(--s-6); padding-top: var(--s-3); border-top: 1px solid var(--rule); color: var(--ink-4); font-family: var(--font-mono); font-size: var(--t-nano); letter-spacing: 0.08em; text-transform: uppercase; display: flex; justify-content: space-between;">
+        <span>All outbound submissions immutably archived · Snowflake Iceberg · 7-year retention</span>
+        <span>PGP fingerprint · 9A7C 4E2B 8F1D 6C3A · rotated 2026-01-01</span>
+      </div>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline Monitor — RegulAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-v2.css" />
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">R</span>
+      <span>RegulAI</span>
+    </a>
+    <div class="topbar-crumbs">
+      <span>Workspace</span>
+      <span class="sep">/</span>
+      <span>Operations</span>
+      <span class="sep">/</span>
+      <span class="current">Pipeline Monitor</span>
+    </div>
+    <div class="topbar-center"></div>
+    <div class="topbar-right">
+      <div class="search-field">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span>Search runs, stages…</span>
+        <span class="kbd">⌘ K</span>
+      </div>
+      <span class="env-chip">PROD</span>
+      <div class="user-chip"><div class="avatar">HS</div><span>Hannah Salazar</span></div>
+    </div>
+  </header>
+
+  <nav class="rail">
+    <a href="dashboard.html" class="rail-btn" title="Dashboard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></a>
+    <a href="workbench.html" class="rail-btn" title="Workbench"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h6v10H3zM15 7h6v10h-6z"/><path d="M9 12h6"/></svg></a>
+    <a href="review.html" class="rail-btn" title="HITL"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></a>
+    <a href="pipeline.html" class="rail-btn active" title="Pipeline"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></a>
+    <a href="ontology.html" class="rail-btn" title="Ontology"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M10 13l-4 4M14 13l4 4"/></svg></a>
+    <a href="filings.html" class="rail-btn" title="Filings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg></a>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+  </nav>
+
+  <div class="subheader">
+    <div class="subheader-title">
+      <span class="page-name">Pipeline Monitor</span>
+      <span class="page-sub">· Databricks DLT · L0 → L5 · run_id dlt_2026_07_31_0412</span>
+    </div>
+    <div class="subheader-stats">
+      <span class="stat"><span class="n">1</span><span>active run</span></span>
+      <span class="stat ok"><span class="n">4 / 4</span><span>gates passed</span></span>
+      <span class="stat"><span class="n">01:47</span><span>elapsed</span></span>
+      <span class="stat warn"><span class="n">17</span><span>MR queued</span></span>
+      <span class="stat ok"><span class="n">0.03%</span><span>GL variance</span></span>
+    </div>
+  </div>
+
+  <div class="subnav">
+    <div class="subnav-item active">Active <span class="count">1</span></div>
+    <div class="subnav-item">History <span class="count">214</span></div>
+    <div class="subnav-item">Schedules <span class="count">6</span></div>
+    <div class="subnav-item">Failures <span class="count">2</span></div>
+    <div class="subnav-item">Back-fill</div>
+    <div class="subhead-actions">
+      <button class="btn sm">Rerun failed</button>
+      <button class="btn sm primary">Trigger run</button>
+    </div>
+  </div>
+
+  <main class="work scroll">
+    <div class="canvas">
+
+      <!-- Masthead -->
+      <div class="page-masthead">
+        <div class="intro">
+          <div class="kicker">Live · dlt_2026_07_31_0412 · ATIC Q3 filing · 4 of 4 gates passed so far</div>
+          <h1>Nightly lifecycle,<br/><em>step 06 of 10.</em></h1>
+          <p>CDA → Bronze → GRE → Silver (Cortex edit check passed) → HITL (17 MR records queued) →
+             Gold aggregation running now. Bridge will transmit to the ISO/Verisk Portal once the Gold
+             gate confirms zero <span class="mono">review_flag = MR</span> records remain. Workday GL
+             reconciliation auto-triggered post-filing.</p>
+        </div>
+        <div class="intro-meta">
+          <div class="im"><div class="lbl">Started</div><div class="val">04:12 UTC</div></div>
+          <div class="im accent"><div class="lbl">Elapsed</div><div class="val">01:47</div></div>
+          <div class="im"><div class="lbl">ETA Filing</div><div class="val">~14m</div></div>
+        </div>
+      </div>
+
+      <!-- DAG -->
+      <div class="sec-title">
+        <h2><span class="numeral">01</span>Ten-step lifecycle · L0 → L5 · agent-owned</h2>
+        <div class="tools"><span class="pill">Databricks DLT</span><span class="pill">auto-refresh 10s</span></div>
+      </div>
+
+      <div class="dag" style="grid-template-columns: repeat(5, 1fr); grid-auto-rows: auto; gap: var(--s-2);">
+        <div class="dag-stage done">
+          <div class="sn">01 · CDA EXTRACT</div>
+          <div class="st">PolicyCenter → Parquet</div>
+          <div class="sa">L0 · gw_tx_id stream</div>
+          <div class="sstat">done · 00:04</div>
+          <div class="sv">14,218 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">CDC events</span></div>
+        </div>
+        <div class="dag-stage done">
+          <div class="sn">02 · BRONZE</div>
+          <div class="st">Auto Loader · Delta</div>
+          <div class="sa">L1 · regulai_bronze.*</div>
+          <div class="sstat">done · 00:12 · null 0.04%</div>
+          <div class="sv">14,218 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">rows · gate ✓</span></div>
+        </div>
+        <div class="dag-stage done">
+          <div class="sn">03 · GRE RESOLVE</div>
+          <div class="st">Sentinel · Neo4j</div>
+          <div class="sa">rule lookup per record</div>
+          <div class="sstat">done · 00:18</div>
+          <div class="sv">2,091 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">lookups · gate ✓</span></div>
+        </div>
+        <div class="dag-stage done">
+          <div class="sn">04 · SILVER</div>
+          <div class="st">Cortex edit check</div>
+          <div class="sa">L2 · mock-TICO validation</div>
+          <div class="sstat">done · 00:38</div>
+          <div class="sv">2,091 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">coded · 17 MR</span></div>
+        </div>
+        <div class="dag-stage done">
+          <div class="sn">05 · HITL QUEUE</div>
+          <div class="st">Genie workspace</div>
+          <div class="sa">review_flag = MR route</div>
+          <div class="sstat">17 queued · SLA tracking</div>
+          <div class="sv">17 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">T1:7 T2:9 T3:1</span></div>
+        </div>
+        <div class="dag-stage active">
+          <div class="sn">06 · GOLD</div>
+          <div class="st">DLT aggregate</div>
+          <div class="sa">L3 · stat_filing build</div>
+          <div class="sstat">running · 00:13 · blocked on 17 MR</div>
+          <div class="sv">12,466 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">/ 12,483 gate</span></div>
+        </div>
+        <div class="dag-stage pending">
+          <div class="sn">07 · TICO FILING</div>
+          <div class="st">Bridge · ISO Portal API</div>
+          <div class="sa">L4 · fixed-width emit</div>
+          <div class="sstat">pending · ETA 14m</div>
+          <div class="sv" style="color: var(--ink-4);">—</div>
+        </div>
+        <div class="dag-stage pending">
+          <div class="sn">08 · WORKDAY RECON</div>
+          <div class="st">Bridge · Prism API</div>
+          <div class="sa">L5 · GL variance</div>
+          <div class="sstat">pending · post-filing</div>
+          <div class="sv" style="color: var(--ink-4);">—</div>
+        </div>
+        <div class="dag-stage pending">
+          <div class="sn">09 · AUDIT + ACK</div>
+          <div class="st">Bridge · 3 outputs</div>
+          <div class="sa">recon · audit · Verisk feed</div>
+          <div class="sstat">pending · 24–48h</div>
+          <div class="sv" style="color: var(--ink-4);">—</div>
+        </div>
+        <div class="dag-stage done">
+          <div class="sn">10 · SENTINEL</div>
+          <div class="st">Bulletin monitor</div>
+          <div class="sa">TDI · TICO · NAIC · NCCI</div>
+          <div class="sstat">continuous · 1 new today</div>
+          <div class="sv">1 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">BulletinOverride</span></div>
+        </div>
+      </div>
+
+      <!-- Gates -->
+      <div class="sec-title">
+        <h2><span class="numeral">02</span>Layer gates · validation boundaries</h2>
+        <div class="tools"><span class="pill">no data moves forward without passing</span></div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2);">
+        <div style="border: 1px solid var(--rule); background: var(--paper-elev); padding: var(--s-3);">
+          <div class="rule-label mb-1" style="color: var(--ok);">Gate · Bronze ingest</div>
+          <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); line-height: 1.5;">Row count matches CDA confirmation · null rate on <span class="mono">policy_number</span>, <span class="mono">loss_date</span>, <span class="mono">risk_zip</span> &lt; 0.1%</div>
+          <div style="margin-top: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--ok); font-weight: 600;">✓ PASSED · 04:16 UTC</div>
+        </div>
+        <div style="border: 1px solid var(--rule); background: var(--paper-elev); padding: var(--s-3);">
+          <div class="rule-label mb-1" style="color: var(--ok);">Gate · GRE resolution</div>
+          <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); line-height: 1.5;">Deterministic rule match for every (edition, state, COL-cause, territory). Nulls auto-flagged MR · not silently OT'd</div>
+          <div style="margin-top: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--ok); font-weight: 600;">✓ PASSED · 04:34 UTC</div>
+        </div>
+        <div style="border: 1px solid var(--rule); background: var(--paper-elev); padding: var(--s-3);">
+          <div class="rule-label mb-1" style="color: var(--ok);">Gate · Cortex edit check</div>
+          <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); line-height: 1.5;">All COL codes in edition code table · no WD2 on post-2020 losses · no terr/edition mismatch · OT rate &lt; 2%</div>
+          <div style="margin-top: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--ok); font-weight: 600;">✓ PASSED · 05:12 UTC · OT 1.3%</div>
+        </div>
+        <div style="border: 1px solid var(--rule); background: var(--paper-elev); padding: var(--s-3); border-left: 2px solid var(--warn);">
+          <div class="rule-label mb-1" style="color: var(--warn);">Gate · Gold promotion</div>
+          <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); line-height: 1.5;">Zero <span class="mono">review_flag = MR</span> in Silver batch · Gold row count = Silver non-deferred count</div>
+          <div style="margin-top: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--warn); font-weight: 600;">⏳ BLOCKED · 17 MR open · 4 T2 within SLA</div>
+        </div>
+      </div>
+
+      <!-- Stage detail: Cortex edit check -->
+      <div class="sec-title">
+        <h2><span class="numeral">03</span>Step 04 · Silver · Cortex edit check (completed)</h2>
+        <div class="tools"><span class="pill">mock-TICO validation pass</span></div>
+      </div>
+
+      <div class="split-2">
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Cortex validations · Silver batch</span>
+            <span class="m">17 flagged MR across 8 trigger types</span>
+          </div>
+          <div class="progress">
+            <div class="p-head">
+              <span>Silver records processed · 2,091 of 2,091</span>
+              <span class="pct">100%</span>
+            </div>
+            <div class="p-bar"><div class="p-fill accent" style="width:100%;"></div></div>
+          </div>
+          <div style="margin-top: var(--s-3); font-size: var(--t-small);">
+            <div class="axiom-list">
+              <div class="ax ok"><span class="check">✓</span><span class="text">All COL codes exist in edition valid-code table (THSP_2026)</span><span class="cite">2,091/2,091</span></div>
+              <div class="ax ok"><span class="check">✓</span><span class="text">No WD2 codes on post-2020 losses</span><span class="cite">2,091/2,091</span></div>
+              <div class="ax ok"><span class="check">✓</span><span class="text">No territory / edition mismatches</span><span class="cite">2,091/2,091</span></div>
+              <div class="ax ok"><span class="check">✓</span><span class="text">OT auto-assignment rate &lt; 2% threshold</span><span class="cite">27 · 1.29%</span></div>
+              <div class="ax warn"><span class="check">!</span><span class="text">TRIGGER_WH_WN · coastal territories 11–15</span><span class="cite">4 MR routed Tier 2</span></div>
+              <div class="ax warn"><span class="check">!</span><span class="text">TRIGGER_CONCURRENT · ensuing loss doctrine</span><span class="cite">3 MR routed Tier 2</span></div>
+              <div class="ax warn"><span class="check">!</span><span class="text">TRIGGER_LARGE_LOSS · stat amount &gt; $500K personal</span><span class="cite">2 MR routed Tier 2</span></div>
+              <div class="ax warn"><span class="check">!</span><span class="text">TRIGGER_NOVEL_FORM · GRE null match</span><span class="cite">1 MR routed Tier 3</span></div>
+              <div class="ax warn"><span class="check">!</span><span class="text">TRIGGER_OT · OT auto-assigned</span><span class="cite">3 MR routed Tier 1</span></div>
+              <div class="ax warn"><span class="check">!</span><span class="text">TRIGGER_EDITION_BOUNDARY · loss ±10d plan transition</span><span class="cite">2 MR routed Tier 1</span></div>
+              <div class="ax warn"><span class="check">!</span><span class="text">TRIGGER_UMBRELLA · aggregate erosion &gt; $1M</span><span class="cite">1 MR routed Tier 2</span></div>
+              <div class="ax warn"><span class="check">!</span><span class="text">TRIGGER_COV_DISPUTE · COV_DISPUTE_IND = Y</span><span class="cite">1 MR routed Tier 2</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Step timings · this run</span>
+            <span class="m">ms / record</span>
+          </div>
+          <div style="padding-top: var(--s-2);">
+            <div style="display: flex; flex-direction: column; gap: var(--s-2);">
+              <div style="display: grid; grid-template-columns: 120px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">CDA extract</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill" style="width: 6%; background: var(--ok);"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">12 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 120px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Bronze ingest</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill" style="width: 10%; background: var(--ok);"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">22 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 120px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">GRE resolve</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill" style="width: 34%; background: var(--ok);"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">72 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 120px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Silver (Cortex)</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill accent" style="width: 100%;"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">1,091 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 120px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Gold aggr.</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill accent" style="width: 16%;"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">84 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 120px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Bridge file</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill" style="width: 22%; background: var(--ok);"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">128 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 120px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Workday recon</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill" style="width: 18%; background: var(--ok);"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">96 ms/rec</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--rule-soft); display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); font-size: var(--t-small);">
+            <div>
+              <div class="rule-label mb-1">Hot spot</div>
+              <div>Silver · Cortex LLM classification + GRE lookup</div>
+            </div>
+            <div>
+              <div class="rule-label mb-1">Throughput</div>
+              <div>~2.1k records/min sustained · DLT-scaled</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Run history -->
+      <div class="sec-title">
+        <h2><span class="numeral">05</span>Recent runs · last 14 days</h2>
+        <div class="tools">
+          <span class="pill">nightly</span>
+          <span class="pill">ad-hoc</span>
+          <span class="pill">backfill</span>
+        </div>
+      </div>
+
+      <table class="runs-table">
+        <thead>
+          <tr>
+            <th>Run ID</th>
+            <th>Trigger</th>
+            <th>Started</th>
+            <th>Duration</th>
+            <th class="num">Records</th>
+            <th class="num">HITL</th>
+            <th class="num">Var %</th>
+            <th>Axioms</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="run-id">dlt_2026_07_19_0412</td>
+            <td>cron · nightly</td>
+            <td>04-19 · 04:12</td>
+            <td>01:47 (running)</td>
+            <td class="num">14,218</td>
+            <td class="num">17</td>
+            <td class="num" style="color:var(--ok);">0.03</td>
+            <td>218 / 219</td>
+            <td><span class="status run">● Running</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">dlt_2026_07_18_0412</td>
+            <td>cron · nightly</td>
+            <td>04-18 · 04:12</td>
+            <td>01:52</td>
+            <td class="num">14,041</td>
+            <td class="num">14</td>
+            <td class="num" style="color:var(--ok);">0.02</td>
+            <td>219 / 219</td>
+            <td><span class="status ok">● Filed</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">dlt_2026_07_18_1801</td>
+            <td>manual · h.salazar</td>
+            <td>04-18 · 18:01</td>
+            <td>00:12</td>
+            <td class="num">312</td>
+            <td class="num">0</td>
+            <td class="num" style="color:var(--ok);">0.00</td>
+            <td>118 / 118</td>
+            <td><span class="status ok">● Shadow</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">dlt_2026_07_17_0412</td>
+            <td>cron · nightly</td>
+            <td>04-17 · 04:12</td>
+            <td>01:58</td>
+            <td class="num">13,902</td>
+            <td class="num">22</td>
+            <td class="num" style="color:var(--warn);">0.08</td>
+            <td>219 / 219</td>
+            <td><span class="status ok">● Filed</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">dlt_2026_07_16_0412</td>
+            <td>cron · nightly</td>
+            <td>04-16 · 04:12</td>
+            <td>02:14</td>
+            <td class="num">13,854</td>
+            <td class="num">11</td>
+            <td class="num" style="color:var(--ok);">0.04</td>
+            <td>218 / 219</td>
+            <td><span class="status warn">⊘ 1 deferred</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">dlt_2026_07_15_2210</td>
+            <td>sentinel · bulletin</td>
+            <td>04-15 · 22:10</td>
+            <td>00:04</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td>schema diff</td>
+            <td><span class="status ok">● Graph update</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">dlt_2026_07_15_0412</td>
+            <td>cron · nightly</td>
+            <td>04-15 · 04:12</td>
+            <td>01:51</td>
+            <td class="num">13,810</td>
+            <td class="num">19</td>
+            <td class="num" style="color:var(--ok);">0.03</td>
+            <td>219 / 219</td>
+            <td><span class="status ok">● Filed</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">dlt_2026_07_14_2314</td>
+            <td>manual · m.kim</td>
+            <td>04-14 · 23:14</td>
+            <td>00:08</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td>18 / 18</td>
+            <td><span class="status fail">✕ Failed</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">dlt_2026_07_14_0412</td>
+            <td>cron · nightly</td>
+            <td>04-14 · 04:12</td>
+            <td>01:44</td>
+            <td class="num">13,721</td>
+            <td class="num">9</td>
+            <td class="num" style="color:var(--ok);">0.02</td>
+            <td>219 / 219</td>
+            <td><span class="status ok">● Filed</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">dlt_2026_07_13_0412</td>
+            <td>cron · nightly</td>
+            <td>04-13 · 04:12</td>
+            <td>01:49</td>
+            <td class="num">13,704</td>
+            <td class="num">13</td>
+            <td class="num" style="color:var(--ok);">0.03</td>
+            <td>219 / 219</td>
+            <td><span class="status ok">● Filed</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- GRE learning loop -->
+      <div class="sec-title">
+        <h2><span class="numeral">04</span>GRE learning loop · most recent novel form</h2>
+        <div class="tools"><span class="pill" style="border-color: var(--ok); color: var(--ok);">rule node activated</span></div>
+      </div>
+
+      <div class="split-2">
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Silver event trace</span>
+            <span class="m">cortex-tx v2.3 · 2026-07-24 23:14 UTC</span>
+          </div>
+          <div class="rulebox" data-label="silver · cortex · GRE null match">
+<span class="com">// Step 04 · Silver · record 2026_SRC_CL_557019 · plan_edition THSP_2026</span>
+[<span class="num">2026-07-24T23:14:42Z</span>] <span class="kw">INFO</span>   cortex.silver
+  record classified · <span class="kw">form lookup</span> ISO <span class="str">"HO 00 03 05 11"</span>
+  <span class="kw">GRE query</span> MATCH (e:StatPlanEdition {id:'THSP_2026'})
+              -[:HAS_COL_CODE]-&gt;(r:COLCodeRule)
+              WHERE r.applies_to_form = 'HO 00 03 05 11'
+  <span class="kw">result</span>: <span class="str">null match</span> · no rule node for this form
+
+[<span class="num">2026-07-24T23:14:42Z</span>] <span class="kw">INFO</span>   cortex.silver
+  <span class="kw">setting</span> review_flag = MR · hitl_reason = TRIGGER_NOVEL_FORM
+  <span class="kw">routing</span> to Tier 3 queue per specialist-tier matrix
+
+[<span class="num">2026-07-24T23:14:43Z</span>] <span class="kw">INFO</span>   dlt.pipeline
+  silver partial promotion · 317/318 to Gold gate
+  1 record pinned in Silver pending T3 rule-node creation
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Resolution · GRE rule node created</span>
+            <span class="m">T3 · h.salazar · peer review m.kim · activated 2026-07-25 08:40</span>
+          </div>
+          <div style="font-size: var(--t-small); line-height: 1.55; color: var(--ink-2);">
+            <div class="rule-label mb-2">Root cause</div>
+            <p style="margin-bottom: var(--s-3);">SRC introduced ISO form <span class="mono" style="font-size:11px;">HO 00 03 05 11</span> (brush-management rider) as of 2026-Q3. No <span class="mono" style="font-size:11px;">COLCodeRule</span> existed for this form family in the GRE. Cortex correctly refused to guess a classification — this is a knowledge gap, not a confidence problem.</p>
+            <div class="rule-label mb-2">Fix · Tier 3 rule-node creation (per HITL §7)</div>
+            <p style="margin-bottom: var(--s-3);">h.salazar created <span class="mono" style="font-size: 11px;">COLCodeRule[HO_00_03_05_11]</span> node · linked to <span class="mono" style="font-size:11px;">EndorsementRule[HO-61]</span> for wildfire-mitigation exposure · conditions + exceptions authored in GRE DSL · peer-reviewed by m.kim (four-eyes).</p>
+            <div class="rule-label mb-2">Learning loop outcome</div>
+            <ul style="padding-left: var(--s-4); margin: 0;">
+              <li>Partition-pruned Silver re-run on 07-25 · 47 historical records re-classified deterministically</li>
+              <li>Next claim under this form: no HITL trigger · no queue entry · no specialist time</li>
+              <li>Expected TRIGGER_NOVEL_FORM rate trending toward &lt;2% by month 13 (HITL §7 maturity projection)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: var(--s-6); padding-top: var(--s-3); border-top: 1px solid var(--rule); color: var(--ink-4); font-family: var(--font-mono); font-size: var(--t-nano); letter-spacing: 0.08em; text-transform: uppercase; display: flex; justify-content: space-between;">
+        <span>Databricks DLT · Unity Catalog · regulai_bronze / silver / gold · 7y retention · SHA 4f7b12a</span>
+        <span>14-day success rate · 212 / 214 · 99.07%</span>
+      </div>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

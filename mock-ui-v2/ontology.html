@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GRE Explorer — RegulAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-v2.css" />
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">R</span>
+      <span>RegulAI</span>
+    </a>
+    <div class="topbar-crumbs">
+      <span>Graph Regulation Engine</span>
+      <span class="sep">/</span>
+      <span>COLCodeRule</span>
+      <span class="sep">/</span>
+      <span class="current">WH · Windstorm (Named)</span>
+    </div>
+    <div class="topbar-center"></div>
+    <div class="topbar-right">
+      <div class="search-field">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+        </svg>
+        <span>Search rules, forms, editions, territories…</span>
+        <span class="kbd">⌘ K</span>
+      </div>
+      <span class="env-chip">PROD</span>
+      <div class="user-chip"><div class="avatar">HS</div><span>Hannah Salazar</span></div>
+    </div>
+  </header>
+
+  <nav class="rail">
+    <a href="dashboard.html" class="rail-btn" title="Dashboard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></a>
+    <a href="workbench.html" class="rail-btn" title="Workbench"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h6v10H3zM15 7h6v10h-6z"/><path d="M9 12h6"/></svg></a>
+    <a href="review.html" class="rail-btn" title="HITL"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></a>
+    <a href="pipeline.html" class="rail-btn" title="Pipeline"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></a>
+    <a href="ontology.html" class="rail-btn active" title="GRE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M10 13l-4 4M14 13l4 4"/></svg></a>
+    <a href="filings.html" class="rail-btn" title="Filings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg></a>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/></svg></button>
+  </nav>
+
+  <div class="subheader">
+    <div class="subheader-title">
+      <span class="page-name">GRE Explorer</span>
+      <span class="page-sub">· Graph Regulation Engine · Neo4j v5.18 · digital twin of every stat plan</span>
+    </div>
+    <div class="subheader-stats">
+      <span class="stat"><span class="n">4,912</span><span>rule nodes</span></span>
+      <span class="stat"><span class="n">6</span><span>node types</span></span>
+      <span class="stat"><span class="n">18,204</span><span>relationships</span></span>
+      <span class="stat ok"><span class="n">v1.2.4</span><span>commit 4f7b12a</span></span>
+      <span class="stat warn"><span class="n">1</span><span>Sentinel pending</span></span>
+    </div>
+  </div>
+
+  <main class="work">
+    <div class="pane-3">
+
+      <!-- LEFT: Node-type tree -->
+      <section class="pane left">
+        <div class="pane-h">
+          <div class="title">GRE Node Types</div>
+          <div class="meta">6 types · v1.2.4</div>
+        </div>
+        <div class="pane-filter">
+          <input type="text" placeholder="Filter by edition, state, form…"/>
+          <button title="Filter">☰</button>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>StatPlanEdition</span><span class="count">14</span></div>
+          <div class="ont-concept-row"><span>THSP_2026 · TX residential</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>THSP_2024 · TX residential</span><span class="badge">legacy</span></div>
+          <div class="ont-concept-row"><span>THSP_2019 · TX residential</span><span class="badge">legacy</span></div>
+          <div class="ont-concept-row"><span>TCLSP_2014 · TX auto</span><span class="badge">legacy</span></div>
+          <div class="ont-concept-row"><span>TCLSP_2026 · TX auto</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>FLOIR_2025 · FL residential</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>CDI_2024 · CA residential</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>NCCI_2026 · workers comp</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>ISO_HO_2023</span><span class="badge">active</span></div>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>COLCodeRule</span><span class="count">2,148</span></div>
+          <div class="ont-concept-row active"><span>WH · Windstorm (named)</span><span class="badge">primary</span></div>
+          <div class="ont-concept-row"><span>WN · Windstorm (other)</span><span class="badge">primary</span></div>
+          <div class="ont-concept-row"><span>HA · Hail</span><span class="badge">primary</span></div>
+          <div class="ont-concept-row"><span>WD2 · Water Damage (post-2020)</span><span class="badge">deprecated</span></div>
+          <div class="ont-concept-row"><span>WD3 · Discharge of water</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>WD4 · Weight of water</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>FR · Freezing</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>FL · Flood (excluded)</span><span class="badge">exclusion</span></div>
+          <div class="ont-concept-row"><span>FI · Fire</span><span class="badge">primary</span></div>
+          <div class="ont-concept-row"><span>OT · Other / fallback</span><span class="badge warn">HITL</span></div>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>TerritoryRule</span><span class="count">418</span></div>
+          <div class="ont-concept-row"><span>Terr 11 · Lower Coast</span><span class="badge">coastal</span></div>
+          <div class="ont-concept-row"><span>Terr 12 · Coastal Bend</span><span class="badge">coastal</span></div>
+          <div class="ont-concept-row"><span>Terr 13 · Upper Coast</span><span class="badge">coastal</span></div>
+          <div class="ont-concept-row"><span>Terr 14 · Houston-Galveston</span><span class="badge">coastal</span></div>
+          <div class="ont-concept-row"><span>Terr 15 · Jefferson County</span><span class="badge">coastal</span></div>
+          <div class="ont-concept-row"><span>Terr 21 · Austin metro</span><span class="badge">inland</span></div>
+          <div class="ont-concept-row"><span>Terr 22 · Dallas metro</span><span class="badge">inland</span></div>
+          <div class="ont-concept-row"><span>Terr 31 · West TX</span><span class="badge">inland</span></div>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>EndorsementRule</span><span class="count">387</span></div>
+          <div class="ont-concept-row"><span>HO-61 · ordinance / law</span><span class="badge">modifier</span></div>
+          <div class="ont-concept-row"><span>HO-15 · ext. replacement</span><span class="badge">modifier</span></div>
+          <div class="ont-concept-row"><span>HO 04 90 · perils broadened</span><span class="badge">modifier</span></div>
+          <div class="ont-concept-row"><span>TX-04-91 · hurricane ded</span><span class="badge">TX-only</span></div>
+          <div class="ont-concept-row"><span>TXH-WD-LTD · water limit</span><span class="badge">sublimit</span></div>
+          <div class="ont-concept-row"><span>TX-CP-WD-001 · CP water</span><span class="badge">sublimit</span></div>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>BulletinOverride</span><span class="count">142</span></div>
+          <div class="ont-concept-row"><span>TICO-2026-03 · Terr schedule</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>TICO-2019-04 · WH/WN clarif.</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>TICO-2017-02 · large-loss</span><span class="badge">active</span></div>
+          <div class="ont-concept-row"><span>TDI-2026-04-19-A · pending</span><span class="badge warn">sentinel</span></div>
+          <div class="ont-concept-row"><span>NAIC-MDL-AI-2026 · AI gov</span><span class="badge">active</span></div>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>CarrierSOP</span><span class="count">1,803</span></div>
+          <div class="ont-concept-row"><span>ATIC · WH/WN Coastal 150nm</span><span class="badge">v3</span></div>
+          <div class="ont-concept-row"><span>ATIC · Ensuing loss doctrine</span><span class="badge">v2</span></div>
+          <div class="ont-concept-row"><span>TWC · Large-loss &gt;$500K</span><span class="badge">v1</span></div>
+          <div class="ont-concept-row"><span>NTP · Deductible ladder</span><span class="badge">v2</span></div>
+          <div class="ont-concept-row"><span>SRC · CP brush-mgmt rider</span><span class="badge">v1 · new</span></div>
+        </div>
+      </section>
+
+      <!-- CENTER: Node detail -->
+      <section class="pane center">
+        <div class="canvas" style="padding: var(--s-5) var(--s-6) var(--s-7); max-width: none;">
+
+          <div class="ont-concept">
+            <div class="kind">GRE Node · COLCodeRule · v1.2.4</div>
+            <div class="name">WH — <em>Windstorm</em> (Named Storm)</div>
+            <div class="defn">
+              Cause-of-loss code assigned when loss is attributable to wind associated with an
+              NWS-declared named storm (hurricane or tropical storm), distinguished from WN
+              (windstorm, all other). Selection is governed by the storm's 34-knot wind radius
+              at or within ±6 hours of landfall per SOP-COAST-03 §4.2. This distinction drives
+              catastrophe reinsurance loss reporting, TICO aggregate accumulation statistics, and
+              ISO loss development data — a WH→WN misclassification is retroactively correctable
+              only through a formal TICO challenge process.
+            </div>
+            <div style="display:flex; gap: var(--s-5); margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--rule-soft); font-size: var(--t-small);">
+              <div><span class="rule-label" style="display:block; margin-bottom: 3px;">Editions applied</span><span class="mono">THSP_2019 · THSP_2024 · THSP_2026</span></div>
+              <div><span class="rule-label" style="display:block; margin-bottom: 3px;">Jurisdictions</span><span class="mono">TX · FL · LA · MS · AL</span></div>
+              <div><span class="rule-label" style="display:block; margin-bottom: 3px;">Triggers HITL</span><span class="mono">YES · TRIGGER_WH_WN · T2</span></div>
+              <div><span class="rule-label" style="display:block; margin-bottom: 3px;">Current overrides</span><span class="mono">BulletinOverride TICO-2019-04</span></div>
+              <div><span class="rule-label" style="display:block; margin-bottom: 3px;">Last modified</span><span class="mono">2026-03-14 · Sentinel auto-update</span></div>
+            </div>
+          </div>
+
+          <!-- Properties -->
+          <div class="sec-title">
+            <h2><span class="numeral">01</span>Node properties</h2>
+            <div class="tools"><span class="pill">policy-as-code</span></div>
+          </div>
+
+          <div class="prop-list">
+            <div class="prop-row">
+              <span class="pn">rule_id</span>
+              <span class="pt">STRING</span>
+              <span class="pd">Stable identifier · <span class="mono" style="font-size:11px;">COLCodeRule[WH]@v1.2.4</span></span>
+              <span class="pq req">required</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">col_code</span>
+              <span class="pt">STRING</span>
+              <span class="pd">The TICO/ISO cause-of-loss code emitted · <span class="mono" style="font-size:11px;">"WH"</span></span>
+              <span class="pq req">required</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">description</span>
+              <span class="pt">STRING</span>
+              <span class="pd">Windstorm associated with NWS-declared named storm event</span>
+              <span class="pq req">required</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">effective_from</span>
+              <span class="pt">DATE</span>
+              <span class="pd">Edition effectivity · varies by StatPlanEdition relationship</span>
+              <span class="pq req">required</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">triggers_hitl</span>
+              <span class="pt">BOOLEAN</span>
+              <span class="pd">If <span class="mono" style="font-size:11px;">true</span>, Cortex sets review_flag = MR for any coastal territory (11–15) match · routes to Tier 2</span>
+              <span class="pq req">true</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">sop_reference</span>
+              <span class="pt">STRING</span>
+              <span class="pd">Linked SOP section for specialist guidance · <span class="mono" style="font-size:11px;">SOP-COAST-03 §4.2</span></span>
+              <span class="pq req">required</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">citation</span>
+              <span class="pt">STRING</span>
+              <span class="pd">Regulatory citation · <span class="mono" style="font-size:11px;">TCLSP §5.9503(b)(1)(A)</span></span>
+              <span class="pq req">required</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">superseded_by</span>
+              <span class="pt">ID?</span>
+              <span class="pd">Pointer to BulletinOverride node if currently superseded</span>
+              <span class="pq opt">optional</span>
+            </div>
+          </div>
+
+          <!-- Relationships -->
+          <div class="sec-title">
+            <h2><span class="numeral">02</span>Relationships · edges</h2>
+            <div class="tools"><span class="pill">7 edge types</span></div>
+          </div>
+
+          <div class="rel-list">
+            <div class="rel-row">
+              <span class="rn">COLCodeRule[WH]</span>
+              <span class="ra">— APPLIES_TO →</span>
+              <span class="rt">StatPlanEdition[THSP_2026]</span>
+              <span class="rc">+ THSP_2024 · THSP_2019</span>
+            </div>
+            <div class="rel-row">
+              <span class="rn">COLCodeRule[WH]</span>
+              <span class="ra">— OVERRIDDEN_BY →</span>
+              <span class="rt">BulletinOverride[TICO-2019-04]</span>
+              <span class="rc">effective 2019-06-01</span>
+            </div>
+            <div class="rel-row">
+              <span class="rn">COLCodeRule[WH]</span>
+              <span class="ra">— TRIGGERS_HITL →</span>
+              <span class="rt">HITLTrigger[TRIGGER_WH_WN]</span>
+              <span class="rc">condition · territory ∈ (11..15)</span>
+            </div>
+            <div class="rel-row">
+              <span class="rn">COLCodeRule[WH]</span>
+              <span class="ra">— CONSTRAINED_BY →</span>
+              <span class="rt">TerritoryRule[Terr 11..15]</span>
+              <span class="rc">coastal territories only</span>
+            </div>
+            <div class="rel-row">
+              <span class="rn">COLCodeRule[WH]</span>
+              <span class="ra">— MODIFIED_BY →</span>
+              <span class="rt">EndorsementRule[TX-04-91]</span>
+              <span class="rc">hurricane ded. basis</span>
+            </div>
+            <div class="rel-row">
+              <span class="rn">COLCodeRule[WH]</span>
+              <span class="ra">— REFINED_BY →</span>
+              <span class="rt">CarrierSOP[ATIC.WH/WN.150nm.v3]</span>
+              <span class="rc">carrier-specific 150nm rule</span>
+            </div>
+            <div class="rel-row">
+              <span class="rn">COLCodeRule[WH]</span>
+              <span class="ra">— CITED_IN →</span>
+              <span class="rt">HITL_AUDIT_LOG</span>
+              <span class="rc">1,287 decisions since 2024</span>
+            </div>
+          </div>
+
+          <!-- Gate logic -->
+          <div class="sec-title">
+            <h2><span class="numeral">03</span>Rule resolution logic</h2>
+            <div class="tools"><span class="pill">invoked Step 3</span><span class="pill">deterministic match required</span></div>
+          </div>
+
+          <div class="split-2">
+            <div>
+              <div class="axiom-list">
+                <div class="ax ok"><span class="check">✓</span><span class="text">Deterministic match for every (edition, state, COL-cause, territory) tuple</span><span class="cite">GRE gate</span></div>
+                <div class="ax ok"><span class="check">✓</span><span class="text">TICO-2019-04 override applied · sequential-damage rule (HA/WH &gt; WD for concurrent)</span><span class="cite">v1.2.4</span></div>
+                <div class="ax ok"><span class="check">✓</span><span class="text">Coastal territory filter (11–15) active · routes to Tier 2 on match</span><span class="cite">trigger 2a</span></div>
+                <div class="ax ok"><span class="check">✓</span><span class="text">34-knot radius rule documented in SOP-COAST-03 §4.2 · sop_reference populated</span><span class="cite">HITL §2</span></div>
+                <div class="ax warn"><span class="check">!</span><span class="text">Edition boundary ±10d of THSP_2024→THSP_2026 · flag EDITION_BOUNDARY</span><span class="cite">trigger 2h</span></div>
+                <div class="ax ok"><span class="check">✓</span><span class="text">Peer review completed · four-eyes principle · activation 2026-03-14</span><span class="cite">HITL §7</span></div>
+              </div>
+            </div>
+            <div>
+              <div class="rulebox" data-label="GRE traversal · Cypher">
+<span class="com">// Step 3 · GRE rule resolution for a Silver record</span>
+<span class="kw">MATCH</span> (r:Record {silver_row_id: $silver_id})
+<span class="kw">MATCH</span> (e:StatPlanEdition {id: r.plan_edition})
+<span class="kw">MATCH</span> (t:TerritoryRule)-[:COVERS_ZIP]-&gt;(z:ZIP {code: r.risk_zip})
+<span class="kw">MATCH</span> (e)-[:HAS_COL_CODE]-&gt;(c:COLCodeRule)
+<span class="kw">WHERE</span> c.col_code = <span class="str">"WH"</span>
+  <span class="kw">AND</span> t.territory_code <span class="kw">IN</span> [<span class="num">11</span>,<span class="num">12</span>,<span class="num">13</span>,<span class="num">14</span>,<span class="num">15</span>]
+<span class="kw">OPTIONAL MATCH</span> (c)&lt;-[:SUPERSEDES]-(b:BulletinOverride)
+<span class="kw">WHERE</span> b.effective_date &lt;= r.loss_date
+<span class="kw">OPTIONAL MATCH</span> (c)&lt;-[:REFINES]-(s:CarrierSOP {carrier: r.carrier})
+<span class="kw">RETURN</span>
+  coalesce(b.col_code, c.col_code)  <span class="kw">AS</span> col_code_primary,
+  coalesce(b.rule_id, c.rule_id)    <span class="kw">AS</span> gre_rule_id,
+  s.sop_section                     <span class="kw">AS</span> sop_reference,
+  <span class="str">"TRIGGER_WH_WN"</span>                  <span class="kw">AS</span> hitl_reason
+              </div>
+            </div>
+          </div>
+
+          <!-- Regulatory citations -->
+          <div class="sec-title">
+            <h2><span class="numeral">04</span>Regulatory citations</h2>
+            <div class="tools"><span class="pill">4 linked authorities</span></div>
+          </div>
+
+          <table class="runs-table" style="background: var(--paper);">
+            <thead>
+              <tr>
+                <th>Authority</th>
+                <th>Target</th>
+                <th>Derivation</th>
+                <th>Effective</th>
+                <th>Citation</th>
+                <th style="text-align:right;">Version</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>TICO</td>
+                <td class="run-id">col_code = "WH"</td>
+                <td>primary emit · per edition</td>
+                <td>1990-01-01 → current</td>
+                <td><span class="citation">TCLSP §5.9503(b)(1)(A)</span></td>
+                <td class="num" style="color:var(--ok);">THSP_2026</td>
+              </tr>
+              <tr>
+                <td>TICO</td>
+                <td class="run-id">34-knot radius rule</td>
+                <td>override · HA/WH precedence</td>
+                <td>2019-06-01 → current</td>
+                <td><span class="citation">TICO-2019-04 bulletin</span></td>
+                <td class="num" style="color:var(--ok);">v1.2.4</td>
+              </tr>
+              <tr>
+                <td>ISO</td>
+                <td class="run-id">wind_cause_code</td>
+                <td>parallel emit · Verisk feed</td>
+                <td>2023-01-01</td>
+                <td><span class="citation">ISO Stat Plan 2023 §3.4</span></td>
+                <td class="num" style="color:var(--ok);">v1.2.4</td>
+              </tr>
+              <tr>
+                <td>TDI</td>
+                <td class="run-id">market-conduct auditable</td>
+                <td>HITL_AUDIT_LOG record required</td>
+                <td>2024-09-01 → current</td>
+                <td><span class="citation">TDI Bulletin B-0062-24</span></td>
+                <td class="num" style="color:var(--warn);">v1.2.4</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Graph definition -->
+          <div class="sec-title">
+            <h2><span class="numeral">05</span>Graph definition</h2>
+            <div class="tools"><span class="pill">Cypher · Neo4j 5.18</span><span class="pill">v1.2.4</span></div>
+          </div>
+
+          <div class="rulebox" data-label="Node: COLCodeRule[WH] · graph definition">
+<span class="com">// Node label</span>
+CREATE CONSTRAINT col_rule_id <span class="kw">IF NOT EXISTS</span>
+  <span class="kw">FOR</span> (r:COLCodeRule) <span class="kw">REQUIRE</span> r.rule_id <span class="kw">IS UNIQUE</span>;
+
+<span class="com">// Typed properties</span>
+(:COLCodeRule {
+  rule_id:        <span class="str">"COLCodeRule[WH]@v1.2.4"</span>,
+  col_code:       <span class="str">"WH"</span>,
+  description:    <span class="str">"Windstorm (named storm)"</span>,
+  effective_from: date(<span class="str">"1990-01-01"</span>),
+  triggers_hitl:  <span class="num">true</span>,
+  sop_reference:  <span class="str">"SOP-COAST-03 §4.2"</span>,
+  citation:       <span class="str">"TCLSP §5.9503(b)(1)(A)"</span>
+})
+
+<span class="com">// Typed relationships (6 node-type schema)</span>
+(:COLCodeRule)-[:APPLIES_TO]-&gt;(:StatPlanEdition)
+(:COLCodeRule)-[:CONSTRAINED_BY]-&gt;(:TerritoryRule)
+(:COLCodeRule)-[:MODIFIED_BY]-&gt;(:EndorsementRule)
+(:COLCodeRule)&lt;-[:SUPERSEDES]-(:BulletinOverride)
+(:COLCodeRule)&lt;-[:REFINES]-(:CarrierSOP)
+(:COLCodeRule)-[:TRIGGERS_HITL]-&gt;(:HITLTrigger)
+
+<span class="com">// Example instance with carrier SOP refinement</span>
+<span class="kw">MATCH</span> (c:COLCodeRule {col_code: <span class="str">"WH"</span>})
+<span class="kw">MERGE</span> (sop:CarrierSOP {
+  carrier: <span class="str">"ATIC"</span>,
+  sop_section: <span class="str">"ATIC-WH-WN-Coastal-150nm-v3"</span>,
+  rule: <span class="str">"Within 150 nm of Gulf coastline + 34-knot radius → WH"</span>,
+  peer_reviewed: <span class="num">true</span>,
+  reviewer_ids: [<span class="str">"h.salazar"</span>, <span class="str">"m.kim"</span>]
+})
+<span class="kw">MERGE</span> (sop)-[:REFINES]-&gt;(c)
+          </div>
+
+        </div>
+      </section>
+
+      <!-- RIGHT: Context / version -->
+      <aside class="pane right">
+        <div class="detail-head">
+          <div class="id">COLCodeRule[WH] · v1.2.4</div>
+          <h2 class="label">Neighborhood<br/>&amp; Sentinel History</h2>
+          <div class="sub">Adjacent rule nodes, bulletin-driven revisions, and peer-review provenance. Every change in this neighborhood re-evaluates Silver records under Sentinel's partition-pruned re-run.</div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Six GRE node types · v1.2.4</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">StatPlanEdition</span><span class="fl-value">THSP_2019 · THSP_2024 · THSP_2026 · …</span></div>
+            <div class="fl-row"><span class="fl-label">COLCodeRule</span><span class="fl-value">WH · WN · HA · WD2/3/4 · FR · FI · OT</span></div>
+            <div class="fl-row"><span class="fl-label">TerritoryRule</span><span class="fl-value">Terr 11–15 coastal · 21+ inland</span></div>
+            <div class="fl-row"><span class="fl-label">EndorsementRule</span><span class="fl-value">HO-61 · HO-15 · TX-04-91 · …</span></div>
+            <div class="fl-row"><span class="fl-label">BulletinOverride</span><span class="fl-value">TICO-2019-04 · TICO-2026-03 · …</span></div>
+            <div class="fl-row"><span class="fl-label">CarrierSOP</span><span class="fl-value">institutional knowledge layer</span></div>
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Direct neighbors · COLCodeRule[WH]</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">editions</span><span class="fl-value">3 StatPlanEdition</span></div>
+            <div class="fl-row"><span class="fl-label">territories</span><span class="fl-value">5 coastal TerritoryRule</span></div>
+            <div class="fl-row"><span class="fl-label">endorsements</span><span class="fl-value">1 EndorsementRule · TX-04-91</span></div>
+            <div class="fl-row"><span class="fl-label">overrides</span><span class="fl-value">1 BulletinOverride · TICO-2019-04</span></div>
+            <div class="fl-row"><span class="fl-label">carrier SOPs</span><span class="fl-value">4 CarrierSOP (ATIC, TWC, NTP, SRC)</span></div>
+            <div class="fl-row"><span class="fl-label">HITL decisions</span><span class="fl-value">1,287 in HITL_AUDIT_LOG</span></div>
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Version history · Sentinel-driven</div>
+          <div class="lineage-chain">
+            <div class="lineage-node accent">
+              <div class="ln-head"><span class="ln-kind">v1.2.4 · current</span><span class="ln-time">2026-03-14</span></div>
+              <div class="ln-body">Sentinel auto-update · TICO-2026-03<br/>territory schedule revision</div>
+              <div class="ln-meta">auto · peer review m.kim · 14 nodes affected</div>
+            </div>
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">v1.2.0</span><span class="ln-time">2026-02-14</span></div>
+              <div class="ln-body">THSP_2026 edition linkage<br/>+ EDITION_BOUNDARY trigger</div>
+              <div class="ln-meta">h.salazar · approved</div>
+            </div>
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">v1.1.0</span><span class="ln-time">2025-11-02</span></div>
+              <div class="ln-body">ATIC CarrierSOP 150nm rule<br/>refined REFINES edge</div>
+              <div class="ln-meta">m.kim · SOP capture · ATIC onboarding</div>
+            </div>
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">v1.0.0 · initial</span><span class="ln-time">2025-06-18</span></div>
+              <div class="ln-body">Initial node from THSP_2019<br/>seeded from TDI rule text</div>
+              <div class="ln-meta">h.salazar · regulatory content pass</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Pending · Sentinel detections</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">TDI-2026-04-19-A</span><span class="fl-value plain">§5.9504 territory schedule · awaiting T3 review · 14 nodes to re-evaluate</span></div>
+            <div class="fl-row"><span class="fl-label">NAIC-MDL-AI-2026</span><span class="fl-value plain">AI governance bulletin · audit-trail disclosure enhancements</span></div>
+          </div>
+        </div>
+
+        <div class="action-footer">
+          <button class="btn">Query sub-graph</button>
+          <button class="btn">Propose override</button>
+          <button class="btn primary">Export v1.2.4</button>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  document.querySelectorAll('.ont-concept-row').forEach(r => {
+    r.addEventListener('click', () => {
+      document.querySelectorAll('.ont-concept-row').forEach(x => x.classList.remove('active'));
+      r.classList.add('active');
+    });
+  });
+})();
+</script>
+</body>
+</html>

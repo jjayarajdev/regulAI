@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOP Workbench — RegulAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-v2.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">R</span>
+      <span>RegulAI</span>
+    </a>
+    <div class="topbar-crumbs">
+      <span>Carriers</span>
+      <span class="sep">/</span>
+      <span>Acme Texas Insurance</span>
+      <span class="sep">/</span>
+      <span>PolicyCenter via CDA</span>
+      <span class="sep">/</span>
+      <span class="current">SOP Workbench</span>
+    </div>
+    <div class="topbar-center"></div>
+    <div class="topbar-right">
+      <div class="search-field">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+        </svg>
+        <span>Search mappings, concepts, rules…</span>
+        <span class="kbd">⌘ K</span>
+      </div>
+      <span class="env-chip">PROD</span>
+      <div class="user-chip">
+        <div class="avatar">HS</div>
+        <span>Hannah Salazar</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left rail -->
+  <nav class="rail">
+    <a href="dashboard.html" class="rail-btn" title="Dashboard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></a>
+    <a href="workbench.html" class="rail-btn active" title="Workbench"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h6v10H3zM15 7h6v10h-6z"/><path d="M9 12h6"/></svg></a>
+    <a href="review.html" class="rail-btn" title="HITL Review"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></a>
+    <a href="pipeline.html" class="rail-btn" title="Pipeline"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></a>
+    <a href="ontology.html" class="rail-btn" title="Ontology"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M10 13l-4 4M14 13l4 4"/></svg></a>
+    <a href="filings.html" class="rail-btn" title="Filings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg></a>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+  </nav>
+
+  <!-- Sub-header -->
+  <div class="subheader">
+    <div class="subheader-title">
+      <span class="page-name">SOP Workbench · Bronze mappings + CarrierSOP capture</span>
+      <span class="page-sub">· ATIC onboarding · rev 2026-04-18 14:22 UTC · four-eyes peer review</span>
+    </div>
+    <div class="subheader-stats">
+      <span class="stat"><span class="n">128</span><span>rules total</span></span>
+      <span class="stat ok"><span class="n">119</span><span>peer-reviewed</span></span>
+      <span class="stat warn"><span class="n">7</span><span>pending T3 review</span></span>
+      <span class="stat"><span class="n">14</span><span>SOP interviews done</span></span>
+      <span class="stat"><span class="n">M-GW-204</span><span>next rule id</span></span>
+    </div>
+  </div>
+
+  <!-- Work area -->
+  <main class="work">
+    <div class="pane-3">
+
+      <!-- LEFT: Source schema -->
+      <section class="pane left">
+        <div class="pane-h">
+          <div class="title">CDA Bronze Schema</div>
+          <div class="meta">regulai_bronze.* · via Guidewire CDA</div>
+        </div>
+        <div class="pane-filter">
+          <input type="text" placeholder="Search fields, tables…" />
+          <button title="Filter">☰</button>
+        </div>
+
+        <div class="tree tree-table">
+
+          <div class="table-node open" data-table="pc_policy">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">pc_policy</span>
+              <span class="count">12,483 rows</span>
+            </div>
+            <div class="table-fields">
+              <div class="field-row mapped"><span></span><span class="field-name">policy_id</span><span class="field-meta">VARCHAR · 0% null</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">policy_number</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">product_code</span><span class="field-meta">VARCHAR · 4 distinct</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">effective_date</span><span class="field-meta">DATE · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">expiration_date</span><span class="field-meta">DATE · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row unmapped"><span></span><span class="field-name">underwriter_id</span><span class="field-meta">VARCHAR · 2% null</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">account_id</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row unmapped"><span></span><span class="field-name">renewal_flag</span><span class="field-meta">CHAR · 0%</span><span class="map-dot"></span></div>
+            </div>
+          </div>
+
+          <div class="table-node open" data-table="pc_coverage">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">pc_coverage</span>
+              <span class="count">46,201 rows</span>
+            </div>
+            <div class="table-fields">
+              <div class="field-row mapped"><span></span><span class="field-name">cov_id</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">policy_id</span><span class="field-meta">FK · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped selected" data-mapping="M-GW-028"><span></span><span class="field-name">pattern_code</span><span class="field-meta">VARCHAR · 14 distinct</span><span class="map-dot"></span></div>
+              <div class="field-row mapped selected" data-mapping="M-GW-028"><span></span><span class="field-name">limit_a</span><span class="field-meta">DECIMAL · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">deduct_a</span><span class="field-meta">DECIMAL · 3% null</span><span class="map-dot"></span></div>
+              <div class="field-row proposed"><span></span><span class="field-name">deduct_type</span><span class="field-meta">CHAR · 2 distinct</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">exp_date</span><span class="field-meta">DATE · 0%</span><span class="map-dot"></span></div>
+            </div>
+          </div>
+
+          <div class="table-node open" data-table="pc_policylocation">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">pc_policylocation</span>
+              <span class="count">12,804 rows</span>
+            </div>
+            <div class="table-fields">
+              <div class="field-row mapped"><span></span><span class="field-name">loc_id</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">address_line1</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">city</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">state</span><span class="field-meta">CHAR · 1 distinct</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">postal_code</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">county</span><span class="field-meta">VARCHAR · 254 distinct</span><span class="map-dot"></span></div>
+              <div class="field-row unmapped"><span></span><span class="field-name">territory_override</span><span class="field-meta">VARCHAR · 96% null</span><span class="map-dot"></span></div>
+            </div>
+          </div>
+
+          <div class="table-node" data-table="pc_policyperiod_premium">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">pc_policyperiod_premium</span>
+              <span class="count">12,483 rows</span>
+            </div>
+            <div class="table-fields">
+              <div class="field-row mapped"><span></span><span class="field-name">policy_id</span><span class="field-meta">FK · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">written_premium</span><span class="field-meta">DECIMAL · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">annual_premium</span><span class="field-meta">DECIMAL · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">term_length_days</span><span class="field-meta">INT · 0%</span><span class="map-dot"></span></div>
+            </div>
+          </div>
+
+          <div class="table-node open" data-table="cc_claim">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">cc_claim</span>
+              <span class="count">2,091 rows</span>
+            </div>
+            <div class="table-fields">
+              <div class="field-row mapped"><span></span><span class="field-name">claim_id</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">claim_number</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">policy_number</span><span class="field-meta">FK · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">loss_date</span><span class="field-meta">DATE · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">reported_date</span><span class="field-meta">DATE · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">status</span><span class="field-meta">ENUM · 5 distinct</span><span class="map-dot"></span></div>
+            </div>
+          </div>
+
+          <div class="table-node" data-table="cc_incident">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">cc_incident</span>
+              <span class="count">2,091 rows</span>
+            </div>
+          </div>
+
+          <div class="table-node" data-table="cc_exposure">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">cc_exposure</span>
+              <span class="count">3,810 rows</span>
+            </div>
+          </div>
+
+          <div class="table-node" data-table="cc_transaction">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">cc_transaction</span>
+              <span class="count">9,284 rows</span>
+            </div>
+          </div>
+
+          <div class="table-node" data-table="gl_entries">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">gl_entries</span>
+              <span class="count">244,120 rows</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- CENTER: Mappings -->
+      <section class="pane center">
+
+        <!-- stat strip -->
+        <div class="stat-strip">
+          <div class="stat-cell"><div class="lbl">Source Coverage</div><div class="num">93.2<span style="font-size:14px; color:var(--ink-3); font-family:var(--font-mono);">%</span></div></div>
+          <div class="stat-cell"><div class="lbl">Template Reuse</div><div class="num">81<span style="font-size:14px; color:var(--ink-3); font-family:var(--font-mono);">%</span></div></div>
+          <div class="stat-cell accent"><div class="lbl">Mean Confidence</div><div class="num">0.984</div></div>
+          <div class="stat-cell"><div class="lbl">Last Shadow Run</div><div class="num" style="font-size:15px; font-family:var(--font-mono); font-weight:500;">2026-04-18 · 04:12 UTC</div></div>
+        </div>
+
+        <!-- mappings header -->
+        <div class="mappings-header">
+          <div class="mh-title">Bronze mappings + GRE rules · <span class="mono" style="font-size:13px; color:var(--ink-3);">pc.* → Silver · CarrierSOP node</span></div>
+          <div class="mh-toolbar">
+            <div class="seg">
+              <button class="active">Table</button>
+              <button>Canvas</button>
+              <button>Diff</button>
+            </div>
+            <button class="btn"><span>Filter</span><span class="pill">3</span></button>
+            <button class="btn">Run preview</button>
+            <button class="btn primary">+ New rule node</button>
+          </div>
+        </div>
+
+        <!-- list header -->
+        <div class="mapping-list-header">
+          <span>Rule</span>
+          <span>Source</span>
+          <span></span>
+          <span>Canonical</span>
+          <span>Transform</span>
+          <span>Confidence</span>
+          <span>Status</span>
+          <span>Updated</span>
+        </div>
+
+        <!-- mapping rows -->
+        <div class="mapping-list" id="mappingList">
+
+          <div class="mapping-row" data-mid="M-GW-001">
+            <span class="mid">M-GW-001</span>
+            <span class="src"><span class="table">pc_policy.</span><span class="col">product_code</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Policy.</span>formCode</span>
+            <span class="transform-chip">Direct</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-12</span>
+          </div>
+
+          <div class="mapping-row selected" data-mid="M-GW-028">
+            <span class="mid">M-GW-028</span>
+            <span class="src"><span class="table">pc_coverage.</span><span class="col">limit_a</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Coverage.</span>limit</span>
+            <span class="transform-chip composite">Composite</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:99%"></div></div><span class="val">0.994</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-18</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-029">
+            <span class="mid">M-GW-029</span>
+            <span class="src"><span class="table">pc_coverage.</span><span class="col">deduct_a</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Coverage.</span>deductible</span>
+            <span class="transform-chip">Direct</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-12</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-033">
+            <span class="mid">M-GW-033</span>
+            <span class="src"><span class="table">pc_coverage.</span><span class="col">pattern_code</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Coverage.</span>type</span>
+            <span class="transform-chip lookup">Lookup</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-03</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-104">
+            <span class="mid">M-GW-104</span>
+            <span class="src"><span class="table">pc_policyperiod_premium.</span><span class="col">written_premium</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Policy.</span>premium·Written</span>
+            <span class="transform-chip composite">Composite</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">03-28</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-201">
+            <span class="mid">M-GW-201</span>
+            <span class="src"><span class="table">pc_policylocation.</span><span class="col">county</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Location.</span>county</span>
+            <span class="transform-chip">Direct</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">03-28</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-215">
+            <span class="mid">M-GW-215</span>
+            <span class="src"><span class="table">pc_policylocation.</span><span class="col">postal_code</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Location.</span>territory</span>
+            <span class="transform-chip lookup">Lookup</span>
+            <span class="conf-bar"><div class="track"><div class="fill med" style="width:86%"></div></div><span class="val">0.861</span></span>
+            <span class="status-badge review">Review</span>
+            <span class="updated">04-17</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-ATIC-017">
+            <span class="mid">M-ATIC-017</span>
+            <span class="src"><span class="table">cc_transaction</span><span class="col"> Σ Indemnity</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">LossPayment.</span>indemnityPaid</span>
+            <span class="transform-chip aggregate">Aggregate</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:98%"></div></div><span class="val">0.982</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-15</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-ATIC-019">
+            <span class="mid">M-ATIC-019</span>
+            <span class="src"><span class="table">cc_incident.</span><span class="col">description</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">LossEvent.</span>narrative</span>
+            <span class="transform-chip">Direct</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:92%"></div></div><span class="val">0.924</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-10</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-242">
+            <span class="mid">M-GW-242</span>
+            <span class="src"><span class="table">pc_coverage.</span><span class="col">deduct_type</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Coverage.</span>deductibleBasis</span>
+            <span class="transform-chip smedef">SME-Def</span>
+            <span class="conf-bar"><div class="track"><div class="fill med" style="width:74%"></div></div><span class="val">0.738</span></span>
+            <span class="status-badge proposed">Proposed</span>
+            <span class="updated">04-18</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-051">
+            <span class="mid">M-GW-051</span>
+            <span class="src"><span class="table">pc_policy.</span><span class="col">effective_date</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Policy.</span>effectivePeriod.start</span>
+            <span class="transform-chip">Direct</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">03-28</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-CC-088">
+            <span class="mid">M-CC-088</span>
+            <span class="src"><span class="table">cc_claim.</span><span class="col">loss_date</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">LossEvent.</span>occurrenceDate</span>
+            <span class="transform-chip composite">Composite</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:97%"></div></div><span class="val">0.969</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-05</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-CC-092">
+            <span class="mid">M-CC-092</span>
+            <span class="src"><span class="table">cc_exposure.</span><span class="col">coverage_subtype</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">LossPayment.</span>coverageRef</span>
+            <span class="transform-chip lookup">Lookup</span>
+            <span class="conf-bar"><div class="track"><div class="fill med" style="width:81%"></div></div><span class="val">0.814</span></span>
+            <span class="status-badge review">Review</span>
+            <span class="updated">04-18</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GL-003">
+            <span class="mid">M-GL-003</span>
+            <span class="src"><span class="table">gl_entries.</span><span class="col">[4100-WP]</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Policy.</span>premium·GLWritten</span>
+            <span class="transform-chip aggregate">Aggregate</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">03-22</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-117">
+            <span class="mid">M-GW-117</span>
+            <span class="src"><span class="table">pc_policy.</span><span class="col">underwriter_id</span></span>
+            <span class="arrow">→</span>
+            <span class="canon" style="color:var(--ink-4); font-style:italic;">(unmapped)</span>
+            <span class="transform-chip" style="opacity:0.4;">—</span>
+            <span class="conf-bar"><div class="track"></div><span class="val" style="color:var(--ink-4);">—</span></span>
+            <span class="status-badge deprecated">Orphan</span>
+            <span class="updated">—</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-162">
+            <span class="mid">M-GW-162</span>
+            <span class="src"><span class="table">pc_policylocation.</span><span class="col">territory_override</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Location.</span>territory</span>
+            <span class="transform-chip smedef">SME-Def</span>
+            <span class="conf-bar"><div class="track"><div class="fill lo" style="width:52%"></div></div><span class="val">0.521</span></span>
+            <span class="status-badge proposed">Proposed</span>
+            <span class="updated">04-18</span>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- RIGHT: Detail -->
+      <aside class="pane right">
+        <div class="detail-head">
+          <div class="id">CarrierSOP · ATIC.WH-WN.Coastal-150nm · draft v3</div>
+          <h2 class="label">SOP capture<br/>from retiring specialist</h2>
+          <div class="sub">Digitizing R. Holloway's 28-year institutional knowledge on named-storm vs. windstorm coastal determinations. Becomes a <span class="mono">CarrierSOP</span> rule node refining <span class="mono">COLCodeRule[WH]</span>.</div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active">Rule Node</button>
+          <button class="tab">Interview</button>
+          <button class="tab">Prior Cases</button>
+          <button class="tab">Peer Review</button>
+        </div>
+
+        <div class="pane-section">
+          <div class="rulebox" data-label="GRE DSL · CarrierSOP authoring">
+<span class="com">// SOP-CAP-ATIC-WH-012 · captured from interview with r.holloway 2026-02-18</span>
+<span class="com">// Refines base rule COLCodeRule[WH] with ATIC-specific 150nm threshold</span>
+<span class="kw">carrier_sop</span> ATIC.WH_WN.Coastal_150nm.v3 {
+  <span class="kw">refines</span>: COLCodeRule[WH]
+  <span class="kw">carrier</span>: <span class="str">"ATIC"</span>
+  <span class="kw">sop_section</span>: <span class="str">"SOP-COAST-03 §4.2"</span>
+  <span class="kw">applies_to_editions</span>: [THSP_2019, THSP_2024, THSP_2026]
+
+  <span class="kw">rule</span> Coastal_150nm {
+    <span class="kw">if</span> territory_code <span class="kw">in</span> [<span class="num">11</span>,<span class="num">12</span>,<span class="num">13</span>,<span class="num">14</span>,<span class="num">15</span>]
+       <span class="kw">and</span> property.dist_to_gulf_nm &lt;= <span class="num">150</span>
+       <span class="kw">and</span> in_nws_34kt_radius(loss_ts, named_storm)
+       <span class="kw">and</span> abs(loss_ts - landfall_ts) &lt;= <span class="num">6</span>h
+    <span class="kw">then</span> col_code = <span class="str">"WH"</span>
+    <span class="kw">else</span> escalate HITL TRIGGER_WH_WN
+  }
+
+  <span class="kw">source_interview</span>: {
+    specialist: <span class="str">"Robert Holloway · 28 yrs ATIC stat filing"</span>,
+    interview_ts: <span class="num">2026-02-18T15:04Z</span>,
+    interviewer: <span class="str">"h.salazar"</span>,
+    transcripts: <span class="str">"regulai_onboarding/atic/holloway-02.md"</span>
+  }
+  <span class="kw">peer_review</span>: [m.kim, j.torres]  <span class="com">// four-eyes required</span>
+  <span class="kw">status</span>: <span class="str">"peer_review_pending"</span>
+}
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Back-test · 5 prior ATIC coastal cases</div>
+          <table class="preview-table">
+            <thead>
+              <tr><th>MR ID</th><th>Storm</th><th>dist nm</th><th>SOP says</th><th>specialist</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>MR-2024-08912</td><td>Francine</td><td>118</td><td style="color:var(--ok);">WH ✓</td><td>m.kim · WH</td></tr>
+              <tr><td>MR-2023-04471</td><td>Harold</td><td>94</td><td style="color:var(--ok);">WH ✓</td><td>h.salazar · WH</td></tr>
+              <tr><td>MR-2022-18822</td><td>non-named</td><td>62</td><td style="color:var(--warn);">HITL flag</td><td>m.kim · WN</td></tr>
+              <tr><td>MR-2021-29913</td><td>Nicholas</td><td>141</td><td style="color:var(--ok);">WH ✓</td><td>h.salazar · WH</td></tr>
+              <tr><td>MR-2020-04102</td><td>Laura</td><td>187</td><td style="color:var(--ink-3);">out of range</td><td>m.kim · WN</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top: 6px; font-size: var(--t-small); color: var(--ink-3);">4 of 5 prior specialist decisions reproduced · 1 correctly outside 150nm envelope</div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Peer review · four-eyes principle (HITL §7)</div>
+          <div class="axiom-list">
+            <div class="ax ok"><span class="check">✓</span><span class="text">m.kim reviewed · 2026-02-25 · marked APPROVE with notes</span><span class="cite">review 1/2</span></div>
+            <div class="ax warn"><span class="check">!</span><span class="text">j.torres pending · requested clarification on Laura case (187nm)</span><span class="cite">review 2/2</span></div>
+            <div class="ax ok"><span class="check">✓</span><span class="text">Back-test reproducibility ≥ 80% on prior ATIC decisions</span><span class="cite">SOP §7</span></div>
+            <div class="ax ok"><span class="check">✓</span><span class="text">SOP section reference populated · SOP-COAST-03 §4.2</span><span class="cite">SOP §7</span></div>
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Provenance · institutional knowledge</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">Source specialist</span><span class="fl-value plain">Robert Holloway · 28 yrs · retiring 2026-Q4</span></div>
+            <div class="fl-row"><span class="fl-label">Refines</span><span class="fl-value">GRE · COLCodeRule[WH]@v1.2.4</span></div>
+            <div class="fl-row"><span class="fl-label">Captured</span><span class="fl-value">2026-02-18 · interviewer h.salazar</span></div>
+            <div class="fl-row"><span class="fl-label">Peer 1</span><span class="fl-value">2026-02-25 · m.kim · approved</span></div>
+            <div class="fl-row"><span class="fl-label">Peer 2</span><span class="fl-value" style="color:var(--warn);">pending · j.torres · clarification req</span></div>
+            <div class="fl-row"><span class="fl-label">Citation</span><span class="fl-value plain"><span class="citation">TCLSP §5.9503(b)(1)(A) · SOP-COAST-03 §4.2</span></span></div>
+            <div class="fl-row"><span class="fl-label">On activation</span><span class="fl-value">Silver re-eval · 47 historical ATIC coastal records</span></div>
+          </div>
+        </div>
+
+        <div class="action-footer">
+          <button class="btn">Revert draft</button>
+          <button class="btn">Edit rule DSL</button>
+          <button class="btn primary">Activate on peer 2</button>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+</div>
+
+<script src="scripts/workbench.js"></script>
+</body>
+</html>

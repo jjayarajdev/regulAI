@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Genie HITL Workspace — RegulAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-v2.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">R</span>
+      <span>RegulAI</span>
+    </a>
+    <div class="topbar-crumbs">
+      <span>Genie Workspace</span>
+      <span class="sep">/</span>
+      <span>TICO Q1-2026</span>
+      <span class="sep">/</span>
+      <span>MR Queue</span>
+      <span class="sep">/</span>
+      <span class="current">MR-2026-06771</span>
+    </div>
+    <div class="topbar-center"></div>
+    <div class="topbar-right">
+      <div class="search-field">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+        </svg>
+        <span>Ask Genie: prior WH/WN in Terr 12…</span>
+        <span class="kbd">⌘ K</span>
+      </div>
+      <span class="env-chip">PROD</span>
+      <div class="user-chip">
+        <div class="avatar">JT</div>
+        <span>J. Torres · T2</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left rail -->
+  <nav class="rail">
+    <a href="dashboard.html" class="rail-btn" title="Dashboard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></a>
+    <a href="workbench.html" class="rail-btn" title="Workbench"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h6v10H3zM15 7h6v10h-6z"/><path d="M9 12h6"/></svg></a>
+    <a href="review.html" class="rail-btn active" title="HITL Workspace"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></a>
+    <a href="pipeline.html" class="rail-btn" title="Pipeline"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></a>
+    <a href="ontology.html" class="rail-btn" title="GRE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M10 13l-4 4M14 13l4 4"/></svg></a>
+    <a href="filings.html" class="rail-btn" title="Filings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg></a>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/></svg></button>
+  </nav>
+
+  <!-- Sub-header -->
+  <div class="subheader">
+    <div class="subheader-title">
+      <span class="page-name">Genie HITL Workspace · MR Queue</span>
+      <span class="page-sub">· 8 trigger types · 3 tiers · TICO Q1-2026 cut-off 2026-06-15</span>
+    </div>
+    <div class="subheader-stats">
+      <span class="stat"><span class="n">12</span><span>MR open</span></span>
+      <span class="stat warn"><span class="n">4</span><span>Tier 2</span></span>
+      <span class="stat danger"><span class="n">1</span><span>Tier 3</span></span>
+      <span class="stat warn"><span class="n">3h 12m</span><span>next SLA</span></span>
+      <span class="stat ok"><span class="n">0</span><span>TICO challenges</span></span>
+    </div>
+  </div>
+
+  <!-- Work area -->
+  <main class="work">
+    <div class="pane-3 review">
+
+      <!-- LEFT: Queue -->
+      <section class="pane left">
+        <div class="pane-h">
+          <div class="title">MR Queue · 12 open</div>
+          <div class="meta">sorted · SLA</div>
+        </div>
+        <div class="pane-filter">
+          <input type="text" placeholder="Filter by carrier, trigger, claim…" />
+          <button title="Filter">☰</button>
+        </div>
+
+        <div class="queue">
+
+          <div class="queue-item active">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06771</span>
+              <span class="qi-prio high">T2 · WH/WN</span>
+            </div>
+            <div class="qi-subject">Coastal Terr 12 · Hurricane Beryl outer bands at loss ts · NWS track disambiguation</div>
+            <div class="qi-foot"><span class="carrier">ATIC · HO-3 · $214K</span><span>2h 12m · 73% SLA</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06773</span>
+              <span class="qi-prio critical">T3 · Novel Form</span>
+            </div>
+            <div class="qi-subject">GRE null match · ISO form <span class="mono" style="font-size:11px;">HO 00 03 05 11</span> · Tier 3 rule-node creation</div>
+            <div class="qi-foot"><span class="carrier">ATIC · HO-5 · $48K</span><span>48m · T3 open</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06780</span>
+              <span class="qi-prio high">T2 · Ensuing Loss</span>
+            </div>
+            <div class="qi-subject">Concurrent wind + flood · Texas ensuing loss doctrine per TCLSP §5.9504</div>
+            <div class="qi-foot"><span class="carrier">TWC · DP-3 · $187K</span><span>3h 04m · 51% SLA</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06784</span>
+              <span class="qi-prio high">T2 · Large Loss</span>
+            </div>
+            <div class="qi-subject">Stat amount $642K &gt; $500K personal lines · TICO-2017-02 sign-off</div>
+            <div class="qi-foot"><span class="carrier">TWC · HO-3 · $642K</span><span>5h 18m · 28% SLA</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06791</span>
+              <span class="qi-prio med">T1 · OT</span>
+            </div>
+            <div class="qi-subject">Cortex auto-assigned OT · "smoke from controlled burn" · cause lexicon review</div>
+            <div class="qi-foot"><span class="carrier">ATIC · HO-3 · $12K</span><span>1h 40m · 66% SLA</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06793</span>
+              <span class="qi-prio med">T2 · Umbrella</span>
+            </div>
+            <div class="qi-subject">Primary/umbrella allocation · aggregate erosion &gt; $1M · actuarial layer interaction</div>
+            <div class="qi-foot"><span class="carrier">SRC · CU-22 · $1.4M</span><span>2h 58m · 60% SLA</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06798</span>
+              <span class="qi-prio med">T1 · Edition Bdy</span>
+            </div>
+            <div class="qi-subject">Loss ±10d of THSP_2024 → THSP_2026 transition · edition pin required</div>
+            <div class="qi-foot"><span class="carrier">ATIC · HO-3 · $31K</span><span>6h 22m · 27% SLA</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06801</span>
+              <span class="qi-prio med">T2 · Cov Dispute</span>
+            </div>
+            <div class="qi-subject">COV_DISPUTE_IND = Y · reservation of rights · litigation posture unclear</div>
+            <div class="qi-foot"><span class="carrier">NTP · HO-5 · $92K</span><span>7h 10m · 16% SLA</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06804</span>
+              <span class="qi-prio low">T1 · OT</span>
+            </div>
+            <div class="qi-subject">OT auto-assigned · adjuster narrative: "vandalism by trespasser" · V&amp;MM candidate</div>
+            <div class="qi-foot"><span class="carrier">ATIC · HO-3 · $8K</span><span>2h 30m · 58% SLA</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06807</span>
+              <span class="qi-prio low">T1 · Large Loss</span>
+            </div>
+            <div class="qi-subject">Large loss clear and settled · $547K · formality sign-off</div>
+            <div class="qi-foot"><span class="carrier">ATIC · HO-3 · $547K</span><span>3h 55m · 45% SLA</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06812</span>
+              <span class="qi-prio low">T1 · Edition Bdy</span>
+            </div>
+            <div class="qi-subject">Loss date 2026-03-28 · THSP_2026 effective 2026-04-01 · boundary confirm</div>
+            <div class="qi-foot"><span class="carrier">NTP · HO-3 · $21K</span><span>8h 22m · 5% SLA</span></div>
+          </div>
+
+          <div class="queue-item">
+            <div class="qi-top">
+              <span class="qi-id">MR-2026-06815</span>
+              <span class="qi-prio low">T2 · Cov Dispute</span>
+            </div>
+            <div class="qi-subject">Deferral recommended · claims unit investigation pending 12 days</div>
+            <div class="qi-foot"><span class="carrier">SRC · CP-1 · $43K</span><span>11h 04m · deferred?</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- CENTER: Case detail -->
+      <section class="pane center review-body">
+
+        <!-- Masthead -->
+        <div class="case-masthead">
+          <div class="case-kicker">MR-2026-06771 · Trigger 2a · WH vs. WN · Tier 2 · 73% of 3-day SLA</div>
+          <h1 class="case-title">A named storm <em>or</em> a windstorm?<br/>A TICO-dispositive call for the Texas coast.</h1>
+          <div class="case-meta">
+            <div><span class="m-label">MR ID</span><span class="m-val">MR-2026-06771</span></div>
+            <div><span class="m-label">Trigger</span><span class="m-val">TRIGGER_WH_WN</span></div>
+            <div><span class="m-label">Carrier</span><span class="m-val">Acme Texas Insurance Co.</span></div>
+            <div><span class="m-label">Policy</span><span class="m-val">ATX-HO-002938 · HO-3</span></div>
+            <div><span class="m-label">Claim</span><span class="m-val">cc_claim[clm_18821]</span></div>
+            <div><span class="m-label">Loss</span><span class="m-val">2026-07-08 · 04:22 CDT</span></div>
+            <div><span class="m-label">Territory</span><span class="m-val">12 · Coastal Bend</span></div>
+            <div><span class="m-label">Stat Amount</span><span class="m-val">$214,380</span></div>
+          </div>
+        </div>
+
+        <!-- Section 1: Policy & Claim Summary -->
+        <div class="case-section">
+          <h2 class="case-section-title"><span class="numeral">01</span> Policy &amp; Claim Summary <span style="font-family:var(--font-mono); font-size:11px; color:var(--ink-4); letter-spacing:0.08em; text-transform:uppercase; margin-left:10px;">· from Bronze · regulai_bronze.pc_policy + cc_claim</span></h2>
+          <div class="coverage-grid">
+            <div class="cov-label">Policy form</div><div class="cov-value mono">HO-3 · ISO HO 00 03 · effective 2011-05</div>
+            <div class="cov-label">Coverage A · Dwelling</div><div class="cov-value ok">$425,000 · $2,500 AOP · $8,500 wind/hail ded · in force</div>
+            <div class="cov-label">Situs address / ZIP</div><div class="cov-value">Galveston · 77554 · Rated Territory 12 (Coastal Bend)</div>
+            <div class="cov-label">Active endorsements</div><div class="cov-value mono">HO 15 · HO 04 90 · TX-04-91 (hurricane ded)</div>
+            <div class="cov-label">Claim status</div><div class="cov-value">Closed · paid 2026-07-29 · reserve $0</div>
+            <div class="cov-label"><span class="mono" style="font-size:11px;">COV_DISPUTE_IND</span></div><div class="cov-value ok">N · no coverage dispute flagged</div>
+          </div>
+        </div>
+
+        <!-- Section 2: Triggering Condition (Genie NL) -->
+        <div class="case-section">
+          <h2 class="case-section-title"><span class="numeral">02</span> Triggering Condition <span style="font-family:var(--font-mono); font-size:11px; color:var(--ink-4); letter-spacing:0.08em; text-transform:uppercase; margin-left:10px;">· auto-generated by Genie · ~30s read</span></h2>
+          <div class="narrative">
+            Cortex flagged <mark>review_flag = MR</mark> because the record satisfies
+            <mark class="danger">Trigger 2a · WH vs. WN ambiguity</mark>. The claim sits in coastal territory 12; the
+            loss timestamp <mark>2026-07-08 04:22 CDT</mark> falls within Hurricane Beryl's <mark>34-knot wind radius at
+            ±6h of landfall</mark> per NWS Advisory 24. The adjuster narrative describes "high winds preceding storm
+            landfall" — language that does not unambiguously resolve to WH (named storm) or WN (windstorm, all other).
+            TICO-2017-02 bulletin reserves this determination for a qualified specialist; confidence signal is not dispositive.
+          </div>
+          <div class="narrative-meta">
+            cortex-tx v2.3 · evaluated 2026-07-31 14:22 UTC · GRE rule <span class="mono">COLCodeRule[WH]</span> match 0.74 · TRIGGERS_HITL
+          </div>
+        </div>
+
+        <!-- Section 3: GRE Candidate Rules -->
+        <div class="case-section">
+          <h2 class="case-section-title"><span class="numeral">03</span> GRE Candidate Rules <span style="font-family:var(--font-mono); font-size:11px; color:var(--ink-4); letter-spacing:0.08em; text-transform:uppercase; margin-left:10px;">· from Graph Regulation Engine v1.2.4</span></h2>
+          <div class="candidates">
+            <div class="cand primary">
+              <div class="cand-code">WH</div>
+              <div class="cand-desc">
+                <span class="desc">Named Storm · Hurricane Beryl cat event TCx-2026-07-BERYL</span>
+                <span class="cite">TCLSP §5.9503(b)(1)(A) · SOP-COAST-03 §4.2 · 34-knot radius rule</span>
+              </div>
+              <div class="cand-conf">
+                <div class="conf-bar"><div class="track"><div class="fill hi" style="width:74%"></div></div><span class="val">0.74 · GRE primary</span></div>
+              </div>
+              <div class="cand-action"><button class="btn primary sm">Confirm WH</button></div>
+            </div>
+            <div class="cand">
+              <div class="cand-code">WN</div>
+              <div class="cand-desc">
+                <span class="desc">Windstorm · all other wind events not tied to named storm</span>
+                <span class="cite">TCLSP §5.9503(b)(1)(B)</span>
+              </div>
+              <div class="cand-conf">
+                <div class="conf-bar"><div class="track"><div class="fill med" style="width:22%"></div></div><span class="val">0.22</span></div>
+              </div>
+              <div class="cand-action"><button class="btn sm">Confirm WN</button></div>
+            </div>
+            <div class="cand">
+              <div class="cand-code">OT</div>
+              <div class="cand-desc">
+                <span class="desc">Other / unable to classify <span style="color:var(--danger); font-size:11px; margin-left:6px;">· auto-flag Tier 1 if selected</span></span>
+                <span class="cite">fallback · triggers secondary T1 review + GRE lexicon note</span>
+              </div>
+              <div class="cand-conf">
+                <div class="conf-bar"><div class="track"><div class="fill lo" style="width:4%"></div></div><span class="val">0.04</span></div>
+              </div>
+              <div class="cand-action"><button class="btn sm">Escalate T3</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: NWS Track Overlay + Named Storm Events -->
+        <div class="case-section">
+          <h2 class="case-section-title"><span class="numeral">04</span> NWS Track Overlay <span style="font-family:var(--font-mono); font-size:11px; color:var(--ink-4); letter-spacing:0.08em; text-transform:uppercase; margin-left:10px;">· nws_snapshot_ref NWS-2026-BERYL-ADV-24</span></h2>
+
+          <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap: var(--s-4); margin-top: var(--s-2);">
+            <!-- ASCII-ish storm-track block -->
+            <div style="border: 1px solid var(--rule); background: var(--paper-elev); padding: var(--s-3); font-family: var(--font-mono); font-size: 11px; line-height: 1.55; color: var(--ink-2); position: relative; min-height: 200px;">
+              <div style="font-size: var(--t-nano); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: 8px;">NWS Advisory 24 · 2026-07-08 03:00Z · Hurricane Beryl</div>
+              <div>· · · · · · · · · · · · · · · · · · · · · · · · · ·</div>
+              <div>· <span style="color:var(--ink-4);">Gulf of Mexico</span> · · · · · · · · · · · · · · · · · ·</div>
+              <div>· · · · · · <span style="color:var(--warn);">◉</span> 64kt eye · · · · · · · · · · · · · · · · · ·</div>
+              <div>· · · <span style="color:var(--warn-soft);">((((</span><span style="color:var(--warn);">(((◉)))</span><span style="color:var(--warn-soft);">))))</span> 34kt radius 145nm · · · · · · ·</div>
+              <div>· · · · · · · · · · · · · · · · · · · · · · · · · ·</div>
+              <div>· · · · · · · · · <span style="color:var(--accent); font-weight:600;">▲ property</span> · <span style="color:var(--ink-4);">Galveston 77554</span> · · · · · ·</div>
+              <div>· · · · · · · · · · · · · · · · · · · · · · · · · ·</div>
+              <div>· · · · · · · · · <span style="color:var(--ink-4);">TX coastline ──────────</span> · · · · · · · · · ·</div>
+              <div style="margin-top: var(--s-3); padding-top: var(--s-2); border-top: 1px solid var(--rule-soft); color: var(--ink-3);">
+                property <span style="color:var(--ink);">inside</span> 34kt radius · distance to eye 122nm · sustained wind at site 38kt (est.)
+              </div>
+            </div>
+
+            <!-- Named Storm Events table -->
+            <div>
+              <div class="rule-label mb-2">Named Storm Events within ±5 days of loss</div>
+              <div class="field-list">
+                <div class="fl-row"><span class="fl-label">Beryl (Cat 2)</span><span class="fl-value"><span style="color:var(--accent); font-weight:600;">MATCH</span> · landfall 2026-07-08 06:14 CDT</span></div>
+                <div class="fl-row"><span class="fl-label">Loss ts</span><span class="fl-value">2026-07-08 04:22 CDT · T-1h52 of landfall</span></div>
+                <div class="fl-row"><span class="fl-label">NWS advisory</span><span class="fl-value mono">ADV-24 · 2026-07-08 03:00Z</span></div>
+                <div class="fl-row"><span class="fl-label">TICO cat event</span><span class="fl-value mono">TCx-2026-07-BERYL · active</span></div>
+                <div class="fl-row"><span class="fl-label">Reinsurance treaty</span><span class="fl-value plain"><span class="citation">Carrier-ATIC-XOL-2026 · "named storm occurrence" incl. outer bands</span></span></div>
+              </div>
+              <div style="margin-top: var(--s-3); padding: var(--s-2) var(--s-3); background: var(--paper-warm); border-left: 2px solid var(--accent); color: var(--ink-2); font-size: var(--t-small); line-height: 1.5;">
+                <strong style="font-weight: 600; color: var(--ink);">SOP-COAST-03 §4.2</strong> — "If the property lies within the NWS 34-knot wind radius at or within ±6 hours of landfall, code WH unless adjuster notes affirmatively exclude named-storm contribution."
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: Adjuster Notes -->
+        <div class="case-section">
+          <h2 class="case-section-title"><span class="numeral">05</span> Adjuster Notes <span style="font-family:var(--font-mono); font-size:11px; color:var(--ink-4); letter-spacing:0.08em; text-transform:uppercase; margin-left:10px;">· cc_incident[inc_22104] · keywords highlighted by Genie</span></h2>
+          <div class="narrative">
+            Arrived site 2026-07-10 13:40. Property: single-family dwelling, 2001 build, asphalt shingle roof.
+            Damage: full roof sheathing exposure east and south slopes; gable vent displaced; privacy fence
+            down west side. No water intrusion except through compromised roof deck. Policyholder reports
+            <mark>"high winds preceding storm landfall"</mark> on overnight 7/7–7/8.
+            <mark class="danger">Debris consistent with named-storm wind field observed across neighborhood.</mark>
+            NWS confirms <mark>Beryl 34-knot radius passed over 77554 04:00–05:30 CDT 7/8</mark>.
+            No surge, no flood contribution. No concurrent peril. Roof replacement quote $178,400; interior
+            repair $28,900; ALE $7,080. Total estimate $214,380.
+          </div>
+          <div class="narrative-meta">
+            source · cc_incident [inc_22104] · bronze ingested 2026-07-11 02:18 UTC · author adj.r.chen@atic
+          </div>
+        </div>
+
+        <!-- Section 6: Prior Similar Cases -->
+        <div class="case-section">
+          <h2 class="case-section-title"><span class="numeral">06</span> Prior Similar Cases <span style="font-family:var(--font-mono); font-size:11px; color:var(--ink-4); letter-spacing:0.08em; text-transform:uppercase; margin-left:10px;">· top 5 · ranked by trigger + territory + form + amount</span></h2>
+          <div style="border: 1px solid var(--rule); background: var(--paper-elev);">
+            <div style="display:grid; grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.8fr 1.2fr; padding: 8px var(--s-3); border-bottom: 1px solid var(--rule); font-family: var(--font-mono); font-size: var(--t-nano); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3);">
+              <span>MR</span><span>Storm / Date</span><span>Terr</span><span>Stat Amt</span><span>Decision</span><span>Specialist · SOP</span>
+            </div>
+            <div style="display:grid; grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.8fr 1.2fr; padding: 10px var(--s-3); border-bottom: 1px solid var(--rule-soft); font-size: var(--t-small); align-items: center;">
+              <span class="mono">MR-2024-08912</span><span>Francine · 2024-09-11</span><span class="mono">12</span><span class="mono">$248K</span><span style="color:var(--ok); font-weight:600;">WH</span><span>M. Kim (T2) · SOP-COAST-03 §4.2</span>
+            </div>
+            <div style="display:grid; grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.8fr 1.2fr; padding: 10px var(--s-3); border-bottom: 1px solid var(--rule-soft); font-size: var(--t-small); align-items: center;">
+              <span class="mono">MR-2024-11203</span><span>Francine · 2024-09-12</span><span class="mono">13</span><span class="mono">$91K</span><span style="color:var(--ok); font-weight:600;">WH</span><span>J. Torres (T2) · SOP-COAST-03 §4.2</span>
+            </div>
+            <div style="display:grid; grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.8fr 1.2fr; padding: 10px var(--s-3); border-bottom: 1px solid var(--rule-soft); font-size: var(--t-small); align-items: center;">
+              <span class="mono">MR-2023-04471</span><span>Harold · 2023-08-22</span><span class="mono">12</span><span class="mono">$312K</span><span style="color:var(--ok); font-weight:600;">WH</span><span>H. Salazar (T3) · SOP-COAST-03 §4.2</span>
+            </div>
+            <div style="display:grid; grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.8fr 1.2fr; padding: 10px var(--s-3); border-bottom: 1px solid var(--rule-soft); font-size: var(--t-small); align-items: center;">
+              <span class="mono">MR-2022-18822</span><span>non-named · 2022-05-19</span><span class="mono">12</span><span class="mono">$58K</span><span style="color:var(--warn); font-weight:600;">WN</span><span>M. Kim (T2) · outside 34kt window</span>
+            </div>
+            <div style="display:grid; grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.8fr 1.2fr; padding: 10px var(--s-3); font-size: var(--t-small); align-items: center;">
+              <span class="mono">MR-2021-29913</span><span>Nicholas · 2021-09-14</span><span class="mono">11</span><span class="mono">$401K</span><span style="color:var(--ok); font-weight:600;">WH</span><span>H. Salazar (T3) · SOP-COAST-03 §4.2</span>
+            </div>
+          </div>
+          <div style="margin-top: var(--s-2); font-size: var(--t-small); color: var(--ink-3);">
+            <strong style="font-weight: 600; color: var(--ink);">Pattern · 4 of 5 prior cases</strong> in territories 11–12 with property inside 34-knot radius resolved WH. Outlier MR-2022-18822 excluded because storm was not NWS-named.
+          </div>
+        </div>
+
+        <!-- Section 7: SOP Reference + Genie NL -->
+        <div class="case-section">
+          <h2 class="case-section-title"><span class="numeral">07</span> SOP Reference &amp; Genie <span style="font-family:var(--font-mono); font-size:11px; color:var(--ink-4); letter-spacing:0.08em; text-transform:uppercase; margin-left:10px;">· SOP-COAST-03 §4 · ask anything</span></h2>
+          <div class="doctrine">
+            <strong>SOP-COAST-03 · Named Storm vs. Windstorm</strong>
+            A loss shall be coded <em>WH</em> when (a) the loss date-time falls within <strong>±6 hours of named-storm landfall</strong> as defined by the most recent NWS advisory, and (b) the property lies within the storm's <strong>34-knot wind radius</strong> at that time. A loss otherwise attributable to wind is coded <em>WN</em>. If adjuster notes affirmatively document a non-named wind source (e.g., convective cell, tornado spawned outside the named-storm envelope), the specialist <em>may</em> override to WN with written rationale.
+          </div>
+
+          <div style="margin-top: var(--s-4); padding: var(--s-3) var(--s-4); background: var(--paper-elev); border: 1px solid var(--rule); border-left: 2px solid var(--accent);">
+            <div class="rule-label mb-2">Genie · recent natural-language queries on this record</div>
+            <div class="mono" style="font-size: 12px; line-height: 1.8; color: var(--ink-2);">
+              &gt; show me all WH/WN decisions for territory 12 in the last 24 months<br/>
+              &gt; what does SOP-COAST-03 say about the 34-knot radius rule?<br/>
+              &gt; has there been a prior GRE null match for ISO form HO 00 03 05 11?<br/>
+              &gt; what is ATIC's OT rate for 2026-Q2 vs. the TICO benchmark?
+            </div>
+          </div>
+        </div>
+
+        <!-- Decision Panel -->
+        <div class="case-section" style="background: var(--paper-warm); border-left: 3px solid var(--accent); padding: var(--s-4); margin-top: var(--s-5);">
+          <h2 class="case-section-title" style="margin-top:0;"><span class="numeral">DE</span> Decision Panel · writes to HITL_AUDIT_LOG</h2>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); margin-top: var(--s-3);">
+            <div>
+              <div class="rule-label mb-2">Decision (structured)</div>
+              <div style="display: flex; flex-direction: column; gap: 6px; font-size: var(--t-small);">
+                <label style="display: flex; gap: 8px; align-items: center; cursor: pointer;"><input type="radio" name="decision" checked/> <strong style="color:var(--accent);">CONFIRM_WH</strong> — named storm, per SOP-COAST-03 §4.2</label>
+                <label style="display: flex; gap: 8px; align-items: center; cursor: pointer;"><input type="radio" name="decision"/> <strong>CONFIRM_WN</strong> — windstorm, not named-storm contribution</label>
+                <label style="display: flex; gap: 8px; align-items: center; cursor: pointer;"><input type="radio" name="decision"/> <strong>DEFER_NEXT_CYCLE</strong> — unresolvable within SLA</label>
+                <label style="display: flex; gap: 8px; align-items: center; cursor: pointer;"><input type="radio" name="decision"/> <strong>ESCALATE_T3</strong> — novel edge, needs AVP review</label>
+              </div>
+            </div>
+            <div>
+              <div class="rule-label mb-2">Confidence (required)</div>
+              <div style="display: flex; gap: 6px; margin-bottom: var(--s-3);">
+                <button class="btn sm" style="background:var(--ok); color:white; border-color:var(--ok);">HIGH</button>
+                <button class="btn sm">MEDIUM</button>
+                <button class="btn sm">UNCERTAIN</button>
+              </div>
+              <div class="rule-label mb-2">SOP citation (auto-populated · editable)</div>
+              <div class="mono" style="font-size: 12px; background: var(--paper); padding: 8px 10px; border: 1px solid var(--rule);">SOP-COAST-03 §4.2 · TCLSP §5.9503(b)(1)(A)</div>
+            </div>
+          </div>
+
+          <div style="margin-top: var(--s-4);">
+            <div class="rule-label mb-2">Disposition note · <span style="color:var(--accent);">Tier 2 min 50 chars</span></div>
+            <div style="background: var(--paper); padding: 10px 12px; border: 1px solid var(--rule); font-family: var(--font-mono); font-size: 12px; line-height: 1.55; color: var(--ink-2);">
+              Property at 77554 (Terr 12) inside NWS 34-knot radius per Advisory 24; loss ts 04:22 CDT is T-1h52 of Beryl landfall — within the ±6h window. Adjuster narrative describes debris field consistent with named-storm envelope; no non-named wind source documented. Confirming WH. Prior MR-2023-04471 (Harold, Terr 12) decided identically.<span style="color:var(--ink-4);">│</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 6px; font-family: var(--font-mono); font-size: var(--t-nano); color: var(--ink-4); letter-spacing: 0.04em;">
+              <span>368 chars · min 50 satisfied</span>
+              <span>cites SOP-COAST-03 §4.2 · cites MR-2023-04471</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action strip -->
+        <div class="action-strip">
+          <button class="btn">← Back to queue</button>
+          <div class="spacer"></div>
+          <div class="sla"><span class="t">19h 48m</span> to T2 SLA · escalates to T3 at 100%</div>
+          <button class="btn">Defer 30 min</button>
+          <button class="btn">Escalate → Tier 3 (logged)</button>
+          <button class="btn primary">Commit · CONFIRM_WH</button>
+        </div>
+      </section>
+
+      <!-- RIGHT: Lineage + Audit + SLA -->
+      <aside class="pane right">
+        <div class="detail-head">
+          <div class="id">Lineage · MR-2026-06771 · provenance + audit chain</div>
+          <h2 class="label">Provenance of<br/>this decision</h2>
+          <div class="sub">Every HITL decision writes an immutable row to <span class="mono">HITL_AUDIT_LOG</span> in the Gold layer. Specialist ID, timestamp, SOP cited, prior case — all queryable by TDI examiners in one SQL call.</div>
+        </div>
+
+        <!-- SLA clock -->
+        <div class="lineage-section">
+          <div class="lineage-title">SLA Clock · Tier 2</div>
+          <div style="background: var(--paper-elev); border: 1px solid var(--rule); padding: var(--s-3);">
+            <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: var(--t-nano); color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase;">
+              <span>MR created</span><span>Now</span><span>T3 auto-escalate</span>
+            </div>
+            <div class="p-bar" style="margin: 8px 0;"><div class="p-fill" style="width:27%; background:var(--warn);"></div></div>
+            <div style="display: flex; justify-content: space-between; font-size: var(--t-small); color: var(--ink-2);">
+              <span class="mono">2026-07-30 13:05Z</span><span class="mono" style="color:var(--warn); font-weight:600;">27%</span><span class="mono">+72h</span>
+            </div>
+            <div style="margin-top: var(--s-3); padding-top: var(--s-2); border-top: 1px solid var(--rule-soft); font-size: var(--t-small); color: var(--ink-2); line-height: 1.5;">
+              At 50%: in-platform ping. At 75%: supervisor CC. At 100%: auto-escalate Tier 3; clock resets.
+            </div>
+          </div>
+        </div>
+
+        <!-- Lineage chain -->
+        <div class="lineage-section">
+          <div class="lineage-title">Data Lineage · L0 → L4</div>
+          <div class="lineage-chain">
+
+            <div class="lineage-node accent">
+              <div class="ln-head"><span class="ln-kind">L4 · Filing</span><span class="ln-time">pending</span></div>
+              <div class="ln-body">regulai_submissions/2026-08/<br/>&nbsp;&nbsp;TICO_FINAL_{batch}.txt :: col = <span style="color:var(--accent); font-weight:600;">WH</span></div>
+              <div class="ln-meta">submission_record_id · awaiting commit</div>
+            </div>
+
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">L3 · Gold</span><span class="ln-time">blocked on MR</span></div>
+              <div class="ln-body">regulai_gold.stat_filing<br/>&nbsp;&nbsp;col_code_primary = ?</div>
+              <div class="ln-meta">gold_row_id · gate requires review_flag = null</div>
+            </div>
+
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">L2 · Silver</span><span class="ln-time">flagged 14:22Z</span></div>
+              <div class="ln-body">regulai_silver.claim<br/>&nbsp;&nbsp;review_flag = <span style="color:var(--accent); font-weight:600;">MR</span><br/>&nbsp;&nbsp;hitl_reason = TRIGGER_WH_WN</div>
+              <div class="ln-meta">silver_row_id · gre_rule_id COLCodeRule[WH] conf 0.74</div>
+            </div>
+
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">GRE lookup</span><span class="ln-time">rule resolution</span></div>
+              <div class="ln-body">StatPlanEdition THSP_2026<br/>&nbsp;&nbsp;→ COLCodeRule[WH] (primary)<br/>&nbsp;&nbsp;→ TerritoryRule Terr 12</div>
+              <div class="ln-meta">overridden by · BulletinOverride TICO-2026-03</div>
+            </div>
+
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">L1 · Bronze</span><span class="ln-time">ingested 07-11</span></div>
+              <div class="ln-body">regulai_bronze.cc_claim<br/>&nbsp;&nbsp;[clm_18821] · _cdc_op = I</div>
+              <div class="ln-meta">bronze_row_id · cda_batch_id 20260711-0218</div>
+            </div>
+
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">L0 · Source</span><span class="ln-time">CDA emit</span></div>
+              <div class="ln-body">Guidewire PolicyCenter<br/>&nbsp;&nbsp;cc_claim[clm_18821]</div>
+              <div class="ln-meta">gw_tx_id · atic.pc.prod · adj r.chen</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HITL_AUDIT_LOG preview -->
+        <div class="lineage-section">
+          <div class="lineage-title">HITL_AUDIT_LOG · on commit</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">mr_id</span><span class="fl-value mono">MR-2026-06771</span></div>
+            <div class="fl-row"><span class="fl-label">trigger_type</span><span class="fl-value mono">TRIGGER_WH_WN</span></div>
+            <div class="fl-row"><span class="fl-label">specialist_id</span><span class="fl-value mono">j.torres@regulai</span></div>
+            <div class="fl-row"><span class="fl-label">specialist_tier</span><span class="fl-value mono">2</span></div>
+            <div class="fl-row"><span class="fl-label">decision</span><span class="fl-value mono" style="color:var(--accent);">CONFIRM_WH</span></div>
+            <div class="fl-row"><span class="fl-label">gre_rule_applied</span><span class="fl-value mono">COLCodeRule[WH]@v1.2.4</span></div>
+            <div class="fl-row"><span class="fl-label">gre_match_score</span><span class="fl-value mono">0.74</span></div>
+            <div class="fl-row"><span class="fl-label">sop_section_cited</span><span class="fl-value mono">SOP-COAST-03 §4.2</span></div>
+            <div class="fl-row"><span class="fl-label">prior_case_ref</span><span class="fl-value mono">MR-2023-04471</span></div>
+            <div class="fl-row"><span class="fl-label">nws_snapshot_ref</span><span class="fl-value mono">NWS-2026-BERYL-ADV-24</span></div>
+            <div class="fl-row"><span class="fl-label">confidence_level</span><span class="fl-value"><span style="color:var(--ok); font-weight:600;">HIGH</span></span></div>
+            <div class="fl-row"><span class="fl-label">cycle_id</span><span class="fl-value mono">TICO-2026-Q3</span></div>
+            <div class="fl-row"><span class="fl-label">decision_ts</span><span class="fl-value" style="color:var(--ink-4);">— on commit —</span></div>
+          </div>
+        </div>
+
+        <!-- Specialist tier legend -->
+        <div class="lineage-section">
+          <div class="lineage-title">Specialist Tiers</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">T1 · Analyst</span><span class="fl-value plain">OT · Large loss (clear) · Edition bdy · 24h SLA</span></div>
+            <div class="fl-row"><span class="fl-label">T2 · Compliance</span><span class="fl-value plain">WH/WN · Concurrent · Cov dispute · Umbrella · 3d SLA</span></div>
+            <div class="fl-row"><span class="fl-label">T3 · Desk / AVP</span><span class="fl-value plain">Novel form · GL &gt;1% · TICO challenge · no fixed SLA</span></div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+</div>
+
+<script src="scripts/review.js"></script>
+</body>
+</html>

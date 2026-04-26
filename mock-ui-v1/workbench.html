@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapping Workbench — RegulAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-v2.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">R</span>
+      <span>RegulAI</span>
+    </a>
+    <div class="topbar-crumbs">
+      <span>Carriers</span>
+      <span class="sep">/</span>
+      <span>Acme Texas Insurance</span>
+      <span class="sep">/</span>
+      <span>Guidewire PolicyCenter</span>
+      <span class="sep">/</span>
+      <span class="current">Mapping Workbench</span>
+    </div>
+    <div class="topbar-center"></div>
+    <div class="topbar-right">
+      <div class="search-field">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+        </svg>
+        <span>Search mappings, concepts, rules…</span>
+        <span class="kbd">⌘ K</span>
+      </div>
+      <span class="env-chip">PROD</span>
+      <div class="user-chip">
+        <div class="avatar">HS</div>
+        <span>Hannah Salazar</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left rail -->
+  <nav class="rail">
+    <a href="dashboard.html" class="rail-btn" title="Dashboard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></a>
+    <a href="workbench.html" class="rail-btn active" title="Workbench"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h6v10H3zM15 7h6v10h-6z"/><path d="M9 12h6"/></svg></a>
+    <a href="review.html" class="rail-btn" title="HITL Review"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></a>
+    <a href="pipeline.html" class="rail-btn" title="Pipeline"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></a>
+    <a href="ontology.html" class="rail-btn" title="Ontology"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M10 13l-4 4M14 13l4 4"/></svg></a>
+    <a href="filings.html" class="rail-btn" title="Filings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg></a>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+  </nav>
+
+  <!-- Sub-header -->
+  <div class="subheader">
+    <div class="subheader-title">
+      <span class="page-name">Mapping Workbench</span>
+      <span class="page-sub">· SOURCE → CANONICAL · rev 2026-04-18 14:22 UTC</span>
+    </div>
+    <div class="subheader-stats">
+      <span class="stat"><span class="n">128</span><span>rules total</span></span>
+      <span class="stat ok"><span class="n">119</span><span>approved</span></span>
+      <span class="stat warn"><span class="n">7</span><span>pending review</span></span>
+      <span class="stat danger"><span class="n">2</span><span>drift</span></span>
+      <span class="stat"><span class="n">M-GW-204</span><span>next rule id</span></span>
+    </div>
+  </div>
+
+  <!-- Work area -->
+  <main class="work">
+    <div class="pane-3">
+
+      <!-- LEFT: Source schema -->
+      <section class="pane left">
+        <div class="pane-h">
+          <div class="title">Source Schema</div>
+          <div class="meta">GW PC · v10.2</div>
+        </div>
+        <div class="pane-filter">
+          <input type="text" placeholder="Search fields, tables…" />
+          <button title="Filter">☰</button>
+        </div>
+
+        <div class="tree tree-table">
+
+          <div class="table-node open" data-table="pc_policy">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">pc_policy</span>
+              <span class="count">12,483 rows</span>
+            </div>
+            <div class="table-fields">
+              <div class="field-row mapped"><span></span><span class="field-name">policy_id</span><span class="field-meta">VARCHAR · 0% null</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">policy_number</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">product_code</span><span class="field-meta">VARCHAR · 4 distinct</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">effective_date</span><span class="field-meta">DATE · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">expiration_date</span><span class="field-meta">DATE · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row unmapped"><span></span><span class="field-name">underwriter_id</span><span class="field-meta">VARCHAR · 2% null</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">account_id</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row unmapped"><span></span><span class="field-name">renewal_flag</span><span class="field-meta">CHAR · 0%</span><span class="map-dot"></span></div>
+            </div>
+          </div>
+
+          <div class="table-node open" data-table="pc_coverage">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">pc_coverage</span>
+              <span class="count">46,201 rows</span>
+            </div>
+            <div class="table-fields">
+              <div class="field-row mapped"><span></span><span class="field-name">cov_id</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">policy_id</span><span class="field-meta">FK · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped selected" data-mapping="M-GW-028"><span></span><span class="field-name">pattern_code</span><span class="field-meta">VARCHAR · 14 distinct</span><span class="map-dot"></span></div>
+              <div class="field-row mapped selected" data-mapping="M-GW-028"><span></span><span class="field-name">limit_a</span><span class="field-meta">DECIMAL · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">deduct_a</span><span class="field-meta">DECIMAL · 3% null</span><span class="map-dot"></span></div>
+              <div class="field-row proposed"><span></span><span class="field-name">deduct_type</span><span class="field-meta">CHAR · 2 distinct</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">exp_date</span><span class="field-meta">DATE · 0%</span><span class="map-dot"></span></div>
+            </div>
+          </div>
+
+          <div class="table-node open" data-table="pc_policylocation">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">pc_policylocation</span>
+              <span class="count">12,804 rows</span>
+            </div>
+            <div class="table-fields">
+              <div class="field-row mapped"><span></span><span class="field-name">loc_id</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">address_line1</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">city</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">state</span><span class="field-meta">CHAR · 1 distinct</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">postal_code</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">county</span><span class="field-meta">VARCHAR · 254 distinct</span><span class="map-dot"></span></div>
+              <div class="field-row unmapped"><span></span><span class="field-name">territory_override</span><span class="field-meta">VARCHAR · 96% null</span><span class="map-dot"></span></div>
+            </div>
+          </div>
+
+          <div class="table-node" data-table="pc_policyperiod_premium">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">pc_policyperiod_premium</span>
+              <span class="count">12,483 rows</span>
+            </div>
+            <div class="table-fields">
+              <div class="field-row mapped"><span></span><span class="field-name">policy_id</span><span class="field-meta">FK · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">written_premium</span><span class="field-meta">DECIMAL · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">annual_premium</span><span class="field-meta">DECIMAL · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">term_length_days</span><span class="field-meta">INT · 0%</span><span class="map-dot"></span></div>
+            </div>
+          </div>
+
+          <div class="table-node open" data-table="cc_claim">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">cc_claim</span>
+              <span class="count">2,091 rows</span>
+            </div>
+            <div class="table-fields">
+              <div class="field-row mapped"><span></span><span class="field-name">claim_id</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">claim_number</span><span class="field-meta">VARCHAR · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">policy_number</span><span class="field-meta">FK · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">loss_date</span><span class="field-meta">DATE · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">reported_date</span><span class="field-meta">DATE · 0%</span><span class="map-dot"></span></div>
+              <div class="field-row mapped"><span></span><span class="field-name">status</span><span class="field-meta">ENUM · 5 distinct</span><span class="map-dot"></span></div>
+            </div>
+          </div>
+
+          <div class="table-node" data-table="cc_incident">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">cc_incident</span>
+              <span class="count">2,091 rows</span>
+            </div>
+          </div>
+
+          <div class="table-node" data-table="cc_exposure">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">cc_exposure</span>
+              <span class="count">3,810 rows</span>
+            </div>
+          </div>
+
+          <div class="table-node" data-table="cc_transaction">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">cc_transaction</span>
+              <span class="count">9,284 rows</span>
+            </div>
+          </div>
+
+          <div class="table-node" data-table="gl_entries">
+            <div class="table-header">
+              <svg class="chev" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>
+              <span class="name">gl_entries</span>
+              <span class="count">244,120 rows</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- CENTER: Mappings -->
+      <section class="pane center">
+
+        <!-- stat strip -->
+        <div class="stat-strip">
+          <div class="stat-cell"><div class="lbl">Source Coverage</div><div class="num">93.2<span style="font-size:14px; color:var(--ink-3); font-family:var(--font-mono);">%</span></div></div>
+          <div class="stat-cell"><div class="lbl">Template Reuse</div><div class="num">81<span style="font-size:14px; color:var(--ink-3); font-family:var(--font-mono);">%</span></div></div>
+          <div class="stat-cell accent"><div class="lbl">Mean Confidence</div><div class="num">0.984</div></div>
+          <div class="stat-cell"><div class="lbl">Last Shadow Run</div><div class="num" style="font-size:15px; font-family:var(--font-mono); font-weight:500;">2026-04-18 · 04:12 UTC</div></div>
+        </div>
+
+        <!-- mappings header -->
+        <div class="mappings-header">
+          <div class="mh-title">Mappings · <span class="mono" style="font-size:13px; color:var(--ink-3);">pc.* → ciom.*</span></div>
+          <div class="mh-toolbar">
+            <div class="seg">
+              <button class="active">Table</button>
+              <button>Canvas</button>
+              <button>Diff</button>
+            </div>
+            <button class="btn"><span>Filter</span><span class="pill">3</span></button>
+            <button class="btn">Run preview</button>
+            <button class="btn primary">+ New mapping</button>
+          </div>
+        </div>
+
+        <!-- list header -->
+        <div class="mapping-list-header">
+          <span>Rule</span>
+          <span>Source</span>
+          <span></span>
+          <span>Canonical</span>
+          <span>Transform</span>
+          <span>Confidence</span>
+          <span>Status</span>
+          <span>Updated</span>
+        </div>
+
+        <!-- mapping rows -->
+        <div class="mapping-list" id="mappingList">
+
+          <div class="mapping-row" data-mid="M-GW-001">
+            <span class="mid">M-GW-001</span>
+            <span class="src"><span class="table">pc_policy.</span><span class="col">product_code</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Policy.</span>formCode</span>
+            <span class="transform-chip">Direct</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-12</span>
+          </div>
+
+          <div class="mapping-row selected" data-mid="M-GW-028">
+            <span class="mid">M-GW-028</span>
+            <span class="src"><span class="table">pc_coverage.</span><span class="col">limit_a</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Coverage.</span>limit</span>
+            <span class="transform-chip composite">Composite</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:99%"></div></div><span class="val">0.994</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-18</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-029">
+            <span class="mid">M-GW-029</span>
+            <span class="src"><span class="table">pc_coverage.</span><span class="col">deduct_a</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Coverage.</span>deductible</span>
+            <span class="transform-chip">Direct</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-12</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-033">
+            <span class="mid">M-GW-033</span>
+            <span class="src"><span class="table">pc_coverage.</span><span class="col">pattern_code</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Coverage.</span>type</span>
+            <span class="transform-chip lookup">Lookup</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-03</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-104">
+            <span class="mid">M-GW-104</span>
+            <span class="src"><span class="table">pc_policyperiod_premium.</span><span class="col">written_premium</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Policy.</span>premium·Written</span>
+            <span class="transform-chip composite">Composite</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">03-28</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-201">
+            <span class="mid">M-GW-201</span>
+            <span class="src"><span class="table">pc_policylocation.</span><span class="col">county</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Location.</span>county</span>
+            <span class="transform-chip">Direct</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">03-28</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-215">
+            <span class="mid">M-GW-215</span>
+            <span class="src"><span class="table">pc_policylocation.</span><span class="col">postal_code</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Location.</span>territory</span>
+            <span class="transform-chip lookup">Lookup</span>
+            <span class="conf-bar"><div class="track"><div class="fill med" style="width:86%"></div></div><span class="val">0.861</span></span>
+            <span class="status-badge review">Review</span>
+            <span class="updated">04-17</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-ATIC-017">
+            <span class="mid">M-ATIC-017</span>
+            <span class="src"><span class="table">cc_transaction</span><span class="col"> Σ Indemnity</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">LossPayment.</span>indemnityPaid</span>
+            <span class="transform-chip aggregate">Aggregate</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:98%"></div></div><span class="val">0.982</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-15</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-ATIC-019">
+            <span class="mid">M-ATIC-019</span>
+            <span class="src"><span class="table">cc_incident.</span><span class="col">description</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">LossEvent.</span>narrative</span>
+            <span class="transform-chip">Direct</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:92%"></div></div><span class="val">0.924</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-10</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-242">
+            <span class="mid">M-GW-242</span>
+            <span class="src"><span class="table">pc_coverage.</span><span class="col">deduct_type</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Coverage.</span>deductibleBasis</span>
+            <span class="transform-chip smedef">SME-Def</span>
+            <span class="conf-bar"><div class="track"><div class="fill med" style="width:74%"></div></div><span class="val">0.738</span></span>
+            <span class="status-badge proposed">Proposed</span>
+            <span class="updated">04-18</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-051">
+            <span class="mid">M-GW-051</span>
+            <span class="src"><span class="table">pc_policy.</span><span class="col">effective_date</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Policy.</span>effectivePeriod.start</span>
+            <span class="transform-chip">Direct</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">03-28</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-CC-088">
+            <span class="mid">M-CC-088</span>
+            <span class="src"><span class="table">cc_claim.</span><span class="col">loss_date</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">LossEvent.</span>occurrenceDate</span>
+            <span class="transform-chip composite">Composite</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:97%"></div></div><span class="val">0.969</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">04-05</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-CC-092">
+            <span class="mid">M-CC-092</span>
+            <span class="src"><span class="table">cc_exposure.</span><span class="col">coverage_subtype</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">LossPayment.</span>coverageRef</span>
+            <span class="transform-chip lookup">Lookup</span>
+            <span class="conf-bar"><div class="track"><div class="fill med" style="width:81%"></div></div><span class="val">0.814</span></span>
+            <span class="status-badge review">Review</span>
+            <span class="updated">04-18</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GL-003">
+            <span class="mid">M-GL-003</span>
+            <span class="src"><span class="table">gl_entries.</span><span class="col">[4100-WP]</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Policy.</span>premium·GLWritten</span>
+            <span class="transform-chip aggregate">Aggregate</span>
+            <span class="conf-bar"><div class="track"><div class="fill hi" style="width:100%"></div></div><span class="val">1.000</span></span>
+            <span class="status-badge approved">Approved</span>
+            <span class="updated">03-22</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-117">
+            <span class="mid">M-GW-117</span>
+            <span class="src"><span class="table">pc_policy.</span><span class="col">underwriter_id</span></span>
+            <span class="arrow">→</span>
+            <span class="canon" style="color:var(--ink-4); font-style:italic;">(unmapped)</span>
+            <span class="transform-chip" style="opacity:0.4;">—</span>
+            <span class="conf-bar"><div class="track"></div><span class="val" style="color:var(--ink-4);">—</span></span>
+            <span class="status-badge deprecated">Orphan</span>
+            <span class="updated">—</span>
+          </div>
+
+          <div class="mapping-row" data-mid="M-GW-162">
+            <span class="mid">M-GW-162</span>
+            <span class="src"><span class="table">pc_policylocation.</span><span class="col">territory_override</span></span>
+            <span class="arrow">→</span>
+            <span class="canon"><span class="obj">Location.</span>territory</span>
+            <span class="transform-chip smedef">SME-Def</span>
+            <span class="conf-bar"><div class="track"><div class="fill lo" style="width:52%"></div></div><span class="val">0.521</span></span>
+            <span class="status-badge proposed">Proposed</span>
+            <span class="updated">04-18</span>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- RIGHT: Detail -->
+      <aside class="pane right">
+        <div class="detail-head">
+          <div class="id">Rule M-GW-028 · v3 · Guidewire Template</div>
+          <h2 class="label">Composite Dwelling Limit</h2>
+          <div class="sub">Maps Coverage A limits into canonical <span class="mono">Coverage.limit</span> with currency + basis tagging.</div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active">Rule</button>
+          <button class="tab">Preview</button>
+          <button class="tab">Axioms</button>
+          <button class="tab">History</button>
+        </div>
+
+        <div class="pane-section">
+          <div class="rulebox" data-label="Mapping DSL">
+<span class="com">// Rule: M-GW-028 · version 3 · author: hannah.salazar@regulai.com</span>
+<span class="kw">mapping</span> M-GW-028 {
+  <span class="kw">source</span>: pc_coverage[<span class="kw">where</span> pattern_code <span class="kw">in</span>
+           {<span class="str">"HODW_Dwelling_A"</span>, <span class="str">"HODW_DwellingExt_A"</span>}]
+  <span class="kw">canonical</span>: Coverage[type=<span class="str">"CoverageA_Dwelling"</span>].limit
+
+  <span class="kw">transform</span> Composite {
+    <span class="kw">let</span> base = source.limit_a
+    <span class="kw">let</span> ext  = endorsement[<span class="str">"HO 15"</span>] ? base * <span class="num">1.25</span> : base
+    <span class="kw">return</span> Money(amount=ext, currency=<span class="str">"USD"</span>, basis=<span class="str">"Stated"</span>)
+  }
+
+  <span class="kw">preconditions</span>: {
+    pc_coverage.deduct_a &gt;= <span class="num">0</span>,
+    pc_coverage.exp_date &gt;= pc_coverage.eff_date
+  }
+  <span class="kw">confidence</span>: <span class="num">0.994</span>
+  <span class="kw">reviewer</span>: sme.hannah.salazar @ <span class="num">2026-04-18T14:22Z</span>
+}
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Live preview · 4 sample rows</div>
+          <table class="preview-table">
+            <thead>
+              <tr><th>policy_number</th><th>limit_a</th><th>endorse</th><th>→ Coverage.limit</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>ATX-HO-002938</td><td>385,000</td><td>HO 15</td><td>$481,250 · Stated</td></tr>
+              <tr><td>ATX-HO-003011</td><td>275,000</td><td>—</td><td>$275,000 · Stated</td></tr>
+              <tr><td>ATX-HO-003104</td><td>612,500</td><td>HO 15</td><td>$765,625 · Stated</td></tr>
+              <tr><td>ATX-HO-003221</td><td>198,000</td><td>—</td><td>$198,000 · Stated</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Axiom checks on sample</div>
+          <div class="axiom-list">
+            <div class="ax ok"><span class="check">✓</span><span class="text">Coverage.limit ≥ Coverage.deductible</span><span class="cite">A-COV-01</span></div>
+            <div class="ax ok"><span class="check">✓</span><span class="text">Coverage.effectivePeriod ⊆ Policy.effectivePeriod</span><span class="cite">A-COV-04</span></div>
+            <div class="ax ok"><span class="check">✓</span><span class="text">Money.currency = USD ∧ Money.amount &gt; 0</span><span class="cite">A-VAL-01</span></div>
+            <div class="ax ok"><span class="check">✓</span><span class="text">Endorsement stack resolves deterministically</span><span class="cite">A-END-03</span></div>
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Lineage</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">Template</span><span class="fl-value">guidewire/pc.v10/coverage@v3.2</span></div>
+            <div class="fl-row"><span class="fl-label">Inherits</span><span class="fl-value">M-GW-027 (base)</span></div>
+            <div class="fl-row"><span class="fl-label">Reviewer</span><span class="fl-value plain">Hannah Salazar · Head Reg Science</span></div>
+            <div class="fl-row"><span class="fl-label">Approved</span><span class="fl-value">2026-04-18 · 14:22 UTC</span></div>
+            <div class="fl-row"><span class="fl-label">Last shadow</span><span class="fl-value">2026-04-18 · 04:12 · 4,218 rows · 0 fails</span></div>
+            <div class="fl-row"><span class="fl-label">Citation</span><span class="fl-value plain"><span class="citation">TCLSP §5.9503(a)(1) — Coverage Code Table</span></span></div>
+          </div>
+        </div>
+
+        <div class="action-footer">
+          <button class="btn">Revert</button>
+          <button class="btn">Edit draft</button>
+          <button class="btn primary">Approve v4</button>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+</div>
+
+<script src="scripts/workbench.js"></script>
+</body>
+</html>

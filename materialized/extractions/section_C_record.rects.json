@@ -1,0 +1,3703 @@
+{
+  "citation_rects": [
+    [
+      {
+        "page": 42,
+        "x0": 104.77900695800781,
+        "y0": 95.91197967529297,
+        "x1": 128.82740783691406,
+        "y1": 110.50440216064453,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 245.19781494140625,
+        "y0": 95.91197967529297,
+        "x1": 294.3903503417969,
+        "y1": 110.50440216064453,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 110.55162811279297,
+        "x1": 98.40950775146484,
+        "y1": 125.14405059814453,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 125.19127655029297,
+        "x1": 98.40950775146484,
+        "y1": 139.78369140625,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 202.92044067382812,
+        "y0": 110.55162811279297,
+        "x1": 211.8570556640625,
+        "y1": 125.14405059814453,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 245.2099151611328,
+        "y0": 110.55162811279297,
+        "x1": 429.1842346191406,
+        "y1": 125.14405059814453,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 139.83197021484375,
+        "x1": 156.86924743652344,
+        "y1": 154.42437744140625,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 245.2198028564453,
+        "y0": 139.83197021484375,
+        "x1": 334.7331237792969,
+        "y1": 154.42437744140625,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 245.22088623046875,
+        "y0": 154.47161865234375,
+        "x1": 248.25137329101562,
+        "y1": 169.06402587890625,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 169.11126708984375,
+        "x1": 104.70983123779297,
+        "y1": 183.70367431640625,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 245.22088623046875,
+        "y0": 169.11126708984375,
+        "x1": 283.0458984375,
+        "y1": 183.70367431640625,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 183.69158935546875,
+        "x1": 98.40950775146484,
+        "y1": 198.28399658203125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 197.22181701660156,
+        "y0": 183.69158935546875,
+        "x1": 217.54689025878906,
+        "y1": 198.28399658203125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 245.19891357421875,
+        "y0": 183.69158935546875,
+        "x1": 343.5181884765625,
+        "y1": 198.28399658203125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 198.33123779296875,
+        "x1": 98.40950775146484,
+        "y1": 212.92364501953125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 202.92153930664062,
+        "y0": 198.33123779296875,
+        "x1": 211.862548828125,
+        "y1": 212.92364501953125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 245.21539306640625,
+        "y0": 198.33123779296875,
+        "x1": 287.851806640625,
+        "y1": 212.92364501953125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 212.97088623046875,
+        "x1": 98.40950775146484,
+        "y1": 227.56329345703125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 203.70220947265625,
+        "y0": 212.97088623046875,
+        "x1": 211.11260986328125,
+        "y1": 227.56329345703125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 245.24505615234375,
+        "y0": 212.97088623046875,
+        "x1": 299.45550537109375,
+        "y1": 227.56329345703125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 227.61053466796875,
+        "x1": 98.40950775146484,
+        "y1": 242.20294189453125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 42,
+        "x0": 201.4820556640625,
+        "y0": 227.61053466796875,
+        "x1": 210.26605224609375,
+        "y1": 242.20294189453125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      }
+    ],
+    [
+      {
+        "page": 42,
+        "x0": 116.59898376464844,
+        "y0": 139.83197021484375,
+        "x1": 156.86924743652344,
+        "y1": 154.42437744140625,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 245.2198028564453,
+        "y0": 139.83197021484375,
+        "x1": 334.7331237792969,
+        "y1": 154.42437744140625,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 245.22088623046875,
+        "y0": 154.47161865234375,
+        "x1": 248.25137329101562,
+        "y1": 169.06402587890625,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 169.11126708984375,
+        "x1": 104.70983123779297,
+        "y1": 183.70367431640625,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 245.22088623046875,
+        "y0": 169.11126708984375,
+        "x1": 283.0458984375,
+        "y1": 183.70367431640625,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 183.69158935546875,
+        "x1": 98.40950775146484,
+        "y1": 198.28399658203125,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 197.22181701660156,
+        "y0": 183.69158935546875,
+        "x1": 217.54689025878906,
+        "y1": 198.28399658203125,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 245.19891357421875,
+        "y0": 183.69158935546875,
+        "x1": 343.5181884765625,
+        "y1": 198.28399658203125,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 198.33123779296875,
+        "x1": 98.40950775146484,
+        "y1": 212.92364501953125,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 202.92153930664062,
+        "y0": 198.33123779296875,
+        "x1": 211.862548828125,
+        "y1": 212.92364501953125,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 245.21539306640625,
+        "y0": 198.33123779296875,
+        "x1": 287.851806640625,
+        "y1": 212.92364501953125,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 212.97088623046875,
+        "x1": 98.40950775146484,
+        "y1": 227.56329345703125,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 42,
+        "x0": 203.70220947265625,
+        "y0": 212.97088623046875,
+        "x1": 208.09420776367188,
+        "y1": 227.56329345703125,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      }
+    ],
+    [
+      {
+        "page": 42,
+        "x0": 116.60555267333984,
+        "y0": 300.74945068359375,
+        "x1": 141.37864685058594,
+        "y1": 315.34185791015625,
+        "matched_text": "(RT) Record Type 01 Dwelling \u2013 New/Renewals Daily Report (including onset/offset"
+      },
+      {
+        "page": 42,
+        "x0": 245.20989990234375,
+        "y0": 300.74945068359375,
+        "x1": 312.73468017578125,
+        "y1": 315.34185791015625,
+        "matched_text": "(RT) Record Type 01 Dwelling \u2013 New/Renewals Daily Report (including onset/offset"
+      },
+      {
+        "page": 42,
+        "x0": 95.40098571777344,
+        "y0": 315.38909912109375,
+        "x1": 98.40950775146484,
+        "y1": 329.98150634765625,
+        "matched_text": "(RT) Record Type 01 Dwelling \u2013 New/Renewals Daily Report (including onset/offset"
+      },
+      {
+        "page": 42,
+        "x0": 199.98219299316406,
+        "y0": 315.38909912109375,
+        "x1": 214.83372497558594,
+        "y1": 329.98150634765625,
+        "matched_text": "(RT) Record Type 01 Dwelling \u2013 New/Renewals Daily Report (including onset/offset"
+      },
+      {
+        "page": 42,
+        "x0": 245.18572998046875,
+        "y0": 315.38909912109375,
+        "x1": 548.7048950195312,
+        "y1": 329.98150634765625,
+        "matched_text": "(RT) Record Type 01 Dwelling \u2013 New/Renewals Daily Report (including onset/offset"
+      },
+      {
+        "page": 42,
+        "x0": 245.22088623046875,
+        "y0": 330.02874755859375,
+        "x1": 516.4719848632812,
+        "y1": 344.62115478515625,
+        "matched_text": "(RT) Record Type 01 Dwelling \u2013 New/Renewals Daily Report (including onset/offset"
+      },
+      {
+        "page": 42,
+        "x0": 245.22000122070312,
+        "y0": 344.6725769042969,
+        "x1": 420.07208251953125,
+        "y1": 359.2649841308594,
+        "matched_text": "(RT) Record Type 01 Dwelling \u2013 New/Renewals Daily Report (including onset/offset"
+      },
+      {
+        "page": 42,
+        "x0": 95.4000015258789,
+        "y0": 359.3125915527344,
+        "x1": 98.40852355957031,
+        "y1": 373.9049987792969,
+        "matched_text": "(RT) Record Type 01 Dwelling \u2013 New/Renewals Daily Report (including onset/offset"
+      },
+      {
+        "page": 42,
+        "x0": 199.98121643066406,
+        "y0": 359.3125915527344,
+        "x1": 214.85252380371094,
+        "y1": 373.9049987792969,
+        "matched_text": "(RT) Record Type 01 Dwelling \u2013 New/Renewals Daily Report (including onset/offset"
+      },
+      {
+        "page": 42,
+        "x0": 245.2045440673828,
+        "y0": 359.3125915527344,
+        "x1": 344.53515625,
+        "y1": 373.9049987792969,
+        "matched_text": "(RT) Record Type 01 Dwelling \u2013 New/Renewals Daily Report (including onset/offset"
+      }
+    ],
+    [
+      {
+        "page": 43,
+        "x0": 122.91028594970703,
+        "y0": 94.53185272216797,
+        "x1": 171.7910614013672,
+        "y1": 109.12427520751953,
+        "matched_text": "(POLICY) Policy Identifier"
+      },
+      {
+        "page": 43,
+        "x0": 230.98204040527344,
+        "y0": 94.53185272216797,
+        "x1": 312.85772705078125,
+        "y1": 109.12427520751953,
+        "matched_text": "(POLICY) Policy Identifier"
+      }
+    ],
+    [
+      {
+        "page": 43,
+        "x0": 111.0979995727539,
+        "y0": 153.0904541015625,
+        "x1": 146.36578369140625,
+        "y1": 167.682861328125,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      },
+      {
+        "page": 43,
+        "x0": 230.3968048095703,
+        "y0": 153.0904541015625,
+        "x1": 260.2470397949219,
+        "y1": 167.682861328125,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      },
+      {
+        "page": 43,
+        "x0": 95.40098571777344,
+        "y0": 167.6707763671875,
+        "x1": 98.40950775146484,
+        "y1": 182.26318359375,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      },
+      {
+        "page": 43,
+        "x0": 189.78176879882812,
+        "y0": 167.6707763671875,
+        "x1": 198.7205810546875,
+        "y1": 182.26318359375,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      },
+      {
+        "page": 43,
+        "x0": 230.39239501953125,
+        "y0": 167.6707763671875,
+        "x1": 311.2293395996094,
+        "y1": 182.26318359375,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      },
+      {
+        "page": 43,
+        "x0": 95.40098571777344,
+        "y0": 182.3104248046875,
+        "x1": 98.40950775146484,
+        "y1": 196.90283203125,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      },
+      {
+        "page": 43,
+        "x0": 189.7817840576172,
+        "y0": 182.3104248046875,
+        "x1": 198.72279357910156,
+        "y1": 196.90283203125,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      },
+      {
+        "page": 43,
+        "x0": 230.3946075439453,
+        "y0": 182.3104248046875,
+        "x1": 301.5218811035156,
+        "y1": 196.90283203125,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      },
+      {
+        "page": 43,
+        "x0": 230.40118408203125,
+        "y0": 196.9500732421875,
+        "x1": 233.40969848632812,
+        "y1": 211.54248046875,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      },
+      {
+        "page": 43,
+        "x0": 95.40098571777344,
+        "y0": 211.5897216796875,
+        "x1": 157.6575927734375,
+        "y1": 226.18212890625,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      },
+      {
+        "page": 43,
+        "x0": 230.34848022460938,
+        "y0": 211.5897216796875,
+        "x1": 275.1293029785156,
+        "y1": 226.18212890625,
+        "matched_text": "(TRM) Term 1 One year or less 9 Over one year 18\u201322 (EFF) Effective"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 43,
+        "x0": 351.00445556640625,
+        "y0": 460.2857971191406,
+        "x1": 555.5759887695312,
+        "y1": 474.8782043457031,
+        "matched_text": "lars. If the amount of insurance is less than $1,500, then code \"01.\" If no amou"
+      },
+      {
+        "page": 43,
+        "x0": 230.3990020751953,
+        "y0": 474.9254150390625,
+        "x1": 345.3661193847656,
+        "y1": 489.517822265625,
+        "matched_text": "lars. If the amount of insurance is less than $1,500, then code \"01.\" If no amou"
+      },
+      {
+        "page": 43,
+        "x0": 230.3990020751953,
+        "y0": 489.5650634765625,
+        "x1": 233.4075164794922,
+        "y1": 504.157470703125,
+        "matched_text": "lars. If the amount of insurance is less than $1,500, then code \"01.\" If no amou"
+      },
+      {
+        "page": 43,
+        "x0": 230.3990020751953,
+        "y0": 504.2047119140625,
+        "x1": 552.6378173828125,
+        "y1": 518.797119140625,
+        "matched_text": "lars. If the amount of insurance is less than $1,500, then code \"01.\" If no amou"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 44,
+        "x0": 129.23916625976562,
+        "y0": 94.53185272216797,
+        "x1": 161.4314422607422,
+        "y1": 109.12427520751953,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 44,
+        "x0": 230.4022979736328,
+        "y0": 94.53185272216797,
+        "x1": 315.7498779296875,
+        "y1": 109.12427520751953,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 44,
+        "x0": 95.40098571777344,
+        "y0": 109.17150115966797,
+        "x1": 98.40950775146484,
+        "y1": 123.76392364501953,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 44,
+        "x0": 186.78204345703125,
+        "y0": 109.17150115966797,
+        "x1": 201.64895629882812,
+        "y1": 123.76392364501953,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 44,
+        "x0": 230.38143920898438,
+        "y0": 109.17150115966797,
+        "x1": 539.8515625,
+        "y1": 123.76392364501953,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 44,
+        "x0": 95.40098571777344,
+        "y0": 123.81114959716797,
+        "x1": 98.40950775146484,
+        "y1": 138.403564453125,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 44,
+        "x0": 186.78204345703125,
+        "y0": 123.81114959716797,
+        "x1": 201.64675903320312,
+        "y1": 138.403564453125,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 44,
+        "x0": 230.37924194335938,
+        "y0": 123.81114959716797,
+        "x1": 447.9819641113281,
+        "y1": 138.403564453125,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      }
+    ],
+    [
+      {
+        "page": 44,
+        "x0": 307.6203918457031,
+        "y0": 337.0522155761719,
+        "x1": 318.9704284667969,
+        "y1": 351.6446228027344,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 230.40020751953125,
+        "y0": 351.69183349609375,
+        "x1": 233.40872192382812,
+        "y1": 366.28424072265625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 95.40000915527344,
+        "y0": 366.33148193359375,
+        "x1": 132.29061889648438,
+        "y1": 380.92388916015625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 230.42108154296875,
+        "y0": 366.33148193359375,
+        "x1": 255.67068481445312,
+        "y1": 380.92388916015625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 230.40020751953125,
+        "y0": 380.97113037109375,
+        "x1": 233.43069458007812,
+        "y1": 395.56353759765625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 95.40000915527344,
+        "y0": 395.61077880859375,
+        "x1": 138.55361938476562,
+        "y1": 410.20318603515625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 231.04473876953125,
+        "y0": 395.61077880859375,
+        "x1": 302.9779968261719,
+        "y1": 410.20318603515625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 394.1998291015625,
+        "y0": 395.61077880859375,
+        "x1": 397.2083435058594,
+        "y1": 410.20318603515625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 410.25042724609375,
+        "x1": 98.40851593017578,
+        "y1": 424.84283447265625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 194.8206024169922,
+        "y0": 410.25042724609375,
+        "x1": 197.82911682128906,
+        "y1": 424.84283447265625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 231.00189208984375,
+        "y0": 410.25042724609375,
+        "x1": 288.8730773925781,
+        "y1": 424.84283447265625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 394.2250671386719,
+        "y0": 410.25042724609375,
+        "x1": 553.3866577148438,
+        "y1": 424.84283447265625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 394.1998291015625,
+        "y0": 424.89007568359375,
+        "x1": 412.38818359375,
+        "y1": 439.48248291015625,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 394.1998291015625,
+        "y0": 439.4704284667969,
+        "x1": 397.2083435058594,
+        "y1": 454.0628356933594,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 454.11004638671875,
+        "x1": 98.40851593017578,
+        "y1": 468.70245361328125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 190.98089599609375,
+        "y0": 454.11004638671875,
+        "x1": 199.91970825195312,
+        "y1": 468.70245361328125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 230.9920196533203,
+        "y0": 454.11004638671875,
+        "x1": 291.5522155761719,
+        "y1": 468.70245361328125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 394.2042236328125,
+        "y0": 454.11004638671875,
+        "x1": 431.3287048339844,
+        "y1": 468.70245361328125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 468.74969482421875,
+        "x1": 98.40851593017578,
+        "y1": 483.34210205078125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 190.98089599609375,
+        "y0": 468.74969482421875,
+        "x1": 199.91970825195312,
+        "y1": 483.34210205078125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 230.9920196533203,
+        "y0": 468.74969482421875,
+        "x1": 290.76165771484375,
+        "y1": 483.34210205078125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 394.1943359375,
+        "y0": 468.74969482421875,
+        "x1": 431.3188171386719,
+        "y1": 483.34210205078125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 483.38934326171875,
+        "x1": 98.40851593017578,
+        "y1": 497.98175048828125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 190.98089599609375,
+        "y0": 483.38934326171875,
+        "x1": 199.92080688476562,
+        "y1": 497.98175048828125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      },
+      {
+        "page": 44,
+        "x0": 230.9931182861328,
+        "y0": 483.38934326171875,
+        "x1": 278.4454345703125,
+        "y1": 497.98175048828125,
+        "matched_text": "O 46\u201349 Skip 50 (FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328,"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 44,
+        "x0": 111.0992202758789,
+        "y0": 395.61077880859375,
+        "x1": 138.55361938476562,
+        "y1": 410.20318603515625,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 231.04473876953125,
+        "y0": 395.61077880859375,
+        "x1": 302.9779968261719,
+        "y1": 410.20318603515625,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 394.1998291015625,
+        "y0": 395.61077880859375,
+        "x1": 397.2083435058594,
+        "y1": 410.20318603515625,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 410.25042724609375,
+        "x1": 98.40851593017578,
+        "y1": 424.84283447265625,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 194.8206024169922,
+        "y0": 410.25042724609375,
+        "x1": 197.82911682128906,
+        "y1": 424.84283447265625,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 231.00189208984375,
+        "y0": 410.25042724609375,
+        "x1": 288.8730773925781,
+        "y1": 424.84283447265625,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 394.2250671386719,
+        "y0": 410.25042724609375,
+        "x1": 553.3866577148438,
+        "y1": 424.84283447265625,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 394.1998291015625,
+        "y0": 424.89007568359375,
+        "x1": 412.38818359375,
+        "y1": 439.48248291015625,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 394.1998291015625,
+        "y0": 439.4704284667969,
+        "x1": 397.2083435058594,
+        "y1": 454.0628356933594,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 454.11004638671875,
+        "x1": 98.40851593017578,
+        "y1": 468.70245361328125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 190.98089599609375,
+        "y0": 454.11004638671875,
+        "x1": 199.91970825195312,
+        "y1": 468.70245361328125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 230.9920196533203,
+        "y0": 454.11004638671875,
+        "x1": 291.5522155761719,
+        "y1": 468.70245361328125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 394.2042236328125,
+        "y0": 454.11004638671875,
+        "x1": 431.3287048339844,
+        "y1": 468.70245361328125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 468.74969482421875,
+        "x1": 98.40851593017578,
+        "y1": 483.34210205078125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 190.98089599609375,
+        "y0": 468.74969482421875,
+        "x1": 199.91970825195312,
+        "y1": 483.34210205078125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 230.9920196533203,
+        "y0": 468.74969482421875,
+        "x1": 290.76165771484375,
+        "y1": 483.34210205078125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 394.1943359375,
+        "y0": 468.74969482421875,
+        "x1": 431.3188171386719,
+        "y1": 483.34210205078125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 483.38934326171875,
+        "x1": 98.40851593017578,
+        "y1": 497.98175048828125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 190.98089599609375,
+        "y0": 483.38934326171875,
+        "x1": 199.92080688476562,
+        "y1": 497.98175048828125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 230.9931182861328,
+        "y0": 483.38934326171875,
+        "x1": 291.3381042480469,
+        "y1": 497.98175048828125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 394.2305908203125,
+        "y0": 483.38934326171875,
+        "x1": 431.3594665527344,
+        "y1": 497.98175048828125,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 498.02899169921875,
+        "x1": 98.40851593017578,
+        "y1": 512.6213989257812,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 190.98089599609375,
+        "y0": 498.02899169921875,
+        "x1": 199.92080688476562,
+        "y1": 512.6213989257812,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 230.9931182861328,
+        "y0": 498.02899169921875,
+        "x1": 309.4122619628906,
+        "y1": 512.6213989257812,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 394.2448425292969,
+        "y0": 498.02899169921875,
+        "x1": 478.9281311035156,
+        "y1": 512.6213989257812,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 512.6686401367188,
+        "x1": 98.40851593017578,
+        "y1": 527.2610473632812,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 190.98089599609375,
+        "y0": 512.6686401367188,
+        "x1": 199.92410278320312,
+        "y1": 527.2610473632812,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 230.9964141845703,
+        "y0": 512.6686401367188,
+        "x1": 309.96014404296875,
+        "y1": 527.2610473632812,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 394.25250244140625,
+        "y0": 512.6686401367188,
+        "x1": 397.2610168457031,
+        "y1": 527.2610473632812,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 95.39999389648438,
+        "y0": 527.2489624023438,
+        "x1": 98.40851593017578,
+        "y1": 541.8413696289062,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      },
+      {
+        "page": 44,
+        "x0": 190.98089599609375,
+        "y0": 527.2489624023438,
+        "x1": 196.89910888671875,
+        "y1": 541.8413696289062,
+        "matched_text": "(FM) Form (Policy) HO (02, 03) Dwlgs. (10, 11, 13\u201315, 20, 25\u201328, 35) 1 HO Policy"
+      }
+    ],
+    [
+      {
+        "page": 46,
+        "x0": 111.10347747802734,
+        "y0": 372.5072021484375,
+        "x1": 146.2866973876953,
+        "y1": 387.099609375,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 165.0372314453125,
+        "y0": 372.5072021484375,
+        "x1": 444.6650085449219,
+        "y1": 387.099609375,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 165.00209045410156,
+        "y0": 387.1468505859375,
+        "x1": 168.03257751464844,
+        "y1": 401.7392578125,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 95.40206909179688,
+        "y0": 401.7864990234375,
+        "x1": 98.41059112548828,
+        "y1": 416.37890625,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 165.00318908691406,
+        "y0": 401.7864990234375,
+        "x1": 168.01170349121094,
+        "y1": 416.37890625,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 231.00177001953125,
+        "y0": 401.7864990234375,
+        "x1": 302.5518798828125,
+        "y1": 416.37890625,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 385.6232604980469,
+        "y0": 401.7864990234375,
+        "x1": 434.319580078125,
+        "y1": 416.37890625,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 95.40206909179688,
+        "y0": 416.4261474609375,
+        "x1": 98.41059112548828,
+        "y1": 431.0185546875,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 189.602783203125,
+        "y0": 416.4261474609375,
+        "x1": 198.53720092773438,
+        "y1": 431.0185546875,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 230.9897003173828,
+        "y0": 416.4261474609375,
+        "x1": 304.00341796875,
+        "y1": 431.0185546875,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 385.5957946777344,
+        "y0": 416.4261474609375,
+        "x1": 535.9658203125,
+        "y1": 431.0185546875,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 95.40206909179688,
+        "y0": 431.0657958984375,
+        "x1": 98.41059112548828,
+        "y1": 445.658203125,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 189.602783203125,
+        "y0": 431.0657958984375,
+        "x1": 198.54159545898438,
+        "y1": 445.658203125,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 230.9940948486328,
+        "y0": 431.0657958984375,
+        "x1": 234.0026092529297,
+        "y1": 445.658203125,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 385.61444091796875,
+        "y0": 431.0657958984375,
+        "x1": 511.4551086425781,
+        "y1": 445.658203125,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 385.62213134765625,
+        "y0": 445.7054443359375,
+        "x1": 453.8572998046875,
+        "y1": 460.2978515625,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 95.40206909179688,
+        "y0": 460.2857971191406,
+        "x1": 98.41059112548828,
+        "y1": 474.8782043457031,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 189.602783203125,
+        "y0": 460.2857971191406,
+        "x1": 198.54159545898438,
+        "y1": 474.8782043457031,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      },
+      {
+        "page": 46,
+        "x0": 230.9940948486328,
+        "y0": 460.2857971191406,
+        "x1": 306.52215576171875,
+        "y1": 474.8782043457031,
+        "matched_text": "(FAM) Number of Families \u2013 Dwelling and Personal Property Homeowners Dwelling 1 "
+      }
+    ],
+    [
+      {
+        "page": 47,
+        "x0": 111.1001968383789,
+        "y0": 94.53185272216797,
+        "x1": 144.84063720703125,
+        "y1": 109.12427520751953,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 165.03173828125,
+        "y0": 94.53185272216797,
+        "x1": 284.28106689453125,
+        "y1": 109.12427520751953,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 165.00100708007812,
+        "y0": 109.17150115966797,
+        "x1": 168.031494140625,
+        "y1": 123.76392364501953,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 95.40098571777344,
+        "y0": 123.81114959716797,
+        "x1": 98.40950775146484,
+        "y1": 138.403564453125,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 165.00210571289062,
+        "y0": 123.81114959716797,
+        "x1": 168.0106201171875,
+        "y1": 138.403564453125,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 231.0006866455078,
+        "y0": 123.81114959716797,
+        "x1": 302.5211181640625,
+        "y1": 138.403564453125,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 379.8323974609375,
+        "y0": 123.81114959716797,
+        "x1": 502.33087158203125,
+        "y1": 138.403564453125,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 95.40098571777344,
+        "y0": 138.4508056640625,
+        "x1": 98.40950775146484,
+        "y1": 153.043212890625,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 189.60279846191406,
+        "y0": 138.4508056640625,
+        "x1": 198.53721618652344,
+        "y1": 153.043212890625,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 230.99081420898438,
+        "y0": 138.4508056640625,
+        "x1": 338.8374328613281,
+        "y1": 153.043212890625,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 231.0006866455078,
+        "y0": 153.0904541015625,
+        "x1": 365.4737548828125,
+        "y1": 167.682861328125,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 379.8609313964844,
+        "y0": 138.4508056640625,
+        "x1": 545.721435546875,
+        "y1": 153.043212890625,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 379.8609313964844,
+        "y0": 153.0904541015625,
+        "x1": 434.4183349609375,
+        "y1": 167.682861328125,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 95.40097045898438,
+        "y0": 167.6707763671875,
+        "x1": 98.40949249267578,
+        "y1": 182.26318359375,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 189.6016845703125,
+        "y0": 167.6707763671875,
+        "x1": 198.53829956054688,
+        "y1": 182.26318359375,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 230.9907989501953,
+        "y0": 167.6707763671875,
+        "x1": 362.66290283203125,
+        "y1": 182.26318359375,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      },
+      {
+        "page": 47,
+        "x0": 231.00067138671875,
+        "y0": 182.3104248046875,
+        "x1": 275.2105407714844,
+        "y1": 196.90283203125,
+        "matched_text": "(COV) Coverage \u2013 Occupancy Homeowners Dwellings \u2013 Fire and EC 1 HO Policies excl"
+      }
+    ],
+    [
+      {
+        "page": 47,
+        "x0": 111.07066345214844,
+        "y0": 474.9322509765625,
+        "x1": 135.55056762695312,
+        "y1": 489.524658203125,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 192.72012329101562,
+        "y0": 474.9322509765625,
+        "x1": 195.7286376953125,
+        "y1": 489.524658203125,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 230.4001922607422,
+        "y0": 474.9322509765625,
+        "x1": 299.90576171875,
+        "y1": 489.524658203125,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 95.39999389648438,
+        "y0": 489.5718994140625,
+        "x1": 98.40851593017578,
+        "y1": 504.164306640625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 189.78079223632812,
+        "y0": 489.5718994140625,
+        "x1": 198.7152099609375,
+        "y1": 504.164306640625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 230.38702392578125,
+        "y0": 489.5718994140625,
+        "x1": 386.20635986328125,
+        "y1": 504.164306640625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 95.39999389648438,
+        "y0": 504.2115478515625,
+        "x1": 98.40851593017578,
+        "y1": 518.803955078125,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 189.78079223632812,
+        "y0": 504.2115478515625,
+        "x1": 198.7174072265625,
+        "y1": 518.803955078125,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 230.38922119140625,
+        "y0": 504.2115478515625,
+        "x1": 375.3009338378906,
+        "y1": 518.803955078125,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 95.39999389648438,
+        "y0": 518.8511962890625,
+        "x1": 98.40851593017578,
+        "y1": 533.443603515625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 189.78079223632812,
+        "y0": 518.8511962890625,
+        "x1": 198.7152099609375,
+        "y1": 533.443603515625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 230.38702392578125,
+        "y0": 518.8511962890625,
+        "x1": 350.7651672363281,
+        "y1": 533.443603515625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 95.39999389648438,
+        "y0": 533.4908447265625,
+        "x1": 98.40851593017578,
+        "y1": 548.083251953125,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 189.78079223632812,
+        "y0": 533.4908447265625,
+        "x1": 198.7152099609375,
+        "y1": 548.083251953125,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 230.38702392578125,
+        "y0": 533.4908447265625,
+        "x1": 409.2897033691406,
+        "y1": 548.083251953125,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 95.39999389648438,
+        "y0": 548.1304931640625,
+        "x1": 98.40851593017578,
+        "y1": 562.722900390625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 189.78079223632812,
+        "y0": 548.1304931640625,
+        "x1": 198.7174072265625,
+        "y1": 562.722900390625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 230.38922119140625,
+        "y0": 548.1304931640625,
+        "x1": 384.1761169433594,
+        "y1": 562.722900390625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 95.39999389648438,
+        "y0": 562.7108154296875,
+        "x1": 98.40851593017578,
+        "y1": 577.30322265625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 189.78079223632812,
+        "y0": 562.7108154296875,
+        "x1": 198.7152099609375,
+        "y1": 577.30322265625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      },
+      {
+        "page": 47,
+        "x0": 230.38702392578125,
+        "y0": 562.7108154296875,
+        "x1": 246.169677734375,
+        "y1": 577.30322265625,
+        "matched_text": "(CT) Construction 1 Frame (not otherwise classified) 2 Brick Veneer or Stone Ven"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 49,
+        "x0": 111.0958023071289,
+        "y0": 94.53185272216797,
+        "x1": 142.58096313476562,
+        "y1": 109.12427520751953,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 165.9013671875,
+        "y0": 94.53185272216797,
+        "x1": 168.90988159179688,
+        "y1": 109.12427520751953,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.40118408203125,
+        "y0": 94.53185272216797,
+        "x1": 469.38427734375,
+        "y1": 109.12427520751953,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 109.17150115966797,
+        "x1": 98.40950775146484,
+        "y1": 123.76392364501953,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.78176879882812,
+        "y0": 109.17150115966797,
+        "x1": 198.7293701171875,
+        "y1": 123.76392364501953,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.4011993408203,
+        "y0": 109.17150115966797,
+        "x1": 233.4097137451172,
+        "y1": 123.76392364501953,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 123.81114959716797,
+        "x1": 98.40950775146484,
+        "y1": 138.403564453125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.78176879882812,
+        "y0": 123.81114959716797,
+        "x1": 198.7293701171875,
+        "y1": 138.403564453125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.4011993408203,
+        "y0": 123.81114959716797,
+        "x1": 233.4097137451172,
+        "y1": 138.403564453125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 138.4508056640625,
+        "x1": 98.40950775146484,
+        "y1": 153.043212890625,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.78176879882812,
+        "y0": 138.4508056640625,
+        "x1": 198.7293701171875,
+        "y1": 153.043212890625,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.4011993408203,
+        "y0": 138.4508056640625,
+        "x1": 233.4097137451172,
+        "y1": 153.043212890625,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 153.0904541015625,
+        "x1": 98.40950775146484,
+        "y1": 167.682861328125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.78176879882812,
+        "y0": 153.0904541015625,
+        "x1": 198.7161865234375,
+        "y1": 167.682861328125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.38800048828125,
+        "y0": 153.0904541015625,
+        "x1": 442.3042297363281,
+        "y1": 167.682861328125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 167.6707763671875,
+        "x1": 98.40950775146484,
+        "y1": 182.26318359375,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.78176879882812,
+        "y0": 167.6707763671875,
+        "x1": 198.7205810546875,
+        "y1": 182.26318359375,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.39239501953125,
+        "y0": 167.6707763671875,
+        "x1": 348.18359375,
+        "y1": 182.26318359375,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 182.3104248046875,
+        "x1": 98.40950775146484,
+        "y1": 196.90283203125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.78176879882812,
+        "y0": 182.3104248046875,
+        "x1": 198.7205810546875,
+        "y1": 196.90283203125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.39239501953125,
+        "y0": 182.3104248046875,
+        "x1": 347.766357421875,
+        "y1": 196.90283203125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 196.9500732421875,
+        "x1": 98.40950775146484,
+        "y1": 211.54248046875,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.78176879882812,
+        "y0": 196.9500732421875,
+        "x1": 198.7293701171875,
+        "y1": 211.54248046875,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.4011993408203,
+        "y0": 196.9500732421875,
+        "x1": 233.4097137451172,
+        "y1": 211.54248046875,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 211.5897216796875,
+        "x1": 98.40950775146484,
+        "y1": 226.18212890625,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.78176879882812,
+        "y0": 211.5897216796875,
+        "x1": 198.7293701171875,
+        "y1": 226.18212890625,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.4011993408203,
+        "y0": 211.5897216796875,
+        "x1": 233.4097137451172,
+        "y1": 226.18212890625,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 226.2293701171875,
+        "x1": 98.40950775146484,
+        "y1": 240.82177734375,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.78176879882812,
+        "y0": 226.2293701171875,
+        "x1": 198.7293701171875,
+        "y1": 240.82177734375,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.4011993408203,
+        "y0": 226.2293701171875,
+        "x1": 233.4097137451172,
+        "y1": 240.82177734375,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 240.8690185546875,
+        "x1": 98.40950775146484,
+        "y1": 255.46142578125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.1822509765625,
+        "y0": 240.8690185546875,
+        "x1": 199.2706756591797,
+        "y1": 255.46142578125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 230.4033660888672,
+        "y0": 240.8690185546875,
+        "x1": 233.41188049316406,
+        "y1": 255.46142578125,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 95.40098571777344,
+        "y0": 255.5086669921875,
+        "x1": 98.40950775146484,
+        "y1": 270.10107421875,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      },
+      {
+        "page": 49,
+        "x0": 189.6016845703125,
+        "y0": 255.5086669921875,
+        "x1": 195.89321899414062,
+        "y1": 270.10107421875,
+        "matched_text": "(PPC) Protection \u2013 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO P"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 54,
+        "x0": 129.2501220703125,
+        "y0": 94.53185272216797,
+        "x1": 170.56568908691406,
+        "y1": 109.12427520751953,
+        "matched_text": "(FRPM) Premium \u2013 Fire, Homeowners"
+      },
+      {
+        "page": 54,
+        "x0": 231.0160675048828,
+        "y0": 94.53185272216797,
+        "x1": 383.2264099121094,
+        "y1": 109.12427520751953,
+        "matched_text": "(FRPM) Premium \u2013 Fire, Homeowners"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 55,
+        "x0": 111.10456848144531,
+        "y0": 94.53185272216797,
+        "x1": 174.33070373535156,
+        "y1": 109.12427520751953,
+        "matched_text": "(ROOFCOV) Roof Covering (choose predominate type)"
+      },
+      {
+        "page": 55,
+        "x0": 230.94137573242188,
+        "y0": 94.53185272216797,
+        "x1": 448.2794494628906,
+        "y1": 109.12427520751953,
+        "matched_text": "(ROOFCOV) Roof Covering (choose predominate type)"
+      }
+    ],
+    [
+      {
+        "page": 55,
+        "x0": 111.10763549804688,
+        "y0": 310.8926696777344,
+        "x1": 179.82049560546875,
+        "y1": 325.4850769042969,
+        "matched_text": "(ROOFCRED) Roof Covering Premium Credit Report only premium credits for roof cov"
+      },
+      {
+        "page": 55,
+        "x0": 230.39999389648438,
+        "y0": 310.892578125,
+        "x1": 392.3384704589844,
+        "y1": 325.4849853515625,
+        "matched_text": "(ROOFCRED) Roof Covering Premium Credit Report only premium credits for roof cov"
+      },
+      {
+        "page": 55,
+        "x0": 95.4000015258789,
+        "y0": 326.12957763671875,
+        "x1": 97.5865249633789,
+        "y1": 336.7349853515625,
+        "matched_text": "(ROOFCRED) Roof Covering Premium Credit Report only premium credits for roof cov"
+      },
+      {
+        "page": 55,
+        "x0": 165.00076293945312,
+        "y0": 326.12957763671875,
+        "x1": 167.18728637695312,
+        "y1": 336.7349853515625,
+        "matched_text": "(ROOFCRED) Roof Covering Premium Credit Report only premium credits for roof cov"
+      },
+      {
+        "page": 55,
+        "x0": 230.39999389648438,
+        "y0": 322.892578125,
+        "x1": 501.46539306640625,
+        "y1": 337.4849853515625,
+        "matched_text": "(ROOFCRED) Roof Covering Premium Credit Report only premium credits for roof cov"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 56,
+        "x0": 282.9042053222656,
+        "y0": 322.8926086425781,
+        "x1": 446.37664794921875,
+        "y1": 337.4850158691406,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 56,
+        "x0": 95.39984130859375,
+        "y0": 334.89263916015625,
+        "x1": 98.40836334228516,
+        "y1": 349.48504638671875,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 56,
+        "x0": 186.781982421875,
+        "y0": 334.89263916015625,
+        "x1": 201.64230346679688,
+        "y1": 349.48504638671875,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 56,
+        "x0": 230.37586975097656,
+        "y0": 334.89263916015625,
+        "x1": 385.44207763671875,
+        "y1": 349.48504638671875,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 56,
+        "x0": 95.39984130859375,
+        "y0": 346.8926696777344,
+        "x1": 98.40836334228516,
+        "y1": 361.4850769042969,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 56,
+        "x0": 186.78089904785156,
+        "y0": 346.8926696777344,
+        "x1": 201.64561462402344,
+        "y1": 361.4850769042969,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 56,
+        "x0": 230.37808227539062,
+        "y0": 346.8926696777344,
+        "x1": 441.3609313964844,
+        "y1": 361.4850769042969,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 56,
+        "x0": 95.39984130859375,
+        "y0": 358.8927001953125,
+        "x1": 98.40836334228516,
+        "y1": 373.485107421875,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 56,
+        "x0": 186.78091430664062,
+        "y0": 358.8927001953125,
+        "x1": 201.6522216796875,
+        "y1": 373.485107421875,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 56,
+        "x0": 230.38470458984375,
+        "y0": 358.8927001953125,
+        "x1": 299.8869934082031,
+        "y1": 373.485107421875,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 56,
+        "x0": 117.37857818603516,
+        "y0": 585.4512329101562,
+        "x1": 156.41358947753906,
+        "y1": 600.0436401367188,
+        "matched_text": "(OC10) Optional Credit \u2013 Personal Property ID"
+      },
+      {
+        "page": 56,
+        "x0": 157.49948120117188,
+        "y0": 597.4512939453125,
+        "x1": 160.50799560546875,
+        "y1": 612.043701171875,
+        "matched_text": "(OC10) Optional Credit \u2013 Personal Property ID"
+      },
+      {
+        "page": 56,
+        "x0": 230.39898681640625,
+        "y0": 585.4512329101562,
+        "x1": 428.6714782714844,
+        "y1": 600.0436401367188,
+        "matched_text": "(OC10) Optional Credit \u2013 Personal Property ID"
+      }
+    ],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 57,
+        "x0": 117.35570526123047,
+        "y0": 513.2725219726562,
+        "x1": 149.66561889648438,
+        "y1": 527.864990234375,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual"
+      },
+      {
+        "page": 57,
+        "x0": 165.00027465820312,
+        "y0": 513.2725830078125,
+        "x1": 168.0087890625,
+        "y1": 527.864990234375,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual"
+      },
+      {
+        "page": 57,
+        "x0": 230.9999542236328,
+        "y0": 513.2725830078125,
+        "x1": 445.9455261230469,
+        "y1": 527.864990234375,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual"
+      },
+      {
+        "page": 57,
+        "x0": 95.40025329589844,
+        "y0": 525.8128662109375,
+        "x1": 98.40877532958984,
+        "y1": 540.4052734375,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual"
+      },
+      {
+        "page": 57,
+        "x0": 189.60096740722656,
+        "y0": 525.8128662109375,
+        "x1": 198.53758239746094,
+        "y1": 540.4052734375,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual"
+      },
+      {
+        "page": 57,
+        "x0": 230.99008178710938,
+        "y0": 525.8128662109375,
+        "x1": 335.80181884765625,
+        "y1": 540.4052734375,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual"
+      }
+    ],
+    [
+      {
+        "page": 58,
+        "x0": 117.39281463623047,
+        "y0": 94.53185272216797,
+        "x1": 156.10171508789062,
+        "y1": 109.12427520751953,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 165.00100708007812,
+        "y0": 94.53185272216797,
+        "x1": 168.009521484375,
+        "y1": 109.12427520751953,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 231.0006866455078,
+        "y0": 94.53185272216797,
+        "x1": 422.5907287597656,
+        "y1": 109.12427520751953,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 95.40098571777344,
+        "y0": 106.89202117919922,
+        "x1": 98.40950775146484,
+        "y1": 121.48444366455078,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 189.60169982910156,
+        "y0": 106.89202117919922,
+        "x1": 198.53831481933594,
+        "y1": 121.48444366455078,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 230.99081420898438,
+        "y0": 106.89202117919922,
+        "x1": 529.8323364257812,
+        "y1": 121.48444366455078,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 231.0,
+        "y0": 118.89257049560547,
+        "x1": 278.2305603027344,
+        "y1": 133.4849853515625,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 95.400390625,
+        "y0": 130.89263916015625,
+        "x1": 98.4089126586914,
+        "y1": 145.48504638671875,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 189.60110473632812,
+        "y0": 130.89263916015625,
+        "x1": 198.538818359375,
+        "y1": 145.48504638671875,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 230.99131774902344,
+        "y0": 130.89263916015625,
+        "x1": 547.9640502929688,
+        "y1": 145.48504638671875,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 95.400390625,
+        "y0": 143.43292236328125,
+        "x1": 98.4089126586914,
+        "y1": 158.02532958984375,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 189.60110473632812,
+        "y0": 143.43292236328125,
+        "x1": 198.5355224609375,
+        "y1": 158.02532958984375,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 58,
+        "x0": 230.98802185058594,
+        "y0": 143.43292236328125,
+        "x1": 275.2286071777344,
+        "y1": 158.02532958984375,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      }
+    ],
+    [
+      {
+        "page": 58,
+        "x0": 117.41200256347656,
+        "y0": 179.43310546875,
+        "x1": 149.1013946533203,
+        "y1": 194.0255126953125,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 58,
+        "x0": 230.43243408203125,
+        "y0": 179.43310546875,
+        "x1": 338.0814208984375,
+        "y1": 194.0255126953125,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 58,
+        "x0": 125.2198715209961,
+        "y0": 191.79327392578125,
+        "x1": 128.2283935546875,
+        "y1": 206.38568115234375,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 58,
+        "x0": 189.7811737060547,
+        "y0": 191.79327392578125,
+        "x1": 198.72877502441406,
+        "y1": 206.38568115234375,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 58,
+        "x0": 192.71942138671875,
+        "y0": 203.7933349609375,
+        "x1": 195.72793579101562,
+        "y1": 218.3857421875,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 58,
+        "x0": 230.3994903564453,
+        "y0": 191.79327392578125,
+        "x1": 526.4783935546875,
+        "y1": 206.38568115234375,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 58,
+        "x0": 230.3994903564453,
+        "y0": 203.7933349609375,
+        "x1": 464.990478515625,
+        "y1": 218.3857421875,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 60,
+        "x0": 141.8705596923828,
+        "y0": 157.5318603515625,
+        "x1": 174.9093475341797,
+        "y1": 172.124267578125,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 60,
+        "x0": 231.0006866455078,
+        "y0": 157.5318603515625,
+        "x1": 412.9886779785156,
+        "y1": 172.124267578125,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 60,
+        "x0": 95.39990234375,
+        "y0": 170.01171875,
+        "x1": 98.4084243774414,
+        "y1": 184.6041259765625,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 60,
+        "x0": 192.60035705566406,
+        "y0": 170.01171875,
+        "x1": 195.60887145996094,
+        "y1": 184.6041259765625,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 60,
+        "x0": 231.00071716308594,
+        "y0": 170.01171875,
+        "x1": 540.1162719726562,
+        "y1": 184.6041259765625,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 60,
+        "x0": 230.99960327148438,
+        "y0": 182.01177978515625,
+        "x1": 458.21417236328125,
+        "y1": 196.60418701171875,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 60,
+        "x0": 230.99960327148438,
+        "y0": 194.0118408203125,
+        "x1": 234.00811767578125,
+        "y1": 208.604248046875,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 60,
+        "x0": 95.39990234375,
+        "y0": 208.29132080078125,
+        "x1": 172.3598175048828,
+        "y1": 222.88372802734375,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 60,
+        "x0": 230.47036743164062,
+        "y0": 208.29132080078125,
+        "x1": 397.4520263671875,
+        "y1": 222.88372802734375,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      }
+    ],
+    [
+      {
+        "page": 60,
+        "x0": 141.93531799316406,
+        "y0": 208.29132080078125,
+        "x1": 172.3598175048828,
+        "y1": 222.88372802734375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 60,
+        "x0": 230.47036743164062,
+        "y0": 208.29132080078125,
+        "x1": 535.4674072265625,
+        "y1": 222.88372802734375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 60,
+        "x0": 95.39990234375,
+        "y0": 222.93096923828125,
+        "x1": 98.4084243774414,
+        "y1": 237.52337646484375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 60,
+        "x0": 193.20095825195312,
+        "y0": 222.93096923828125,
+        "x1": 196.20947265625,
+        "y1": 237.52337646484375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 60,
+        "x0": 230.4022979736328,
+        "y0": 222.93096923828125,
+        "x1": 555.5442504882812,
+        "y1": 237.52337646484375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 60,
+        "x0": 230.4001007080078,
+        "y0": 237.57061767578125,
+        "x1": 538.376953125,
+        "y1": 252.16302490234375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      }
+    ],
+    [
+      {
+        "page": 61,
+        "x0": 117.4158935546875,
+        "y0": 94.53185272216797,
+        "x1": 151.6240997314453,
+        "y1": 109.12427520751953,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 230.4352264404297,
+        "y0": 94.53185272216797,
+        "x1": 336.4295349121094,
+        "y1": 109.12427520751953,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 95.40097045898438,
+        "y0": 109.17150115966797,
+        "x1": 98.40949249267578,
+        "y1": 123.76392364501953,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 188.40158081054688,
+        "y0": 109.17150115966797,
+        "x1": 197.33489990234375,
+        "y1": 123.76392364501953,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 230.38690185546875,
+        "y0": 109.17150115966797,
+        "x1": 436.1960144042969,
+        "y1": 123.76392364501953,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 95.40097045898438,
+        "y0": 123.81114959716797,
+        "x1": 98.40949249267578,
+        "y1": 138.403564453125,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 188.40158081054688,
+        "y0": 123.81114959716797,
+        "x1": 197.33489990234375,
+        "y1": 138.403564453125,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 230.38690185546875,
+        "y0": 123.81114959716797,
+        "x1": 437.1886291503906,
+        "y1": 138.403564453125,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 95.40097045898438,
+        "y0": 138.4508056640625,
+        "x1": 98.40949249267578,
+        "y1": 153.043212890625,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 188.40158081054688,
+        "y0": 138.4508056640625,
+        "x1": 197.33489990234375,
+        "y1": 153.043212890625,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 230.38690185546875,
+        "y0": 138.4508056640625,
+        "x1": 441.661865234375,
+        "y1": 153.043212890625,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 95.40097045898438,
+        "y0": 153.0904541015625,
+        "x1": 98.40949249267578,
+        "y1": 167.682861328125,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 188.40158081054688,
+        "y0": 153.0904541015625,
+        "x1": 197.33819580078125,
+        "y1": 167.682861328125,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      },
+      {
+        "page": 61,
+        "x0": 230.39019775390625,
+        "y0": 153.0904541015625,
+        "x1": 347.3008117675781,
+        "y1": 167.682861328125,
+        "matched_text": "(CLM) Prior Claims History 0 No chargeable claims in the last five years 1 One c"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 62,
+        "x0": 153.99244689941406,
+        "y0": 299.36932373046875,
+        "x1": 186.00685119628906,
+        "y1": 313.96173095703125,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 299.36932373046875,
+        "x1": 372.25286865234375,
+        "y1": 313.96173095703125,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 314.00897216796875,
+        "x1": 160.50906372070312,
+        "y1": 328.60137939453125,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 314.00897216796875,
+        "x1": 233.40966796875,
+        "y1": 328.60137939453125,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 328.64862060546875,
+        "x1": 186.00686645507812,
+        "y1": 343.24102783203125,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 328.64862060546875,
+        "x1": 296.5336608886719,
+        "y1": 343.24102783203125,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 343.28826904296875,
+        "x1": 160.50906372070312,
+        "y1": 357.88067626953125,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 343.28826904296875,
+        "x1": 233.40966796875,
+        "y1": 357.88067626953125,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 357.8686218261719,
+        "x1": 186.00686645507812,
+        "y1": 372.4610290527344,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 357.8686218261719,
+        "x1": 364.6612854003906,
+        "y1": 372.4610290527344,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 372.50823974609375,
+        "x1": 160.53103637695312,
+        "y1": 387.10064697265625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 372.50823974609375,
+        "x1": 233.4085693359375,
+        "y1": 387.10064697265625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 132.00057983398438,
+        "y0": 387.14788818359375,
+        "x1": 186.00685119628906,
+        "y1": 401.74029541015625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 387.14788818359375,
+        "x1": 356.1430358886719,
+        "y1": 401.74029541015625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 401.78753662109375,
+        "x1": 160.50906372070312,
+        "y1": 416.37994384765625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 401.78753662109375,
+        "x1": 233.40966796875,
+        "y1": 416.37994384765625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 416.42718505859375,
+        "x1": 186.00686645507812,
+        "y1": 431.01959228515625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 416.42718505859375,
+        "x1": 380.7645263671875,
+        "y1": 431.01959228515625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 431.06683349609375,
+        "x1": 160.50906372070312,
+        "y1": 445.65924072265625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 431.06683349609375,
+        "x1": 233.40966796875,
+        "y1": 445.65924072265625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 445.70648193359375,
+        "x1": 178.84130859375,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV1) Fire, smoke, or burglar alarm 175 (RV2) Age of home 176 (RV3) Automatic sp"
+      }
+    ],
+    [
+      {
+        "page": 62,
+        "x0": 153.99246215820312,
+        "y0": 328.64862060546875,
+        "x1": 186.00686645507812,
+        "y1": 343.24102783203125,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 328.64862060546875,
+        "x1": 296.5336608886719,
+        "y1": 343.24102783203125,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 343.28826904296875,
+        "x1": 160.50906372070312,
+        "y1": 357.88067626953125,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 343.28826904296875,
+        "x1": 233.40966796875,
+        "y1": 357.88067626953125,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 357.8686218261719,
+        "x1": 186.00686645507812,
+        "y1": 372.4610290527344,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 357.8686218261719,
+        "x1": 364.6612854003906,
+        "y1": 372.4610290527344,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 372.50823974609375,
+        "x1": 160.53103637695312,
+        "y1": 387.10064697265625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 372.50823974609375,
+        "x1": 233.4085693359375,
+        "y1": 387.10064697265625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 132.00057983398438,
+        "y0": 387.14788818359375,
+        "x1": 186.00685119628906,
+        "y1": 401.74029541015625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 387.14788818359375,
+        "x1": 356.1430358886719,
+        "y1": 401.74029541015625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 401.78753662109375,
+        "x1": 160.50906372070312,
+        "y1": 416.37994384765625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 401.78753662109375,
+        "x1": 233.40966796875,
+        "y1": 416.37994384765625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 416.42718505859375,
+        "x1": 186.00686645507812,
+        "y1": 431.01959228515625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 416.42718505859375,
+        "x1": 380.7645263671875,
+        "y1": 431.01959228515625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 431.06683349609375,
+        "x1": 160.50906372070312,
+        "y1": 445.65924072265625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 431.06683349609375,
+        "x1": 233.40966796875,
+        "y1": 445.65924072265625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 445.70648193359375,
+        "x1": 186.00686645507812,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 445.70648193359375,
+        "x1": 374.017333984375,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 460.2868347167969,
+        "x1": 160.50906372070312,
+        "y1": 474.8792419433594,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 460.2868347167969,
+        "x1": 233.40966796875,
+        "y1": 474.8792419433594,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 474.92645263671875,
+        "x1": 182.88963317871094,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV2) Age of home 176 (RV3) Automatic sprinkler system 177 (RV4) Loss or claims "
+      }
+    ],
+    [
+      {
+        "page": 62,
+        "x0": 153.99246215820312,
+        "y0": 357.8686218261719,
+        "x1": 186.00686645507812,
+        "y1": 372.4610290527344,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 357.8686218261719,
+        "x1": 364.6612854003906,
+        "y1": 372.4610290527344,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 372.50823974609375,
+        "x1": 160.53103637695312,
+        "y1": 387.10064697265625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 372.50823974609375,
+        "x1": 233.4085693359375,
+        "y1": 387.10064697265625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 132.00057983398438,
+        "y0": 387.14788818359375,
+        "x1": 186.00685119628906,
+        "y1": 401.74029541015625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 387.14788818359375,
+        "x1": 356.1430358886719,
+        "y1": 401.74029541015625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 401.78753662109375,
+        "x1": 160.50906372070312,
+        "y1": 416.37994384765625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 401.78753662109375,
+        "x1": 233.40966796875,
+        "y1": 416.37994384765625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 416.42718505859375,
+        "x1": 186.00686645507812,
+        "y1": 431.01959228515625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 416.42718505859375,
+        "x1": 380.7645263671875,
+        "y1": 431.01959228515625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 431.06683349609375,
+        "x1": 160.50906372070312,
+        "y1": 445.65924072265625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 431.06683349609375,
+        "x1": 233.40966796875,
+        "y1": 445.65924072265625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 445.70648193359375,
+        "x1": 186.00686645507812,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 445.70648193359375,
+        "x1": 374.017333984375,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 460.2868347167969,
+        "x1": 160.50906372070312,
+        "y1": 474.8792419433594,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 460.2868347167969,
+        "x1": 233.40966796875,
+        "y1": 474.8792419433594,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 474.92645263671875,
+        "x1": 186.00686645507812,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 474.92645263671875,
+        "x1": 346.21051025390625,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV3) Automatic sprinkler system 177 (RV4) Loss or claims experience 178 (RV5) C"
+      }
+    ],
+    [
+      {
+        "page": 62,
+        "x0": 153.99244689941406,
+        "y0": 387.14788818359375,
+        "x1": 186.00685119628906,
+        "y1": 401.74029541015625,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 387.14788818359375,
+        "x1": 356.1430358886719,
+        "y1": 401.74029541015625,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 401.78753662109375,
+        "x1": 160.50906372070312,
+        "y1": 416.37994384765625,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 401.78753662109375,
+        "x1": 233.40966796875,
+        "y1": 416.37994384765625,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 416.42718505859375,
+        "x1": 186.00686645507812,
+        "y1": 431.01959228515625,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 416.42718505859375,
+        "x1": 380.7645263671875,
+        "y1": 431.01959228515625,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 431.06683349609375,
+        "x1": 160.50906372070312,
+        "y1": 445.65924072265625,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 431.06683349609375,
+        "x1": 233.40966796875,
+        "y1": 445.65924072265625,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 445.70648193359375,
+        "x1": 186.00686645507812,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 445.70648193359375,
+        "x1": 374.017333984375,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 460.2868347167969,
+        "x1": 160.50906372070312,
+        "y1": 474.8792419433594,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 460.2868347167969,
+        "x1": 233.40966796875,
+        "y1": 474.8792419433594,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 474.92645263671875,
+        "x1": 186.00686645507812,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 474.92645263671875,
+        "x1": 476.36517333984375,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 489.56610107421875,
+        "x1": 160.50906372070312,
+        "y1": 504.15850830078125,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 489.56610107421875,
+        "x1": 233.40966796875,
+        "y1": 504.15850830078125,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 504.20574951171875,
+        "x1": 182.88963317871094,
+        "y1": 518.7981567382812,
+        "matched_text": "(RV4) Loss or claims experience 178 (RV5) Companion policy (or policies) 179 (RV"
+      }
+    ],
+    [
+      {
+        "page": 62,
+        "x0": 153.99246215820312,
+        "y0": 416.42718505859375,
+        "x1": 186.00686645507812,
+        "y1": 431.01959228515625,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 416.42718505859375,
+        "x1": 380.7645263671875,
+        "y1": 431.01959228515625,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 431.06683349609375,
+        "x1": 160.50906372070312,
+        "y1": 445.65924072265625,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 431.06683349609375,
+        "x1": 233.40966796875,
+        "y1": 445.65924072265625,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 445.70648193359375,
+        "x1": 186.00686645507812,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 445.70648193359375,
+        "x1": 374.017333984375,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 460.2868347167969,
+        "x1": 160.50906372070312,
+        "y1": 474.8792419433594,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 460.2868347167969,
+        "x1": 233.40966796875,
+        "y1": 474.8792419433594,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 474.92645263671875,
+        "x1": 186.00686645507812,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 474.92645263671875,
+        "x1": 476.36517333984375,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 489.56610107421875,
+        "x1": 160.50906372070312,
+        "y1": 504.15850830078125,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 489.56610107421875,
+        "x1": 233.40966796875,
+        "y1": 504.15850830078125,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 504.20574951171875,
+        "x1": 186.00686645507812,
+        "y1": 518.7981567382812,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 504.20574951171875,
+        "x1": 359.8091125488281,
+        "y1": 518.7981567382812,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 518.8453979492188,
+        "x1": 160.50906372070312,
+        "y1": 533.4378051757812,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 518.8453979492188,
+        "x1": 233.40966796875,
+        "y1": 533.4378051757812,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 533.4850463867188,
+        "x1": 186.00686645507812,
+        "y1": 548.0774536132812,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 533.4850463867188,
+        "x1": 244.36880493164062,
+        "y1": 548.0774536132812,
+        "matched_text": "(RV5) Companion policy (or policies) 179 (RV6) Credit-based insurance score 180 "
+      }
+    ],
+    [
+      {
+        "page": 62,
+        "x0": 153.99246215820312,
+        "y0": 445.70648193359375,
+        "x1": 186.00686645507812,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 445.70648193359375,
+        "x1": 374.017333984375,
+        "y1": 460.29888916015625,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 460.2868347167969,
+        "x1": 160.50906372070312,
+        "y1": 474.8792419433594,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 460.2868347167969,
+        "x1": 233.40966796875,
+        "y1": 474.8792419433594,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 474.92645263671875,
+        "x1": 186.00686645507812,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 474.92645263671875,
+        "x1": 476.36517333984375,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 489.56610107421875,
+        "x1": 160.50906372070312,
+        "y1": 504.15850830078125,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 489.56610107421875,
+        "x1": 233.40966796875,
+        "y1": 504.15850830078125,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 504.20574951171875,
+        "x1": 186.00686645507812,
+        "y1": 518.7981567382812,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 504.20574951171875,
+        "x1": 359.8091125488281,
+        "y1": 518.7981567382812,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 518.8453979492188,
+        "x1": 160.50906372070312,
+        "y1": 533.4378051757812,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 518.8453979492188,
+        "x1": 233.40966796875,
+        "y1": 533.4378051757812,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 533.4850463867188,
+        "x1": 186.00686645507812,
+        "y1": 548.0774536132812,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 533.4850463867188,
+        "x1": 425.1072082519531,
+        "y1": 548.0774536132812,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 548.1246337890625,
+        "x1": 160.50906372070312,
+        "y1": 562.717041015625,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 548.1246337890625,
+        "x1": 233.40966796875,
+        "y1": 562.717041015625,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      },
+      {
+        "page": 62,
+        "x0": 128.82078552246094,
+        "y0": 562.7050170898438,
+        "x1": 169.3402862548828,
+        "y1": 577.2974243164062,
+        "matched_text": "(RV6) Credit-based insurance score 180 (RV7) Senior citizen (based on age for th"
+      }
+    ],
+    [
+      {
+        "page": 62,
+        "x0": 153.99246215820312,
+        "y0": 474.92645263671875,
+        "x1": 186.00686645507812,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV7) Senior citizen (based on age for those 55 or older) 181 (RV8) Smart or con"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 474.92645263671875,
+        "x1": 476.36517333984375,
+        "y1": 489.51885986328125,
+        "matched_text": "(RV7) Senior citizen (based on age for those 55 or older) 181 (RV8) Smart or con"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 489.56610107421875,
+        "x1": 160.50906372070312,
+        "y1": 504.15850830078125,
+        "matched_text": "(RV7) Senior citizen (based on age for those 55 or older) 181 (RV8) Smart or con"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 489.56610107421875,
+        "x1": 233.40966796875,
+        "y1": 504.15850830078125,
+        "matched_text": "(RV7) Senior citizen (based on age for those 55 or older) 181 (RV8) Smart or con"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 504.20574951171875,
+        "x1": 186.00686645507812,
+        "y1": 518.7981567382812,
+        "matched_text": "(RV7) Senior citizen (based on age for those 55 or older) 181 (RV8) Smart or con"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 504.20574951171875,
+        "x1": 359.8091125488281,
+        "y1": 518.7981567382812,
+        "matched_text": "(RV7) Senior citizen (based on age for those 55 or older) 181 (RV8) Smart or con"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 518.8453979492188,
+        "x1": 160.50906372070312,
+        "y1": 533.4378051757812,
+        "matched_text": "(RV7) Senior citizen (based on age for those 55 or older) 181 (RV8) Smart or con"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 518.8453979492188,
+        "x1": 233.40966796875,
+        "y1": 533.4378051757812,
+        "matched_text": "(RV7) Senior citizen (based on age for those 55 or older) 181 (RV8) Smart or con"
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 533.4850463867188,
+        "x1": 186.00686645507812,
+        "y1": 548.0774536132812,
+        "matched_text": "(RV7) Senior citizen (based on age for those 55 or older) 181 (RV8) Smart or con"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 533.4850463867188,
+        "x1": 422.0855407714844,
+        "y1": 548.0774536132812,
+        "matched_text": "(RV7) Senior citizen (based on age for those 55 or older) 181 (RV8) Smart or con"
+      }
+    ],
+    [
+      {
+        "page": 62,
+        "x0": 153.99246215820312,
+        "y0": 504.20574951171875,
+        "x1": 186.00686645507812,
+        "y1": 518.7981567382812,
+        "matched_text": "(RV8) Smart or connected home 182 (RV9) New home or recently purchased home 183 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 504.20574951171875,
+        "x1": 359.8091125488281,
+        "y1": 518.7981567382812,
+        "matched_text": "(RV8) Smart or connected home 182 (RV9) New home or recently purchased home 183 "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 518.8453979492188,
+        "x1": 160.50906372070312,
+        "y1": 533.4378051757812,
+        "matched_text": "(RV8) Smart or connected home 182 (RV9) New home or recently purchased home 183 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 518.8453979492188,
+        "x1": 233.40966796875,
+        "y1": 533.4378051757812,
+        "matched_text": "(RV8) Smart or connected home 182 (RV9) New home or recently purchased home 183 "
+      },
+      {
+        "page": 62,
+        "x0": 132.00059509277344,
+        "y0": 533.4850463867188,
+        "x1": 186.00686645507812,
+        "y1": 548.0774536132812,
+        "matched_text": "(RV8) Smart or connected home 182 (RV9) New home or recently purchased home 183 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 533.4850463867188,
+        "x1": 425.1072082519531,
+        "y1": 548.0774536132812,
+        "matched_text": "(RV8) Smart or connected home 182 (RV9) New home or recently purchased home 183 "
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 548.1246337890625,
+        "x1": 160.50906372070312,
+        "y1": 562.717041015625,
+        "matched_text": "(RV8) Smart or connected home 182 (RV9) New home or recently purchased home 183 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 548.1246337890625,
+        "x1": 233.40966796875,
+        "y1": 562.717041015625,
+        "matched_text": "(RV8) Smart or connected home 182 (RV9) New home or recently purchased home 183 "
+      },
+      {
+        "page": 62,
+        "x0": 128.82078552246094,
+        "y0": 562.7050170898438,
+        "x1": 189.11968994140625,
+        "y1": 577.2974243164062,
+        "matched_text": "(RV8) Smart or connected home 182 (RV9) New home or recently purchased home 183 "
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 562.7050170898438,
+        "x1": 280.50616455078125,
+        "y1": 577.2974243164062,
+        "matched_text": "(RV8) Smart or connected home 182 (RV9) New home or recently purchased home 183 "
+      }
+    ],
+    [
+      {
+        "page": 62,
+        "x0": 153.99246215820312,
+        "y0": 533.4850463867188,
+        "x1": 186.00686645507812,
+        "y1": 548.0774536132812,
+        "matched_text": "(RV9) New home or recently purchased home 183 (RV10) Additional risk"
+      },
+      {
+        "page": 62,
+        "x0": 230.40005493164062,
+        "y0": 533.4850463867188,
+        "x1": 425.1072082519531,
+        "y1": 548.0774536132812,
+        "matched_text": "(RV9) New home or recently purchased home 183 (RV10) Additional risk"
+      },
+      {
+        "page": 62,
+        "x0": 157.50054931640625,
+        "y0": 548.1246337890625,
+        "x1": 160.50906372070312,
+        "y1": 562.717041015625,
+        "matched_text": "(RV9) New home or recently purchased home 183 (RV10) Additional risk"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 548.1246337890625,
+        "x1": 233.40966796875,
+        "y1": 562.717041015625,
+        "matched_text": "(RV9) New home or recently purchased home 183 (RV10) Additional risk"
+      },
+      {
+        "page": 62,
+        "x0": 128.82078552246094,
+        "y0": 562.7050170898438,
+        "x1": 189.11968994140625,
+        "y1": 577.2974243164062,
+        "matched_text": "(RV9) New home or recently purchased home 183 (RV10) Additional risk"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 562.7050170898438,
+        "x1": 283.5234680175781,
+        "y1": 577.2974243164062,
+        "matched_text": "(RV9) New home or recently purchased home 183 (RV10) Additional risk"
+      },
+      {
+        "page": 62,
+        "x0": 288.015380859375,
+        "y0": 562.7050170898438,
+        "x1": 304.6775817871094,
+        "y1": 577.2974243164062,
+        "matched_text": "(RV9) New home or recently purchased home 183 (RV10) Additional risk"
+      }
+    ],
+    [
+      {
+        "page": 62,
+        "x0": 150.80606079101562,
+        "y0": 562.7050170898438,
+        "x1": 189.11968994140625,
+        "y1": 577.2974243164062,
+        "matched_text": "(RV10) Additional risk surcharges,"
+      },
+      {
+        "page": 62,
+        "x0": 230.40115356445312,
+        "y0": 562.7050170898438,
+        "x1": 283.5234680175781,
+        "y1": 577.2974243164062,
+        "matched_text": "(RV10) Additional risk surcharges,"
+      },
+      {
+        "page": 62,
+        "x0": 288.015380859375,
+        "y0": 562.7050170898438,
+        "x1": 307.69488525390625,
+        "y1": 577.2974243164062,
+        "matched_text": "(RV10) Additional risk surcharges,"
+      },
+      {
+        "page": 62,
+        "x0": 312.1867980957031,
+        "y0": 562.7050170898438,
+        "x1": 366.8704833984375,
+        "y1": 577.2974243164062,
+        "matched_text": "(RV10) Additional risk surcharges,"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+  ],
+  "page_dimensions": {
+    "42": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "43": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "44": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "45": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "46": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "47": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "48": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "49": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "50": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "51": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "52": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "53": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "54": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "55": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "56": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "57": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "58": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "59": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "60": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "61": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "62": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "63": {
+      "width": 612.0,
+      "height": 792.0
+    }
+  }
+}

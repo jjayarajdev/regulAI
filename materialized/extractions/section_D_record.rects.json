@@ -1,0 +1,2136 @@
+{
+  "citation_rects": [
+    [
+      {
+        "page": 64,
+        "x0": 97.15064239501953,
+        "y0": 95.91197967529297,
+        "x1": 121.20893096923828,
+        "y1": 110.50440216064453,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 236.28042602539062,
+        "y0": 95.91197967529297,
+        "x1": 285.4598388671875,
+        "y1": 110.50440216064453,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 110.55162811279297,
+        "x1": 90.7888412475586,
+        "y1": 125.14405059814453,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 194.5212860107422,
+        "y0": 110.55162811279297,
+        "x1": 203.45790100097656,
+        "y1": 125.14405059814453,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 236.27053833007812,
+        "y0": 110.55162811279297,
+        "x1": 420.2448425292969,
+        "y1": 125.14405059814453,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 236.28042602539062,
+        "y0": 125.19127655029297,
+        "x1": 239.2889404296875,
+        "y1": 139.78369140625,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 139.8309326171875,
+        "x1": 149.21893310546875,
+        "y1": 154.42333984375,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 169.620849609375,
+        "y0": 139.8309326171875,
+        "x1": 172.62936401367188,
+        "y1": 154.42333984375,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 236.28042602539062,
+        "y0": 139.8309326171875,
+        "x1": 325.8508605957031,
+        "y1": 154.42333984375,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 236.28042602539062,
+        "y0": 154.4705810546875,
+        "x1": 239.3109130859375,
+        "y1": 169.06298828125,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 169.1102294921875,
+        "x1": 97.10892486572266,
+        "y1": 183.70263671875,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 169.620849609375,
+        "y0": 169.1102294921875,
+        "x1": 172.62936401367188,
+        "y1": 183.70263671875,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 236.28042602539062,
+        "y0": 169.1102294921875,
+        "x1": 274.1054382324219,
+        "y1": 183.70263671875,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 183.6905517578125,
+        "x1": 90.7888412475586,
+        "y1": 198.282958984375,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 186.60140991210938,
+        "y0": 183.6905517578125,
+        "x1": 206.92648315429688,
+        "y1": 198.282958984375,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 236.2584686279297,
+        "y0": 183.6905517578125,
+        "x1": 334.5777587890625,
+        "y1": 198.282958984375,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 198.3302001953125,
+        "x1": 90.7888412475586,
+        "y1": 212.922607421875,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 192.3011474609375,
+        "y0": 198.3302001953125,
+        "x1": 201.24215698242188,
+        "y1": 212.922607421875,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 236.2749481201172,
+        "y0": 198.3302001953125,
+        "x1": 278.9114074707031,
+        "y1": 212.922607421875,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 212.9698486328125,
+        "x1": 90.7888412475586,
+        "y1": 227.562255859375,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 193.08071899414062,
+        "y0": 212.9698486328125,
+        "x1": 200.49111938476562,
+        "y1": 227.562255859375,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 236.30348205566406,
+        "y0": 212.9698486328125,
+        "x1": 290.513916015625,
+        "y1": 227.562255859375,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 227.6094970703125,
+        "x1": 90.7888412475586,
+        "y1": 242.201904296875,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      },
+      {
+        "page": 64,
+        "x0": 190.8616485595703,
+        "y0": 227.6094970703125,
+        "x1": 199.64564514160156,
+        "y1": 242.201904296875,
+        "matched_text": "(SP) Stat Plan 4 Residential \u2013 Dwellings, Homeowners 2\u20134 (ACDT) Accounting Date "
+      }
+    ],
+    [
+      {
+        "page": 64,
+        "x0": 108.96842956542969,
+        "y0": 139.8309326171875,
+        "x1": 149.21893310546875,
+        "y1": 154.42333984375,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 169.620849609375,
+        "y0": 139.8309326171875,
+        "x1": 172.62936401367188,
+        "y1": 154.42333984375,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 236.28042602539062,
+        "y0": 139.8309326171875,
+        "x1": 325.8508605957031,
+        "y1": 154.42333984375,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 236.28042602539062,
+        "y0": 154.4705810546875,
+        "x1": 239.3109130859375,
+        "y1": 169.06298828125,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 169.1102294921875,
+        "x1": 97.10892486572266,
+        "y1": 183.70263671875,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 169.620849609375,
+        "y0": 169.1102294921875,
+        "x1": 172.62936401367188,
+        "y1": 183.70263671875,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 236.28042602539062,
+        "y0": 169.1102294921875,
+        "x1": 274.1054382324219,
+        "y1": 183.70263671875,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 183.6905517578125,
+        "x1": 90.7888412475586,
+        "y1": 198.282958984375,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 186.60140991210938,
+        "y0": 183.6905517578125,
+        "x1": 206.92648315429688,
+        "y1": 198.282958984375,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 236.2584686279297,
+        "y0": 183.6905517578125,
+        "x1": 334.5777587890625,
+        "y1": 198.282958984375,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 198.3302001953125,
+        "x1": 90.7888412475586,
+        "y1": 212.922607421875,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 192.3011474609375,
+        "y0": 198.3302001953125,
+        "x1": 201.24215698242188,
+        "y1": 212.922607421875,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 236.2749481201172,
+        "y0": 198.3302001953125,
+        "x1": 278.9114074707031,
+        "y1": 212.922607421875,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 87.78031921386719,
+        "y0": 212.9698486328125,
+        "x1": 90.7888412475586,
+        "y1": 227.562255859375,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      },
+      {
+        "page": 64,
+        "x0": 193.08071899414062,
+        "y0": 212.9698486328125,
+        "x1": 197.47271728515625,
+        "y1": 227.562255859375,
+        "matched_text": "(ACDT) Accounting Date 2 Month 1\u20139 January\u2013September 0 October -"
+      }
+    ],
+    [
+      {
+        "page": 64,
+        "x0": 115.28961944580078,
+        "y0": 330.0277099609375,
+        "x1": 164.17039489746094,
+        "y1": 344.6201171875,
+        "matched_text": "(POLICY) Policy Identifier"
+      },
+      {
+        "page": 64,
+        "x0": 236.2617645263672,
+        "y0": 330.0277099609375,
+        "x1": 318.13739013671875,
+        "y1": 344.6201171875,
+        "matched_text": "(POLICY) Policy Identifier"
+      }
+    ],
+    [],
+    [],
+    [
+      {
+        "page": 65,
+        "x0": 430.607666015625,
+        "y0": 167.6707763671875,
+        "x1": 543.8422241210938,
+        "y1": 182.26318359375,
+        "matched_text": "specific location of risk as shown in the Place Code Manual. If risk is located "
+      },
+      {
+        "page": 65,
+        "x0": 244.92056274414062,
+        "y0": 182.3104248046875,
+        "x1": 520.2418823242188,
+        "y1": 196.90283203125,
+        "matched_text": "specific location of risk as shown in the Place Code Manual. If risk is located "
+      },
+      {
+        "page": 65,
+        "x0": 244.92056274414062,
+        "y0": 196.9500732421875,
+        "x1": 510.96820068359375,
+        "y1": 211.54248046875,
+        "matched_text": "specific location of risk as shown in the Place Code Manual. If risk is located "
+      }
+    ],
+    [],
+    [
+      {
+        "page": 66,
+        "x0": 129.23861694335938,
+        "y0": 240.8690185546875,
+        "x1": 161.43089294433594,
+        "y1": 255.46142578125,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 66,
+        "x0": 244.9217071533203,
+        "y0": 240.8690185546875,
+        "x1": 330.2693176269531,
+        "y1": 255.46142578125,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 66,
+        "x0": 95.40043640136719,
+        "y0": 255.5086669921875,
+        "x1": 98.4089584350586,
+        "y1": 270.10107421875,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 66,
+        "x0": 197.5814208984375,
+        "y0": 255.5086669921875,
+        "x1": 212.44833374023438,
+        "y1": 270.10107421875,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 66,
+        "x0": 244.9008331298828,
+        "y0": 255.5086669921875,
+        "x1": 554.3709716796875,
+        "y1": 270.10107421875,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 66,
+        "x0": 95.40043640136719,
+        "y0": 270.0890197753906,
+        "x1": 98.4089584350586,
+        "y1": 284.6814270019531,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 66,
+        "x0": 197.5814208984375,
+        "y0": 270.0890197753906,
+        "x1": 212.44613647460938,
+        "y1": 284.6814270019531,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      },
+      {
+        "page": 66,
+        "x0": 244.8986358642578,
+        "y0": 270.0890197753906,
+        "x1": 462.5013122558594,
+        "y1": 284.6814270019531,
+        "matched_text": "(LOB) Line of Business 02 Homeowners Tenants Policies, including Condominium Own"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 67,
+        "x0": 409.13592529296875,
+        "y0": 226.231201171875,
+        "x1": 414.5369873046875,
+        "y1": 240.8236083984375,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 417.2292785644531,
+        "y0": 226.231201171875,
+        "x1": 435.8810119628906,
+        "y1": 240.8236083984375,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 438.5129089355469,
+        "y0": 226.231201171875,
+        "x1": 477.4293518066406,
+        "y1": 240.8236083984375,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 480.0612487792969,
+        "y0": 226.231201171875,
+        "x1": 511.4914855957031,
+        "y1": 240.8236083984375,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 514.1234130859375,
+        "y0": 226.231201171875,
+        "x1": 539.7453002929688,
+        "y1": 240.8236083984375,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 542.3771362304688,
+        "y0": 226.231201171875,
+        "x1": 555.5619506835938,
+        "y1": 240.8236083984375,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 244.92015075683594,
+        "y0": 240.870849609375,
+        "x1": 403.5953369140625,
+        "y1": 255.4632568359375,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 244.92015075683594,
+        "y0": 255.510498046875,
+        "x1": 247.9286651611328,
+        "y1": 270.1029052734375,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 95.40000915527344,
+        "y0": 270.0908508300781,
+        "x1": 129.13607788085938,
+        "y1": 284.6832580566406,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 95.40000915527344,
+        "y0": 284.73046875,
+        "x1": 133.104248046875,
+        "y1": 299.3228759765625,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 202.6197052001953,
+        "y0": 270.0908203125,
+        "x1": 205.6282196044922,
+        "y1": 284.6832275390625,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      },
+      {
+        "page": 67,
+        "x0": 244.01979064941406,
+        "y0": 270.0908203125,
+        "x1": 532.20751953125,
+        "y1": 284.6832275390625,
+        "matched_text": ". For specific codes refer to Premiums record layout section. 54\u201355 (SPPC) Prote"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 68,
+        "x0": 111.09525299072266,
+        "y0": 94.53185272216797,
+        "x1": 142.58041381835938,
+        "y1": 109.12427520751953,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 172.980712890625,
+        "y0": 94.53185272216797,
+        "x1": 175.98922729492188,
+        "y1": 109.12427520751953,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.92056274414062,
+        "y0": 94.53185272216797,
+        "x1": 494.8243408203125,
+        "y1": 109.12427520751953,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 109.17259979248047,
+        "x1": 98.40852355957031,
+        "y1": 123.76502227783203,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 200.58071899414062,
+        "y0": 109.17259979248047,
+        "x1": 209.5283203125,
+        "y1": 123.76502227783203,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.920166015625,
+        "y0": 109.17259979248047,
+        "x1": 247.92868041992188,
+        "y1": 123.76502227783203,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 123.81224822998047,
+        "x1": 98.40852355957031,
+        "y1": 138.4046630859375,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 200.58071899414062,
+        "y0": 123.81224822998047,
+        "x1": 209.5283203125,
+        "y1": 138.4046630859375,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.920166015625,
+        "y0": 123.81224822998047,
+        "x1": 247.92868041992188,
+        "y1": 138.4046630859375,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 138.451904296875,
+        "x1": 98.40852355957031,
+        "y1": 153.0443115234375,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 200.58071899414062,
+        "y0": 138.451904296875,
+        "x1": 209.5283203125,
+        "y1": 153.0443115234375,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.920166015625,
+        "y0": 138.451904296875,
+        "x1": 247.92868041992188,
+        "y1": 153.0443115234375,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 153.091552734375,
+        "x1": 98.40852355957031,
+        "y1": 167.6839599609375,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 200.58071899414062,
+        "y0": 153.091552734375,
+        "x1": 209.51513671875,
+        "y1": 167.6839599609375,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.906982421875,
+        "y0": 153.091552734375,
+        "x1": 456.8231506347656,
+        "y1": 167.6839599609375,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 167.671875,
+        "x1": 98.40852355957031,
+        "y1": 182.2642822265625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 200.58071899414062,
+        "y0": 167.671875,
+        "x1": 209.51953125,
+        "y1": 182.2642822265625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.911376953125,
+        "y0": 167.671875,
+        "x1": 362.7025451660156,
+        "y1": 182.2642822265625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 182.3115234375,
+        "x1": 98.40852355957031,
+        "y1": 196.9039306640625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 200.58071899414062,
+        "y0": 182.3115234375,
+        "x1": 209.51953125,
+        "y1": 196.9039306640625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.911376953125,
+        "y0": 182.3115234375,
+        "x1": 362.2853088378906,
+        "y1": 196.9039306640625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 196.951171875,
+        "x1": 98.40852355957031,
+        "y1": 211.5435791015625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 200.58071899414062,
+        "y0": 196.951171875,
+        "x1": 209.5283203125,
+        "y1": 211.5435791015625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.920166015625,
+        "y0": 196.951171875,
+        "x1": 247.92868041992188,
+        "y1": 211.5435791015625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 211.5908203125,
+        "x1": 98.40852355957031,
+        "y1": 226.1832275390625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 200.58071899414062,
+        "y0": 211.5908203125,
+        "x1": 209.5283203125,
+        "y1": 226.1832275390625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.920166015625,
+        "y0": 211.5908203125,
+        "x1": 247.92868041992188,
+        "y1": 226.1832275390625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 226.23046875,
+        "x1": 98.40852355957031,
+        "y1": 240.8228759765625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 200.58071899414062,
+        "y0": 226.23046875,
+        "x1": 209.5283203125,
+        "y1": 240.8228759765625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.920166015625,
+        "y0": 226.23046875,
+        "x1": 247.92868041992188,
+        "y1": 240.8228759765625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 240.8701171875,
+        "x1": 98.40852355957031,
+        "y1": 255.4625244140625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 199.981201171875,
+        "y0": 240.8701171875,
+        "x1": 210.0696258544922,
+        "y1": 255.4625244140625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 244.92233276367188,
+        "y0": 240.8701171875,
+        "x1": 247.93084716796875,
+        "y1": 255.4625244140625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 95.4000015258789,
+        "y0": 255.509765625,
+        "x1": 98.40852355957031,
+        "y1": 270.1021728515625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      },
+      {
+        "page": 68,
+        "x0": 200.400634765625,
+        "y0": 255.509765625,
+        "x1": 206.69216918945312,
+        "y1": 270.1021728515625,
+        "matched_text": "(PPC) Protection \u2013\u2014 ISO Public Protection Class (PPC) 1 2 3 4 Report actual ISO "
+      }
+    ],
+    [
+      {
+        "page": 68,
+        "x0": 416.8735046386719,
+        "y0": 299.369384765625,
+        "x1": 435.5252380371094,
+        "y1": 313.9617919921875,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 438.2779235839844,
+        "y0": 299.369384765625,
+        "x1": 477.1943664550781,
+        "y1": 313.9617919921875,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 479.9470520019531,
+        "y0": 299.369384765625,
+        "x1": 511.3772888183594,
+        "y1": 313.9617919921875,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 514.1300048828125,
+        "y0": 299.369384765625,
+        "x1": 539.7518920898438,
+        "y1": 313.9617919921875,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 542.5045166015625,
+        "y0": 299.369384765625,
+        "x1": 555.6893310546875,
+        "y1": 313.9617919921875,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 244.019775390625,
+        "y0": 314.009033203125,
+        "x1": 402.6949462890625,
+        "y1": 328.6014404296875,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 244.019775390625,
+        "y0": 328.648681640625,
+        "x1": 247.02828979492188,
+        "y1": 343.2410888671875,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 95.39999389648438,
+        "y0": 343.288330078125,
+        "x1": 111.0684585571289,
+        "y1": 357.8807373046875,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 244.92015075683594,
+        "y0": 343.288330078125,
+        "x1": 361.3489074707031,
+        "y1": 357.8807373046875,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 128.7605438232422,
+        "y0": 357.8686828613281,
+        "x1": 131.76905822753906,
+        "y1": 372.4610900878906,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 200.58181762695312,
+        "y0": 357.8686828613281,
+        "x1": 209.5184326171875,
+        "y1": 372.4610900878906,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 244.9102783203125,
+        "y0": 357.8686828613281,
+        "x1": 384.30023193359375,
+        "y1": 372.4610900878906,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 128.7605438232422,
+        "y0": 372.50830078125,
+        "x1": 131.76905822753906,
+        "y1": 387.1007080078125,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 200.58181762695312,
+        "y0": 372.50830078125,
+        "x1": 209.51953125,
+        "y1": 387.1007080078125,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      },
+      {
+        "page": 68,
+        "x0": 244.911376953125,
+        "y0": 372.50830078125,
+        "x1": 329.4671936035156,
+        "y1": 387.1007080078125,
+        "matched_text": "For specific codes refer to Premiums record layout section. 59 Type of Loss Code"
+      }
+    ],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 70,
+        "x0": 111.10401916503906,
+        "y0": 94.53185272216797,
+        "x1": 174.3301544189453,
+        "y1": 109.12427520751953,
+        "matched_text": "(ROOFCOV) Roof Covering (choose predominate type)"
+      },
+      {
+        "page": 70,
+        "x0": 244.86126708984375,
+        "y0": 94.53185272216797,
+        "x1": 462.1993713378906,
+        "y1": 109.12427520751953,
+        "matched_text": "(ROOFCOV) Roof Covering (choose predominate type)"
+      }
+    ],
+    [
+      {
+        "page": 70,
+        "x0": 111.10829162597656,
+        "y0": 310.8926696777344,
+        "x1": 179.82115173339844,
+        "y1": 325.4850769042969,
+        "matched_text": "(ROOFCRED) Roof Covering Premium Credit Report only premium credits for roof cov"
+      },
+      {
+        "page": 70,
+        "x0": 244.9199981689453,
+        "y0": 310.892578125,
+        "x1": 409.9273681640625,
+        "y1": 325.4849853515625,
+        "matched_text": "(ROOFCRED) Roof Covering Premium Credit Report only premium credits for roof cov"
+      },
+      {
+        "page": 70,
+        "x0": 95.3997802734375,
+        "y0": 322.8926086425781,
+        "x1": 98.4083023071289,
+        "y1": 337.4850158691406,
+        "matched_text": "(ROOFCRED) Roof Covering Premium Credit Report only premium credits for roof cov"
+      },
+      {
+        "page": 70,
+        "x0": 244.9210205078125,
+        "y0": 322.8926086425781,
+        "x1": 518.9575805664062,
+        "y1": 337.4850158691406,
+        "matched_text": "(ROOFCRED) Roof Covering Premium Credit Report only premium credits for roof cov"
+      },
+      {
+        "page": 70,
+        "x0": 244.919921875,
+        "y0": 334.892578125,
+        "x1": 462.157958984375,
+        "y1": 349.48504638671875,
+        "matched_text": "(ROOFCRED) Roof Covering Premium Credit Report only premium credits for roof cov"
+      }
+    ],
+    [
+      {
+        "page": 70,
+        "x0": 129.20506286621094,
+        "y0": 418.892578125,
+        "x1": 197.3552703857422,
+        "y1": 433.48516845703125,
+        "matched_text": "(ROOFYEAR) Year of Roof Installation (HO and DW) Report the year the roof was in"
+      },
+      {
+        "page": 70,
+        "x0": 244.90634155273438,
+        "y0": 418.892578125,
+        "x1": 446.48272705078125,
+        "y1": 433.4849853515625,
+        "matched_text": "(ROOFYEAR) Year of Roof Installation (HO and DW) Report the year the roof was in"
+      },
+      {
+        "page": 70,
+        "x0": 95.40048217773438,
+        "y0": 430.8926086425781,
+        "x1": 98.40900421142578,
+        "y1": 445.4850158691406,
+        "matched_text": "(ROOFYEAR) Year of Roof Installation (HO and DW) Report the year the roof was in"
+      },
+      {
+        "page": 70,
+        "x0": 244.92172241210938,
+        "y0": 430.8926086425781,
+        "x1": 534.6992797851562,
+        "y1": 445.4850158691406,
+        "matched_text": "(ROOFYEAR) Year of Roof Installation (HO and DW) Report the year the roof was in"
+      },
+      {
+        "page": 70,
+        "x0": 244.92062377929688,
+        "y0": 442.89263916015625,
+        "x1": 552.1422729492188,
+        "y1": 457.48504638671875,
+        "matched_text": "(ROOFYEAR) Year of Roof Installation (HO and DW) Report the year the roof was in"
+      },
+      {
+        "page": 70,
+        "x0": 244.92062377929688,
+        "y0": 454.8926696777344,
+        "x1": 333.86077880859375,
+        "y1": 469.4850769042969,
+        "matched_text": "(ROOFYEAR) Year of Roof Installation (HO and DW) Report the year the roof was in"
+      }
+    ],
+    [],
+    [],
+    [
+      {
+        "page": 71,
+        "x0": 129.71226501464844,
+        "y0": 382.8927307128906,
+        "x1": 181.42807006835938,
+        "y1": 397.4851379394531,
+        "matched_text": "(DEPREC) Difference in Actual Cash Value and Replacement Cost"
+      },
+      {
+        "page": 71,
+        "x0": 244.87928771972656,
+        "y0": 382.892578125,
+        "x1": 525.2603759765625,
+        "y1": 397.4851379394531,
+        "matched_text": "(DEPREC) Difference in Actual Cash Value and Replacement Cost"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 72,
+        "x0": 296.5242004394531,
+        "y0": 260.91265869140625,
+        "x1": 459.99664306640625,
+        "y1": 275.50506591796875,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 72,
+        "x0": 95.4002685546875,
+        "y0": 272.9126892089844,
+        "x1": 98.4087905883789,
+        "y1": 287.5050964355469,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 72,
+        "x0": 196.68197631835938,
+        "y0": 272.9126892089844,
+        "x1": 211.54229736328125,
+        "y1": 287.5050964355469,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 72,
+        "x0": 243.99588012695312,
+        "y0": 272.9126892089844,
+        "x1": 399.06207275390625,
+        "y1": 287.5050964355469,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 72,
+        "x0": 95.4002685546875,
+        "y0": 284.9127197265625,
+        "x1": 98.4087905883789,
+        "y1": 299.505126953125,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 72,
+        "x0": 196.68087768554688,
+        "y0": 284.9127197265625,
+        "x1": 211.54559326171875,
+        "y1": 299.505126953125,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 72,
+        "x0": 243.9980926513672,
+        "y0": 284.9127197265625,
+        "x1": 454.9809265136719,
+        "y1": 299.505126953125,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 72,
+        "x0": 95.4002685546875,
+        "y0": 296.9127502441406,
+        "x1": 98.4087905883789,
+        "y1": 311.5051574707031,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 72,
+        "x0": 196.26034545898438,
+        "y0": 296.9127502441406,
+        "x1": 211.12286376953125,
+        "y1": 311.5051574707031,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      },
+      {
+        "page": 72,
+        "x0": 243.9936981201172,
+        "y0": 296.9127502441406,
+        "x1": 313.44873046875,
+        "y1": 311.5051574707031,
+        "matched_text": "New Structure Built to New Code 02 Seaward \u2013 Retrofitted Structure 03 Inland I \u2013"
+      }
+    ],
+    [
+      {
+        "page": 72,
+        "x0": 112.01191711425781,
+        "y0": 416.9130554199219,
+        "x1": 143.947265625,
+        "y1": 431.5054626464844,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 243.99810791015625,
+        "y0": 416.9130554199219,
+        "x1": 397.4369812011719,
+        "y1": 431.5054626464844,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 95.4002685546875,
+        "y0": 429.3929138183594,
+        "x1": 98.4087905883789,
+        "y1": 443.9853210449219,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 200.58099365234375,
+        "y0": 429.3929138183594,
+        "x1": 209.51431274414062,
+        "y1": 443.9853210449219,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 244.00689697265625,
+        "y0": 429.3929138183594,
+        "x1": 515.3655395507812,
+        "y1": 443.9853210449219,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 244.02005004882812,
+        "y0": 441.392578125,
+        "x1": 472.5716857910156,
+        "y1": 455.9853515625,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 95.39993286132812,
+        "y0": 453.3926086425781,
+        "x1": 98.40845489501953,
+        "y1": 467.9850158691406,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 200.58065795898438,
+        "y0": 453.3926086425781,
+        "x1": 209.51617431640625,
+        "y1": 467.9850158691406,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 244.00875854492188,
+        "y0": 453.3926086425781,
+        "x1": 518.9950561523438,
+        "y1": 467.9850158691406,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 95.39993286132812,
+        "y0": 468.15301513671875,
+        "x1": 98.40845489501953,
+        "y1": 482.74542236328125,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 200.100830078125,
+        "y0": 468.15301513671875,
+        "x1": 209.03634643554688,
+        "y1": 482.74542236328125,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      },
+      {
+        "page": 72,
+        "x0": 244.00875854492188,
+        "y0": 468.15301513671875,
+        "x1": 249.92697143554688,
+        "y1": 482.74542236328125,
+        "matched_text": "(LOC) Law and Ordinance Coverage 0 No Additional Law and Ordinance Coverage is a"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 73,
+        "x0": 117.35578155517578,
+        "y0": 430.892578125,
+        "x1": 149.66561889648438,
+        "y1": 445.4850769042969,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 172.08016967773438,
+        "y0": 430.892578125,
+        "x1": 175.08868408203125,
+        "y1": 445.4849853515625,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 244.02001953125,
+        "y0": 430.892578125,
+        "x1": 458.9700012207031,
+        "y1": 445.4849853515625,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 95.4000015258789,
+        "y0": 443.4325866699219,
+        "x1": 98.40852355957031,
+        "y1": 458.0249938964844,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 199.68035888671875,
+        "y0": 443.4325866699219,
+        "x1": 208.61697387695312,
+        "y1": 458.0249938964844,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 244.00881958007812,
+        "y0": 443.4325866699219,
+        "x1": 516.939697265625,
+        "y1": 458.0249938964844,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 244.01976013183594,
+        "y0": 455.4325866699219,
+        "x1": 290.29095458984375,
+        "y1": 470.0250244140625,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 95.40034484863281,
+        "y0": 467.4326171875,
+        "x1": 98.40886688232422,
+        "y1": 482.0250244140625,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 199.68069458007812,
+        "y0": 467.4326171875,
+        "x1": 208.618408203125,
+        "y1": 482.0250244140625,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 244.01025390625,
+        "y0": 467.4326171875,
+        "x1": 534.164306640625,
+        "y1": 482.0250244140625,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 95.40036010742188,
+        "y0": 479.9124755859375,
+        "x1": 98.40888214111328,
+        "y1": 494.5048828125,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 199.6807098388672,
+        "y0": 479.9124755859375,
+        "x1": 208.61512756347656,
+        "y1": 494.5048828125,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      },
+      {
+        "page": 73,
+        "x0": 244.00697326660156,
+        "y0": 479.9124755859375,
+        "x1": 318.116455078125,
+        "y1": 494.5048828125,
+        "matched_text": "(RCB) Replacement Cost Building (HO and DW) 0 Policy provides actual cash value "
+      }
+    ],
+    [
+      {
+        "page": 73,
+        "x0": 117.35582733154297,
+        "y0": 515.91259765625,
+        "x1": 156.12403869628906,
+        "y1": 530.5050048828125,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 172.08016967773438,
+        "y0": 515.91259765625,
+        "x1": 175.08868408203125,
+        "y1": 530.5050048828125,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 244.02001953125,
+        "y0": 515.91259765625,
+        "x1": 435.6304931640625,
+        "y1": 530.5050048828125,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 95.39984130859375,
+        "y0": 528.3924560546875,
+        "x1": 98.40836334228516,
+        "y1": 542.98486328125,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 199.68019104003906,
+        "y0": 528.3924560546875,
+        "x1": 208.61680603027344,
+        "y1": 542.98486328125,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 244.00865173339844,
+        "y0": 528.3924560546875,
+        "x1": 542.8511962890625,
+        "y1": 542.98486328125,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 244.02000427246094,
+        "y0": 540.392578125,
+        "x1": 291.25054931640625,
+        "y1": 554.9849853515625,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 95.40028381347656,
+        "y0": 552.3926391601562,
+        "x1": 98.40880584716797,
+        "y1": 566.9850463867188,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 199.68063354492188,
+        "y0": 552.3926391601562,
+        "x1": 208.61834716796875,
+        "y1": 566.9850463867188,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 244.01019287109375,
+        "y0": 552.3926391601562,
+        "x1": 513.7842407226562,
+        "y1": 566.9850463867188,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 244.02000427246094,
+        "y0": 564.392578125,
+        "x1": 291.25054931640625,
+        "y1": 578.9849853515625,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 95.40028381347656,
+        "y0": 576.3926391601562,
+        "x1": 98.40880584716797,
+        "y1": 590.9850463867188,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 199.68063354492188,
+        "y0": 576.3926391601562,
+        "x1": 208.61505126953125,
+        "y1": 590.9850463867188,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      },
+      {
+        "page": 73,
+        "x0": 244.00689697265625,
+        "y0": 576.3926391601562,
+        "x1": 281.8055725097656,
+        "y1": 590.9850463867188,
+        "matched_text": "(RCPP) Replacement Cost Personal Property 0 Policy provides actual cash value (A"
+      }
+    ],
+    [
+      {
+        "page": 74,
+        "x0": 117.41204833984375,
+        "y0": 94.53185272216797,
+        "x1": 149.1014404296875,
+        "y1": 109.12427520751953,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 74,
+        "x0": 244.95242309570312,
+        "y0": 94.53185272216797,
+        "x1": 352.6014404296875,
+        "y1": 109.12427520751953,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 74,
+        "x0": 128.75987243652344,
+        "y0": 106.89202117919922,
+        "x1": 131.7683868408203,
+        "y1": 121.48444366455078,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 74,
+        "x0": 200.58114624023438,
+        "y0": 106.89202117919922,
+        "x1": 209.52874755859375,
+        "y1": 121.48444366455078,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 74,
+        "x0": 203.51939392089844,
+        "y0": 118.89208221435547,
+        "x1": 206.5279083251953,
+        "y1": 133.4844970703125,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 74,
+        "x0": 244.9194793701172,
+        "y0": 106.89202117919922,
+        "x1": 540.947998046875,
+        "y1": 121.48444366455078,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 74,
+        "x0": 244.9194793701172,
+        "y0": 118.89208221435547,
+        "x1": 533.8822631835938,
+        "y1": 133.4844970703125,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 74,
+        "x0": 244.9194793701172,
+        "y0": 130.89215087890625,
+        "x1": 294.49371337890625,
+        "y1": 145.4849853515625,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 74,
+        "x0": 128.76051330566406,
+        "y0": 142.89263916015625,
+        "x1": 131.76902770996094,
+        "y1": 157.48504638671875,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 74,
+        "x0": 200.581787109375,
+        "y0": 142.89263916015625,
+        "x1": 209.51840209960938,
+        "y1": 157.48504638671875,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      },
+      {
+        "page": 74,
+        "x0": 244.91024780273438,
+        "y0": 142.89263916015625,
+        "x1": 388.1937561035156,
+        "y1": 157.48504638671875,
+        "matched_text": "(RCT) Roof Coverage Type 0 Policy provides actual cash value (ACV) coverage on t"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 76,
+        "x0": 141.87001037597656,
+        "y0": 157.5318603515625,
+        "x1": 174.90879821777344,
+        "y1": 172.124267578125,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 76,
+        "x0": 243.90054321289062,
+        "y0": 157.5318603515625,
+        "x1": 425.9412536621094,
+        "y1": 172.124267578125,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 76,
+        "x0": 95.40043640136719,
+        "y0": 170.01171875,
+        "x1": 98.4089584350586,
+        "y1": 184.6041259765625,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 76,
+        "x0": 200.22100830078125,
+        "y0": 170.01171875,
+        "x1": 203.22952270507812,
+        "y1": 184.6041259765625,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 76,
+        "x0": 243.90164184570312,
+        "y0": 170.01171875,
+        "x1": 553.0172119140625,
+        "y1": 184.6041259765625,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 76,
+        "x0": 243.90054321289062,
+        "y0": 182.01177978515625,
+        "x1": 471.1469421386719,
+        "y1": 196.60418701171875,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 76,
+        "x0": 243.90052795410156,
+        "y0": 194.0118408203125,
+        "x1": 246.90904235839844,
+        "y1": 208.604248046875,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 76,
+        "x0": 95.40042114257812,
+        "y0": 208.29132080078125,
+        "x1": 172.34934997558594,
+        "y1": 222.88372802734375,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      },
+      {
+        "page": 76,
+        "x0": 244.86016845703125,
+        "y0": 208.29132080078125,
+        "x1": 411.8154602050781,
+        "y1": 222.88372802734375,
+        "matched_text": "(YOC) Year of Construction (HO and DW) Four-digit year the dwelling was construc"
+      }
+    ],
+    [
+      {
+        "page": 76,
+        "x0": 141.9292449951172,
+        "y0": 208.29132080078125,
+        "x1": 172.34934997558594,
+        "y1": 222.88372802734375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 76,
+        "x0": 244.86016845703125,
+        "y0": 208.29132080078125,
+        "x1": 549.7890625,
+        "y1": 222.88372802734375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 76,
+        "x0": 95.40045166015625,
+        "y0": 222.93096923828125,
+        "x1": 98.40897369384766,
+        "y1": 237.52337646484375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 76,
+        "x0": 201.1213836669922,
+        "y0": 222.93096923828125,
+        "x1": 204.12989807128906,
+        "y1": 237.52337646484375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 76,
+        "x0": 244.80201721191406,
+        "y0": 222.93096923828125,
+        "x1": 555.6411743164062,
+        "y1": 237.52337646484375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 76,
+        "x0": 244.80091857910156,
+        "y0": 237.57061767578125,
+        "x1": 555.7027587890625,
+        "y1": 252.16302490234375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      },
+      {
+        "page": 76,
+        "x0": 244.80091857910156,
+        "y0": 252.21026611328125,
+        "x1": 268.5133056640625,
+        "y1": 266.80267333984375,
+        "matched_text": "(ALE) Amount of Insurance\u2014Loss of Use Coverage (HO and DW) Nearest thousands of "
+      }
+    ],
+    [
+      {
+        "page": 77,
+        "x0": 117.41534423828125,
+        "y0": 94.53185272216797,
+        "x1": 151.03062438964844,
+        "y1": 109.12427520751953,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 244.84153747558594,
+        "y0": 94.53185272216797,
+        "x1": 337.6291198730469,
+        "y1": 109.12427520751953,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 95.40045166015625,
+        "y0": 109.17150115966797,
+        "x1": 98.40897369384766,
+        "y1": 123.76392364501953,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 197.70111083984375,
+        "y0": 109.17150115966797,
+        "x1": 206.63552856445312,
+        "y1": 123.76392364501953,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 244.78775024414062,
+        "y0": 109.17150115966797,
+        "x1": 351.5133361816406,
+        "y1": 123.76392364501953,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 95.40045166015625,
+        "y0": 123.81114959716797,
+        "x1": 98.40897369384766,
+        "y1": 138.403564453125,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 197.70111083984375,
+        "y0": 123.81114959716797,
+        "x1": 206.63882446289062,
+        "y1": 138.403564453125,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 244.79104614257812,
+        "y0": 123.81114959716797,
+        "x1": 468.7532653808594,
+        "y1": 138.403564453125,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 95.40045166015625,
+        "y0": 138.4508056640625,
+        "x1": 98.40897369384766,
+        "y1": 153.043212890625,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 195.00112915039062,
+        "y0": 138.4508056640625,
+        "x1": 209.38821411132812,
+        "y1": 153.043212890625,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 244.78005981445312,
+        "y0": 138.4508056640625,
+        "x1": 449.89190673828125,
+        "y1": 153.043212890625,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 244.80091857910156,
+        "y0": 153.0904541015625,
+        "x1": 247.80943298339844,
+        "y1": 167.682861328125,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 95.40045166015625,
+        "y0": 167.6707763671875,
+        "x1": 98.40897369384766,
+        "y1": 182.26318359375,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      },
+      {
+        "page": 77,
+        "x0": 167.40179443359375,
+        "y0": 167.6707763671875,
+        "x1": 407.2312927246094,
+        "y1": 182.26318359375,
+        "matched_text": "(NCC) New Claim Count 1 Newly reported claim 0 Previously reported as a newly re"
+      }
+    ],
+    [
+      {
+        "page": 77,
+        "x0": 117.42523193359375,
+        "y0": 284.7286376953125,
+        "x1": 141.6009979248047,
+        "y1": 299.321044921875,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 244.8316650390625,
+        "y0": 284.7286376953125,
+        "x1": 312.14459228515625,
+        "y1": 299.321044921875,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 244.80093383789062,
+        "y0": 299.3682861328125,
+        "x1": 247.8094482421875,
+        "y1": 313.960693359375,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 95.40046691894531,
+        "y0": 314.0079345703125,
+        "x1": 98.40898895263672,
+        "y1": 328.600341796875,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 200.70086669921875,
+        "y0": 314.0079345703125,
+        "x1": 203.70938110351562,
+        "y1": 328.600341796875,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 244.80093383789062,
+        "y0": 314.0079345703125,
+        "x1": 432.9356689453125,
+        "y1": 328.600341796875,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 95.40046691894531,
+        "y0": 328.6475830078125,
+        "x1": 98.40898895263672,
+        "y1": 343.239990234375,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 197.70111083984375,
+        "y0": 328.6475830078125,
+        "x1": 206.63882446289062,
+        "y1": 343.239990234375,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 244.79103088378906,
+        "y0": 328.6475830078125,
+        "x1": 472.1780700683594,
+        "y1": 343.239990234375,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 95.40048217773438,
+        "y0": 343.2872314453125,
+        "x1": 98.40900421142578,
+        "y1": 357.879638671875,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 197.70114135742188,
+        "y0": 343.2872314453125,
+        "x1": 206.63885498046875,
+        "y1": 357.879638671875,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 244.7910614013672,
+        "y0": 343.2872314453125,
+        "x1": 453.18927001953125,
+        "y1": 357.879638671875,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 244.8009490966797,
+        "y0": 357.8675842285156,
+        "x1": 247.80946350097656,
+        "y1": 372.4599914550781,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 95.40048217773438,
+        "y0": 372.5072021484375,
+        "x1": 98.40900421142578,
+        "y1": 387.099609375,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 200.7008819580078,
+        "y0": 372.5072021484375,
+        "x1": 203.7093963623047,
+        "y1": 387.099609375,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      },
+      {
+        "page": 77,
+        "x0": 244.8009490966797,
+        "y0": 372.5072021484375,
+        "x1": 465.6385192871094,
+        "y1": 387.099609375,
+        "matched_text": "(CS) Claim Status Claim open at the end of the month 1 Claim open, not previousl"
+      }
+    ],
+    [
+      {
+        "page": 78,
+        "x0": 141.88973999023438,
+        "y0": 94.53185272216797,
+        "x1": 198.84849548339844,
+        "y1": 109.12427520751953,
+        "matched_text": "(CLAIMID) Claim Identifier"
+      },
+      {
+        "page": 78,
+        "x0": 244.7998046875,
+        "y0": 94.53185272216797,
+        "x1": 324.89013671875,
+        "y1": 109.12427520751953,
+        "matched_text": "(CLAIMID) Claim Identifier"
+      }
+    ],
+    [
+      {
+        "page": 78,
+        "x0": 117.38677215576172,
+        "y0": 196.9500732421875,
+        "x1": 149.467041015625,
+        "y1": 211.54248046875,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      },
+      {
+        "page": 78,
+        "x0": 244.79869079589844,
+        "y0": 196.9500732421875,
+        "x1": 366.1869812011719,
+        "y1": 211.54248046875,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      },
+      {
+        "page": 78,
+        "x0": 95.39822387695312,
+        "y0": 211.5897216796875,
+        "x1": 98.40674591064453,
+        "y1": 226.18212890625,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      },
+      {
+        "page": 78,
+        "x0": 197.69888305664062,
+        "y0": 211.5897216796875,
+        "x1": 206.6365966796875,
+        "y1": 226.18212890625,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      },
+      {
+        "page": 78,
+        "x0": 244.788818359375,
+        "y0": 211.5897216796875,
+        "x1": 502.2301330566406,
+        "y1": 226.18212890625,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      },
+      {
+        "page": 78,
+        "x0": 244.79869079589844,
+        "y0": 226.2293701171875,
+        "x1": 247.8072052001953,
+        "y1": 240.82177734375,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      },
+      {
+        "page": 78,
+        "x0": 95.39822387695312,
+        "y0": 240.8690185546875,
+        "x1": 98.40674591064453,
+        "y1": 255.46142578125,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      },
+      {
+        "page": 78,
+        "x0": 197.69888305664062,
+        "y0": 240.8690185546875,
+        "x1": 206.63330078125,
+        "y1": 255.46142578125,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      },
+      {
+        "page": 78,
+        "x0": 244.7855224609375,
+        "y0": 240.8690185546875,
+        "x1": 399.6396789550781,
+        "y1": 255.46142578125,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      },
+      {
+        "page": 78,
+        "x0": 244.79869079589844,
+        "y0": 255.5086669921875,
+        "x1": 528.1253051757812,
+        "y1": 270.10107421875,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      },
+      {
+        "page": 78,
+        "x0": 244.79869079589844,
+        "y0": 270.0890197753906,
+        "x1": 336.6737976074219,
+        "y1": 284.6814270019531,
+        "matched_text": "(RCC) Reopened Claim Count 1 Newly reopened claim, first loss record of the mont"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+  ],
+  "page_dimensions": {
+    "64": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "65": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "66": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "67": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "68": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "69": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "70": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "71": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "72": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "73": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "74": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "75": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "76": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "77": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "78": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "79": {
+      "width": 612.0,
+      "height": 792.0
+    }
+  }
+}

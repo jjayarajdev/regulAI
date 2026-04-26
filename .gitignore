@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+
+# uv
+.python-version
+
+# Environment
+.env
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Materialized outputs:
+#   - extractions/ holds cached LLM + parser output → COMMIT (so `make rebuild-kg`
+#     reproduces the full KG without spending OpenAI tokens).
+#   - approved/ and validation/ are regenerated on every rebuild → IGNORE.
+materialized/approved/
+materialized/validation/
+
+# Confidential business / planning docs at the root of references/
+# (the public TX regulation PDFs in references/regulations/ are NOT excluded —
+# the deterministic parser reads them and the demo depends on them).
+references/*.pdf
+references/*.docx
+references/*.png
+
+# Tool/temp files
+*.tmp
+
+# Claude Code local config
+.claude/

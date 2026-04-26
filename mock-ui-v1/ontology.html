@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ontology Explorer — RegulAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-v2.css" />
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">R</span>
+      <span>RegulAI</span>
+    </a>
+    <div class="topbar-crumbs">
+      <span>Workspace</span>
+      <span class="sep">/</span>
+      <span>Knowledge Plane</span>
+      <span class="sep">/</span>
+      <span>Canonical · Coverage</span>
+      <span class="sep">/</span>
+      <span class="current">v1.2.4</span>
+    </div>
+    <div class="topbar-center"></div>
+    <div class="topbar-right">
+      <div class="search-field">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+        </svg>
+        <span>Search concepts, axioms, rules…</span>
+        <span class="kbd">⌘ K</span>
+      </div>
+      <span class="env-chip">PROD</span>
+      <div class="user-chip"><div class="avatar">HS</div><span>Hannah Salazar</span></div>
+    </div>
+  </header>
+
+  <nav class="rail">
+    <a href="dashboard.html" class="rail-btn" title="Dashboard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></a>
+    <a href="workbench.html" class="rail-btn" title="Workbench"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h6v10H3zM15 7h6v10h-6z"/><path d="M9 12h6"/></svg></a>
+    <a href="review.html" class="rail-btn" title="HITL"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></a>
+    <a href="pipeline.html" class="rail-btn" title="Pipeline"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></a>
+    <a href="ontology.html" class="rail-btn active" title="Ontology"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M10 13l-4 4M14 13l4 4"/></svg></a>
+    <a href="filings.html" class="rail-btn" title="Filings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg></a>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+  </nav>
+
+  <div class="subheader">
+    <div class="subheader-title">
+      <span class="page-name">Ontology Explorer</span>
+      <span class="page-sub">· Graph-Native Regulation Engine · Neo4j v5.18</span>
+    </div>
+    <div class="subheader-stats">
+      <span class="stat"><span class="n">4,912</span><span>concepts</span></span>
+      <span class="stat"><span class="n">18,204</span><span>relationships</span></span>
+      <span class="stat"><span class="n">219</span><span>axioms</span></span>
+      <span class="stat ok"><span class="n">v1.2.4</span><span>ontology</span></span>
+      <span class="stat"><span class="n">17</span><span>pending ext.</span></span>
+    </div>
+  </div>
+
+  <main class="work">
+    <div class="pane-3">
+
+      <!-- LEFT: Concept tree -->
+      <section class="pane left">
+        <div class="pane-h">
+          <div class="title">Concepts</div>
+          <div class="meta">ontology · v1.2.4</div>
+        </div>
+        <div class="pane-filter">
+          <input type="text" placeholder="Filter concepts…"/>
+          <button title="Filter">☰</button>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>Regulatory Code Systems</span><span class="count">6</span></div>
+          <div class="ont-concept-row"><span>TICO.CauseOfLoss</span><span class="badge">47</span></div>
+          <div class="ont-concept-row"><span>TICO.FormType</span><span class="badge">12</span></div>
+          <div class="ont-concept-row"><span>TICO.Territory</span><span class="badge">284</span></div>
+          <div class="ont-concept-row"><span>NAIC.LineOfBusiness</span><span class="badge">38</span></div>
+          <div class="ont-concept-row"><span>NCCI.InjuryCause</span><span class="badge">162</span></div>
+          <div class="ont-concept-row"><span>ISO.StatPlan</span><span class="badge">9</span></div>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>Canonical Concepts</span><span class="count">14</span></div>
+          <div class="ont-concept-row"><span>Policy</span><span class="badge">v1.2</span></div>
+          <div class="ont-concept-row active"><span>Coverage</span><span class="badge">v1.2</span></div>
+          <div class="ont-concept-row"><span>Risk</span><span class="badge">v1.2</span></div>
+          <div class="ont-concept-row"><span>Location</span><span class="badge">v1.2</span></div>
+          <div class="ont-concept-row"><span>Party</span><span class="badge">v1.1</span></div>
+          <div class="ont-concept-row"><span>Endorsement</span><span class="badge">v1.2</span></div>
+          <div class="ont-concept-row"><span>LossEvent</span><span class="badge">v1.2</span></div>
+          <div class="ont-concept-row"><span>CausationChain</span><span class="badge">v1.2</span></div>
+          <div class="ont-concept-row"><span>CauseOfLoss</span><span class="badge">v1.2</span></div>
+          <div class="ont-concept-row"><span>Claim</span><span class="badge">v1.2</span></div>
+          <div class="ont-concept-row"><span>LossPayment</span><span class="badge">v1.1</span></div>
+          <div class="ont-concept-row"><span>Transaction</span><span class="badge">v1.1</span></div>
+          <div class="ont-concept-row"><span>Money</span><span class="badge">v1.0</span></div>
+          <div class="ont-concept-row"><span>DateRange</span><span class="badge">v1.0</span></div>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>Perils &amp; Classes</span><span class="count">89</span></div>
+          <div class="ont-concept-row"><span>PerilClass.FireAndLightning</span><span class="badge">7</span></div>
+          <div class="ont-concept-row"><span>PerilClass.WindAndHail</span><span class="badge">4</span></div>
+          <div class="ont-concept-row"><span>PerilClass.Water</span><span class="badge">9</span></div>
+          <div class="ont-concept-row"><span>PerilClass.Theft</span><span class="badge">3</span></div>
+          <div class="ont-concept-row"><span>PerilClass.Liability</span><span class="badge">6</span></div>
+          <div class="ont-concept-row"><span>PerilClass.Vandalism</span><span class="badge">2</span></div>
+          <div class="ont-concept-row"><span>PerilClass.Earth</span><span class="badge">4</span></div>
+          <div class="ont-concept-row"><span>PerilClass.Other</span><span class="badge">12</span></div>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>Axioms</span><span class="count">219</span></div>
+          <div class="ont-concept-row"><span>A-COV-* · Coverage</span><span class="badge">18</span></div>
+          <div class="ont-concept-row"><span>A-LOSS-* · LossEvent</span><span class="badge">22</span></div>
+          <div class="ont-concept-row"><span>A-TEMP-* · Temporal</span><span class="badge">14</span></div>
+          <div class="ont-concept-row"><span>R-TICO-* · Regulatory</span><span class="badge">89</span></div>
+          <div class="ont-concept-row"><span>R-COL-* · Classification</span><span class="badge">47</span></div>
+          <div class="ont-concept-row"><span>R-BRIDGE-* · Reconciliation</span><span class="badge">12</span></div>
+        </div>
+
+        <div class="ont-tree-section">
+          <div class="ont-tree-head"><span>Jurisdictional Doctrine</span><span class="count">4</span></div>
+          <div class="ont-concept-row"><span>EfficientProximateCause</span><span class="badge">TX · CA</span></div>
+          <div class="ont-concept-row"><span>ProximateCause</span><span class="badge">default</span></div>
+          <div class="ont-concept-row"><span>AntiConcurrentCausation</span><span class="badge">carrier</span></div>
+          <div class="ont-concept-row"><span>DominantCause</span><span class="badge">rare</span></div>
+        </div>
+      </section>
+
+      <!-- CENTER: Concept detail -->
+      <section class="pane center">
+        <div class="canvas" style="padding: var(--s-5) var(--s-6) var(--s-7); max-width: none;">
+
+          <!-- Concept header -->
+          <div class="ont-concept">
+            <div class="kind">Canonical Concept · v1.2.4</div>
+            <div class="name"><em>Coverage</em></div>
+            <div class="defn">
+              A contractual undertaking by the Insurer to indemnify the Insured against loss
+              arising from specified Perils, subject to stated Limits, Deductibles, and
+              Conditions. A Coverage always belongs to exactly one Policy and covers one or
+              more Perils; its effective period is strictly nested within its Policy.
+            </div>
+            <div style="display:flex; gap: var(--s-5); margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--rule-soft); font-size: var(--t-small);">
+              <div><span class="rule-label" style="display:block; margin-bottom: 3px;">Instances</span><span class="mono">46,201 across 4 carriers</span></div>
+              <div><span class="rule-label" style="display:block; margin-bottom: 3px;">Inbound edges</span><span class="mono">28,104 mapping rules</span></div>
+              <div><span class="rule-label" style="display:block; margin-bottom: 3px;">Outbound edges</span><span class="mono">12 regulatory mappings</span></div>
+              <div><span class="rule-label" style="display:block; margin-bottom: 3px;">Downstream axioms</span><span class="mono">18 validators</span></div>
+              <div><span class="rule-label" style="display:block; margin-bottom: 3px;">Last modified</span><span class="mono">2026-04-08 · Hannah Salazar</span></div>
+            </div>
+          </div>
+
+          <!-- Properties -->
+          <div class="sec-title">
+            <h2><span class="numeral">01</span>Properties</h2>
+            <div class="tools"><span class="pill">8 properties</span></div>
+          </div>
+
+          <div class="prop-list">
+            <div class="prop-row">
+              <span class="pn">coverageId</span>
+              <span class="pt">UUID</span>
+              <span class="pd">Opaque unique identifier. Stable across source-system re-keys.</span>
+              <span class="pq req">required</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">type</span>
+              <span class="pt">CoverageType</span>
+              <span class="pd">Enumerated canonical type (CoverageA_Dwelling, CoverageC_Personal, Liability_E, …).</span>
+              <span class="pq req">required</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">limit</span>
+              <span class="pt">Money</span>
+              <span class="pd">Policy limit. Must be positive; currency-tagged; basis defaults to "Stated".</span>
+              <span class="pq req">required</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">deductible</span>
+              <span class="pt">Money</span>
+              <span class="pd">Retention applied before indemnity. May be zero for liability coverages.</span>
+              <span class="pq opt">optional</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">effectivePeriod</span>
+              <span class="pt">DateRange</span>
+              <span class="pd">When coverage is in force. Must be subset of Policy.effectivePeriod.</span>
+              <span class="pq req">required</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">covers</span>
+              <span class="pt">Set&lt;Peril&gt;</span>
+              <span class="pd">Enumerated perils included. Initialized from CoverageType defaults at bind.</span>
+              <span class="pq req">required · ≥1</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">excludes</span>
+              <span class="pt">Set&lt;Peril&gt;</span>
+              <span class="pd">Perils explicitly excluded. Wins over <span class="mono" style="font-size:11px;">covers</span> by design.</span>
+              <span class="pq opt">optional</span>
+            </div>
+            <div class="prop-row">
+              <span class="pn">endorsements</span>
+              <span class="pt">List&lt;Endorsement&gt;</span>
+              <span class="pd">Form additions modifying coverage scope (HO 15, HO 04 90, DP 17, …).</span>
+              <span class="pq opt">optional</span>
+            </div>
+          </div>
+
+          <!-- Relationships -->
+          <div class="sec-title">
+            <h2><span class="numeral">02</span>Relationships</h2>
+            <div class="tools"><span class="pill">5 edges</span></div>
+          </div>
+
+          <div class="rel-list">
+            <div class="rel-row">
+              <span class="rn">Coverage</span>
+              <span class="ra">— belongsTo →</span>
+              <span class="rt">Policy</span>
+              <span class="rc">cardinality · exactly 1</span>
+            </div>
+            <div class="rel-row">
+              <span class="rn">Coverage</span>
+              <span class="ra">— covers →</span>
+              <span class="rt">Peril</span>
+              <span class="rc">cardinality · 1..n</span>
+            </div>
+            <div class="rel-row">
+              <span class="rn">Coverage</span>
+              <span class="ra">— excludes →</span>
+              <span class="rt">Peril</span>
+              <span class="rc">cardinality · 0..n · disjoint covers</span>
+            </div>
+            <div class="rel-row">
+              <span class="rn">Coverage</span>
+              <span class="ra">— appliesTo →</span>
+              <span class="rt">Risk</span>
+              <span class="rc">cardinality · 1..n · inherited from Policy</span>
+            </div>
+            <div class="rel-row">
+              <span class="rn">Coverage</span>
+              <span class="ra">— subordinateTo →</span>
+              <span class="rt">Coverage</span>
+              <span class="rc">cardinality · 0..1 · for endorsements</span>
+            </div>
+          </div>
+
+          <!-- Axioms -->
+          <div class="sec-title">
+            <h2><span class="numeral">03</span>Axioms</h2>
+            <div class="tools"><span class="pill">18 on Coverage</span><span class="pill">run every write</span></div>
+          </div>
+
+          <div class="split-2">
+            <div>
+              <div class="axiom-list">
+                <div class="ax ok"><span class="check">✓</span><span class="text">Coverage.limit ≥ Coverage.deductible</span><span class="cite">A-COV-01</span></div>
+                <div class="ax ok"><span class="check">✓</span><span class="text">Coverage.effectivePeriod ⊆ Policy.effectivePeriod</span><span class="cite">A-COV-04</span></div>
+                <div class="ax ok"><span class="check">✓</span><span class="text">covers ∩ excludes = ∅</span><span class="cite">A-COV-07</span></div>
+                <div class="ax ok"><span class="check">✓</span><span class="text">|covers| ≥ 1 · at least one peril covered</span><span class="cite">A-COV-09</span></div>
+                <div class="ax ok"><span class="check">✓</span><span class="text">Coverage cannot outlive Policy</span><span class="cite">A-COV-11</span></div>
+                <div class="ax ok"><span class="check">✓</span><span class="text">If type=HO3.DwellingA → covers ⊇ {FIRE, LIGHTNING, WIND, HAIL}</span><span class="cite">A-COV-14 · ISO-defaults</span></div>
+                <div class="ax ok"><span class="check">✓</span><span class="text">Endorsement.subordinateTo resolves to ancestor Coverage</span><span class="cite">A-COV-17</span></div>
+              </div>
+            </div>
+            <div>
+              <div class="rulebox" data-label="Axiom: A-COV-07 · Cypher">
+<span class="com">// Covers and excludes must be disjoint</span>
+<span class="kw">MATCH</span> (c:Coverage)
+<span class="kw">WITH</span> c, [p <span class="kw">IN</span> c.covers] <span class="kw">AS</span> cv,
+         [p <span class="kw">IN</span> c.excludes] <span class="kw">AS</span> ex
+<span class="kw">WHERE</span> any(p <span class="kw">IN</span> cv <span class="kw">WHERE</span> p <span class="kw">IN</span> ex)
+<span class="kw">RETURN</span> c.coverageId <span class="kw">AS</span> violation,
+       <span class="str">"A-COV-07"</span> <span class="kw">AS</span> axiom
+              </div>
+            </div>
+          </div>
+
+          <!-- Regulatory mappings -->
+          <div class="sec-title">
+            <h2><span class="numeral">04</span>Regulatory mappings</h2>
+            <div class="tools"><span class="pill">12 outbound edges</span></div>
+          </div>
+
+          <table class="runs-table" style="background: var(--paper);">
+            <thead>
+              <tr>
+                <th>Authority</th>
+                <th>Target</th>
+                <th>Derivation</th>
+                <th>Effective</th>
+                <th>Citation</th>
+                <th style="text-align:right;">Conf.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>TICO</td>
+                <td class="run-id">coverage_code</td>
+                <td>derivedFrom(type, state, effectiveDate)</td>
+                <td>1990-01-01 → current</td>
+                <td><span class="citation">TCLSP §5.9503(a)(1)</span></td>
+                <td class="num" style="color:var(--ok);">1.000</td>
+              </tr>
+              <tr>
+                <td>TICO</td>
+                <td class="run-id">form_type</td>
+                <td>classifiedBy(type)</td>
+                <td>2011-05-01 → current</td>
+                <td><span class="citation">TCLSP §5.9503(a)(3)</span></td>
+                <td class="num" style="color:var(--ok);">1.000</td>
+              </tr>
+              <tr>
+                <td>TICO</td>
+                <td class="run-id">amount_of_insurance</td>
+                <td>Money(limit).amount</td>
+                <td>current</td>
+                <td><span class="citation">TCLSP §5.9503(a)(5)</span></td>
+                <td class="num" style="color:var(--ok);">1.000</td>
+              </tr>
+              <tr>
+                <td>NAIC</td>
+                <td class="run-id">line_of_business</td>
+                <td>classifiedBy(type, state)</td>
+                <td>2024-Q1 model rule</td>
+                <td><span class="citation">NAIC MAR §4.12</span></td>
+                <td class="num" style="color:var(--ok);">1.000</td>
+              </tr>
+              <tr>
+                <td>ISO</td>
+                <td class="run-id">stat_plan_line</td>
+                <td>classifiedBy(type) via lookup</td>
+                <td>2023-01-01</td>
+                <td><span class="citation">ISO Stat Plan 2023 §3</span></td>
+                <td class="num" style="color:var(--warn);">0.962</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Schema definition -->
+          <div class="sec-title">
+            <h2><span class="numeral">05</span>Graph definition</h2>
+            <div class="tools"><span class="pill">Cypher · Neo4j 5.18</span><span class="pill">v1.2.4</span></div>
+          </div>
+
+          <div class="rulebox" data-label="Concept: Coverage · graph definition">
+<span class="com">// Node label</span>
+CREATE CONSTRAINT coverage_id <span class="kw">IF NOT EXISTS</span>
+  <span class="kw">FOR</span> (c:Coverage) <span class="kw">REQUIRE</span> c.coverageId <span class="kw">IS UNIQUE</span>;
+
+<span class="com">// Typed properties (schema hints enforced at validation)</span>
+(:Coverage {
+  coverageId:      <span class="str">UUID!</span>,
+  type:            <span class="str">CoverageType!</span>,
+  limit:           <span class="str">Money!</span>,
+  deductible:      <span class="str">Money?</span>,
+  effectivePeriod: <span class="str">DateRange!</span>,
+  covers:          <span class="str">Set&lt;Peril&gt;!</span>,
+  excludes:        <span class="str">Set&lt;Peril&gt;</span>,
+  endorsements:    <span class="str">List&lt;Endorsement&gt;</span>
+})
+
+<span class="com">// Typed relationships</span>
+(:Coverage)-[:BELONGS_TO {cardinality: <span class="num">1</span>}]->(:Policy)
+(:Coverage)-[:COVERS]->(:Peril)
+(:Coverage)-[:EXCLUDES]->(:Peril)
+(:Coverage)-[:APPLIES_TO]->(:Risk)
+(:Coverage)-[:SUBORDINATE_TO]->(:Coverage)   <span class="com">// endorsements</span>
+
+<span class="com">// Regulatory mapping edges (versioned)</span>
+(:Coverage)-[:MAPS_TO {
+  authority: <span class="str">"TICO"</span>,
+  field: <span class="str">"coverage_code"</span>,
+  transform: <span class="str">"derivedFrom(type, state, effectiveDate)"</span>,
+  effectiveFrom: date(<span class="str">"1990-01-01"</span>),
+  citation: <span class="str">"TCLSP §5.9503(a)(1)"</span>,
+  reviewer: <span class="str">"sme.hannah.salazar"</span>,
+  confidence: <span class="num">1.0</span>
+}]->(:TICO_CoverageCode)
+          </div>
+
+        </div>
+      </section>
+
+      <!-- RIGHT: Context / version -->
+      <aside class="pane right">
+        <div class="detail-head">
+          <div class="id">Concept · Coverage · v1.2.4</div>
+          <h2 class="label">Neighborhood<br/>&amp; History</h2>
+          <div class="sub">Immediate graph neighbors, version timeline, and authoring provenance.</div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Parent · inherits from</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">abstract</span><span class="fl-value">InsuringAgreement</span></div>
+            <div class="fl-row"><span class="fl-label">version</span><span class="fl-value">v1.1 → v1.2</span></div>
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Subtypes</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">CoverageA</span><span class="fl-value">Dwelling · HO/DP</span></div>
+            <div class="fl-row"><span class="fl-label">CoverageB</span><span class="fl-value">OtherStructures · HO</span></div>
+            <div class="fl-row"><span class="fl-label">CoverageC</span><span class="fl-value">PersonalProperty · HO</span></div>
+            <div class="fl-row"><span class="fl-label">CoverageD</span><span class="fl-value">LossOfUse · HO</span></div>
+            <div class="fl-row"><span class="fl-label">CoverageE</span><span class="fl-value">Liability · HO</span></div>
+            <div class="fl-row"><span class="fl-label">CoverageF</span><span class="fl-value">MedPay · HO</span></div>
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Referenced by</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">mappings</span><span class="fl-value">28,104 source→CIOM</span></div>
+            <div class="fl-row"><span class="fl-label">axioms</span><span class="fl-value">18 validators</span></div>
+            <div class="fl-row"><span class="fl-label">inf. rules</span><span class="fl-value">14 rules (R-COL-*)</span></div>
+            <div class="fl-row"><span class="fl-label">regulatory</span><span class="fl-value">12 outbound · TICO/NAIC/ISO</span></div>
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Version history</div>
+          <div class="lineage-chain">
+            <div class="lineage-node accent">
+              <div class="ln-head"><span class="ln-kind">v1.2.4 · current</span><span class="ln-time">2026-04-08</span></div>
+              <div class="ln-body">+ endorsements property<br/>+ subordinateTo relationship</div>
+              <div class="ln-meta">sme.hannah.salazar · approved by 2 reviewers</div>
+            </div>
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">v1.2.0</span><span class="ln-time">2026-02-14</span></div>
+              <div class="ln-body">Added covers / excludes<br/>disjointness axiom</div>
+              <div class="ln-meta">sme.m.kim</div>
+            </div>
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">v1.1.0</span><span class="ln-time">2025-11-02</span></div>
+              <div class="ln-body">Deductible made optional<br/>for liability coverages</div>
+              <div class="ln-meta">sme.hannah.salazar</div>
+            </div>
+            <div class="lineage-node">
+              <div class="ln-head"><span class="ln-kind">v1.0.0 · initial</span><span class="ln-time">2025-06-18</span></div>
+              <div class="ln-body">Initial concept authoring<br/>ISO HO forms as baseline</div>
+              <div class="ln-meta">sme.hannah.salazar</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pane-section">
+          <div class="rule-label mb-2">Pending proposals</div>
+          <div class="field-list">
+            <div class="fl-row"><span class="fl-label">PR-0117</span><span class="fl-value plain">Add <span class="mono" style="font-size:11px;">vacantFlag</span> property · ATIC request</span></div>
+            <div class="fl-row"><span class="fl-label">PR-0122</span><span class="fl-value plain">Standardize endorsement code format</span></div>
+          </div>
+        </div>
+
+        <div class="action-footer">
+          <button class="btn">View graph</button>
+          <button class="btn">Propose change</button>
+          <button class="btn primary">Export v1.2.4</button>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  // Concept row selection
+  document.querySelectorAll('.ont-concept-row').forEach(r => {
+    r.addEventListener('click', () => {
+      document.querySelectorAll('.ont-concept-row').forEach(x => x.classList.remove('active'));
+      r.classList.add('active');
+    });
+  });
+})();
+</script>
+</body>
+</html>

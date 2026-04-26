@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RegulAI — Regulatory KG Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --paper: #F8FAFC;
+      --paper-elev: #FFFFFF;
+      --paper-deep: #EEF2F7;
+      --paper-warm: #F1F5F9;
+      --ink: #0F172A;
+      --ink-2: #1E293B;
+      --ink-3: #475569;
+      --ink-4: #64748B;
+      --ink-5: #94A3B8;
+      --rule: #E2E8F0;
+      --rule-soft: #EDF2F7;
+      --rule-strong: #CBD5E1;
+      --accent: #1E3A8A;
+      --accent-2: #3B5BDB;
+      --accent-soft: #DBE4FF;
+      --ok: #0E7490;
+      --ok-soft: #CFFAFE;
+      --warn: #B45309;
+      --warn-soft: #FEF3C7;
+      --danger: #B91C1C;
+      --highlight-pdf: rgba(253, 224, 71, 0.55);
+      --highlight-pdf-active: rgba(245, 158, 11, 0.7);
+      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
+      --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header.app-header {
+      background: var(--paper-elev);
+      border-bottom: 1px solid var(--rule);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-shrink: 0;
+    }
+    .brand { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+    .brand .accent { color: var(--accent); }
+    .brand-tag {
+      font-family: var(--font-mono); font-size: 10px; color: var(--ink-4);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-left: 8px;
+    }
+    .doc-picker { flex: 1; max-width: 580px; }
+    .doc-picker select {
+      width: 100%; font-family: var(--font-ui); font-size: 13px;
+      padding: 8px 12px; border: 1px solid var(--rule-strong);
+      border-radius: var(--radius-md); background: var(--paper-elev);
+      color: var(--ink); appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3e%3cpath fill='%2364748B' d='M0 0l4 5 4-5z'/%3e%3c/svg%3e");
+      background-repeat: no-repeat; background-position: right 12px center;
+      background-size: 8px; padding-right: 30px;
+    }
+    .doc-picker select:hover { border-color: var(--accent); }
+    .kg-badges { display: flex; gap: 8px; }
+    .kg-badge {
+      background: var(--paper-deep); border: 1px solid var(--rule);
+      padding: 6px 10px; border-radius: var(--radius-md);
+      font-size: 11px; color: var(--ink-3);
+    }
+    .kg-badge strong { color: var(--ink); font-weight: 600; }
+
+    .panes {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      min-height: 0;
+    }
+    .pane {
+      overflow: auto;
+      background: var(--paper-elev);
+      display: flex;
+      flex-direction: column;
+    }
+    .pane.left { border-right: 1px solid var(--rule); background: var(--paper-deep); }
+    .pane-header {
+      position: sticky; top: 0; z-index: 5;
+      background: var(--paper-warm); border-bottom: 1px solid var(--rule);
+      padding: 12px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .pane-title {
+      font-weight: 600; font-size: 12px; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--ink-3);
+    }
+    .pane-meta { font-family: var(--font-mono); font-size: 10px; color: var(--ink-4); }
+    .pane-body { padding: 16px; flex: 1; }
+
+    /* ---- PDF rendering ---- */
+    #pdf-container {
+      display: flex; flex-direction: column; gap: 12px; align-items: center;
+      padding: 0 12px 24px;
+    }
+    .pdf-page {
+      position: relative; background: white;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+      border-radius: 2px;
+      max-width: 100%;
+    }
+    .pdf-page canvas { display: block; max-width: 100%; height: auto; }
+    .pdf-page .text-layer {
+      position: absolute; inset: 0;
+      overflow: hidden; opacity: 0.2; line-height: 1;
+      pointer-events: none;
+    }
+    .pdf-page .text-layer span {
+      color: transparent; position: absolute;
+      white-space: pre; transform-origin: 0% 0%;
+    }
+    .pdf-page .highlight-layer {
+      position: absolute; inset: 0;
+      pointer-events: none;
+    }
+    .pdf-highlight {
+      position: absolute;
+      background: var(--highlight-pdf);
+      border-radius: 2px;
+      transition: background 0.18s ease;
+    }
+    .pdf-highlight.active {
+      background: var(--highlight-pdf-active);
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+    /* Pixel-perfect rect overlays from PyMuPDF — render like a highlighter
+       pen so the underlying PDF text remains readable. */
+    .pdf-highlight.rect-highlight {
+      background: rgba(250, 204, 21, 0.45);
+      mix-blend-mode: multiply;
+      box-shadow: none;
+      border-radius: 1px;
+    }
+    .pdf-page-label {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--ink-5); padding: 4px 8px; align-self: flex-start;
+    }
+
+    /* ---- Markdown / text fallback (for synthetic bulletin without PDF) ---- */
+    .doc-text {
+      font-family: var(--font-mono); font-size: 12px; line-height: 1.65;
+      white-space: pre-wrap; word-break: break-word; color: var(--ink-2);
+      padding: 16px; background: var(--paper-elev);
+      border-radius: var(--radius-md); border: 1px solid var(--rule);
+    }
+    .doc-text mark.cite {
+      background: var(--warn-soft); color: var(--ink);
+      padding: 1px 2px; border-radius: 2px; cursor: pointer;
+    }
+    .doc-text mark.cite.active {
+      background: rgba(245, 158, 11, 0.7);
+      box-shadow: 0 0 0 1px var(--accent) inset;
+    }
+
+    /* ---- Right pane ---- */
+    .doc-blurb {
+      font-size: 12px; color: var(--ink-3);
+      padding: 10px 14px; background: var(--paper-deep);
+      border-radius: var(--radius-sm); margin-bottom: 16px;
+    }
+    .extraction-summary {
+      background: var(--paper-deep); border-left: 3px solid var(--accent);
+      padding: 12px 16px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 20px; font-size: 12.5px; color: var(--ink-2); line-height: 1.55;
+    }
+    .extraction-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 8px; margin-bottom: 24px;
+    }
+    .stat {
+      background: var(--paper-warm); border: 1px solid var(--rule);
+      border-radius: var(--radius-md); padding: 10px 12px;
+    }
+    .stat .v { font-family: var(--font-mono); font-size: 18px; font-weight: 600; color: var(--ink); }
+    .stat .k { font-size: 10px; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+    .stat.coverage .v { color: var(--ok); }
+    .stat.uncited .v { color: var(--warn); }
+
+    .group {
+      margin-bottom: 22px; border: 1px solid var(--rule);
+      border-radius: var(--radius-md); overflow: hidden;
+    }
+    .group-header {
+      background: var(--paper-warm); padding: 10px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none;
+    }
+    .group-title { font-weight: 600; font-size: 13px; }
+    .group-title .count {
+      font-family: var(--font-mono); font-size: 11px; color: var(--ink-4);
+      margin-left: 8px; font-weight: 400;
+    }
+    .group-toggle { color: var(--ink-4); font-size: 11px; }
+    .group.collapsed .group-body { display: none; }
+    .group.collapsed .group-toggle::after { content: '+'; }
+    .group:not(.collapsed) .group-toggle::after { content: '−'; }
+
+    .node-card {
+      padding: 12px 14px; border-top: 1px solid var(--rule-soft);
+      cursor: pointer; transition: background 0.12s ease;
+    }
+    .node-card:first-child { border-top: 0; }
+    .node-card:hover { background: var(--paper-warm); }
+    .node-card.active { background: var(--accent-soft); }
+    .node-card .name { font-weight: 500; font-size: 13px; margin-bottom: 4px; }
+    .node-card .props {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--ink-3); line-height: 1.5; margin-top: 6px;
+    }
+    .node-card .props .k { color: var(--ink-5); }
+    .node-card .meta {
+      display: flex; gap: 10px; align-items: center;
+      margin-top: 6px; font-size: 11px; color: var(--ink-4);
+    }
+    .conf {
+      font-family: var(--font-mono); font-size: 10px;
+      padding: 1px 6px; border-radius: 8px;
+      background: var(--paper-deep); color: var(--ink-3);
+    }
+    .conf.high { background: var(--ok-soft); color: var(--ok); }
+    .conf.mid { background: var(--warn-soft); color: var(--warn); }
+    .conf.low { background: #FEE2E2; color: var(--danger); }
+
+    /* ---- Wire Format Studio --------------------------------------------- */
+    .wire-studio {
+      margin: 0 0 12px 0;
+      border: 1px solid var(--rule-soft);
+      border-radius: 6px;
+      background: var(--paper-warm);
+      padding: 12px 14px;
+    }
+    .wire-studio h3 {
+      margin: 0 0 8px 0; font-size: 12px; font-weight: 600;
+      color: var(--ink-3); letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .wire-studio .layout-pick {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 10px;
+      font-size: 12px;
+    }
+    .wire-studio select, .wire-studio input[type=number] {
+      font-family: inherit; font-size: 12px;
+      padding: 3px 6px; border: 1px solid var(--rule-soft);
+      border-radius: 4px; background: white;
+    }
+    .wire-studio button {
+      font-family: inherit; font-size: 12px;
+      padding: 4px 10px; border-radius: 4px;
+      border: 1px solid var(--rule-soft); background: white;
+      cursor: pointer; color: var(--ink-2);
+    }
+    .wire-studio button.primary {
+      background: var(--accent); color: white; border-color: var(--accent);
+    }
+    .wire-studio button:hover { background: var(--paper-deep); }
+    .wire-studio button.primary:hover { background: var(--accent-2); }
+
+    .wire-record {
+      font-family: var(--font-mono); font-size: 11px;
+      background: white; padding: 8px 10px; border: 1px solid var(--rule-soft);
+      border-radius: 4px; overflow-x: auto; white-space: nowrap;
+      line-height: 1.6;
+    }
+    .wire-record .col {
+      display: inline-block; padding: 0 1px; border-radius: 2px;
+      cursor: pointer;
+    }
+    .wire-record .col:hover { background: var(--accent-soft); }
+    .wire-record .col.active { background: var(--accent); color: white; }
+    .wire-record .col.skip { color: var(--ink-5); background: rgba(0,0,0,0.03); }
+    .wire-record .col.error { background: #FEE2E2; color: var(--danger); }
+
+    .wire-cols {
+      max-height: 280px; overflow-y: auto; margin-top: 10px;
+      border: 1px solid var(--rule-soft); border-radius: 4px; background: white;
+    }
+    .wire-col-row {
+      padding: 6px 10px; font-family: var(--font-mono); font-size: 11px;
+      border-top: 1px solid var(--rule-soft); cursor: pointer;
+      display: grid; grid-template-columns: 70px 80px 1fr; gap: 8px; align-items: baseline;
+    }
+    .wire-col-row:first-child { border-top: 0; }
+    .wire-col-row:hover { background: var(--paper-warm); }
+    .wire-col-row.active { background: var(--accent-soft); }
+    .wire-col-row .pos { color: var(--ink-5); }
+    .wire-col-row .code { color: var(--accent); }
+    .wire-col-row .meaning { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wire-col-row.error { background: #FEE2E2; }
+    .wire-col-row.error .pos, .wire-col-row.error .code { color: var(--danger); }
+
+    .wire-validate {
+      margin-top: 12px;
+    }
+    .wire-validate textarea {
+      width: 100%; box-sizing: border-box;
+      font-family: var(--font-mono); font-size: 11px;
+      padding: 6px 8px; border: 1px solid var(--rule-soft); border-radius: 4px;
+      background: white; resize: vertical; min-height: 60px;
+    }
+    .wire-validate .result {
+      margin-top: 8px; font-size: 12px;
+    }
+    .wire-validate .pass { color: var(--ok); font-weight: 600; }
+    .wire-validate .fail { color: var(--danger); font-weight: 600; }
+
+    .cite-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .chip {
+      font-family: var(--font-mono); font-size: 10px;
+      padding: 2px 7px; border-radius: 8px;
+      background: var(--accent-soft); color: var(--accent);
+      cursor: pointer; border: 1px solid transparent;
+    }
+    .chip:hover { border-color: var(--accent); }
+    .chip.active { background: var(--accent); color: white; }
+
+    .action-bar {
+      position: sticky; bottom: 0; background: var(--paper-elev);
+      border-top: 1px solid var(--rule); padding: 12px 20px;
+      display: flex; gap: 10px; align-items: center;
+    }
+    .action-bar .spacer { flex: 1; }
+    button {
+      font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+      padding: 8px 14px; border-radius: var(--radius-md);
+      border: 1px solid var(--rule-strong); background: var(--paper-elev);
+      color: var(--ink-2); cursor: pointer; transition: all 0.12s ease;
+    }
+    button:hover { border-color: var(--accent); color: var(--accent); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+    button.primary:hover { background: var(--accent-2); border-color: var(--accent-2); color: white; }
+    button.warning { background: var(--warn); border-color: var(--warn); color: white; }
+
+    .empty {
+      text-align: center; padding: 60px 20px;
+      color: var(--ink-4); font-size: 13px;
+    }
+    .empty .hint { font-size: 11px; color: var(--ink-5); margin-top: 8px; }
+    .spinner {
+      display: inline-block; width: 12px; height: 12px;
+      border: 2px solid var(--rule); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.6s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast {
+      position: fixed; top: 20px; right: 20px;
+      padding: 12px 18px; border-radius: var(--radius-md);
+      background: var(--ink); color: white; font-size: 12px;
+      box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2);
+      z-index: 100; opacity: 0; transform: translateY(-8px);
+      transition: all 0.18s ease; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--danger); }
+    .toast.success { background: var(--ok); }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      Regul<span class="accent">AI</span>
+      <span class="brand-tag">LHS · Regulatory KG Review</span>
+    </div>
+    <div class="doc-picker">
+      <select id="doc-select">
+        <option value="">— select a regulation —</option>
+      </select>
+    </div>
+    <div class="kg-badges">
+      <div class="kg-badge">KG: <strong id="kg-nodes">·</strong> nodes / <strong id="kg-rels">·</strong> rels</div>
+      <a class="kg-badge" id="neo4j-link" href="http://localhost:7474" target="_blank" rel="noopener">Neo4j Browser ↗</a>
+    </div>
+  </header>
+
+  <div class="panes">
+    <section class="pane left">
+      <div class="pane-header">
+        <div class="pane-title">Regulation document (PDF)</div>
+        <div class="pane-meta" id="left-meta">—</div>
+      </div>
+      <div class="pane-body" id="left-body">
+        <div class="empty">
+          Pick a regulation document above to begin.
+          <div class="hint">Real Texas Statistical Plan PDF, HB 2067 statute PDF, and a synthetic change bulletin are available.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pane right">
+      <div class="pane-header">
+        <div class="pane-title">Extracted entities</div>
+        <div class="pane-meta" id="right-meta">—</div>
+      </div>
+      <div class="pane-body" id="right-body">
+        <div class="empty">Load a document to see KG-grouped extractions.</div>
+      </div>
+      <div class="action-bar" id="action-bar" hidden>
+        <button id="btn-extract" class="primary" hidden>Run Sentinel (GPT-5.5)</button>
+        <button id="btn-reextract" hidden>Re-extract</button>
+        <div class="spacer"></div>
+        <button id="btn-approve" class="warning" hidden>Approve → materialize to KG</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module">
+    import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/+esm';
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
+
+    const $ = (id) => document.getElementById(id);
+    let currentDoc = null;
+    let pdfDocument = null;
+    let pageTextCache = []; // [{ pageNum, items: [{str, transform, ...}], pageText }]
+    let activeChipId = null;
+
+    // ---------- toast / utils ----------
+    function toast(msg, type = '') {
+      const el = $('toast');
+      el.textContent = msg;
+      el.className = 'toast show ' + type;
+      setTimeout(() => { el.className = 'toast'; }, 3500);
+    }
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+    function confidenceClass(c) {
+      if (c >= 0.9) return 'high';
+      if (c >= 0.75) return 'mid';
+      return 'low';
+    }
+
+    // ---------- PDF rendering ----------
+    async function renderPdf(pdfUrl, startPage = 1) {
+      const container = $('left-body');
+      container.innerHTML = '<div id="pdf-container"></div>';
+      const pdfContainer = $('pdf-container');
+      pdfContainer.innerHTML = '<div class="empty"><span class="spinner"></span>Loading PDF…</div>';
+
+      try {
+        pdfDocument = await pdfjsLib.getDocument(pdfUrl).promise;
+        pageTextCache = [];
+        pdfContainer.innerHTML = '';
+
+        const totalPages = pdfDocument.numPages;
+        const renderScale = 1.4;
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+          const page = await pdfDocument.getPage(pageNum);
+          const viewport = page.getViewport({ scale: renderScale });
+
+          const pageEl = document.createElement('div');
+          pageEl.className = 'pdf-page';
+          pageEl.dataset.pageNum = pageNum;
+          pageEl.style.width = viewport.width + 'px';
+          pageEl.style.height = viewport.height + 'px';
+
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          pageEl.appendChild(canvas);
+
+          const textLayer = document.createElement('div');
+          textLayer.className = 'text-layer';
+          textLayer.style.width = viewport.width + 'px';
+          textLayer.style.height = viewport.height + 'px';
+          pageEl.appendChild(textLayer);
+
+          const highlightLayer = document.createElement('div');
+          highlightLayer.className = 'highlight-layer';
+          pageEl.appendChild(highlightLayer);
+
+          const pageLabel = document.createElement('div');
+          pageLabel.className = 'pdf-page-label';
+          pageLabel.textContent = `Page ${pageNum} / ${totalPages}`;
+
+          pdfContainer.appendChild(pageLabel);
+          pdfContainer.appendChild(pageEl);
+
+          await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+          // Render text layer with PDF.js TextLayer (4.x API)
+          const textContent = await page.getTextContent();
+          const textLayerInst = new pdfjsLib.TextLayer({
+            textContentSource: textContent,
+            container: textLayer,
+            viewport,
+          });
+          await textLayerInst.render();
+
+          // Cache for search
+          const pageText = textContent.items.map(i => i.str).join(' ');
+          pageTextCache.push({
+            pageNum,
+            pageEl,
+            highlightLayer,
+            textLayer,
+            items: textContent.items,
+            pageText,
+            viewport,
+          });
+        }
+
+        // Scroll to start page if specified
+        if (startPage > 1) {
+          const target = pdfContainer.querySelector(`.pdf-page[data-page-num="${startPage}"]`);
+          if (target) {
+            // smooth jump after a brief delay so layout is finalized
+            setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+          }
+        }
+      } catch (e) {
+        console.error('PDF render failed:', e);
+        pdfContainer.innerHTML = `<div class="empty" style="color:var(--danger)">PDF render failed: ${escapeHtml(e.message || String(e))}</div>`;
+      }
+    }
+
+    // ---------- PDF search + highlight ----------
+    function clearHighlights() {
+      document.querySelectorAll('.pdf-highlight').forEach(h => h.remove());
+    }
+
+    function normalize(s) {
+      return s.replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    /** Build per-page position map: maps offsets in the normalized concat
+     *  text back to specific text-layer spans, so we can highlight precisely.
+     *  Cached on the page object after first call.
+     */
+    function ensureSpanMap(page) {
+      if (page.spanMap) return;
+      // PDF.js v4 wraps text runs in nested <span>s (e.g. markedContent
+      // wrappers around leaf runs). Only map *leaf* spans — taking a parent
+      // span's bounding rect would cover all its children and produce a
+      // highlight that spans many unrelated rows.
+      const allSpans = Array.from(page.textLayer.querySelectorAll('span'));
+      const leafSpans = allSpans.filter(s => !s.querySelector('span'));
+      let normText = '';
+      const map = [];
+      for (const s of leafSpans) {
+        const t = s.textContent.toLowerCase().replace(/\s+/g, ' ');
+        if (!t) continue;
+        if (normText && !normText.endsWith(' ') && !t.startsWith(' ')) normText += ' ';
+        const start = normText.length;
+        normText += t;
+        map.push({ span: s, start, end: normText.length });
+      }
+      page.spanMap = map;
+      page.normText = normText;
+    }
+
+    function addHighlightOverlay(page, span) {
+      const rect = span.getBoundingClientRect();
+      const layerRect = page.highlightLayer.getBoundingClientRect();
+      const hl = document.createElement('div');
+      hl.className = 'pdf-highlight active';
+      hl.style.left = (rect.left - layerRect.left) + 'px';
+      hl.style.top = (rect.top - layerRect.top) + 'px';
+      hl.style.width = rect.width + 'px';
+      hl.style.height = rect.height + 'px';
+      page.highlightLayer.appendChild(hl);
+    }
+
+    /** Try to find target in this page; if found, highlight all overlapping spans. */
+    function highlightOnPage(page, target) {
+      ensureSpanMap(page);
+      const norm = target.toLowerCase().replace(/\s+/g, ' ').trim();
+      if (norm.length < 5) return false;
+      const idx = page.normText.indexOf(norm);
+      if (idx < 0) return false;
+      const matchEnd = idx + norm.length;
+      const hits = page.spanMap.filter(r => r.start < matchEnd && r.end > idx);
+      hits.forEach(r => addHighlightOverlay(page, r.span));
+      return hits.length > 0;
+    }
+
+    /** Build a list of progressively-shorter prefixes of the snippet, plus
+     *  a few distinctive sub-windows. Long-and-distinctive first; nothing
+     *  generic enough to match cover-page or TOC boilerplate.
+     */
+    function generateSearchCandidates(snippet) {
+      const cleaned = snippet
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const candidates = [];
+      const seen = new Set();
+      const add = (c) => {
+        if (!c) return;
+        const t = c.trim().replace(/\s+/g, ' ');
+        if (t.length < 20 || t.length > 300) return;
+        const k = t.toLowerCase();
+        if (seen.has(k)) return;
+        seen.add(k);
+        candidates.push(t);
+      };
+
+      // 1. The full snippet (most distinctive — try this first).
+      add(cleaned);
+
+      // 2. Progressively shorter prefixes, ending at word boundaries.
+      const trimToWord = (s) => s.replace(/\s+\S*$/, '');
+      [220, 180, 140, 100, 60].forEach(n => {
+        if (cleaned.length > n) add(trimToWord(cleaned.slice(0, n)));
+      });
+
+      // 3. Sentence/header-anchored sub-windows. Don't split on ':' —
+      //    headers like "Section C: Record Layout for Premiums" are valuable as a unit.
+      const sentences = cleaned.split(/(?<=[.;])\s+/).filter(s => s.length >= 20);
+      sentences.slice(0, 4).forEach(add);
+
+      // 4. Header-style chunks: the snippet often repeats a section title
+      //    like "Section C: Record Layout for Premiums" — pull those out.
+      const headerLike = cleaned.match(/Section\s+[A-Z](?:\.\d+)?[:\s][^.;]{8,80}/gi) || [];
+      headerLike.forEach(add);
+
+      // 4. As a last resort, longer suffixes (in case the snippet starts
+      //    with a header that's been re-laid-out by the PDF text layer).
+      [80, 120].forEach(n => {
+        if (cleaned.length > n) add(trimToWord(cleaned.slice(cleaned.length - n)));
+      });
+
+      return candidates;
+    }
+
+    /** Highlight using PyMuPDF-derived rectangles (pixel-perfect provenance).
+     *  `rects` is a list of {page, x0, y0, x1, y1} in PDF points (top-left origin).
+     *  Returns true if at least one rect was rendered.
+     */
+    function highlightByRects(rects) {
+      clearHighlights();
+      if (!rects || !rects.length || !pageTextCache.length) return false;
+      let drewAny = false;
+      let firstOverlay = null;
+      for (const rect of rects) {
+        const page = pageTextCache.find(p => p.pageNum === rect.page);
+        if (!page) continue;
+        // Compute pixels-per-PDF-point from the *actual displayed* page size,
+        // not the viewport scale — CSS may shrink the page (max-width: 100%)
+        // when the left pane is narrower than the unscaled render.
+        const pdfWidth = page.viewport.width / page.viewport.scale;     // e.g. 612 pt
+        const displayedWidth = page.pageEl.getBoundingClientRect().width;
+        const px = displayedWidth / pdfWidth;
+        const left = rect.x0 * px;
+        const top = rect.y0 * px;
+        const width = (rect.x1 - rect.x0) * px;
+        const height = (rect.y1 - rect.y0) * px;
+        const hl = document.createElement('div');
+        hl.className = 'pdf-highlight active rect-highlight';
+        hl.style.left = left + 'px';
+        hl.style.top = top + 'px';
+        hl.style.width = width + 'px';
+        hl.style.height = height + 'px';
+        page.highlightLayer.appendChild(hl);
+        if (!firstOverlay) firstOverlay = hl;
+        drewAny = true;
+      }
+      if (firstOverlay) {
+        firstOverlay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return drewAny;
+    }
+
+    /** High-level: highlight a citation by its index in extraction.citations.
+     *  Prefers PyMuPDF-derived rects (authoritative). Falls back to text-layer
+     *  fuzzy search only when rects weren't located for this citation.
+     */
+    function highlightCitation(citationIdx, sourceText, extraction) {
+      const rectsList = currentDoc?.citation_rects;
+      if (rectsList && rectsList[citationIdx] && rectsList[citationIdx].length) {
+        if (highlightByRects(rectsList[citationIdx])) return true;
+      }
+      // Fallback: text-layer search (less reliable but a safety net).
+      const c = extraction.citations[citationIdx];
+      if (!c) return false;
+      const text = citedText(extraction, sourceText, c);
+      return findAndHighlight(text, currentDoc?.pdf_start_page, currentDoc?.pdf_end_page);
+    }
+
+    /** Highlight `snippet` in the PDF, restricted to [minPage..maxPage] when given. */
+    function findAndHighlight(snippet, minPage, maxPage) {
+      clearHighlights();
+      if (!snippet || pageTextCache.length === 0) {
+        toast('No citation text or PDF not loaded', 'error');
+        return false;
+      }
+
+      // Restrict to the section's page range when we know it. This avoids
+      // matching boilerplate on the cover page or TOC.
+      const pages = pageTextCache.filter(p => {
+        if (minPage && p.pageNum < minPage) return false;
+        if (maxPage && p.pageNum > maxPage) return false;
+        return true;
+      });
+      if (pages.length === 0) {
+        toast('Citation page range out of bounds', 'error');
+        return false;
+      }
+
+      const candidates = generateSearchCandidates(snippet);
+      if (candidates.length === 0) {
+        console.warn('No search candidates generated from:', snippet);
+        toast('Citation text too short or generic to search', 'error');
+        return false;
+      }
+
+      console.log(`[citation search] trying ${candidates.length} candidates for snippet of ${snippet.length} chars across pages ${pages[0].pageNum}-${pages[pages.length-1].pageNum}`);
+      for (let i = 0; i < candidates.length; i++) {
+        const candidate = candidates[i];
+        let totalHits = 0;
+        const hitPages = [];
+        for (const page of pages) {
+          if (highlightOnPage(page, candidate)) {
+            totalHits++;
+            hitPages.push(page.pageNum);
+          }
+        }
+        if (totalHits > 0) {
+          console.log(`[citation search] matched candidate "${candidate.slice(0, 60)}…" on ${totalHits} page(s): ${hitPages.join(', ')}`);
+          const first = document.querySelector('.pdf-highlight');
+          if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return true;
+        }
+      }
+
+      console.warn('[citation search] no candidate matched. First 3 tried:', candidates.slice(0, 3));
+      toast(`Citation not located in pages ${pages[0].pageNum}-${pages[pages.length-1].pageNum}.`, 'error');
+      return false;
+    }
+
+    // ---------- Documents list ----------
+    async function loadDocs() {
+      const r = await fetch('/api/regulations');
+      const data = await r.json();
+      const sel = $('doc-select');
+      sel.innerHTML = '<option value="">— select a regulation —</option>';
+      const byCategory = {};
+      for (const d of data.documents) {
+        if (!byCategory[d.category]) byCategory[d.category] = [];
+        byCategory[d.category].push(d);
+      }
+      for (const [cat, docs] of Object.entries(byCategory)) {
+        const og = document.createElement('optgroup');
+        og.label = cat;
+        for (const d of docs) {
+          const opt = document.createElement('option');
+          opt.value = d.slug;
+          const marker = d.has_extraction ? '● ' : '○ ';
+          const pdfMarker = d.has_pdf ? '' : '  (text-only)';
+          opt.textContent = marker + d.label + pdfMarker;
+          og.appendChild(opt);
+        }
+        sel.appendChild(og);
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const r = await fetch('/api/kg/stats');
+        const data = await r.json();
+        if (data.error) { $('kg-nodes').textContent = '—'; $('kg-rels').textContent = '—'; return; }
+        $('kg-nodes').textContent = data.total_nodes;
+        $('kg-rels').textContent = data.total_relationships;
+      } catch (e) { /* ignore */ }
+    }
+
+    // ---------- Right pane rendering ----------
+    function groupByType(nodes) {
+      const groups = {};
+      for (const n of nodes) {
+        if (!groups[n.type]) groups[n.type] = [];
+        groups[n.type].push(n);
+      }
+      return groups;
+    }
+
+    function nodePropsSummary(n) {
+      const skip = new Set(['temp_id', 'type', 'name', 'confidence']);
+      const out = [];
+      for (const [k, v] of Object.entries(n)) {
+        if (skip.has(k) || v === null || v === undefined || v === '' ||
+            (Array.isArray(v) && v.length === 0)) continue;
+        const display = Array.isArray(v) ? v.join(', ') : String(v);
+        out.push(`<span class="k">${k}:</span> ${escapeHtml(display.length > 100 ? display.slice(0,100) + '…' : display)}`);
+      }
+      return out.join('  ·  ');
+    }
+
+    function citationsForNode(extraction, tempId) {
+      return extraction.citations.filter(c => c.node_temp_id === tempId);
+    }
+
+    /** Get the cited text by slicing the source text by char offsets. */
+    function citedText(extraction, sourceText, citation) {
+      const start = Math.max(0, citation.char_start);
+      const end = Math.min(sourceText.length, citation.char_end);
+      let snippet = sourceText.slice(start, end);
+      // Strip page markers, markdown header artifacts that don't appear in the PDF,
+      // and section-file metadata lines like `Source: ...`.
+      snippet = snippet
+        .replace(/={3,} PAGE \d+ ={3,}/g, ' ')
+        .replace(/^#\s*Source:[^\n]*$/gmi, ' ')
+        .replace(/\(eff\.\s*\d{4}-\d{2}-\d{2}\)/gi, ' ')
+        .replace(/^#+\s*/gm, ' ')          // strip markdown heading hashes
+        .replace(/[*_`]/g, ' ')            // strip md emphasis markers
+        .replace(/\s+/g, ' ')
+        .trim();
+      // Limit length for search reliability — first ~120 chars are usually unique.
+      return snippet.length > 200 ? snippet.slice(0, 200) : snippet;
+    }
+
+    // ---------- Wire Format Studio ----------
+
+    /** Mount the studio UI for a doc that has KG-populated record layouts.
+     *  Allows generating a sample 200-char record and validating any record
+     *  string. Clicking a column cross-links to the matching FieldRequirement
+     *  card and the corresponding row in the PDF.
+     */
+    function renderWireStudio(layoutNames) {
+      const right = $('right-body');
+      const wrap = document.createElement('div');
+      wrap.className = 'wire-studio';
+      const layoutOptions = layoutNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+      wrap.innerHTML = `
+        <h3>Wire Format Studio · sample record from the KG</h3>
+        <div class="layout-pick">
+          <label>Layout</label>
+          <select id="ws-layout">${layoutOptions}</select>
+          <label>Scenario</label>
+          <select id="ws-scenario">
+            <option value="new-policy">new-policy</option>
+            <option value="cancellation">cancellation</option>
+            <option value="endorsement">endorsement</option>
+          </select>
+          <label>Seed</label>
+          <input id="ws-seed" type="number" value="42" style="width:60px;">
+          <button id="ws-generate" class="primary">Generate sample</button>
+        </div>
+        <div id="ws-record" class="wire-record" style="display:none;"></div>
+        <div id="ws-cols" class="wire-cols" style="display:none;"></div>
+        <div class="wire-validate">
+          <label style="font-size:12px; color:var(--ink-3);">
+            Paste any 200-char record to validate against the layout above:
+          </label>
+          <textarea id="ws-paste" placeholder="200-character record here..."></textarea>
+          <div style="margin-top:6px; display:flex; gap:8px;">
+            <button id="ws-validate" class="primary">Validate</button>
+            <button id="ws-copy">Copy generated → paste box</button>
+            <span id="ws-status" class="result"></span>
+          </div>
+          <div id="ws-errors"></div>
+        </div>
+      `;
+      right.appendChild(wrap);
+
+      $('ws-generate').addEventListener('click', generateSample);
+      $('ws-validate').addEventListener('click', validatePastedRecord);
+      $('ws-copy').addEventListener('click', () => {
+        const rec = wireStudioState.record;
+        if (rec) $('ws-paste').value = rec;
+      });
+      // Auto-generate one on mount so the demo loads ready-to-go.
+      generateSample();
+    }
+
+    const wireStudioState = { record: null, columns: [], errorsByCol: new Map() };
+
+    async function generateSample() {
+      const layout = $('ws-layout').value;
+      const scenario = $('ws-scenario').value;
+      const seed = parseInt($('ws-seed').value, 10) || 42;
+      const r = await fetch(
+        `/api/layouts/${encodeURIComponent(layout)}/sample?scenario=${encodeURIComponent(scenario)}&seed=${seed}`
+      );
+      if (!r.ok) {
+        toast('Failed to generate sample: ' + r.statusText, 'error');
+        return;
+      }
+      const data = await r.json();
+      wireStudioState.record = data.record;
+      wireStudioState.columns = data.columns;
+      wireStudioState.errorsByCol = new Map();
+      $('ws-status').className = 'result';
+      $('ws-status').textContent = '';
+      $('ws-errors').innerHTML = '';
+      paintRecord();
+      paintColumns();
+    }
+
+    function paintRecord() {
+      const recEl = $('ws-record');
+      recEl.style.display = '';
+      recEl.innerHTML = '';
+      for (const col of wireStudioState.columns) {
+        const span = document.createElement('span');
+        const klass = ['col', col.is_skip ? 'skip' : ''].filter(Boolean).join(' ');
+        span.className = klass;
+        span.textContent = (col.value || '').replace(/ /g, ' '); // non-breaking spaces preserve width
+        span.dataset.col = col.position_start;
+        span.title = `cols ${col.position_start}-${col.position_start + col.position_length - 1}  (${col.short_code})  ${col.field_name} → ${col.annotation}`;
+        if (wireStudioState.errorsByCol.has(col.position_start)) {
+          span.classList.add('error');
+        }
+        span.addEventListener('click', () => focusColumn(col));
+        recEl.appendChild(span);
+      }
+    }
+
+    function paintColumns() {
+      const colsEl = $('ws-cols');
+      colsEl.style.display = '';
+      colsEl.innerHTML = '';
+      for (const col of wireStudioState.columns) {
+        const row = document.createElement('div');
+        const klass = ['wire-col-row', wireStudioState.errorsByCol.has(col.position_start) ? 'error' : ''].filter(Boolean).join(' ');
+        row.className = klass;
+        row.dataset.col = col.position_start;
+        const range = `${col.position_start}-${col.position_start + col.position_length - 1}`;
+        const code = col.is_skip ? '(skip)' : (col.value || '').trim() || '∅';
+        row.innerHTML = `
+          <span class="pos">cols ${range}</span>
+          <span class="code">${escapeHtml(code)}</span>
+          <span class="meaning">${escapeHtml(col.field_name)} <em style="color:var(--ink-5)">— ${escapeHtml(col.annotation)}</em></span>
+        `;
+        row.addEventListener('click', () => focusColumn(col));
+        colsEl.appendChild(row);
+      }
+    }
+
+    /** Cross-link a column click → highlight the field card in the middle
+     *  pane AND the cited rectangle on the PDF in the left pane.
+     */
+    function focusColumn(col) {
+      // Highlight in record + col-list views.
+      document.querySelectorAll('.wire-record .col.active, .wire-col-row.active').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll(`.wire-record .col[data-col="${col.position_start}"], .wire-col-row[data-col="${col.position_start}"]`).forEach(el => el.classList.add('active'));
+
+      // Find matching FieldRequirement card by name and scroll to it.
+      const cards = document.querySelectorAll('.node-card');
+      for (const c of cards) {
+        const nm = c.querySelector('.name')?.textContent || '';
+        if (nm === col.field_node_name) {
+          document.querySelectorAll('.node-card.active').forEach(x => x.classList.remove('active'));
+          c.classList.add('active');
+          c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Click the first chip on that card (if any) to drive the PDF highlight.
+          const chip = c.querySelector('.chip');
+          if (chip) chip.click();
+          break;
+        }
+      }
+    }
+
+    async function validatePastedRecord() {
+      const layout = $('ws-layout').value;
+      const record = $('ws-paste').value;
+      if (!record) {
+        toast('Paste a record first.', 'error');
+        return;
+      }
+      const r = await fetch(`/api/layouts/${encodeURIComponent(layout)}/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ record }),
+      });
+      const data = await r.json();
+      $('ws-status').className = 'result ' + (data.ok ? 'pass' : 'fail');
+      $('ws-status').textContent = data.ok
+        ? `✓ PASS — record conforms to ${data.layout}.`
+        : `✗ ${data.n_errors} error(s) — see below.`;
+      // Map errors by column for paint.
+      wireStudioState.errorsByCol = new Map();
+      for (const e of (data.errors || [])) {
+        wireStudioState.errorsByCol.set(e.column_start, e);
+      }
+      // Render error list.
+      const errEl = $('ws-errors');
+      errEl.innerHTML = '';
+      if ((data.errors || []).length) {
+        const list = document.createElement('div');
+        list.style.marginTop = '8px';
+        list.style.maxHeight = '180px';
+        list.style.overflowY = 'auto';
+        for (const e of data.errors) {
+          const row = document.createElement('div');
+          row.className = 'wire-col-row error';
+          row.style.cursor = 'pointer';
+          const range = `${e.column_start}-${e.column_end}`;
+          row.innerHTML = `
+            <span class="pos">cols ${range}</span>
+            <span class="code">${escapeHtml(e.kind)}</span>
+            <span class="meaning">${escapeHtml(e.field_name)} — ${escapeHtml(e.detail)}</span>
+          `;
+          row.addEventListener('click', () => {
+            const col = wireStudioState.columns.find(c => c.position_start === e.column_start);
+            if (col) focusColumn(col);
+          });
+          list.appendChild(row);
+        }
+        errEl.appendChild(list);
+      }
+      // Repaint to apply error styling.
+      paintRecord();
+      paintColumns();
+    }
+
+    function renderExtraction(extraction, sourceText) {
+      const right = $('right-body');
+      right.innerHTML = '';
+
+      if (extraction.summary) {
+        const s = document.createElement('div');
+        s.className = 'extraction-summary';
+        s.textContent = extraction.summary;
+        right.appendChild(s);
+      }
+
+      const cites = extraction.citations || [];
+      const ivs = cites.map(c => [c.char_start, c.char_end]).sort((a,b) => a[0]-b[0]);
+      let union = 0, lastEnd = 0;
+      for (const [s, e] of ivs) {
+        const sStart = Math.max(s, lastEnd);
+        if (e > sStart) { union += e - sStart; lastEnd = Math.max(lastEnd, e); }
+      }
+      const coverage = extraction.document_total_chars ? (union / extraction.document_total_chars * 100) : 0;
+      const stats = document.createElement('div');
+      stats.className = 'extraction-stats';
+      stats.innerHTML = `
+        <div class="stat"><div class="v">${extraction.proposed_nodes.length}</div><div class="k">Nodes</div></div>
+        <div class="stat"><div class="v">${extraction.proposed_relationships.length}</div><div class="k">Rels</div></div>
+        <div class="stat coverage"><div class="v">${coverage.toFixed(1)}%</div><div class="k">Coverage</div></div>
+        <div class="stat uncited"><div class="v">${extraction.uncited_spans.length}</div><div class="k">Uncited</div></div>
+      `;
+      right.appendChild(stats);
+
+      // Wire-format studio — shown only when this doc maps to one or more
+      // RecordLayouts that the parser fully populated. This is the section
+      // that turns the regulation into an executable schema: generate a
+      // sample record, paste any record to validate it.
+      if (currentDoc.wire_layouts && currentDoc.wire_layouts.length) {
+        renderWireStudio(currentDoc.wire_layouts);
+      }
+
+      const groups = groupByType(extraction.proposed_nodes);
+      const typeOrder = [
+        'RegulationDocument', 'StatPlanEdition', 'Rule', 'ReportTemplate',
+        'RecordLayout', 'FieldRequirement', 'CodeList', 'CodeValue',
+        'CoverageType', 'EndorsementRule', 'BulletinOverride',
+        'ReconciliationRule', 'Organization', 'HITLTriggerRule',
+      ];
+      for (const type of typeOrder) {
+        const nodes = groups[type];
+        if (!nodes) continue;
+        const g = document.createElement('div');
+        g.className = 'group';
+        const header = document.createElement('div');
+        header.className = 'group-header';
+        header.innerHTML = `<div class="group-title">${type} <span class="count">${nodes.length}</span></div><span class="group-toggle"></span>`;
+        header.addEventListener('click', () => g.classList.toggle('collapsed'));
+        g.appendChild(header);
+        const body = document.createElement('div');
+        body.className = 'group-body';
+        for (const n of nodes) {
+          const card = document.createElement('div');
+          card.className = 'node-card';
+          card.dataset.tempId = n.temp_id;
+          const props = nodePropsSummary(n);
+          const conf = (n.confidence ?? 0).toFixed(2);
+          const confKlass = confidenceClass(n.confidence ?? 0);
+          const nCites = citationsForNode(extraction, n.temp_id);
+          const chips = nCites.map(c => {
+            const idx = extraction.citations.indexOf(c);
+            return `<span class="chip" data-cite-idx="${idx}">${c.char_start}-${c.char_end}</span>`;
+          }).join('');
+          card.innerHTML = `
+            <div class="name">${escapeHtml(n.name)}</div>
+            ${props ? `<div class="props">${props}</div>` : ''}
+            <div class="meta">
+              <span class="conf ${confKlass}">conf ${conf}</span>
+              ${nCites.length ? `<span style="color:var(--ink-5)">${nCites.length} citation${nCites.length>1?'s':''}</span>` : ''}
+            </div>
+            ${chips ? `<div class="cite-chips">${chips}</div>` : ''}
+          `;
+          // Clicking the card → highlight the node's first citation.
+          card.addEventListener('click', (e) => {
+            if (e.target.classList.contains('chip')) return;
+            document.querySelectorAll('.node-card.active').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            if (nCites.length > 0) {
+              const idx = extraction.citations.indexOf(nCites[0]);
+              highlightCitation(idx, sourceText, extraction);
+            }
+          });
+          body.appendChild(card);
+        }
+        g.appendChild(body);
+        right.appendChild(g);
+      }
+
+      // Chip handlers — highlight the specific span
+      right.querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.querySelectorAll('.chip.active').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          const idx = parseInt(chip.dataset.citeIdx, 10);
+          if (Number.isNaN(idx) || !extraction.citations[idx]) return;
+          highlightCitation(idx, sourceText, extraction);
+        });
+      });
+    }
+
+    function showActionBar(showExtract, showReExtract, showApprove) {
+      $('action-bar').hidden = !(showExtract || showReExtract || showApprove);
+      $('btn-extract').hidden = !showExtract;
+      $('btn-reextract').hidden = !showReExtract;
+      $('btn-approve').hidden = !showApprove;
+    }
+
+    function renderNoExtraction() {
+      $('right-body').innerHTML = `
+        <div class="empty">
+          No extraction yet for this document.
+          <div class="hint">Click <strong>Run Sentinel (GPT-5.5)</strong> to extract knowledge graph proposals.</div>
+        </div>
+      `;
+      showActionBar(true, false, false);
+    }
+
+    // ---------- Document selection ----------
+    async function selectDoc(slug) {
+      clearHighlights();
+      if (!slug) {
+        currentDoc = null;
+        $('left-body').innerHTML = '<div class="empty">Pick a regulation document above to begin.</div>';
+        $('right-body').innerHTML = '<div class="empty">Load a document to see KG-grouped extractions.</div>';
+        $('left-meta').textContent = '—';
+        $('right-meta').textContent = '—';
+        showActionBar(false, false, false);
+        return;
+      }
+      const r = await fetch(`/api/regulations/${slug}`);
+      const data = await r.json();
+      currentDoc = data;
+      $('left-meta').textContent = data.has_pdf
+        ? `PDF · jump to p.${data.pdf_start_page || 1}`
+        : `${data.text.length.toLocaleString()} chars · markdown`;
+
+      // Render left pane (PDF or markdown fallback)
+      if (data.has_pdf && data.pdf_url) {
+        await renderPdf(data.pdf_url, data.pdf_start_page || 1);
+      } else {
+        // Markdown / text fallback
+        const left = $('left-body');
+        left.innerHTML = '';
+        const blurb = document.createElement('div');
+        blurb.className = 'doc-blurb';
+        blurb.textContent = data.blurb;
+        left.appendChild(blurb);
+        const txt = document.createElement('div');
+        txt.className = 'doc-text';
+        txt.textContent = data.text;
+        left.appendChild(txt);
+      }
+
+      // Right pane
+      if (data.extraction) {
+        renderExtraction(data.extraction, data.text);
+        $('right-meta').textContent = `${data.extraction.proposed_nodes.length} nodes · ${data.extraction.proposed_relationships.length} rels`;
+        showActionBar(false, true, true);
+      } else {
+        $('right-meta').textContent = 'no extraction';
+        renderNoExtraction();
+      }
+    }
+
+    // ---------- Actions ----------
+    async function runExtract() {
+      if (!currentDoc) return;
+      const btn = $('btn-extract');
+      const reBtn = $('btn-reextract');
+      btn.disabled = true; reBtn.disabled = true;
+      $('right-body').innerHTML = `<div class="empty"><span class="spinner"></span>Sentinel extracting via GPT-5.5… this can take 30–90s for large sections.</div>`;
+      try {
+        const r = await fetch(`/api/regulations/${currentDoc.slug}/extract`, { method: 'POST' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+        const data = await r.json();
+        toast(`Extracted ${data.n_nodes} nodes from ${currentDoc.label}`, 'success');
+        await loadDocs();
+        await selectDoc(currentDoc.slug);
+      } catch (e) {
+        toast(`Extraction failed: ${e.message}`, 'error');
+        renderNoExtraction();
+      } finally {
+        btn.disabled = false; reBtn.disabled = false;
+      }
+    }
+
+    async function runApprove() {
+      if (!currentDoc) return;
+      const btn = $('btn-approve');
+      btn.disabled = true;
+      try {
+        const r = await fetch(`/api/regulations/${currentDoc.slug}/approve`, { method: 'POST' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+        const data = await r.json();
+        const created = data.nodes_created.length;
+        const reused = data.nodes_reused.length;
+        toast(`Materialized: ${created} new, ${reused} reused, ${data.relationships_created} rels, ${data.citations_created} citations`, 'success');
+        await loadStats();
+      } catch (e) {
+        toast(`Approve failed: ${e.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      $('doc-select').addEventListener('change', e => selectDoc(e.target.value));
+      $('btn-extract').addEventListener('click', runExtract);
+      $('btn-reextract').addEventListener('click', runExtract);
+      $('btn-approve').addEventListener('click', runApprove);
+      await loadDocs();
+      await loadStats();
+      setInterval(loadStats, 15000);
+    });
+  </script>
+</body>
+</html>

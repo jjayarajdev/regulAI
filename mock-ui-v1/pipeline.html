@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline Monitor — RegulAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-v2.css" />
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">R</span>
+      <span>RegulAI</span>
+    </a>
+    <div class="topbar-crumbs">
+      <span>Workspace</span>
+      <span class="sep">/</span>
+      <span>Operations</span>
+      <span class="sep">/</span>
+      <span class="current">Pipeline Monitor</span>
+    </div>
+    <div class="topbar-center"></div>
+    <div class="topbar-right">
+      <div class="search-field">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span>Search runs, stages…</span>
+        <span class="kbd">⌘ K</span>
+      </div>
+      <span class="env-chip">PROD</span>
+      <div class="user-chip"><div class="avatar">HS</div><span>Hannah Salazar</span></div>
+    </div>
+  </header>
+
+  <nav class="rail">
+    <a href="dashboard.html" class="rail-btn" title="Dashboard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></a>
+    <a href="workbench.html" class="rail-btn" title="Workbench"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h6v10H3zM15 7h6v10h-6z"/><path d="M9 12h6"/></svg></a>
+    <a href="review.html" class="rail-btn" title="HITL"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></a>
+    <a href="pipeline.html" class="rail-btn active" title="Pipeline"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></a>
+    <a href="ontology.html" class="rail-btn" title="Ontology"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M10 13l-4 4M14 13l4 4"/></svg></a>
+    <a href="filings.html" class="rail-btn" title="Filings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg></a>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+  </nav>
+
+  <div class="subheader">
+    <div class="subheader-title">
+      <span class="page-name">Pipeline Monitor</span>
+      <span class="page-sub">· DAG · Dagster orchestrated · run_id run_2026_04_19_0412</span>
+    </div>
+    <div class="subheader-stats">
+      <span class="stat"><span class="n">1</span><span>active run</span></span>
+      <span class="stat ok"><span class="n">218 / 219</span><span>axioms</span></span>
+      <span class="stat"><span class="n">01:47</span><span>duration</span></span>
+      <span class="stat warn"><span class="n">17</span><span>HITL routed</span></span>
+      <span class="stat ok"><span class="n">0</span><span>errors</span></span>
+    </div>
+  </div>
+
+  <div class="subnav">
+    <div class="subnav-item active">Active <span class="count">1</span></div>
+    <div class="subnav-item">History <span class="count">214</span></div>
+    <div class="subnav-item">Schedules <span class="count">6</span></div>
+    <div class="subnav-item">Failures <span class="count">2</span></div>
+    <div class="subnav-item">Back-fill</div>
+    <div class="subhead-actions">
+      <button class="btn sm">Rerun failed</button>
+      <button class="btn sm primary">Trigger run</button>
+    </div>
+  </div>
+
+  <main class="work scroll">
+    <div class="canvas">
+
+      <!-- Masthead -->
+      <div class="page-masthead">
+        <div class="intro">
+          <div class="kicker">Live · run_2026_04_19_0412 · ATIC Q1 filing</div>
+          <h1>Nightly run,<br/><em>stage 06 of 08.</em></h1>
+          <p>Ingest through Transform clean. Validate is running the full axiom battery against
+             2,091 loss records. ETA to File stage: 14 minutes. No HITL escalations added since 16:04.</p>
+        </div>
+        <div class="intro-meta">
+          <div class="im"><div class="lbl">Started</div><div class="val">04:12 UTC</div></div>
+          <div class="im accent"><div class="lbl">Elapsed</div><div class="val">01:47</div></div>
+          <div class="im"><div class="lbl">ETA File</div><div class="val">~14m</div></div>
+        </div>
+      </div>
+
+      <!-- DAG -->
+      <div class="sec-title">
+        <h2><span class="numeral">01</span>Current run DAG</h2>
+        <div class="tools"><span class="pill">8 stages</span><span class="pill">auto-refresh 10s</span></div>
+      </div>
+
+      <div class="dag">
+        <div class="dag-stage done">
+          <div class="sn">01 · INGEST</div>
+          <div class="st">Bronze</div>
+          <div class="sa">source → snowflake</div>
+          <div class="sstat">done · 00:04</div>
+          <div class="sv">14,218 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">recs</span></div>
+        </div>
+        <div class="dag-stage done">
+          <div class="sn">02 · MAP</div>
+          <div class="st">Scout</div>
+          <div class="sa">bronze → ciom</div>
+          <div class="sstat">done · 00:12</div>
+          <div class="sv">14,218 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">/ 0 fail</span></div>
+        </div>
+        <div class="dag-stage done">
+          <div class="sn">03 · CLASSIFY</div>
+          <div class="st">Cortex</div>
+          <div class="sa">narrative → COL</div>
+          <div class="sstat">done · 00:38</div>
+          <div class="sv">2,091 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">loss · 17 HITL</span></div>
+        </div>
+        <div class="dag-stage done">
+          <div class="sn">04 · RECONCILE</div>
+          <div class="st">Bridge</div>
+          <div class="sa">ciom ↔ GL</div>
+          <div class="sstat">done · 00:21</div>
+          <div class="sv">0.03<span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">% var</span></div>
+        </div>
+        <div class="dag-stage done">
+          <div class="sn">05 · TRANSFORM</div>
+          <div class="st">Compiler</div>
+          <div class="sa">ciom → gold</div>
+          <div class="sstat">done · 00:19</div>
+          <div class="sv">12,483 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">gold</span></div>
+        </div>
+        <div class="dag-stage active">
+          <div class="sn">06 · VALIDATE</div>
+          <div class="st">Cortex axioms</div>
+          <div class="sa">gold → submit-ready</div>
+          <div class="sstat">running · 00:13</div>
+          <div class="sv">218 <span style="font-size:12px; color: var(--ink-3); font-family: var(--font-mono);">/ 219 pass</span></div>
+        </div>
+        <div class="dag-stage pending">
+          <div class="sn">07 · FILE</div>
+          <div class="st">Submit</div>
+          <div class="sa">SFTP → TICO</div>
+          <div class="sstat">pending · ETA 14m</div>
+          <div class="sv" style="color: var(--ink-4);">—</div>
+        </div>
+        <div class="dag-stage pending">
+          <div class="sn">08 · ACK</div>
+          <div class="st">Acknowledge</div>
+          <div class="sa">TICO → confirm</div>
+          <div class="sstat">pending · 24–48h</div>
+          <div class="sv" style="color: var(--ink-4);">—</div>
+        </div>
+      </div>
+
+      <!-- Stage detail: VALIDATE -->
+      <div class="sec-title">
+        <h2><span class="numeral">02</span>Stage 06 · Validate · running</h2>
+        <div class="tools"><span class="pill">cortex axiom battery</span></div>
+      </div>
+
+      <div class="split-2">
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Axiom progress</span>
+            <span class="m">218 / 219 · 1 deferred</span>
+          </div>
+          <div class="progress">
+            <div class="p-head">
+              <span>Validating loss records · 12,483 of 12,483</span>
+              <span class="pct">99.5%</span>
+            </div>
+            <div class="p-bar"><div class="p-fill accent" style="width:99.5%;"></div></div>
+          </div>
+          <div style="margin-top: var(--s-3); font-size: var(--t-small);">
+            <div class="axiom-list">
+              <div class="ax ok"><span class="check">✓</span><span class="text">R-TICO-DQIP-01 · ActionDate ≥ LossDate</span><span class="cite">12,483/12,483</span></div>
+              <div class="ax ok"><span class="check">✓</span><span class="text">R-TICO-DQIP-02 · ReportDate ≥ LossDate</span><span class="cite">12,483/12,483</span></div>
+              <div class="ax ok"><span class="check">✓</span><span class="text">R-TICO-TERR-* · Territory valid on effective date</span><span class="cite">12,483/12,483</span></div>
+              <div class="ax ok"><span class="check">✓</span><span class="text">R-TICO-FCM-* · Form × Cause matrix</span><span class="cite">12,483/12,483</span></div>
+              <div class="ax warn"><span class="check">!</span><span class="text">R-TICO-CC-TX-05 · Concurrent-causation flag</span><span class="cite">12,466 pass · 17 flagged HITL</span></div>
+              <div class="ax ok"><span class="check">✓</span><span class="text">R-TICO-DED-* · Deductible codes in ladder</span><span class="cite">12,483/12,483</span></div>
+              <div class="ax ok"><span class="check">✓</span><span class="text">R-TICO-CLOSED-01 · paid &gt; 0 ∧ reserve = 0 ⇒ Closed</span><span class="cite">12,483/12,483</span></div>
+              <div class="ax ok"><span class="check">✓</span><span class="text">A-LOSS-TEMP-01 · Policy in force on LossDate</span><span class="cite">12,483/12,483</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Stage timings · this run</span>
+            <span class="m">ms / record</span>
+          </div>
+          <div style="padding-top: var(--s-2);">
+            <!-- simplified stage timing chart -->
+            <div style="display: flex; flex-direction: column; gap: var(--s-2);">
+              <div style="display: grid; grid-template-columns: 100px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Ingest</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill" style="width: 8%; background: var(--ok);"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">16 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 100px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Map</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill" style="width: 24%; background: var(--ok);"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">48 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 100px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Classify</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill accent" style="width: 100%;"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">1,091 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 100px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Reconcile</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill" style="width: 18%; background: var(--ok);"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">102 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 100px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Transform</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill" style="width: 16%; background: var(--ok);"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">84 ms/rec</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 100px 1fr 80px; gap: var(--s-2); align-items: center; font-size: var(--t-small);">
+                <span class="mono" style="font-size: 11px;">Validate</span>
+                <div class="p-bar" style="height: 10px;"><div class="p-fill accent" style="width: 28%;"></div></div>
+                <span class="mono" style="font-size: 11px; text-align: right;">136 ms/rec</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--rule-soft); display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); font-size: var(--t-small);">
+            <div>
+              <div class="rule-label mb-1">Hot spot</div>
+              <div>Classify · Cortex LLM latency dominates</div>
+            </div>
+            <div>
+              <div class="rule-label mb-1">Throughput</div>
+              <div>~2.1k recs/min sustained</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Run history -->
+      <div class="sec-title">
+        <h2><span class="numeral">03</span>Recent runs · last 14 days</h2>
+        <div class="tools">
+          <span class="pill">nightly</span>
+          <span class="pill">ad-hoc</span>
+          <span class="pill">backfill</span>
+        </div>
+      </div>
+
+      <table class="runs-table">
+        <thead>
+          <tr>
+            <th>Run ID</th>
+            <th>Trigger</th>
+            <th>Started</th>
+            <th>Duration</th>
+            <th class="num">Records</th>
+            <th class="num">HITL</th>
+            <th class="num">Var %</th>
+            <th>Axioms</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="run-id">run_2026_04_19_0412</td>
+            <td>cron · nightly</td>
+            <td>04-19 · 04:12</td>
+            <td>01:47 (running)</td>
+            <td class="num">14,218</td>
+            <td class="num">17</td>
+            <td class="num" style="color:var(--ok);">0.03</td>
+            <td>218 / 219</td>
+            <td><span class="status run">● Running</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">run_2026_04_18_0412</td>
+            <td>cron · nightly</td>
+            <td>04-18 · 04:12</td>
+            <td>01:52</td>
+            <td class="num">14,041</td>
+            <td class="num">14</td>
+            <td class="num" style="color:var(--ok);">0.02</td>
+            <td>219 / 219</td>
+            <td><span class="status ok">● Filed</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">run_2026_04_18_1801</td>
+            <td>manual · h.salazar</td>
+            <td>04-18 · 18:01</td>
+            <td>00:12</td>
+            <td class="num">312</td>
+            <td class="num">0</td>
+            <td class="num" style="color:var(--ok);">0.00</td>
+            <td>118 / 118</td>
+            <td><span class="status ok">● Shadow</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">run_2026_04_17_0412</td>
+            <td>cron · nightly</td>
+            <td>04-17 · 04:12</td>
+            <td>01:58</td>
+            <td class="num">13,902</td>
+            <td class="num">22</td>
+            <td class="num" style="color:var(--warn);">0.08</td>
+            <td>219 / 219</td>
+            <td><span class="status ok">● Filed</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">run_2026_04_16_0412</td>
+            <td>cron · nightly</td>
+            <td>04-16 · 04:12</td>
+            <td>02:14</td>
+            <td class="num">13,854</td>
+            <td class="num">11</td>
+            <td class="num" style="color:var(--ok);">0.04</td>
+            <td>218 / 219</td>
+            <td><span class="status warn">⊘ 1 deferred</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">run_2026_04_15_2210</td>
+            <td>sentinel · bulletin</td>
+            <td>04-15 · 22:10</td>
+            <td>00:04</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td>schema diff</td>
+            <td><span class="status ok">● Graph update</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">run_2026_04_15_0412</td>
+            <td>cron · nightly</td>
+            <td>04-15 · 04:12</td>
+            <td>01:51</td>
+            <td class="num">13,810</td>
+            <td class="num">19</td>
+            <td class="num" style="color:var(--ok);">0.03</td>
+            <td>219 / 219</td>
+            <td><span class="status ok">● Filed</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">run_2026_04_14_2314</td>
+            <td>manual · m.kim</td>
+            <td>04-14 · 23:14</td>
+            <td>00:08</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td>18 / 18</td>
+            <td><span class="status fail">✕ Failed</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">run_2026_04_14_0412</td>
+            <td>cron · nightly</td>
+            <td>04-14 · 04:12</td>
+            <td>01:44</td>
+            <td class="num">13,721</td>
+            <td class="num">9</td>
+            <td class="num" style="color:var(--ok);">0.02</td>
+            <td>219 / 219</td>
+            <td><span class="status ok">● Filed</span></td>
+          </tr>
+          <tr>
+            <td class="run-id">run_2026_04_13_0412</td>
+            <td>cron · nightly</td>
+            <td>04-13 · 04:12</td>
+            <td>01:49</td>
+            <td class="num">13,704</td>
+            <td class="num">13</td>
+            <td class="num" style="color:var(--ok);">0.03</td>
+            <td>219 / 219</td>
+            <td><span class="status ok">● Filed</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Failure detail -->
+      <div class="sec-title">
+        <h2><span class="numeral">04</span>Most recent failure · run_2026_04_14_2314</h2>
+        <div class="tools"><span class="pill" style="border-color: var(--danger); color: var(--danger);">resolved</span></div>
+      </div>
+
+      <div class="split-2">
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Failure trace</span>
+            <span class="m">manual · m.kim · 04-14 23:14</span>
+          </div>
+          <div class="rulebox" data-label="error trace · stage 03 classify">
+<span class="com">// Stage: CLASSIFY · agent: cortex-tx-v2.2 · record count: 318</span>
+[<span class="num">2026-04-14T23:14:42Z</span>] <span class="kw">ERROR</span>  cortex.classify
+  <span class="kw">failed</span> on batch <span class="str">"b_8912"</span> · record <span class="str">"SRC-CL-557019"</span>
+  <span class="kw">reason</span>: Peril <span class="str">"CONTROLLED_BURN_SMOKE"</span> not in ontology
+          taxonomy · PerilClass.Smoke has no such instance
+
+[<span class="num">2026-04-14T23:14:42Z</span>] <span class="kw">INFO</span>   cortex.classify
+  <span class="kw">routing</span> SRC-CL-557019 → HITL with code <span class="str">"NOVEL_PERIL"</span>
+  suggested extensions:
+    · PerilClass.Smoke + Peril.CONTROLLED_BURN_SMOKE (new)
+    · PerilClass.Smoke + Peril.SMOKE (existing, override)
+
+[<span class="num">2026-04-14T23:14:43Z</span>] <span class="kw">WARN</span>   dagster.pipeline
+  stage CLASSIFY partial success · 317/318 classified
+  halting run per manual-trigger failure policy
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Resolution</span>
+            <span class="m">PR-0115 · merged 04-15 08:40</span>
+          </div>
+          <div style="font-size: var(--t-small); line-height: 1.55; color: var(--ink-2);">
+            <div class="rule-label mb-2">Root cause</div>
+            <p style="margin-bottom: var(--s-3);">Cortex encountered a peril term outside the controlled vocabulary
+              (<span class="mono" style="font-size: 11px;">CONTROLLED_BURN_SMOKE</span>), introduced by SRC's
+              new brush-management rider policy form. The ontology's <span class="mono" style="font-size:11px;">Peril</span>
+              enum does not auto-extend; Cortex correctly refused to hallucinate a classification.</p>
+            <div class="rule-label mb-2">Fix</div>
+            <p style="margin-bottom: var(--s-3);">Added <span class="mono" style="font-size: 11px;">PerilClass.Smoke.CONTROLLED_BURN_SMOKE</span>
+              as a new ontology concept (PR-0115), inheriting covered-peril defaults from <span class="mono" style="font-size: 11px;">Smoke</span>.
+              Extended <span class="mono" style="font-size:11px;">R-COL-23</span> to classify it to TICO 09 (Smoke).</p>
+            <div class="rule-label mb-2">Follow-up</div>
+            <ul style="padding-left: var(--s-4); margin: 0;">
+              <li>Back-fill run on 04-15 · 08:42 · 47 historical records re-classified</li>
+              <li>Added axiom test to prevent ontology-PR regression</li>
+              <li>Sentinel now watches SRC bulletins more aggressively</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: var(--s-6); padding-top: var(--s-3); border-top: 1px solid var(--rule); color: var(--ink-4); font-family: var(--font-mono); font-size: var(--t-nano); letter-spacing: 0.08em; text-transform: uppercase; display: flex; justify-content: space-between;">
+        <span>Dagster asset graph · SHA 4f7b12a · Snowflake REG_ANALYTICS_XL</span>
+        <span>14-day success rate · 212 / 214 · 99.07%</span>
+      </div>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

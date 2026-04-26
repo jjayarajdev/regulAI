@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — RegulAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-v2.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">R</span>
+      <span>RegulAI</span>
+    </a>
+    <div class="topbar-crumbs">
+      <span>Workspace</span>
+      <span class="sep">/</span>
+      <span>Operations</span>
+      <span class="sep">/</span>
+      <span class="current">Command Center</span>
+    </div>
+    <div class="topbar-center"></div>
+    <div class="topbar-right">
+      <div class="search-field">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+        </svg>
+        <span>Search anything…</span>
+        <span class="kbd">⌘ K</span>
+      </div>
+      <span class="env-chip">PROD</span>
+      <div class="user-chip">
+        <div class="avatar">HS</div>
+        <span>Hannah Salazar</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left rail -->
+  <nav class="rail">
+    <a href="dashboard.html" class="rail-btn active" title="Dashboard">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+      </svg>
+    </a>
+    <a href="workbench.html" class="rail-btn" title="Workbench">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M3 7h6v10H3zM15 7h6v10h-6z"/><path d="M9 12h6"/>
+      </svg>
+    </a>
+    <a href="review.html" class="rail-btn" title="HITL Review">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+      </svg>
+    </a>
+    <a href="pipeline.html" class="rail-btn" title="Pipeline">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M3 12h4l2-6 4 12 2-6h6"/>
+      </svg>
+    </a>
+    <a href="ontology.html" class="rail-btn" title="Ontology">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/>
+        <path d="M12 7.5v4M10 13l-4 4M14 13l4 4"/>
+      </svg>
+    </a>
+    <a href="filings.html" class="rail-btn" title="Filings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/>
+      </svg>
+    </a>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+    </button>
+  </nav>
+
+  <!-- Sub-header -->
+  <div class="subheader">
+    <div class="subheader-title">
+      <span class="page-name">Command Center</span>
+      <span class="page-sub">· live · 2026-04-19 16:42 UTC</span>
+    </div>
+    <div class="subheader-stats">
+      <span class="stat ok"><span class="n">4</span><span>carriers</span></span>
+      <span class="stat"><span class="n">15.4M</span><span>records YTD</span></span>
+      <span class="stat ok"><span class="n">94.2<span style="font-size:11px;">%</span></span><span>auto-clear</span></span>
+      <span class="stat warn"><span class="n">12</span><span>HITL open</span></span>
+      <span class="stat danger"><span class="n">57d</span><span>to TICO Q1</span></span>
+    </div>
+  </div>
+
+  <!-- Work -->
+  <main class="work scroll">
+    <div class="canvas">
+
+      <!-- Page masthead -->
+      <div class="page-masthead">
+        <div class="intro">
+          <div class="kicker">Operations · Q1 2026 filing cycle</div>
+          <h1>Good afternoon,<br/><em>Hannah.</em></h1>
+          <p>Pipeline is clean. Twelve cases await review — three within SLA. Sentinel flagged one
+             new TDI bulletin overnight. Your Series A board deck is due Monday.</p>
+        </div>
+        <div class="intro-meta">
+          <div class="im"><div class="lbl">Assignee</div><div class="val">H. Salazar</div></div>
+          <div class="im"><div class="lbl">Shift SLA</div><div class="val">3h 12m</div></div>
+          <div class="im accent"><div class="lbl">Filing cycle</div><div class="val">Day 47 / 104</div></div>
+        </div>
+      </div>
+
+      <!-- Deadline ribbon -->
+      <div class="deadline-ribbon">
+        <div class="d-left">
+          <div>
+            <div class="d-label">TICO Q1 2026 deadline</div>
+            <div class="d-date">2026 · June 15</div>
+          </div>
+        </div>
+        <div class="d-body">
+          <div class="dv"><span class="lbl">Records</span>12,483 of 14,218 · 87.8%</div>
+          <div class="dv"><span class="lbl">Rejections</span>0</div>
+          <div class="dv"><span class="lbl">Next run</span>tonight · 04:12 UTC</div>
+          <button class="btn" style="background:var(--paper-elev); color:var(--ink); border-color:var(--paper-elev);">View filing →</button>
+        </div>
+      </div>
+
+      <!-- Metric grid -->
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="m-lbl">Records processed (7d)</div>
+          <div class="m-val">4.28<span class="unit">M</span></div>
+          <div class="m-trend">▲ 12.4% vs prior 7d</div>
+          <div class="m-spark">
+            <svg class="spark" viewBox="0 0 80 28">
+              <path class="area" d="M0 22 L10 18 L20 20 L30 14 L40 16 L50 10 L60 12 L70 6 L80 8 L80 28 L0 28 Z"/>
+              <path class="line" d="M0 22 L10 18 L20 20 L30 14 L40 16 L50 10 L60 12 L70 6 L80 8"/>
+              <circle cx="80" cy="8" r="2.4" class="last"/>
+            </svg>
+          </div>
+        </div>
+        <div class="metric accent">
+          <div class="m-lbl">Auto-clear rate</div>
+          <div class="m-val">94.2<span class="unit">%</span></div>
+          <div class="m-trend">▲ 1.8 pts vs prior week</div>
+          <div class="m-spark">
+            <svg class="spark accent" viewBox="0 0 80 28">
+              <path class="area" d="M0 14 L10 12 L20 14 L30 10 L40 11 L50 8 L60 9 L70 6 L80 5 L80 28 L0 28 Z"/>
+              <path class="line" d="M0 14 L10 12 L20 14 L30 10 L40 11 L50 8 L60 9 L70 6 L80 5"/>
+              <circle cx="80" cy="5" r="2.4" class="last"/>
+            </svg>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="m-lbl">HITL open now</div>
+          <div class="m-val">12</div>
+          <div class="m-trend down">▼ 3 cleared in last hour</div>
+          <div class="m-spark">
+            <svg class="spark" viewBox="0 0 80 28">
+              <path class="line" d="M0 10 L10 14 L20 12 L30 18 L40 16 L50 14 L60 18 L70 20 L80 16"/>
+              <circle cx="80" cy="16" r="2.4" class="last"/>
+            </svg>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="m-lbl">Specialist hours saved YTD</div>
+          <div class="m-val">11,420</div>
+          <div class="m-trend">vs. manual coding baseline</div>
+          <div class="m-spark">
+            <svg class="spark ok" viewBox="0 0 80 28">
+              <path class="area" d="M0 24 L10 22 L20 20 L30 18 L40 14 L50 12 L60 9 L70 6 L80 4 L80 28 L0 28 Z"/>
+              <path class="line" d="M0 24 L10 22 L20 20 L30 18 L40 14 L50 12 L60 9 L70 6 L80 4"/>
+              <circle cx="80" cy="4" r="2.4" class="last"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filing progress + agent pulse -->
+      <div class="sec-title">
+        <h2><span class="numeral">01</span>Pipeline health</h2>
+        <div class="tools">
+          <span class="pill">auto-refresh · 30s</span>
+          <span class="pill">UTC</span>
+        </div>
+      </div>
+
+      <div class="split-2">
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Filing pipeline · Q1 2026</span>
+            <span class="m">last run 04:12 · 01:47 duration</span>
+          </div>
+          <div class="progress" style="margin-top:8px;">
+            <div class="p-head">
+              <span>12,483 of 14,218 loss records · 87.8% complete</span>
+              <span class="pct">6 of 8 stages clean</span>
+            </div>
+            <div class="p-bar"><div class="p-fill accent" style="width:87.8%;"></div></div>
+            <div class="progress-stages">
+              <div class="st done" title="Ingest"></div>
+              <div class="st done" title="Map"></div>
+              <div class="st done" title="Classify"></div>
+              <div class="st done" title="Reconcile"></div>
+              <div class="st done" title="Transform"></div>
+              <div class="st active" title="Validate"></div>
+              <div class="st pending" title="File"></div>
+              <div class="st pending" title="Acknowledge"></div>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:var(--s-2); margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--rule-soft);">
+            <div>
+              <div class="rule-label">GL variance</div>
+              <div style="font-family:var(--font-mono); font-size:14px; color:var(--ok); margin-top:2px;">0.03%</div>
+            </div>
+            <div>
+              <div class="rule-label">Axioms passing</div>
+              <div style="font-family:var(--font-mono); font-size:14px; color:var(--ok); margin-top:2px;">218 / 219</div>
+            </div>
+            <div>
+              <div class="rule-label">HITL queue</div>
+              <div style="font-family:var(--font-mono); font-size:14px; color:var(--warn); margin-top:2px;">12 open</div>
+            </div>
+            <div>
+              <div class="rule-label">Rejected by TICO</div>
+              <div style="font-family:var(--font-mono); font-size:14px; color:var(--ok); margin-top:2px;">0 YTD</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Agent pulse · last 24h</span>
+            <span class="m">5 agents live</span>
+          </div>
+
+          <div class="agent-pulse">
+            <div class="an">Cortex</div>
+            <div class="am">v2.3</div>
+            <div class="act">
+              <span class="a2"></span><span class="a3"></span><span class="a2"></span><span class="a4"></span><span class="a5"></span><span class="a4"></span><span class="a3"></span><span class="a5"></span>
+            </div>
+            <div class="stat-n">4,218 cls</div>
+            <div><span class="status-live">live</span></div>
+          </div>
+
+          <div class="agent-pulse">
+            <div class="an">Bridge</div>
+            <div class="am">v1.4</div>
+            <div class="act">
+              <span class="a3"></span><span class="a3"></span><span class="a4"></span><span class="a4"></span><span class="a3"></span><span class="a2"></span><span class="a3"></span><span class="a4"></span>
+            </div>
+            <div class="stat-n">1.2M rec</div>
+            <div><span class="status-live">live</span></div>
+          </div>
+
+          <div class="agent-pulse">
+            <div class="an">Sentinel</div>
+            <div class="am">v0.9-beta</div>
+            <div class="act">
+              <span class="a1"></span><span class="a2"></span><span class="a1"></span><span class="a5"></span><span class="a3"></span><span class="a1"></span><span class="a1"></span><span class="a2"></span>
+            </div>
+            <div class="stat-n">1 new</div>
+            <div><span class="status-live warn">review</span></div>
+          </div>
+
+          <div class="agent-pulse">
+            <div class="an">Scout</div>
+            <div class="am">v1.1</div>
+            <div class="act">
+              <span class="a2"></span><span class="a1"></span><span class="a2"></span><span class="a3"></span><span class="a4"></span><span class="a2"></span><span class="a2"></span><span class="a3"></span>
+            </div>
+            <div class="stat-n">8 maps</div>
+            <div><span class="status-live">live</span></div>
+          </div>
+
+          <div class="agent-pulse">
+            <div class="an">Auditor</div>
+            <div class="am">gpt-5 · v1.1</div>
+            <div class="act">
+              <span class="a2"></span><span class="a3"></span><span class="a5"></span><span class="a3"></span><span class="a4"></span><span class="a4"></span><span class="a5"></span><span class="a3"></span>
+            </div>
+            <div class="stat-n">89 critiques</div>
+            <div><span class="status-live">live</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity + HITL + Carriers -->
+      <div class="sec-title">
+        <h2><span class="numeral">02</span>Activity &amp; queues</h2>
+        <div class="tools"><span class="pill">last 60 min</span></div>
+      </div>
+
+      <div class="split-3">
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Recent events</span>
+            <span class="m">feed</span>
+          </div>
+          <div class="feed">
+            <div class="feed-item">
+              <span class="feed-time">16:41</span>
+              <span class="feed-marker accent"></span>
+              <span class="feed-body"><span class="actor">sentinel</span> detected TDI Bulletin <span class="ref">TDI-2026-04-19-A</span>: revised §5.9504 territory schedule. 14 mappings affected.</span>
+            </div>
+            <div class="feed-item">
+              <span class="feed-time">16:37</span>
+              <span class="feed-marker ok"></span>
+              <span class="feed-body"><span class="actor">h.salazar</span> approved mapping <span class="ref">M-GW-242</span> for ATIC Deductible basis (SME-Def v2).</span>
+            </div>
+            <div class="feed-item">
+              <span class="feed-time">16:29</span>
+              <span class="feed-marker"></span>
+              <span class="feed-body"><span class="actor">cortex</span> classified 318 loss events · 301 auto-passed · 17 routed to HITL (5.3% route rate).</span>
+            </div>
+            <div class="feed-item">
+              <span class="feed-time">16:18</span>
+              <span class="feed-marker ok"></span>
+              <span class="feed-body"><span class="actor">bridge</span> reconciled 2,091 TW Casualty losses to GL · variance 0.02% within tolerance.</span>
+            </div>
+            <div class="feed-item">
+              <span class="feed-time">16:04</span>
+              <span class="feed-marker warn"></span>
+              <span class="feed-body"><span class="actor">auditor</span> contested Cortex on <span class="ref">ATX-CL-044183</span>: concurrent-causation flood flag.</span>
+            </div>
+            <div class="feed-item">
+              <span class="feed-time">15:58</span>
+              <span class="feed-marker"></span>
+              <span class="feed-body"><span class="actor">h.salazar</span> approved HITL case <span class="ref">SRC-CL-555981</span> · Code 17 Falling Objects.</span>
+            </div>
+            <div class="feed-item">
+              <span class="feed-time">15:42</span>
+              <span class="feed-marker ok"></span>
+              <span class="feed-body"><span class="actor">system</span> completed shadow run for NorthStar TX · 2,108 rows · 0 axiom fails.</span>
+            </div>
+            <div class="feed-item">
+              <span class="feed-time">15:19</span>
+              <span class="feed-marker accent"></span>
+              <span class="feed-body"><span class="actor">scout</span> proposed 3 new mappings on ATIC · cc_transaction.fee_code → LossPayment.feeCategory.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <span class="t">HITL queue preview</span>
+            <span class="m">12 open</span>
+          </div>
+          <div class="queue" style="margin: calc(-1 * var(--s-3)) calc(-1 * var(--s-4));">
+            <div class="queue-item">
+              <div class="qi-top">
+                <span class="qi-id">ATX-CL-044183</span>
+                <span class="qi-prio high">High</span>
+              </div>
+              <div class="qi-subject">Concurrent causation · freeze vs. flood</div>
+              <div class="qi-foot"><span class="carrier">ATIC · HO-3</span><span>2h 12m</span></div>
+            </div>
+            <div class="queue-item">
+              <div class="qi-top">
+                <span class="qi-id">ATX-CL-044190</span>
+                <span class="qi-prio critical">Fraud?</span>
+              </div>
+              <div class="qi-subject">Loss date precedes effective date · SIU referral</div>
+              <div class="qi-foot"><span class="carrier">ATIC · HO-5</span><span>48m</span></div>
+            </div>
+            <div class="queue-item">
+              <div class="qi-top">
+                <span class="qi-id">TWC-CL-119823</span>
+                <span class="qi-prio high">High</span>
+              </div>
+              <div class="qi-subject">Policy_ID mismatch · 2 policies for one premium txn</div>
+              <div class="qi-foot"><span class="carrier">TW Casualty · DP-3</span><span>3h 04m</span></div>
+            </div>
+            <div class="queue-item">
+              <div class="qi-top">
+                <span class="qi-id">TWC-CL-119901</span>
+                <span class="qi-prio high">High</span>
+              </div>
+              <div class="qi-subject">Named-storm cat-coding · Ernesto threshold</div>
+              <div class="qi-foot"><span class="carrier">TW Casualty · HO-3</span><span>5h 18m</span></div>
+            </div>
+            <div class="queue-item">
+              <div class="qi-top">
+                <span class="qi-id">ATX-CL-044201</span>
+                <span class="qi-prio med">Med</span>
+              </div>
+              <div class="qi-subject">Novel peril: “smoke from controlled burn”</div>
+              <div class="qi-foot"><span class="carrier">ATIC · HO-3</span><span>1h 40m</span></div>
+            </div>
+            <div class="queue-item">
+              <div class="qi-top">
+                <span class="qi-id">ATX-CL-043997</span>
+                <span class="qi-prio med">Med</span>
+              </div>
+              <div class="qi-subject">Territory 276 not yet effective</div>
+              <div class="qi-foot"><span class="carrier">ATIC · HO-3</span><span>6h 22m</span></div>
+            </div>
+          </div>
+          <div style="padding: var(--s-2) 0 0; text-align: center; border-top: 1px solid var(--rule-soft); margin-top: var(--s-2);">
+            <a href="review.html" style="font-family: var(--font-mono); font-size: var(--t-nano); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight:600;">Open full queue →</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <span class="t">Volume by carrier · 7d</span>
+            <span class="m">loss records</span>
+          </div>
+
+          <div class="vol-list" style="margin-top: var(--s-2);">
+            <div class="vol-row accent">
+              <span class="vn">Acme Texas Insurance <span class="sub">· ATIC</span></span>
+              <span class="vbar"><span class="vf" style="width:92%;"></span></span>
+              <span class="vp">6,812</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">TW Casualty <span class="sub">· TWC</span></span>
+              <span class="vbar"><span class="vf" style="width:58%;"></span></span>
+              <span class="vp">4,301</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">NorthStar Texas Property <span class="sub">· NTP</span></span>
+              <span class="vbar"><span class="vf" style="width:31%;"></span></span>
+              <span class="vp">2,308</span>
+            </div>
+            <div class="vol-row">
+              <span class="vn">Southern Regional Carriers <span class="sub">· SRC</span></span>
+              <span class="vbar"><span class="vf" style="width:22%;"></span></span>
+              <span class="vp">1,619</span>
+            </div>
+          </div>
+
+          <div style="margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--rule-soft);">
+            <div class="rule-label mb-2">HITL routing · 7d</div>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; height: 24px;">
+              <div style="background: var(--accent); flex: 1;" title="Concurrent causation · 34%"></div>
+              <div style="background: var(--accent-2); flex: 1;" title="Novel peril · 22%"></div>
+              <div style="background: var(--warn); flex: 1;" title="Form/product edge cases · 18%"></div>
+              <div style="background: var(--warn-soft); flex: 1;" title="Territory/geo · 14%"></div>
+              <div style="background: var(--ink-4); flex: 1;" title="Other · 12%"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-top: 4px; font-family: var(--font-mono); font-size: var(--t-nano); color: var(--ink-3); letter-spacing: 0.04em;">
+              <span>34% CC</span>
+              <span>22% Novel</span>
+              <span>18% Form</span>
+              <span>14% Geo</span>
+              <span>12% Other</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Heatmap -->
+      <div class="sec-title">
+        <h2><span class="numeral">03</span>Classification density · 7-day × 24-hour</h2>
+        <div class="tools"><span class="pill">UTC</span><span class="pill">cortex activity</span></div>
+      </div>
+
+      <div class="card" style="padding: var(--s-3) var(--s-4);">
+        <div class="heat-grid" id="heatGrid"></div>
+        <div style="display: flex; justify-content: space-between; margin-top: var(--s-2); font-family: var(--font-mono); font-size: var(--t-nano); color: var(--ink-3); letter-spacing: 0.04em;">
+          <span>Mon · Apr 13</span>
+          <span style="display: inline-flex; gap: 4px; align-items: center;">low
+            <span style="display: inline-flex; gap: 2px;">
+              <span style="width:10px; height:10px; background: var(--paper); border: 1px solid var(--rule-soft);"></span>
+              <span style="width:10px; height:10px; background: rgba(30,58,138,0.12);"></span>
+              <span style="width:10px; height:10px; background: rgba(30,58,138,0.28);"></span>
+              <span style="width:10px; height:10px; background: rgba(30,58,138,0.5);"></span>
+              <span style="width:10px; height:10px; background: rgba(30,58,138,0.75);"></span>
+              <span style="width:10px; height:10px; background: var(--accent);"></span>
+            </span>
+          high</span>
+          <span>Sun · Apr 19</span>
+        </div>
+      </div>
+
+      <!-- Citations footer -->
+      <div style="margin-top: var(--s-6); padding-top: var(--s-3); border-top: 1px solid var(--rule); color: var(--ink-4); font-family: var(--font-mono); font-size: var(--t-nano); letter-spacing: 0.08em; text-transform: uppercase; display: flex; justify-content: space-between;">
+        <span>Ontology v1.2.4 · GRE commit 4f7b12a · Snowflake warehouse REG_ANALYTICS_XL</span>
+        <span>Next compliance review · 2026-04-22 · H. Salazar</span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Build heatmap: 7 days × 24 hours with pseudo-random realistic pattern
+  (function () {
+    const grid = document.getElementById('heatGrid');
+    if (!grid) return;
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    // hours header
+    const header = document.createElement('span'); header.className = 'hr-label'; header.textContent = 'UTC';
+    grid.appendChild(header);
+    for (let h = 0; h < 24; h++) {
+      const hl = document.createElement('span'); hl.className = 'hr-label'; hl.style.textAlign = 'center';
+      hl.textContent = (h % 4 === 0) ? String(h).padStart(2, '0') : '';
+      grid.appendChild(hl);
+    }
+    // Weekday pattern: high daytime 12–22 UTC (7am–5pm CT), with Cortex ramp after pipeline at 04:12
+    const dayPattern = [0,0,0,0,3,2,1,1,1,2,2,3,3,4,4,5,5,4,4,3,2,1,1,0]; // per hour
+    for (let d = 0; d < 7; d++) {
+      const dl = document.createElement('span'); dl.className = 'hr-label'; dl.textContent = days[d];
+      grid.appendChild(dl);
+      for (let h = 0; h < 24; h++) {
+        const cell = document.createElement('span'); cell.className = 'heat-cell';
+        let base = dayPattern[h];
+        if (d >= 5) base = Math.max(0, base - 3); // weekends quieter
+        // jitter
+        const j = (Math.sin((d+1) * (h+1) * 0.9) + 1) / 2;
+        let lvl = Math.min(5, Math.max(0, Math.round(base + (j - 0.5) * 1.2)));
+        if (lvl > 0) cell.classList.add('h' + lvl);
+        grid.appendChild(cell);
+      }
+    }
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RegulAI — The Agentic Regulatory Workforce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-v2.css" />
+  <style>
+    /* Extended landing for 6-tile demo launcher */
+    .landing { grid-template-rows: 44px 1fr 60px; }
+    .landing-main {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: var(--s-7);
+      padding: var(--s-8) var(--s-7) var(--s-6);
+      max-width: 1640px;
+      margin: 0 auto;
+      width: 100%;
+      align-items: start;
+    }
+    .tile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--s-2);
+    }
+    .tile {
+      display: block;
+      padding: var(--s-4) var(--s-4) var(--s-4);
+      background: var(--paper-elev);
+      border: 1px solid var(--rule);
+      position: relative;
+      transition: all 180ms;
+      min-height: 180px;
+    }
+    .tile:hover {
+      border-color: var(--accent);
+      background: var(--paper-warm);
+    }
+    .tile::after {
+      content: "→";
+      position: absolute;
+      top: var(--s-4); right: var(--s-4);
+      font-family: var(--font-mono);
+      font-size: 18px;
+      color: var(--ink-4);
+      transition: all 180ms;
+    }
+    .tile:hover::after { color: var(--accent); transform: translateX(4px); }
+    .tile-num {
+      font-family: var(--font-mono);
+      font-size: var(--t-nano);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .tile-title {
+      font-family: var(--font-ui);
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      margin: var(--s-1) 0 var(--s-2);
+      color: var(--ink);
+    }
+    .tile-title em {
+      font-style: normal;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .tile-desc {
+      font-size: var(--t-small);
+      color: var(--ink-3);
+      line-height: 1.55;
+      margin: 0 var(--s-4) var(--s-3) 0;
+    }
+    .tile-tags {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: auto;
+    }
+    .tile.feature {
+      grid-column: 1 / -1;
+      min-height: 220px;
+      background: var(--paper-warm);
+      border-color: var(--ink-3);
+      border-left: 3px solid var(--accent);
+      padding-left: calc(var(--s-4) - 2px);
+    }
+    .tile.feature .tile-title { font-size: 36px; }
+  </style>
+</head>
+<body class="landing">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">R</span>
+      <span>RegulAI</span>
+    </a>
+    <div class="topbar-crumbs">
+      <span>Workspace</span>
+      <span class="sep">/</span>
+      <span>Demo</span>
+      <span class="sep">/</span>
+      <span class="current">Overview</span>
+    </div>
+    <div class="topbar-center"></div>
+    <div class="topbar-right">
+      <span class="env-chip">DEMO · v0.4.1</span>
+      <div class="user-chip">
+        <div class="avatar">HS</div>
+        <span>H. Salazar</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="landing-main">
+    <section class="landing-intro">
+      <div class="landing-kicker">Confidential · Design Preview · Q2 2026</div>
+      <h1 class="landing-title">The last mile<br/>of <em>statistical</em> filing,<br/>under management.</h1>
+      <p class="landing-lede">
+        RegulAI replaces the retiring manual compliance workforce
+        with a graph-native regulation engine, an agentic pipeline,
+        and human specialists on standby for edge cases.
+        Six surfaces, one system of record.
+      </p>
+      <dl class="landing-meta">
+        <dt>Coverage</dt><dd>U.S. P&amp;C · Residential + Commercial · TX first</dd>
+        <dt>Source of Record</dt><dd>Guidewire PolicyCenter · via CDA</dd>
+        <dt>Filing Targets</dt><dd>TICO · ISO / Verisk · NAIC · NCCI</dd>
+        <dt>Stack</dt><dd>Databricks DLT · Genie · Neo4j GRE · Workday GL</dd>
+        <dt>Agents</dt><dd>Cortex · Bridge · Sentinel + HITL Specialists</dd>
+        <dt>Document</dt><dd>Interactive mock v2 · April 2026</dd>
+      </dl>
+    </section>
+
+    <section class="tile-grid">
+
+      <a href="dashboard.html" class="tile feature">
+        <div class="tile-num">Surface 01 · Command Center</div>
+        <h2 class="tile-title">The <em>Dashboard</em></h2>
+        <p class="tile-desc">
+          Executive view of filing operations: TICO Q1 2026 progress, L0→L5 pipeline health, three-agent pulse,
+          MR queue by trigger type, Sentinel bulletin feed, GL variance bands. Built for a Head of Compliance
+          checking status between meetings.
+        </p>
+        <div class="tile-tags">
+          <span class="pill">4 carriers</span>
+          <span class="pill">3 agents · 3 HITL tiers</span>
+          <span class="pill">94.2% auto-clear</span>
+          <span class="pill">11,420 hours saved YTD</span>
+        </div>
+      </a>
+
+      <a href="workbench.html" class="tile">
+        <div class="tile-num">Surface 02 · Knowledge Capture</div>
+        <h2 class="tile-title">SOP <em>Workbench</em></h2>
+        <p class="tile-desc">
+          Where retiring specialists' institutional knowledge becomes versioned <span style="font-style:italic;">CarrierSOP</span>
+          rule nodes in the GRE — peer-reviewed before activation, linked to the base regulatory schema.
+        </p>
+        <div class="tile-tags">
+          <span class="pill">Neo4j GRE</span>
+          <span class="pill">128 rule nodes</span>
+          <span class="pill">four-eyes review</span>
+        </div>
+      </a>
+
+      <a href="review.html" class="tile">
+        <div class="tile-num">Surface 03 · Genie HITL Workspace</div>
+        <h2 class="tile-title">HITL <em>Adjudication</em></h2>
+        <p class="tile-desc">
+          The compliance guarantee. Eight precisely-classified trigger conditions, three specialist tiers,
+          seven-section decision panel with NWS track overlay and prior-case library, immutable
+          <span class="mono" style="font-size:11px;">HITL_AUDIT_LOG</span>.
+        </p>
+        <div class="tile-tags">
+          <span class="pill">8 triggers</span>
+          <span class="pill">T1 · T2 · T3</span>
+          <span class="pill">Genie NL query</span>
+        </div>
+      </a>
+
+      <a href="pipeline.html" class="tile">
+        <div class="tile-num">Surface 04 · Runtime</div>
+        <h2 class="tile-title">Pipeline <em>Monitor</em></h2>
+        <p class="tile-desc">
+          Ten-step DLT lifecycle across L0–L5: CDA ingest → Bronze → GRE rule resolution → Silver coding →
+          HITL queue → Gold aggregation → TICO filing → Workday GL recon → audit → Sentinel continuous monitor.
+        </p>
+        <div class="tile-tags">
+          <span class="pill">Databricks DLT</span>
+          <span class="pill">Cortex · Bridge · Sentinel</span>
+          <span class="pill">1 active run</span>
+        </div>
+      </a>
+
+      <a href="ontology.html" class="tile">
+        <div class="tile-num">Surface 05 · Knowledge</div>
+        <h2 class="tile-title">GRE <em>Explorer</em></h2>
+        <p class="tile-desc">
+          Browse the Graph Regulation Engine. StatPlanEdition · COLCodeRule · TerritoryRule · EndorsementRule ·
+          BulletinOverride · CarrierSOP — the digital twin of every TICO/ISO/NCCI statistical plan.
+        </p>
+        <div class="tile-tags">
+          <span class="pill">4,912 rule nodes</span>
+          <span class="pill">6 node types</span>
+          <span class="pill">v1.2.4</span>
+        </div>
+      </a>
+
+      <a href="filings.html" class="tile">
+        <div class="tile-num">Surface 06 · Outbound + Recon</div>
+        <h2 class="tile-title">Filings &amp; <em>Reconciliation</em></h2>
+        <p class="tile-desc">
+          Regulator-facing deliverables and Workday GL variance analysis. TICO / ISO / NCCI submissions,
+          four-band variance (0.1% · 0.5% · 1%), immutable seven-year audit archive, regulator connection health.
+        </p>
+        <div class="tile-tags">
+          <span class="pill">4 active filings</span>
+          <span class="pill">0 TICO rejections</span>
+          <span class="pill">GL variance 0.03%</span>
+        </div>
+      </a>
+
+    </section>
+  </main>
+
+  <footer class="landing-footer">
+    <span>RegulAI Inc. · Austin, TX · Est. 2026</span>
+    <span>Demo build · Not for external distribution</span>
+  </footer>
+
+</body>
+</html>

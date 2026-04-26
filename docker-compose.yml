@@ -1,0 +1,19 @@
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: regulai-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/regulai-dev-password
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_memory_pagecache_size: 512M
+      NEO4J_dbms_memory_heap_max__size: 1G
+    volumes:
+      - regulai-neo4j-data:/data
+      - regulai-neo4j-logs:/logs
+
+volumes:
+  regulai-neo4j-data:
+  regulai-neo4j-logs:

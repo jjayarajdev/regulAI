@@ -1,0 +1,244 @@
+"""Materialize a SentinelExtraction into the KG (Neo4j) + JSONL snapshot.
+
+Three phases:
+
+1. **ID resolution**: every ProposedNode gets a UUID. If an existing node with
+   the same (type, name) already lives in the KG, we reuse its UUID — no
+   duplicate. This is the dedup that keeps re-running extractions or ingesting
+   bulletins that reference existing rules from creating noise.
+
+2. **Node materialization**: for each proposal not matched against existing,
+   we convert the flat ProposedNode → typed GRENode and write to Neo4j.
+
+3. **Relationship + citation materialization**: with all temp_ids → UUIDs,
+   we write proposed_relationships and CITES (from the citations list) using
+   real UUIDs. Already-existing identical relationships are NOT deduped in
+   this POC pass — same edge twice = idempotent at write time.
+
+The result also lands as JSONL in `materialized/approved/<doc>.json` so future
+RHS work can read the approved canon without going to Neo4j.
+"""
+
+import json
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from uuid import UUID, uuid4
+
+from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+from packages.config.settings import settings
+from packages.core.enums import RelationshipType
+from packages.core.nodes import GRENode
+from packages.core.relationships import CitesRelationship, GRERelationship
+from packages.lhs.citations.pdf_highlight import CitationRectsBundle
+from packages.lhs.materialization.node_factory import proposed_to_typed_node
+from packages.lhs.sentinel.schema import (
+    CitationProposal,
+    ProposedNode,
+    ProposedRelationship,
+    SentinelExtraction,
+)
+
+
+@dataclass
+class MaterializationResult:
+    document_label: str
+    nodes_created: list[tuple[str, str]] = field(default_factory=list)  # (type, name)
+    nodes_reused: list[tuple[str, str]] = field(default_factory=list)
+    relationships_created: int = 0
+    citations_created: int = 0
+    skipped_proposals: list[tuple[str, str]] = field(default_factory=list)  # (name, reason)
+    materialized_path: Path | None = None
+
+    def summary(self) -> str:
+        return (
+            f"  Created: {len(self.nodes_created)} nodes\n"
+            f"  Reused:  {len(self.nodes_reused)} nodes (existing in KG)\n"
+            f"  Relationships: {self.relationships_created}\n"
+            f"  Citations:     {self.citations_created}\n"
+            f"  Skipped:       {len(self.skipped_proposals)}"
+        )
+
+
+def _resolve_temp_ids(
+    proposals: list[ProposedNode],
+    gre: Neo4jGREAdapter,
+) -> tuple[dict[str, UUID], dict[str, GRENode], list[tuple[str, str]]]:
+    """First pass: assign each temp_id a UUID, reusing existing nodes when matched.
+
+    Returns:
+      - temp_id_to_uuid: mapping for cross-reference resolution
+      - existing_by_temp_id: ProposedNodes that matched existing KG nodes
+        (these won't be re-created in phase 2)
+      - reused: list of (type, name) for the result summary
+    """
+    temp_id_to_uuid: dict[str, UUID] = {}
+    existing_by_temp_id: dict[str, GRENode] = {}
+    reused: list[tuple[str, str]] = []
+
+    for p in proposals:
+        type_label = p.type.value if hasattr(p.type, "value") else str(p.type)
+        # Hash-based dedup for documents
+        if p.hash:
+            doc = gre.find_document_by_hash(p.hash)
+            if doc is not None:
+                temp_id_to_uuid[p.temp_id] = doc.id
+                existing_by_temp_id[p.temp_id] = doc
+                reused.append((type_label, p.name))
+                continue
+        # (type, name) dedup for everything else
+        existing = gre.find_existing_by_name(type_label, p.name)
+        if existing is not None:
+            temp_id_to_uuid[p.temp_id] = existing.id
+            existing_by_temp_id[p.temp_id] = existing
+            reused.append((type_label, p.name))
+        else:
+            temp_id_to_uuid[p.temp_id] = uuid4()
+
+    return temp_id_to_uuid, existing_by_temp_id, reused
+
+
+def _write_relationship(
+    gre: Neo4jGREAdapter,
+    rel: ProposedRelationship,
+    temp_id_to_uuid: dict[str, UUID],
+) -> bool:
+    src_id = temp_id_to_uuid.get(rel.src_temp_id)
+    dst_id = temp_id_to_uuid.get(rel.dst_temp_id)
+    if src_id is None or dst_id is None:
+        return False
+
+    if rel.type == RelationshipType.CITES and rel.char_start is not None and rel.char_end is not None:
+        gre.create_relationship(
+            CitesRelationship(
+                src_node_id=src_id,
+                dst_node_id=dst_id,
+                char_start=rel.char_start,
+                char_end=rel.char_end,
+                kind=rel.citation_kind or "defines",
+            )
+        )
+    else:
+        gre.create_relationship(
+            GRERelationship(
+                type=rel.type,
+                src_node_id=src_id,
+                dst_node_id=dst_id,
+            )
+        )
+    return True
+
+
+def _write_citation(
+    gre: Neo4jGREAdapter,
+    cite: CitationProposal,
+    temp_id_to_uuid: dict[str, UUID],
+    document_node_id: UUID,
+    rects_json: str | None = None,
+) -> bool:
+    """Write a CITES relationship from the cited node to the source document.
+
+    For now we cite the document-level node. Once Sentinel emits Rule-level
+    citations consistently, we can route to the specific Rule node instead.
+    `rects_json` (when present) is the PyMuPDF-derived JSON list of PDF
+    rectangles for this citation, persisted on the relationship so the KG
+    is self-contained for highlight provenance.
+    """
+    src = temp_id_to_uuid.get(cite.node_temp_id)
+    if src is None:
+        return False
+    gre.create_relationship(
+        CitesRelationship(
+            src_node_id=src,
+            dst_node_id=document_node_id,
+            char_start=cite.char_start,
+            char_end=cite.char_end,
+            kind=cite.kind,
+            rects_json=rects_json,
+        )
+    )
+    return True
+
+
+def _identify_document_node(
+    extraction: SentinelExtraction,
+    temp_id_to_uuid: dict[str, UUID],
+) -> UUID | None:
+    """Pick the primary RegulationDocument from the extraction (the one being reviewed)."""
+    for p in extraction.proposed_nodes:
+        if p.type.value == "RegulationDocument" and p.hash:
+            return temp_id_to_uuid.get(p.temp_id)
+    # Fallback: first RegulationDocument
+    for p in extraction.proposed_nodes:
+        if p.type.value == "RegulationDocument":
+            return temp_id_to_uuid.get(p.temp_id)
+    return None
+
+
+def materialize(
+    extraction: SentinelExtraction,
+    gre: Neo4jGREAdapter,
+    document_label: str,
+    snapshot_dir: Path | None = None,
+    rects_bundle: CitationRectsBundle | None = None,
+) -> MaterializationResult:
+    result = MaterializationResult(document_label=document_label)
+
+    # Phase 1: resolve temp_ids → UUIDs (with dedup)
+    temp_id_to_uuid, existing, reused = _resolve_temp_ids(extraction.proposed_nodes, gre)
+    result.nodes_reused = reused
+
+    # Phase 2: create new nodes (those not matched against existing)
+    for p in extraction.proposed_nodes:
+        if p.temp_id in existing:
+            continue
+        type_label = p.type.value if hasattr(p.type, "value") else str(p.type)
+        try:
+            typed = proposed_to_typed_node(p, temp_id_to_uuid[p.temp_id], temp_id_to_uuid)
+        except ValueError as e:
+            result.skipped_proposals.append((p.name, str(e)))
+            continue
+        gre.create_node(typed)
+        result.nodes_created.append((type_label, p.name))
+
+    # Phase 3: relationships
+    for rel in extraction.proposed_relationships:
+        if _write_relationship(gre, rel, temp_id_to_uuid):
+            result.relationships_created += 1
+
+    # Phase 4: citations — link every cited node to the primary document.
+    # If a rects_bundle was supplied, attach the PyMuPDF-derived rects as
+    # a JSON property on the CITES relationship (one per citation, by index).
+    document_node_id = _identify_document_node(extraction, temp_id_to_uuid)
+    if document_node_id is not None:
+        for i, cite in enumerate(extraction.citations):
+            rects_json: str | None = None
+            if rects_bundle is not None and i < len(rects_bundle.citation_rects):
+                rects = rects_bundle.citation_rects[i]
+                if rects:
+                    rects_json = json.dumps([r.model_dump(mode="json") for r in rects])
+            if _write_citation(gre, cite, temp_id_to_uuid, document_node_id, rects_json):
+                result.citations_created += 1
+
+    # Phase 5: snapshot to disk for downstream RHS consumption
+    if snapshot_dir is None:
+        snapshot_dir = settings.materialized_dir / "approved"
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+    snapshot_path = snapshot_dir / f"{document_label}.materialized.json"
+    snapshot = {
+        "document_label": document_label,
+        "materialized_at": datetime.now().isoformat(),
+        "extraction_summary": extraction.summary,
+        "temp_id_to_uuid": {k: str(v) for k, v in temp_id_to_uuid.items()},
+        "nodes_created": [{"type": t, "name": n} for t, n in result.nodes_created],
+        "nodes_reused": [{"type": t, "name": n} for t, n in result.nodes_reused],
+        "relationships_created": result.relationships_created,
+        "citations_created": result.citations_created,
+        "skipped_proposals": [
+            {"name": n, "reason": r} for n, r in result.skipped_proposals
+        ],
+    }
+    snapshot_path.write_text(json.dumps(snapshot, indent=2), encoding="utf-8")
+    result.materialized_path = snapshot_path
+
+    return result

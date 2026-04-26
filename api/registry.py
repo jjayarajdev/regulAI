@@ -1,0 +1,165 @@
+"""Document registry — every regulation document available to the UI.
+
+Each entry exposes:
+  - `slug` — stable URL id
+  - `path` — extracted text on disk (Sentinel input)
+  - `pdf_path` — the source PDF for left-pane rendering (None for markdown-only docs)
+  - `pdf_start_page` / `pdf_end_page` — for sections, the page range within the parent PDF
+"""
+
+from dataclasses import dataclass
+from pathlib import Path
+
+REGULATIONS_DIR = Path("references/regulations")
+TICO_PDF = REGULATIONS_DIR / "TX_Statistical_Plan_Residential_Risks_2026.pdf"
+HB2067_PDF = REGULATIONS_DIR / "HB02067I.pdf"
+TICO_RECORDLAYOUT_HO_PDF = REGULATIONS_DIR / "tico_recordLayoutHomeOwners.pdf"
+
+
+@dataclass(frozen=True)
+class DocEntry:
+    slug: str
+    label: str
+    category: str
+    path: Path
+    blurb: str
+    pdf_path: Path | None = None
+    pdf_start_page: int = 1
+    pdf_end_page: int | None = None
+
+
+# Section page ranges within the TICO Stat Plan PDF (computed from page markers).
+DOCS: list[DocEntry] = [
+    DocEntry(
+        slug="tico-section-a",
+        label="TICO Stat Plan — Section A: General Rules",
+        category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
+        path=Path("synthetic_regulations/real/sections/section_A_general.md"),
+        blurb="35 numbered rules covering scope, identifiers, designated agent, transmittal form, and HB 2067 reasons + counts.",
+        pdf_path=TICO_PDF,
+        pdf_start_page=4,
+        pdf_end_page=26,
+    ),
+    DocEntry(
+        slug="tico-section-b",
+        label="TICO Stat Plan — Section B: Coding for Premiums and Losses",
+        category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
+        path=Path("synthetic_regulations/real/sections/section_B_coding.md"),
+        blurb="The actual code tables — Cause of Loss, Line of Business, Deductible types, Construction, Roof, etc.",
+        pdf_path=TICO_PDF,
+        pdf_start_page=27,
+        pdf_end_page=41,
+    ),
+    DocEntry(
+        slug="tico-section-c",
+        label="TICO Stat Plan — Section C: Record Layout for Premiums",
+        category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
+        path=Path("synthetic_regulations/real/sections/section_C_record.md"),
+        blurb="Field-by-field layout of premium records.",
+        pdf_path=TICO_PDF,
+        pdf_start_page=42,
+        pdf_end_page=63,
+    ),
+    DocEntry(
+        slug="tico-section-d",
+        label="TICO Stat Plan — Section D: Record Layout for Losses",
+        category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
+        path=Path("synthetic_regulations/real/sections/section_D_record.md"),
+        blurb="Field-by-field layout of loss records.",
+        pdf_path=TICO_PDF,
+        pdf_start_page=64,
+        pdf_end_page=79,
+    ),
+    DocEntry(
+        slug="tico-section-e",
+        label="TICO Stat Plan — Section E: Record Layout for Notices",
+        category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
+        path=Path("synthetic_regulations/real/sections/section_E_record.md"),
+        blurb="HB 2067 notice report layout (cancellation, nonrenewal, declination notices).",
+        pdf_path=TICO_PDF,
+        pdf_start_page=80,
+        pdf_end_page=84,
+    ),
+    DocEntry(
+        slug="tico-section-f",
+        label="TICO Stat Plan — Section F: Notice Reason Code Instructions",
+        category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
+        path=Path("synthetic_regulations/real/sections/section_F_additional.md"),
+        blurb="Full HB 2067 reason code list with definitions and source indicators.",
+        pdf_path=TICO_PDF,
+        pdf_start_page=85,
+        pdf_end_page=90,
+    ),
+    DocEntry(
+        slug="tico-section-g",
+        label="TICO Stat Plan — Section G: Record Layout for Counts",
+        category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
+        path=Path("synthetic_regulations/real/sections/section_G_record.md"),
+        blurb="HB 2067 count report layout for actual cancellations/nonrenewals/declinations.",
+        pdf_path=TICO_PDF,
+        pdf_start_page=91,
+        pdf_end_page=92,
+    ),
+    DocEntry(
+        slug="hb-2067",
+        label="HB 2067 — Declination, Cancellation, Nonrenewal of Insurance Policies",
+        category="Texas statute",
+        path=Path("synthetic_regulations/real/HB02067I.txt"),
+        blurb="89th Legislature, Regular Session. Authorizes the Commissioner to adopt notice and reporting rules.",
+        pdf_path=HB2067_PDF,
+        pdf_start_page=1,
+        pdf_end_page=3,
+    ),
+    DocEntry(
+        slug="tico-record-layout-homeowners",
+        label="TICO Wire Layout — Homeowners (Premiums + Losses)",
+        category="Texas Statistical Plan — Operational Wire Layouts",
+        path=Path("synthetic_regulations/real/wire_layouts/tico_recordLayoutHomeOwners.txt"),
+        blurb="Operational record layout TICO actually receives. Defines the 200-char fixed-width line per record, column-by-column, with all enumerated code values. Source for deterministic KG population (parser, not LLM).",
+        pdf_path=TICO_RECORDLAYOUT_HO_PDF,
+        pdf_start_page=1,
+        pdf_end_page=25,
+    ),
+    DocEntry(
+        slug="bulletin-2026-q3-104",
+        label="Synthetic Bulletin B-2026-Q3-104 — Named Storm COL split",
+        category="Synthetic change bulletin (POC demo)",
+        path=Path("synthetic_regulations/synthetic/bulletins/B-2026-Q3-104.md"),
+        blurb="DEMO bulletin: splits Cause of Loss code 25 (Windstorm) and adds code 26 for Named Storm Wind, plus 3 new fields.",
+        pdf_path=None,  # markdown-only
+    ),
+]
+
+DOCS_BY_SLUG: dict[str, DocEntry] = {d.slug: d for d in DOCS}
+
+
+def get_doc(slug: str) -> DocEntry | None:
+    return DOCS_BY_SLUG.get(slug)
+
+
+def extraction_path_for(doc: DocEntry) -> Path:
+    return Path("materialized/extractions") / f"{doc.path.stem}.extraction.json"
+
+
+def rects_path_for(doc: DocEntry) -> Path:
+    """Companion file holding citation_rects + page_dimensions for the UI."""
+    return Path("materialized/extractions") / f"{doc.path.stem}.rects.json"
+
+
+# Map a registry slug to the RecordLayout name(s) the parser writes for it.
+# When a doc has wire-format layouts in the KG, the UI's third pane lights up
+# with sample-record generation and validation against that layout.
+WIRE_LAYOUTS_FOR_SLUG: dict[str, list[str]] = {
+    "tico-section-c": ["Premium Record Layout"],
+    "tico-section-d": ["Loss Record Layout"],
+    "tico-section-e": ["Notice Record Layout"],
+    "tico-section-g": ["Notice Count Record Layout"],
+    "tico-record-layout-homeowners": [
+        "Homeowners Premium Record Layout",
+        "Homeowners Loss Record Layout",
+    ],
+}
+
+
+def wire_layouts_for(slug: str) -> list[str]:
+    return WIRE_LAYOUTS_FOR_SLUG.get(slug, [])
