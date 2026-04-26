@@ -129,6 +129,14 @@ DOCS: list[DocEntry] = [
         blurb="DEMO bulletin: splits Cause of Loss code 25 (Windstorm) and adds code 26 for Named Storm Wind, plus 3 new fields.",
         pdf_path=None,  # markdown-only
     ),
+    DocEntry(
+        slug="bulletin-2027-q1-117",
+        label="Synthetic Bulletin B-2027-Q1-117 — Reinsurance Coverage Indicator",
+        category="Synthetic change bulletin (POC demo)",
+        path=Path("synthetic_regulations/synthetic/bulletins/B-2027-Q1-117.md"),
+        blurb="DEMO bulletin: adds a Reinsurance Coverage Indicator (Y/N/U) at column 184 of the Premium Record Layout, effective 2027-01-01. Used by `make demo-new-bulletin` to show end-to-end RAG → review → KG update.",
+        pdf_path=None,  # markdown-only
+    ),
 ]
 
 DOCS_BY_SLUG: dict[str, DocEntry] = {d.slug: d for d in DOCS}

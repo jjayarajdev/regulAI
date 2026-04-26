@@ -87,8 +87,15 @@ def apply_bulletin(bulletin_name: str | None, dry_run: bool) -> int:
                 continue
             cutoff = (eff_date - timedelta(days=1)).isoformat()
 
+            # Layouts and FieldRequirements aren't superseded as a unit —
+            # they get *amended* via new content. Bulletins legitimately
+            # supersede Rules, CodeValues, and CodeLists; everything else
+            # keeps its identity even when content evolves around it.
             targets = s.run("""
                 MATCH (b:BulletinOverride {id: $bid})-[:OVERRIDES]->(target)
+                WHERE NOT target:RecordLayout
+                  AND NOT target:FieldRequirement
+                  AND NOT target:RegulationDocument
                 RETURN target.id AS id,
                        target.name AS name,
                        labels(target) AS labels,

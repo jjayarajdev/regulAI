@@ -51,8 +51,27 @@ def _node_to_props(node: GRENode) -> dict[str, Any]:
     return node.model_dump(mode="json")
 
 
+def _coerce_neo4j_dates(props: dict[str, Any]) -> dict[str, Any]:
+    """Convert neo4j.time.Date / DateTime values into stdlib types.
+
+    The Neo4j Python driver returns `neo4j.time.Date` for date columns;
+    Pydantic's `date` validator rejects these. This shim runs over a
+    flat property dict before Pydantic instantiation.
+    """
+    import neo4j.time as nt
+    from datetime import date as _date, datetime as _datetime
+    out = dict(props)
+    for k, v in props.items():
+        if isinstance(v, nt.Date):
+            out[k] = _date(v.year, v.month, v.day)
+        elif isinstance(v, nt.DateTime):
+            out[k] = _datetime(v.year, v.month, v.day, v.hour, v.minute, int(v.second))
+    return out
+
+
 def _props_to_node(props: dict[str, Any]) -> GRENode:
     """Neo4j property dict → Pydantic node, dispatched by 'type'."""
+    props = _coerce_neo4j_dates(props)
     type_str = props.get("type")
     if type_str is None or type_str not in NODE_TYPE_REGISTRY:
         raise ValueError(f"Unknown or missing node type: {type_str!r}")

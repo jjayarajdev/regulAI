@@ -59,6 +59,14 @@ def main() -> None:
         "tico-section-g",
     }
 
+    # Slugs that exist for the `make demo-new-bulletin` demo and are
+    # deliberately NOT loaded by rebuild_kg, so the demo can ingest them
+    # freshly against a clean baseline and show real ADD/MODIFY/SUPERSEDE
+    # diffs. Loaded only on demand via demo_new_bulletin.py.
+    DEMO_ONLY = {
+        "bulletin-2027-q1-117",
+    }
+
     _step(3, total_steps, "Replay cached LLM extractions")
     replayed = 0
     for doc in DOCS:
@@ -67,6 +75,9 @@ def main() -> None:
             continue
         if doc.slug in PARSER_OWNED:
             print(f"  [parser-owned] {doc.slug}  (skipping LLM extraction; parser will handle)")
+            continue
+        if doc.slug in DEMO_ONLY:
+            print(f"  [demo-only]    {doc.slug}  (skipped — load via `make demo-new-bulletin`)")
             continue
         if not doc.path.exists():
             print(f"  [skip] {doc.slug}: source text missing")

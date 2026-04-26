@@ -281,7 +281,7 @@ RETURN
   f.field_name                             AS field,
   f.position_start                         AS column,
   n_codes                                  AS distinct_legal_values
-ORDER BY n_codes DESC LIMIT 10;
+ORDER BY n_codes DESC LIMIT 25;
 
 
 // 0.18 "Compare the broad Stat Plan Premium layout vs the Homeowners-

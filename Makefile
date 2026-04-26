@@ -76,6 +76,13 @@ cleanup-kg:
 demo-bulletin:
 	uv run python -m scripts.demo_bulletin
 
+demo-new-bulletin:
+	@if [ -n "$(AUTO)" ]; then \
+	    uv run python -m scripts.demo_new_bulletin --auto; \
+	else \
+	    uv run python -m scripts.demo_new_bulletin; \
+	fi
+
 cypher-favorites:
 	uv run python -m scripts.build_cypher_favorites > cypher/saved-cypher.json
 	@echo "Wrote cypher/saved-cypher.json"
