@@ -67,52 +67,54 @@ def parse_file(path: Path) -> tuple[str, str, list[tuple[str, str, str]]]:
     return folder, intro, queries
 
 
-# Neo4j Browser's guide HTML is a series of <slide> elements. The Browser
-# recognizes <pre class="runnable">…cypher…</pre> as a clickable code block.
-SLIDE_TEMPLATE = """<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>{number}</h3>
-    <p class="lead">{folder_name}</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>{title}</h3>
-    {prose_html}
-    <figure class="runnable">
-      <pre class="runnable">{cypher}</pre>
-      <figcaption><a help-topic="cypher" class="help">{title}</a></figcaption>
-    </figure>
-    <hr>
-    <p>{nav_html}</p>
-  </div>
-</slide>
-"""
+# Neo4j Browser guide format — required structure:
+#   <article class="guide">
+#     <carousel class="deck container-fluid">
+#       <slide class="row-fluid">…</slide>
+#       <slide class="row-fluid">…</slide>
+#     </carousel>
+#   </article>
+# Cypher inside <pre class="runnable">…</pre> becomes click-to-run.
+SLIDE_TEMPLATE = """    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>{number}</h3>
+        <p class="lead">{folder_name}</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>{title}</h3>
+        {prose_html}
+        <figure>
+          <pre class="runnable">{cypher}</pre>
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>"""
 
-INDEX_SLIDE = """<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>RegulAI · POC</h3>
-    <p class="lead">Saved Cypher tour</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>RegulAI — Cypher Tour</h3>
-    <p>Curated queries that walk every facet of the LHS slice. Click <code>▶</code> on any code block to run it. Use the arrows to page through.</p>
-    <p>Source: <code>cypher/*.cypher</code> in the repo. Runs against the local Neo4j (use <code>make rebuild-kg</code> first).</p>
-    <h4>What's in here</h4>
-    <ol>{toc}</ol>
-    <hr>
-    <p>Press <kbd>→</kbd> or click "Next" to begin.</p>
-  </div>
-</slide>
-"""
+INDEX_SLIDE = """    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>RegulAI · POC</h3>
+        <p class="lead">Saved Cypher tour</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>RegulAI — Cypher Tour</h3>
+        <p>Curated queries that walk every facet of the LHS slice. Click <code>▶</code> on any code block to run it. Use the slide controls (top-right of this guide) to page through.</p>
+        <p>Source: <code>cypher/*.cypher</code> in the repo. Runs against the local Neo4j (use <code>make rebuild-kg</code> first).</p>
+        <h4>What's in here</h4>
+        <ol>{toc}</ol>
+      </div>
+    </slide>"""
 
 PAGE = """<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <title>RegulAI Cypher Tour</title>
 </head>
 <body class="black-bg">
 <article class="guide">
+  <carousel class="deck container-fluid">
 {slides}
+  </carousel>
 </article>
 </body>
 </html>
@@ -142,12 +144,6 @@ def main() -> None:
             flat.append((folder, title, prose, cypher))
 
     for i, (folder, title, prose, cypher) in enumerate(flat):
-        nav_parts = []
-        if i > 0:
-            nav_parts.append('<a play-topic="" class="back-btn">← Previous</a>')
-        if i + 1 < len(flat):
-            nav_parts.append('<a play-topic="" class="next-btn">Next →</a>')
-        nav_html = " &nbsp;·&nbsp; ".join(nav_parts) if nav_parts else "&nbsp;"
         prose_html = f"<p>{h(prose)}</p>" if prose else ""
         slides.append(SLIDE_TEMPLATE.format(
             number=f"{i + 1} / {len(flat)}",
@@ -155,7 +151,6 @@ def main() -> None:
             title=h(title),
             prose_html=prose_html,
             cypher=h(cypher),
-            nav_html=nav_html,
         ))
 
     page = PAGE.format(slides="\n".join(slides))

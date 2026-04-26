@@ -1,139 +1,122 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <title>RegulAI Cypher Tour</title>
 </head>
 <body class="black-bg">
 <article class="guide">
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>RegulAI · POC</h3>
-    <p class="lead">Saved Cypher tour</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>RegulAI — Cypher Tour</h3>
-    <p>Curated queries that walk every facet of the LHS slice. Click <code>▶</code> on any code block to run it. Use the arrows to page through.</p>
-    <p>Source: <code>cypher/*.cypher</code> in the repo. Runs against the local Neo4j (use <code>make rebuild-kg</code> first).</p>
-    <h4>What's in here</h4>
-    <ol><li>KG Overview <em>(5 queries)</em></li>
+  <carousel class="deck container-fluid">
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>RegulAI · POC</h3>
+        <p class="lead">Saved Cypher tour</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>RegulAI — Cypher Tour</h3>
+        <p>Curated queries that walk every facet of the LHS slice. Click <code>▶</code> on any code block to run it. Use the slide controls (top-right of this guide) to page through.</p>
+        <p>Source: <code>cypher/*.cypher</code> in the repo. Runs against the local Neo4j (use <code>make rebuild-kg</code> first).</p>
+        <h4>What's in here</h4>
+        <ol><li>KG Overview <em>(5 queries)</em></li>
       <li>Wire Format Exploration <em>(5 queries)</em></li>
       <li>Citation Provenance <em>(5 queries)</em></li>
       <li>Temporal Pinning + Bulletin Re-evaluation <em>(6 queries)</em></li>
       <li>KG Hygiene &amp; Validation <em>(6 queries)</em></li>
       <li>The Killer Demo Queries <em>(5 queries)</em></li></ol>
-    <hr>
-    <p>Press <kbd>→</kbd> or click "Next" to begin.</p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>1 / 32</h3>
-    <p class="lead">KG Overview</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>1.1  Node count by type</h3>
-    <p>What is in the KG, in one row per node type.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (n:GRENode)
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>1 / 32</h3>
+        <p class="lead">KG Overview</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>1.1  Node count by type</h3>
+        <p>What is in the KG, in one row per node type.</p>
+        <figure>
+          <pre class="runnable">MATCH (n:GRENode)
 RETURN labels(n)[1] AS type, count(n) AS count
 ORDER BY count DESC</pre>
-      <figcaption><a help-topic="cypher" class="help">1.1  Node count by type</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>2 / 32</h3>
-    <p class="lead">KG Overview</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>1.2  Relationship count by type</h3>
-    
-    <figure class="runnable">
-      <pre class="runnable">MATCH ()-[r]-&gt;()
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>2 / 32</h3>
+        <p class="lead">KG Overview</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>1.2  Relationship count by type</h3>
+        
+        <figure>
+          <pre class="runnable">MATCH ()-[r]-&gt;()
 RETURN type(r) AS rel_type, count(r) AS count
 ORDER BY count DESC</pre>
-      <figcaption><a help-topic="cypher" class="help">1.2  Relationship count by type</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>3 / 32</h3>
-    <p class="lead">KG Overview</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>1.3  All RegulationDocuments + their kind</h3>
-    
-    <figure class="runnable">
-      <pre class="runnable">MATCH (d:RegulationDocument)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>3 / 32</h3>
+        <p class="lead">KG Overview</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>1.3  All RegulationDocuments + their kind</h3>
+        
+        <figure>
+          <pre class="runnable">MATCH (d:RegulationDocument)
 RETURN d.name AS document, d.kind AS kind, d.effective_from AS effective_from
 ORDER BY d.name</pre>
-      <figcaption><a help-topic="cypher" class="help">1.3  All RegulationDocuments + their kind</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>4 / 32</h3>
-    <p class="lead">KG Overview</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>1.4  All RecordLayouts with their connected field counts</h3>
-    <p>(any layout with 0 fields is a phantom — `make rebuild-kg` keeps the canonical 6)</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (l:RecordLayout)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>4 / 32</h3>
+        <p class="lead">KG Overview</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>1.4  All RecordLayouts with their connected field counts</h3>
+        <p>(any layout with 0 fields is a phantom — `make rebuild-kg` keeps the canonical 6)</p>
+        <figure>
+          <pre class="runnable">MATCH (l:RecordLayout)
 OPTIONAL MATCH (f:FieldRequirement)
   WHERE (f)-[:CONTAINED_IN]-&gt;(l) OR (l)-[:REQUIRES]-&gt;(f)
 RETURN l.name AS layout, count(DISTINCT f) AS field_count
 ORDER BY field_count DESC, l.name</pre>
-      <figcaption><a help-topic="cypher" class="help">1.4  All RecordLayouts with their connected field counts</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>5 / 32</h3>
-    <p class="lead">KG Overview</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>1.5  Top 20 nodes with the most outgoing relationships (graph hubs)</h3>
-    
-    <figure class="runnable">
-      <pre class="runnable">MATCH (n:GRENode)-[r]-&gt;()
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>5 / 32</h3>
+        <p class="lead">KG Overview</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>1.5  Top 20 nodes with the most outgoing relationships (graph hubs)</h3>
+        
+        <figure>
+          <pre class="runnable">MATCH (n:GRENode)-[r]-&gt;()
 RETURN labels(n)[1] AS type, n.name AS name, count(r) AS out_degree
 ORDER BY out_degree DESC LIMIT 20</pre>
-      <figcaption><a help-topic="cypher" class="help">1.5  Top 20 nodes with the most outgoing relationships (graph hubs)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>6 / 32</h3>
-    <p class="lead">Wire Format Exploration</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>2.1  Premium Record Layout — full column-by-column structure</h3>
-    <p>The 71 fields covering cols 1..200 of a Premium record, with their format and code-list size.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>6 / 32</h3>
+        <p class="lead">Wire Format Exploration</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>2.1  Premium Record Layout — full column-by-column structure</h3>
+        <p>The 71 fields covering cols 1..200 of a Premium record, with their format and code-list size.</p>
+        <figure>
+          <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
 OPTIONAL MATCH (f)-[:CODED_BY]-&gt;(cl:CodeList)
 OPTIONAL MATCH (cl)-[:HAS_VALUE]-&gt;(cv:CodeValue)
 RETURN
@@ -143,104 +126,89 @@ RETURN
   f.format                  AS format,
   count(DISTINCT cv)        AS n_codes
 ORDER BY f.position_start</pre>
-      <figcaption><a help-topic="cypher" class="help">2.1  Premium Record Layout — full column-by-column structure</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>7 / 32</h3>
-    <p class="lead">Wire Format Exploration</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>2.2  What does column 5–6 (RECORD TYPE) mean?</h3>
-    <p>The KG&#x27;s answer to &quot;what are the legal values at this column?&quot;</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (f:FieldRequirement {field_name: &quot;Record Type&quot;, position_start: 5})
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>7 / 32</h3>
+        <p class="lead">Wire Format Exploration</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>2.2  What does column 5–6 (RECORD TYPE) mean?</h3>
+        <p>The KG&#x27;s answer to &quot;what are the legal values at this column?&quot;</p>
+        <figure>
+          <pre class="runnable">MATCH (f:FieldRequirement {field_name: &quot;Record Type&quot;, position_start: 5})
       -[:CODED_BY]-&gt;(cl:CodeList)-[:HAS_VALUE]-&gt;(cv:CodeValue)
 RETURN cv.code AS code, cv.notes AS meaning
 ORDER BY cv.code</pre>
-      <figcaption><a help-topic="cypher" class="help">2.2  What does column 5–6 (RECORD TYPE) mean?</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>8 / 32</h3>
-    <p class="lead">Wire Format Exploration</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>2.3  Compare Stat Plan Premium Record vs Homeowners Premium Record</h3>
-    <p>The Stat Plan layout is the broad residential schema; the HO layout is the operational subset insurers actually ship.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (l:RecordLayout)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>8 / 32</h3>
+        <p class="lead">Wire Format Exploration</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>2.3  Compare Stat Plan Premium Record vs Homeowners Premium Record</h3>
+        <p>The Stat Plan layout is the broad residential schema; the HO layout is the operational subset insurers actually ship.</p>
+        <figure>
+          <pre class="runnable">MATCH (l:RecordLayout)
 WHERE l.name IN [&quot;Premium Record Layout&quot;, &quot;Homeowners Premium Record Layout&quot;]
 OPTIONAL MATCH (l)&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
 RETURN l.name AS layout, count(DISTINCT f) AS fields
 ORDER BY l.name</pre>
-      <figcaption><a help-topic="cypher" class="help">2.3  Compare Stat Plan Premium Record vs Homeowners Premium Record</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>9 / 32</h3>
-    <p class="lead">Wire Format Exploration</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>2.4  Which fields have NO code list (free-form)?</h3>
-    <p>Useful as a coverage check: free-form fields can&#x27;t be enum-validated; in the demo they&#x27;re things like POLICY identifiers, dates, dollar amounts.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>9 / 32</h3>
+        <p class="lead">Wire Format Exploration</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>2.4  Which fields have NO code list (free-form)?</h3>
+        <p>Useful as a coverage check: free-form fields can&#x27;t be enum-validated; in the demo they&#x27;re things like POLICY identifiers, dates, dollar amounts.</p>
+        <figure>
+          <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
 WHERE NOT (f)-[:CODED_BY]-&gt;(:CodeList)
   AND NOT f.name STARTS WITH &quot;SKIP&quot;
 RETURN f.position_start AS col, f.field_name AS field, f.format AS format
 ORDER BY f.position_start</pre>
-      <figcaption><a help-topic="cypher" class="help">2.4  Which fields have NO code list (free-form)?</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>10 / 32</h3>
-    <p class="lead">Wire Format Exploration</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>2.5  Show the whole graph slice for one layout — visual rendering in Browser</h3>
-    <p>Triggers the graph-view canvas: layout → fields → codelists → codevalues.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Notice Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>10 / 32</h3>
+        <p class="lead">Wire Format Exploration</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>2.5  Show the whole graph slice for one layout — visual rendering in Browser</h3>
+        <p>Triggers the graph-view canvas: layout → fields → codelists → codevalues.</p>
+        <figure>
+          <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Notice Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
 OPTIONAL MATCH (f)-[:CODED_BY]-&gt;(cl:CodeList)-[:HAS_VALUE]-&gt;(cv:CodeValue)
 RETURN l, f, cl, cv LIMIT 200</pre>
-      <figcaption><a help-topic="cypher" class="help">2.5  Show the whole graph slice for one layout — visual rendering in Browser</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>11 / 32</h3>
-    <p class="lead">Citation Provenance</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>3.1  How a FieldRequirement traces to a regulation span</h3>
-    <p>Pick a field, see the doc it cites, the char offset, and the number of bytes of stored PDF rectangle JSON.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (f:FieldRequirement {field_name: &quot;Record Type&quot;, position_start: 5})
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>11 / 32</h3>
+        <p class="lead">Citation Provenance</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>3.1  How a FieldRequirement traces to a regulation span</h3>
+        <p>Pick a field, see the doc it cites, the char offset, and the number of bytes of stored PDF rectangle JSON.</p>
+        <figure>
+          <pre class="runnable">MATCH (f:FieldRequirement {field_name: &quot;Record Type&quot;, position_start: 5})
       -[c:CITES]-&gt;(d:RegulationDocument)
 RETURN
   f.field_name                          AS field,
@@ -249,42 +217,36 @@ RETURN
   c.char_end                            AS span_end,
   size(c.rects_json)                    AS rect_payload_bytes,
   c.rects_json                          AS rects_json</pre>
-      <figcaption><a help-topic="cypher" class="help">3.1  How a FieldRequirement traces to a regulation span</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>12 / 32</h3>
-    <p class="lead">Citation Provenance</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>3.2  Click-through chain for code 25 (Windstorm)</h3>
-    <p>CodeValue → CodeList → FieldRequirement → RecordLayout → RegulationDocument</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH path = (cv:CodeValue {code: &quot;25&quot;})
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>12 / 32</h3>
+        <p class="lead">Citation Provenance</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>3.2  Click-through chain for code 25 (Windstorm)</h3>
+        <p>CodeValue → CodeList → FieldRequirement → RecordLayout → RegulationDocument</p>
+        <figure>
+          <pre class="runnable">MATCH path = (cv:CodeValue {code: &quot;25&quot;})
             &lt;-[:HAS_VALUE]-(cl:CodeList)
 RETURN cv, cl, path LIMIT 5</pre>
-      <figcaption><a help-topic="cypher" class="help">3.2  Click-through chain for code 25 (Windstorm)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>13 / 32</h3>
-    <p class="lead">Citation Provenance</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>3.3  All citations carrying PDF rectangle data</h3>
-    <p>The hard provenance — every row corresponds to a highlighted region visible in the side-by-side UI.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (n:GRENode)-[c:CITES]-&gt;(d:RegulationDocument)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>13 / 32</h3>
+        <p class="lead">Citation Provenance</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>3.3  All citations carrying PDF rectangle data</h3>
+        <p>The hard provenance — every row corresponds to a highlighted region visible in the side-by-side UI.</p>
+        <figure>
+          <pre class="runnable">MATCH (n:GRENode)-[c:CITES]-&gt;(d:RegulationDocument)
 WHERE c.rects_json IS NOT NULL
 RETURN
   labels(n)[1]              AS node_type,
@@ -293,105 +255,90 @@ RETURN
   c.char_start              AS char_start,
   c.char_end                AS char_end
 ORDER BY d.name, c.char_start LIMIT 20</pre>
-      <figcaption><a help-topic="cypher" class="help">3.3  All citations carrying PDF rectangle data</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>14 / 32</h3>
-    <p class="lead">Citation Provenance</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>3.4  Citation count per document (extraction quality at a glance)</h3>
-    
-    <figure class="runnable">
-      <pre class="runnable">MATCH (d:RegulationDocument)&lt;-[c:CITES]-(n:GRENode)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>14 / 32</h3>
+        <p class="lead">Citation Provenance</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>3.4  Citation count per document (extraction quality at a glance)</h3>
+        
+        <figure>
+          <pre class="runnable">MATCH (d:RegulationDocument)&lt;-[c:CITES]-(n:GRENode)
 RETURN d.name AS document, count(c) AS citations
 ORDER BY citations DESC</pre>
-      <figcaption><a help-topic="cypher" class="help">3.4  Citation count per document (extraction quality at a glance)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>15 / 32</h3>
-    <p class="lead">Citation Provenance</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>3.5  Show me the full provenance for ONE node — used as the audit demo</h3>
-    <p>Walks every CITES edge from a chosen node, with span info.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (n:GRENode)-[c:CITES]-&gt;(d:RegulationDocument)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>15 / 32</h3>
+        <p class="lead">Citation Provenance</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>3.5  Show me the full provenance for ONE node — used as the audit demo</h3>
+        <p>Walks every CITES edge from a chosen node, with span info.</p>
+        <figure>
+          <pre class="runnable">MATCH (n:GRENode)-[c:CITES]-&gt;(d:RegulationDocument)
 WHERE n.name CONTAINS &quot;Cause of Loss Code 25&quot;
 RETURN n, c, d</pre>
-      <figcaption><a help-topic="cypher" class="help">3.5  Show me the full provenance for ONE node — used as the audit demo</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>16 / 32</h3>
-    <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>4.1  Cause-of-Loss codes ACTIVE as of 2026-08-01 (BEFORE bulletin)</h3>
-    <p>Should show codes 05, 10, 25 (Windstorm), 30, 32, 75.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (cl:CodeList {name: &quot;Cause of Loss Code List&quot;})-[:HAS_VALUE]-&gt;(n:CodeValue)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>16 / 32</h3>
+        <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>4.1  Cause-of-Loss codes ACTIVE as of 2026-08-01 (BEFORE bulletin)</h3>
+        <p>Should show codes 05, 10, 25 (Windstorm), 30, 32, 75.</p>
+        <figure>
+          <pre class="runnable">MATCH (cl:CodeList {name: &quot;Cause of Loss Code List&quot;})-[:HAS_VALUE]-&gt;(n:CodeValue)
 WHERE coalesce(n.effective_from, date(&quot;1970-01-01&quot;)) &lt;= date(&quot;2026-08-01&quot;)
   AND (n.effective_to IS NULL OR n.effective_to &gt; date(&quot;2026-08-01&quot;))
 RETURN n.code AS code, n.name AS name,
        n.effective_from AS eff_from, n.effective_to AS eff_to
 ORDER BY n.code</pre>
-      <figcaption><a help-topic="cypher" class="help">4.1  Cause-of-Loss codes ACTIVE as of 2026-08-01 (BEFORE bulletin)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>17 / 32</h3>
-    <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>4.2  Cause-of-Loss codes ACTIVE as of 2026-11-01 (AFTER bulletin)</h3>
-    <p>Should show codes 05, 10, 26 (Named Storm Wind), 30, 32, 75 — code 25 is now superseded; code 26 has taken effect.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (cl:CodeList {name: &quot;Cause of Loss Code List&quot;})-[:HAS_VALUE]-&gt;(n:CodeValue)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>17 / 32</h3>
+        <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>4.2  Cause-of-Loss codes ACTIVE as of 2026-11-01 (AFTER bulletin)</h3>
+        <p>Should show codes 05, 10, 26 (Named Storm Wind), 30, 32, 75 — code 25 is now superseded; code 26 has taken effect.</p>
+        <figure>
+          <pre class="runnable">MATCH (cl:CodeList {name: &quot;Cause of Loss Code List&quot;})-[:HAS_VALUE]-&gt;(n:CodeValue)
 WHERE coalesce(n.effective_from, date(&quot;1970-01-01&quot;)) &lt;= date(&quot;2026-11-01&quot;)
   AND (n.effective_to IS NULL OR n.effective_to &gt; date(&quot;2026-11-01&quot;))
 RETURN n.code AS code, n.name AS name,
        n.effective_from AS eff_from, n.effective_to AS eff_to
 ORDER BY n.code</pre>
-      <figcaption><a help-topic="cypher" class="help">4.2  Cause-of-Loss codes ACTIVE as of 2026-11-01 (AFTER bulletin)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>18 / 32</h3>
-    <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>4.3  Show every BulletinOverride and what it overrides</h3>
-    
-    <figure class="runnable">
-      <pre class="runnable">MATCH (b:BulletinOverride)-[:OVERRIDES]-&gt;(target)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>18 / 32</h3>
+        <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>4.3  Show every BulletinOverride and what it overrides</h3>
+        
+        <figure>
+          <pre class="runnable">MATCH (b:BulletinOverride)-[:OVERRIDES]-&gt;(target)
 RETURN
   b.name                 AS bulletin,
   b.effective_date       AS effective,
@@ -400,46 +347,40 @@ RETURN
   target.status          AS target_status,
   target.effective_to    AS target_eff_to
 ORDER BY b.name, target_type</pre>
-      <figcaption><a help-topic="cypher" class="help">4.3  Show every BulletinOverride and what it overrides</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>19 / 32</h3>
-    <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>4.4  Bulletin&#x27;s full impact graph (visual)</h3>
-    <p>Renders the bulletin → rules it cites → nodes it overrides → new content it introduces.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (b:BulletinOverride {name: &quot;Named Storm Cause of Loss Reporting Override&quot;})
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>19 / 32</h3>
+        <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>4.4  Bulletin&#x27;s full impact graph (visual)</h3>
+        <p>Renders the bulletin → rules it cites → nodes it overrides → new content it introduces.</p>
+        <figure>
+          <pre class="runnable">MATCH (b:BulletinOverride {name: &quot;Named Storm Cause of Loss Reporting Override&quot;})
 OPTIONAL MATCH (b)-[r1:CITES]-&gt;(rule:Rule)
 OPTIONAL MATCH (b)-[r2:OVERRIDES]-&gt;(target)
 OPTIONAL MATCH (rule)&lt;-[:CITES]-(new_node)
   WHERE NOT (b)-[:OVERRIDES]-&gt;(new_node)
   AND NOT new_node:Rule AND NOT new_node:RegulationDocument
 RETURN b, r1, rule, r2, target, new_node LIMIT 50</pre>
-      <figcaption><a help-topic="cypher" class="help">4.4  Bulletin&#x27;s full impact graph (visual)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>20 / 32</h3>
-    <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>4.5  New required Loss Record fields introduced by the bulletin</h3>
-    <p>The 3 NAMED_STORM_* fields and their effective dates.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Loss Record Layout&quot;})-[:REQUIRES]-&gt;(f:FieldRequirement)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>20 / 32</h3>
+        <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>4.5  New required Loss Record fields introduced by the bulletin</h3>
+        <p>The 3 NAMED_STORM_* fields and their effective dates.</p>
+        <figure>
+          <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Loss Record Layout&quot;})-[:REQUIRES]-&gt;(f:FieldRequirement)
 WHERE f.name CONTAINS &quot;NAMED_STORM&quot;
 RETURN
   f.position_start          AS col,
@@ -448,166 +389,142 @@ RETURN
   f.format                  AS format,
   f.effective_from          AS effective_from
 ORDER BY f.position_start</pre>
-      <figcaption><a help-topic="cypher" class="help">4.5  New required Loss Record fields introduced by the bulletin</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>21 / 32</h3>
-    <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>4.6  All SUPERSEDES chains (versioning history)</h3>
-    <p>Today only one chain (B-0008-25 → A.34) — but as bulletins accumulate this query shows the full edit history of any rule.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (newer)-[s:SUPERSEDES]-&gt;(older)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>21 / 32</h3>
+        <p class="lead">Temporal Pinning + Bulletin Re-evaluation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>4.6  All SUPERSEDES chains (versioning history)</h3>
+        <p>Today only one chain (B-0008-25 → A.34) — but as bulletins accumulate this query shows the full edit history of any rule.</p>
+        <figure>
+          <pre class="runnable">MATCH (newer)-[s:SUPERSEDES]-&gt;(older)
 RETURN labels(newer)[1] AS type,
        older.name AS old, newer.name AS new,
        newer.effective_from AS new_effective_from</pre>
-      <figcaption><a help-topic="cypher" class="help">4.6  All SUPERSEDES chains (versioning history)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>22 / 32</h3>
-    <p class="lead">KG Hygiene &amp; Validation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>5.1  Phantom RecordLayouts (no field connected)</h3>
-    <p>Should be EMPTY after cleanup. Anything here is an LLM-extraction variant of a parser-owned name.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (l:RecordLayout)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>22 / 32</h3>
+        <p class="lead">KG Hygiene &amp; Validation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>5.1  Phantom RecordLayouts (no field connected)</h3>
+        <p>Should be EMPTY after cleanup. Anything here is an LLM-extraction variant of a parser-owned name.</p>
+        <figure>
+          <pre class="runnable">MATCH (l:RecordLayout)
 WHERE NOT (l)&lt;-[:CONTAINED_IN]-(:FieldRequirement)
   AND NOT (l)-[:REQUIRES]-&gt;(:FieldRequirement)
 RETURN l.name AS phantom_layout</pre>
-      <figcaption><a help-topic="cypher" class="help">5.1  Phantom RecordLayouts (no field connected)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>23 / 32</h3>
-    <p class="lead">KG Hygiene &amp; Validation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>5.2  Orphan FieldRequirements (no layout)</h3>
-    <p>Should be EMPTY. Anything here was extracted by Sentinel without a layout binding.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (f:FieldRequirement)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>23 / 32</h3>
+        <p class="lead">KG Hygiene &amp; Validation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>5.2  Orphan FieldRequirements (no layout)</h3>
+        <p>Should be EMPTY. Anything here was extracted by Sentinel without a layout binding.</p>
+        <figure>
+          <pre class="runnable">MATCH (f:FieldRequirement)
 WHERE NOT (f)-[:CONTAINED_IN]-&gt;(:RecordLayout)
   AND NOT (:RecordLayout)-[:REQUIRES]-&gt;(f)
 RETURN f.name AS orphan_field, f.position_start AS col</pre>
-      <figcaption><a help-topic="cypher" class="help">5.2  Orphan FieldRequirements (no layout)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>24 / 32</h3>
-    <p class="lead">KG Hygiene &amp; Validation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>5.3  Fields with NULL position_start (cannot byte-validate)</h3>
-    <p>Should be EMPTY for parser-owned layouts. A few may exist on LLM-extracted prose nodes.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (f:FieldRequirement)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>24 / 32</h3>
+        <p class="lead">KG Hygiene &amp; Validation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>5.3  Fields with NULL position_start (cannot byte-validate)</h3>
+        <p>Should be EMPTY for parser-owned layouts. A few may exist on LLM-extracted prose nodes.</p>
+        <figure>
+          <pre class="runnable">MATCH (f:FieldRequirement)
 WHERE f.position_start IS NULL
 RETURN f.name, f.field_name LIMIT 25</pre>
-      <figcaption><a help-topic="cypher" class="help">5.3  Fields with NULL position_start (cannot byte-validate)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>25 / 32</h3>
-    <p class="lead">KG Hygiene &amp; Validation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>5.4  Layout coverage map — sum of field lengths per layout</h3>
-    <p>For every canonical layout this should add up to ~200 (after excluding parents-with-subfields). Use this to spot gaps.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (l:RecordLayout)&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>25 / 32</h3>
+        <p class="lead">KG Hygiene &amp; Validation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>5.4  Layout coverage map — sum of field lengths per layout</h3>
+        <p>For every canonical layout this should add up to ~200 (after excluding parents-with-subfields). Use this to spot gaps.</p>
+        <figure>
+          <pre class="runnable">MATCH (l:RecordLayout)&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
 RETURN l.name AS layout,
        count(f) AS fields,
        sum(coalesce(f.position_length, 0)) AS bytes_covered,
        max(f.position_start + coalesce(f.position_length, 1) - 1) AS max_col
 ORDER BY l.name</pre>
-      <figcaption><a help-topic="cypher" class="help">5.4  Layout coverage map — sum of field lengths per layout</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>26 / 32</h3>
-    <p class="lead">KG Hygiene &amp; Validation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>5.5  Citation rect coverage per document (data-quality signal)</h3>
-    <p>Number of citations vs how many have rect data attached.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (n:GRENode)-[c:CITES]-&gt;(d:RegulationDocument)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>26 / 32</h3>
+        <p class="lead">KG Hygiene &amp; Validation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>5.5  Citation rect coverage per document (data-quality signal)</h3>
+        <p>Number of citations vs how many have rect data attached.</p>
+        <figure>
+          <pre class="runnable">MATCH (n:GRENode)-[c:CITES]-&gt;(d:RegulationDocument)
 RETURN d.name AS document,
        count(c) AS total_citations,
        count(CASE WHEN c.rects_json IS NOT NULL THEN 1 END) AS with_rects
 ORDER BY d.name</pre>
-      <figcaption><a help-topic="cypher" class="help">5.5  Citation rect coverage per document (data-quality signal)</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>27 / 32</h3>
-    <p class="lead">KG Hygiene &amp; Validation</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>5.6  Duplicate detection — same name + type</h3>
-    <p>Should be EMPTY. If anything appears, there&#x27;s a dedup bug.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (a:GRENode), (b:GRENode)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>27 / 32</h3>
+        <p class="lead">KG Hygiene &amp; Validation</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>5.6  Duplicate detection — same name + type</h3>
+        <p>Should be EMPTY. If anything appears, there&#x27;s a dedup bug.</p>
+        <figure>
+          <pre class="runnable">MATCH (a:GRENode), (b:GRENode)
 WHERE a.id &lt; b.id
   AND a.name = b.name
   AND labels(a) = labels(b)
 RETURN a.name, labels(a)[1] AS type, count(*) AS duplicates</pre>
-      <figcaption><a help-topic="cypher" class="help">5.6  Duplicate detection — same name + type</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>28 / 32</h3>
-    <p class="lead">The Killer Demo Queries</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>6.1  ONE QUERY — Premium record&#x27;s entire schema</h3>
-    <p>&quot;What does TICO actually want in a Premium submission?&quot;</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>28 / 32</h3>
+        <p class="lead">The Killer Demo Queries</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>6.1  ONE QUERY — Premium record&#x27;s entire schema</h3>
+        <p>&quot;What does TICO actually want in a Premium submission?&quot;</p>
+        <figure>
+          <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
 OPTIONAL MATCH (f)-[:CODED_BY]-&gt;(cl:CodeList)-[:HAS_VALUE]-&gt;(cv:CodeValue)
 RETURN
   f.position_start AS col,
@@ -615,88 +532,76 @@ RETURN
   f.format         AS format,
   collect(DISTINCT cv.code)[..6] AS first_6_codes
 ORDER BY f.position_start</pre>
-      <figcaption><a help-topic="cypher" class="help">6.1  ONE QUERY — Premium record&#x27;s entire schema</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>29 / 32</h3>
-    <p class="lead">The Killer Demo Queries</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>6.2  ONE QUERY — what goes in column 5–6 today?</h3>
-    <p>Live point-in-time question, answered in ms.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (f:FieldRequirement {field_name: &quot;Record Type&quot;, position_start: 5})
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>29 / 32</h3>
+        <p class="lead">The Killer Demo Queries</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>6.2  ONE QUERY — what goes in column 5–6 today?</h3>
+        <p>Live point-in-time question, answered in ms.</p>
+        <figure>
+          <pre class="runnable">MATCH (f:FieldRequirement {field_name: &quot;Record Type&quot;, position_start: 5})
       -[:CODED_BY]-&gt;(:CodeList)-[:HAS_VALUE]-&gt;(cv:CodeValue)
 WHERE coalesce(cv.effective_from, date(&quot;1970-01-01&quot;)) &lt;= date()
   AND (cv.effective_to IS NULL OR cv.effective_to &gt; date())
 RETURN cv.code AS code, cv.notes AS meaning
 ORDER BY cv.code</pre>
-      <figcaption><a help-topic="cypher" class="help">6.2  ONE QUERY — what goes in column 5–6 today?</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>30 / 32</h3>
-    <p class="lead">The Killer Demo Queries</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>6.3  ONE QUERY — full provenance for a single fact</h3>
-    <p>&quot;How do you know Cause-of-Loss code 26 means Named Storm Wind?&quot; Walks all the way from the value, through the codelist, to the bulletin override that introduced it, to the bulletin&#x27;s effective date and the rule it cites.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (cv:CodeValue {code: &quot;26&quot;})
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>30 / 32</h3>
+        <p class="lead">The Killer Demo Queries</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>6.3  ONE QUERY — full provenance for a single fact</h3>
+        <p>&quot;How do you know Cause-of-Loss code 26 means Named Storm Wind?&quot; Walks all the way from the value, through the codelist, to the bulletin override that introduced it, to the bulletin&#x27;s effective date and the rule it cites.</p>
+        <figure>
+          <pre class="runnable">MATCH (cv:CodeValue {code: &quot;26&quot;})
 WHERE cv.name CONTAINS &quot;Named Storm&quot;
 OPTIONAL MATCH (cl:CodeList)-[:HAS_VALUE]-&gt;(cv)
 OPTIONAL MATCH (b:BulletinOverride)
   WHERE (b)-[:OVERRIDES]-&gt;(cl) OR (b)-[:OVERRIDES]-&gt;(:CodeValue)
 OPTIONAL MATCH (cv)-[:CITES]-&gt;(rule:Rule)-[:CONTAINED_IN]-&gt;(d:RegulationDocument)
 RETURN cv, cl, b, rule, d</pre>
-      <figcaption><a help-topic="cypher" class="help">6.3  ONE QUERY — full provenance for a single fact</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>31 / 32</h3>
-    <p class="lead">The Killer Demo Queries</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>6.4  ONE QUERY — bulletin diff visualization</h3>
-    <p>Renders: bulletin → CodeList it overrides → before/after CodeValues. The most visually punchy slide in Browser&#x27;s graph view.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (b:BulletinOverride {name: &quot;Named Storm Cause of Loss Reporting Override&quot;})
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>31 / 32</h3>
+        <p class="lead">The Killer Demo Queries</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>6.4  ONE QUERY — bulletin diff visualization</h3>
+        <p>Renders: bulletin → CodeList it overrides → before/after CodeValues. The most visually punchy slide in Browser&#x27;s graph view.</p>
+        <figure>
+          <pre class="runnable">MATCH (b:BulletinOverride {name: &quot;Named Storm Cause of Loss Reporting Override&quot;})
 OPTIONAL MATCH (b)-[o:OVERRIDES]-&gt;(target)
 OPTIONAL MATCH (cl:CodeList {name: &quot;Cause of Loss Code List&quot;})-[:HAS_VALUE]-&gt;(cv:CodeValue)
 RETURN b, o, target, cl, cv LIMIT 30</pre>
-      <figcaption><a help-topic="cypher" class="help">6.4  ONE QUERY — bulletin diff visualization</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a> &nbsp;·&nbsp; <a play-topic="" class="next-btn">Next →</a></p>
-  </div>
-</slide>
-
-<slide class="row-start">
-  <div class="col-sm-3">
-    <h3>32 / 32</h3>
-    <p class="lead">The Killer Demo Queries</p>
-  </div>
-  <div class="col-sm-9">
-    <h3>6.5  ONE QUERY — KG can simulate an insurer submission</h3>
-    <p>Returns the data the sample-record generator uses to produce a compliant 200-char Premium record.</p>
-    <figure class="runnable">
-      <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+    <slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>32 / 32</h3>
+        <p class="lead">The Killer Demo Queries</p>
+      </div>
+      <div class="col-sm-9">
+        <h3>6.5  ONE QUERY — KG can simulate an insurer submission</h3>
+        <p>Returns the data the sample-record generator uses to produce a compliant 200-char Premium record.</p>
+        <figure>
+          <pre class="runnable">MATCH (l:RecordLayout {name: &quot;Premium Record Layout&quot;})&lt;-[:CONTAINED_IN]-(f:FieldRequirement)
 OPTIONAL MATCH (f)-[:CODED_BY]-&gt;(:CodeList)-[:HAS_VALUE]-&gt;(cv:CodeValue)
   WHERE coalesce(cv.effective_from, date(&quot;1970-01-01&quot;)) &lt;= date()
     AND (cv.effective_to IS NULL OR cv.effective_to &gt; date())
@@ -706,13 +611,11 @@ RETURN
   f.field_name AS field,
   collect(DISTINCT cv.code) AS legal_codes_today
 ORDER BY f.position_start</pre>
-      <figcaption><a help-topic="cypher" class="help">6.5  ONE QUERY — KG can simulate an insurer submission</a></figcaption>
-    </figure>
-    <hr>
-    <p><a play-topic="" class="back-btn">← Previous</a></p>
-  </div>
-</slide>
-
+          <figcaption>Click ▶ to run this query.</figcaption>
+        </figure>
+      </div>
+    </slide>
+  </carousel>
 </article>
 </body>
 </html>
