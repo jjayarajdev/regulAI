@@ -76,6 +76,11 @@ cleanup-kg:
 demo-bulletin:
 	uv run python -m scripts.demo_bulletin
 
+cypher-favorites:
+	uv run python -m scripts.build_cypher_favorites > cypher/saved-cypher.json
+	@echo "Wrote cypher/saved-cypher.json"
+	@echo "Import in Neo4j Browser: ☰ → Favorites → ⋮ → Import favorites"
+
 apply-bulletin:
 	@if [ -z "$(BULLETIN)" ] && [ -z "$(ALL)" ]; then \
 	    echo "Usage: make apply-bulletin BULLETIN=\"<name>\"  OR  make apply-bulletin ALL=1"; exit 1; \
