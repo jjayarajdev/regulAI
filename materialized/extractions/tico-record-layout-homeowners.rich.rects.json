@@ -1,0 +1,2642 @@
+{
+  "citation_rects": [
+    [
+      {
+        "page": 4,
+        "x0": 103.7040023803711,
+        "y0": 124.94338989257812,
+        "x1": 126.62000274658203,
+        "y1": 137.1646728515625,
+        "matched_text": "(SP) STAT PLAN 4 Residential Homeowners 2 (SUG) SUGGESTION 6"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 124.94338989257812,
+        "x1": 309.0500183105469,
+        "y1": 137.1646728515625,
+        "matched_text": "(SP) STAT PLAN 4 Residential Homeowners 2 (SUG) SUGGESTION 6"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 137.42337036132812,
+        "x1": 98.18400573730469,
+        "y1": 149.6446533203125,
+        "matched_text": "(SP) STAT PLAN 4 Residential Homeowners 2 (SUG) SUGGESTION 6"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 150.02334594726562,
+        "x1": 98.18400573730469,
+        "y1": 162.24462890625,
+        "matched_text": "(SP) STAT PLAN 4 Residential Homeowners 2 (SUG) SUGGESTION 6"
+      },
+      {
+        "page": 4,
+        "x0": 200.69000244140625,
+        "y0": 137.42337036132812,
+        "x1": 208.97000122070312,
+        "y1": 149.6446533203125,
+        "matched_text": "(SP) STAT PLAN 4 Residential Homeowners 2 (SUG) SUGGESTION 6"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 137.42337036132812,
+        "x1": 358.510009765625,
+        "y1": 149.6446533203125,
+        "matched_text": "(SP) STAT PLAN 4 Residential Homeowners 2 (SUG) SUGGESTION 6"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 162.98336791992188,
+        "x1": 136.33999633789062,
+        "y1": 175.20465087890625,
+        "matched_text": "(SP) STAT PLAN 4 Residential Homeowners 2 (SUG) SUGGESTION 6"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 162.98336791992188,
+        "x1": 320.33001708984375,
+        "y1": 175.20465087890625,
+        "matched_text": "(SP) STAT PLAN 4 Residential Homeowners 2 (SUG) SUGGESTION 6"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 175.34335327148438,
+        "x1": 98.18400573730469,
+        "y1": 187.56463623046875,
+        "matched_text": "(SP) STAT PLAN 4 Residential Homeowners 2 (SUG) SUGGESTION 6"
+      },
+      {
+        "page": 4,
+        "x0": 200.69000244140625,
+        "y0": 175.34335327148438,
+        "x1": 206.2100067138672,
+        "y1": 187.56463623046875,
+        "matched_text": "(SP) STAT PLAN 4 Residential Homeowners 2 (SUG) SUGGESTION 6"
+      }
+    ],
+    [
+      {
+        "page": 4,
+        "x0": 103.7040023803711,
+        "y0": 162.98336791992188,
+        "x1": 136.33999633789062,
+        "y1": 175.20465087890625,
+        "matched_text": "(SUG) SUGGESTION 6 Suggestion SKIP \u2013 Tape"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 162.98336791992188,
+        "x1": 320.33001708984375,
+        "y1": 175.20465087890625,
+        "matched_text": "(SUG) SUGGESTION 6 Suggestion SKIP \u2013 Tape"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 175.34335327148438,
+        "x1": 98.18400573730469,
+        "y1": 187.56463623046875,
+        "matched_text": "(SUG) SUGGESTION 6 Suggestion SKIP \u2013 Tape"
+      },
+      {
+        "page": 4,
+        "x0": 200.69000244140625,
+        "y0": 175.34335327148438,
+        "x1": 208.97000122070312,
+        "y1": 187.56463623046875,
+        "matched_text": "(SUG) SUGGESTION 6 Suggestion SKIP \u2013 Tape"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 175.34335327148438,
+        "x1": 296.45001220703125,
+        "y1": 187.56463623046875,
+        "matched_text": "(SUG) SUGGESTION 6 Suggestion SKIP \u2013 Tape"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 187.94338989257812,
+        "x1": 98.18400573730469,
+        "y1": 200.1646728515625,
+        "matched_text": "(SUG) SUGGESTION 6 Suggestion SKIP \u2013 Tape"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 200.66336059570312,
+        "x1": 98.18400573730469,
+        "y1": 212.8846435546875,
+        "matched_text": "(SUG) SUGGESTION 6 Suggestion SKIP \u2013 Tape"
+      },
+      {
+        "page": 4,
+        "x0": 203.4499969482422,
+        "y0": 187.94338989257812,
+        "x1": 206.20999145507812,
+        "y1": 200.1646728515625,
+        "matched_text": "(SUG) SUGGESTION 6 Suggestion SKIP \u2013 Tape"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 187.94338989257812,
+        "x1": 301.8072814941406,
+        "y1": 200.1646728515625,
+        "matched_text": "(SUG) SUGGESTION 6 Suggestion SKIP \u2013 Tape"
+      }
+    ],
+    [
+      {
+        "page": 4,
+        "x0": 112.94000244140625,
+        "y0": 213.50338745117188,
+        "x1": 154.09999084472656,
+        "y1": 225.72467041015625,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 213.50338745117188,
+        "x1": 361.0299987792969,
+        "y1": 225.72467041015625,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 226.22335815429688,
+        "x1": 103.70000457763672,
+        "y1": 238.44464111328125,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 226.22335815429688,
+        "x1": 290.33001708984375,
+        "y1": 238.44464111328125,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 238.58334350585938,
+        "x1": 98.18400573730469,
+        "y1": 250.80462646484375,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 196.10000610351562,
+        "y0": 238.58334350585938,
+        "x1": 213.52999877929688,
+        "y1": 250.80462646484375,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 238.58334350585938,
+        "x1": 339.9100036621094,
+        "y1": 250.80462646484375,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 251.21334838867188,
+        "x1": 98.18400573730469,
+        "y1": 263.43463134765625,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 200.69000244140625,
+        "y0": 251.21334838867188,
+        "x1": 208.97000122070312,
+        "y1": 263.43463134765625,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 251.21334838867188,
+        "x1": 283.010009765625,
+        "y1": 263.43463134765625,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 263.9333801269531,
+        "x1": 98.18400573730469,
+        "y1": 276.1546630859375,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      },
+      {
+        "page": 4,
+        "x0": 201.52999877929688,
+        "y0": 263.9333801269531,
+        "x1": 205.20631408691406,
+        "y1": 276.1546630859375,
+        "matched_text": "(ACDT) ACCOUNTING DATE: 3 MONTH 1-9 January \u2013 September 0 October -"
+      }
+    ],
+    [
+      {
+        "page": 4,
+        "x0": 112.94000244140625,
+        "y0": 327.4133605957031,
+        "x1": 138.25999450683594,
+        "y1": 339.6346435546875,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 327.4133605957031,
+        "x1": 327.4100036621094,
+        "y1": 339.6346435546875,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 339.7733459472656,
+        "x1": 98.18400573730469,
+        "y1": 351.99462890625,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      },
+      {
+        "page": 4,
+        "x0": 197.89999389648438,
+        "y0": 339.7733459472656,
+        "x1": 211.72999572753906,
+        "y1": 351.99462890625,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 339.7733459472656,
+        "x1": 327.4100036621094,
+        "y1": 351.99462890625,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 352.49334716796875,
+        "x1": 98.18400573730469,
+        "y1": 364.7146301269531,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      },
+      {
+        "page": 4,
+        "x0": 197.89999389648438,
+        "y0": 352.49334716796875,
+        "x1": 211.72999572753906,
+        "y1": 364.7146301269531,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 352.49334716796875,
+        "x1": 356.71002197265625,
+        "y1": 364.7146301269531,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      },
+      {
+        "page": 4,
+        "x0": 95.42400360107422,
+        "y0": 365.0933532714844,
+        "x1": 98.18400573730469,
+        "y1": 377.31463623046875,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      },
+      {
+        "page": 4,
+        "x0": 197.89999389648438,
+        "y0": 365.0933532714844,
+        "x1": 211.72999572753906,
+        "y1": 377.31463623046875,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      },
+      {
+        "page": 4,
+        "x0": 244.85000610351562,
+        "y0": 365.0933532714844,
+        "x1": 371.3573913574219,
+        "y1": 377.31463623046875,
+        "matched_text": "(RT) RECORD TYPE 05 Flat Cancellations 06 Pro Rata \u2013 Cancellations 91 New/Renewa"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 5,
+        "x0": 274.83319091796875,
+        "y0": 200.54336547851562,
+        "x1": 282.4949645996094,
+        "y1": 212.7646484375,
+        "matched_text": "e date of daily report, endorsement, pro rata cancellation. Report Month, Day,"
+      },
+      {
+        "page": 5,
+        "x0": 285.1445617675781,
+        "y0": 200.54336547851562,
+        "x1": 306.24200439453125,
+        "y1": 212.7646484375,
+        "matched_text": "e date of daily report, endorsement, pro rata cancellation. Report Month, Day,"
+      },
+      {
+        "page": 5,
+        "x0": 308.8916015625,
+        "y0": 200.54336547851562,
+        "x1": 320.7706604003906,
+        "y1": 212.7646484375,
+        "matched_text": "e date of daily report, endorsement, pro rata cancellation. Report Month, Day,"
+      },
+      {
+        "page": 5,
+        "x0": 323.398193359375,
+        "y0": 200.54336547851562,
+        "x1": 348.105712890625,
+        "y1": 212.7646484375,
+        "matched_text": "e date of daily report, endorsement, pro rata cancellation. Report Month, Day,"
+      },
+      {
+        "page": 5,
+        "x0": 350.7332458496094,
+        "y0": 200.54336547851562,
+        "x1": 382.5063781738281,
+        "y1": 212.7646484375,
+        "matched_text": "e date of daily report, endorsement, pro rata cancellation. Report Month, Day,"
+      },
+      {
+        "page": 5,
+        "x0": 385.1339111328125,
+        "y0": 200.54336547851562,
+        "x1": 446.79229736328125,
+        "y1": 212.7646484375,
+        "matched_text": "e date of daily report, endorsement, pro rata cancellation. Report Month, Day,"
+      },
+      {
+        "page": 5,
+        "x0": 449.4198303222656,
+        "y0": 200.54336547851562,
+        "x1": 466.92926025390625,
+        "y1": 212.7646484375,
+        "matched_text": "e date of daily report, endorsement, pro rata cancellation. Report Month, Day,"
+      },
+      {
+        "page": 5,
+        "x0": 469.4353332519531,
+        "y0": 200.54336547851562,
+        "x1": 488.61181640625,
+        "y1": 212.7646484375,
+        "matched_text": "e date of daily report, endorsement, pro rata cancellation. Report Month, Day,"
+      },
+      {
+        "page": 5,
+        "x0": 491.26141357421875,
+        "y0": 200.54336547851562,
+        "x1": 549.7734375,
+        "y1": 212.7646484375,
+        "matched_text": "e date of daily report, endorsement, pro rata cancellation. Report Month, Day,"
+      },
+      {
+        "page": 5,
+        "x0": 239.4499969482422,
+        "y0": 213.26333618164062,
+        "x1": 328.1165466308594,
+        "y1": 225.484619140625,
+        "matched_text": "e date of daily report, endorsement, pro rata cancellation. Report Month, Day,"
+      }
+    ],
+    [],
+    [],
+    [
+      {
+        "page": 5,
+        "x0": 383.48883056640625,
+        "y0": 301.8533630371094,
+        "x1": 398.4701232910156,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 401.34051513671875,
+        "y0": 301.8533630371094,
+        "x1": 417.0393981933594,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 419.9097900390625,
+        "y0": 301.8533630371094,
+        "x1": 456.9490051269531,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 459.84149169921875,
+        "y0": 301.8533630371094,
+        "x1": 498.0950927734375,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 500.9654846191406,
+        "y0": 301.8533630371094,
+        "x1": 512.9548950195312,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 515.8253173828125,
+        "y0": 301.8533630371094,
+        "x1": 535.0128784179688,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 537.88330078125,
+        "y0": 301.8533630371094,
+        "x1": 549.7623291015625,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 239.4499969482422,
+        "y0": 314.453369140625,
+        "x1": 271.0354309082031,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 275.197509765625,
+        "y0": 314.453369140625,
+        "x1": 286.5907897949219,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 290.77496337890625,
+        "y0": 314.453369140625,
+        "x1": 317.25994873046875,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 321.4661865234375,
+        "y0": 314.453369140625,
+        "x1": 347.4874572753906,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 351.572265625,
+        "y0": 314.453369140625,
+        "x1": 390.67596435546875,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 394.8601379394531,
+        "y0": 314.453369140625,
+        "x1": 404.80718994140625,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 408.9913635253906,
+        "y0": 314.453369140625,
+        "x1": 428.2892761230469,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 432.47344970703125,
+        "y0": 314.453369140625,
+        "x1": 442.64129638671875,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 446.85858154296875,
+        "y0": 314.453369140625,
+        "x1": 481.2923278808594,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 485.47650146484375,
+        "y0": 314.453369140625,
+        "x1": 496.8697814941406,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 501.053955078125,
+        "y0": 314.453369140625,
+        "x1": 508.7157287597656,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 512.9219970703125,
+        "y0": 314.453369140625,
+        "x1": 549.7403564453125,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 239.4499969482422,
+        "y0": 327.0533752441406,
+        "x1": 437.6731872558594,
+        "y1": 339.274658203125,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      }
+    ],
+    [
+      {
+        "page": 5,
+        "x0": 351.5102844238281,
+        "y0": 403.01336669921875,
+        "x1": 550.0105590820312,
+        "y1": 415.2346496582031,
+        "matched_text": "lars, if the amount of insurance is less than $1,500, then code \"01.\" If no amou"
+      },
+      {
+        "page": 5,
+        "x0": 239.4499969482422,
+        "y0": 415.6133728027344,
+        "x1": 345.9100036621094,
+        "y1": 427.83465576171875,
+        "matched_text": "lars, if the amount of insurance is less than $1,500, then code \"01.\" If no amou"
+      },
+      {
+        "page": 5,
+        "x0": 239.4499969482422,
+        "y0": 428.3533630371094,
+        "x1": 242.20999145507812,
+        "y1": 440.57464599609375,
+        "matched_text": "lars, if the amount of insurance is less than $1,500, then code \"01.\" If no amou"
+      },
+      {
+        "page": 5,
+        "x0": 239.4499969482422,
+        "y0": 440.953369140625,
+        "x1": 547.3743896484375,
+        "y1": 453.1746520996094,
+        "matched_text": "lars, if the amount of insurance is less than $1,500, then code \"01.\" If no amou"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 7,
+        "x0": 103.8239974975586,
+        "y0": 286.49334716796875,
+        "x1": 138.86000061035156,
+        "y1": 298.7146301269531,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 166.5800018310547,
+        "y0": 286.49334716796875,
+        "x1": 521.5,
+        "y1": 298.7146301269531,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 166.5800018310547,
+        "y0": 299.2133483886719,
+        "x1": 169.33999633789062,
+        "y1": 311.43463134765625,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 90.02400207519531,
+        "y0": 311.5733642578125,
+        "x1": 92.78400421142578,
+        "y1": 323.7946472167969,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 166.5800018310547,
+        "y0": 311.5733642578125,
+        "x1": 169.33999633789062,
+        "y1": 323.7946472167969,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 238.61000061035156,
+        "y0": 311.5733642578125,
+        "x1": 320.21002197265625,
+        "y1": 323.7946472167969,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 90.02400207519531,
+        "y0": 325.01336669921875,
+        "x1": 92.78400421142578,
+        "y1": 337.2346496582031,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 194.4199981689453,
+        "y0": 325.01336669921875,
+        "x1": 202.72999572753906,
+        "y1": 337.2346496582031,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 238.61000061035156,
+        "y0": 325.01336669921875,
+        "x1": 307.7300109863281,
+        "y1": 337.2346496582031,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 90.02400207519531,
+        "y0": 338.3333740234375,
+        "x1": 92.78400421142578,
+        "y1": 350.5546569824219,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 194.4199981689453,
+        "y0": 338.3333740234375,
+        "x1": 202.72999572753906,
+        "y1": 350.5546569824219,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 238.61000061035156,
+        "y0": 338.3333740234375,
+        "x1": 473.02001953125,
+        "y1": 350.5546569824219,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 90.02400207519531,
+        "y0": 351.7733459472656,
+        "x1": 92.78400421142578,
+        "y1": 363.99462890625,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 194.4199981689453,
+        "y0": 351.7733459472656,
+        "x1": 202.72999572753906,
+        "y1": 363.99462890625,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      },
+      {
+        "page": 7,
+        "x0": 238.61000061035156,
+        "y0": 351.7733459472656,
+        "x1": 470.80322265625,
+        "y1": 363.99462890625,
+        "matched_text": "(FAM) NUMBER OF FAMILIES \u2013 DWELLING AND PERSONAL PROPERTY HOMEOWNERS 1 1 or 2 Fa"
+      }
+    ],
+    [
+      {
+        "page": 7,
+        "x0": 103.8239974975586,
+        "y0": 378.0533752441406,
+        "x1": 138.25999450683594,
+        "y1": 390.274658203125,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 166.5800018310547,
+        "y0": 378.0533752441406,
+        "x1": 314.9300231933594,
+        "y1": 390.274658203125,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 166.5800018310547,
+        "y0": 390.6533508300781,
+        "x1": 169.33999633789062,
+        "y1": 402.8746337890625,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 90.02400207519531,
+        "y0": 403.13336181640625,
+        "x1": 92.78400421142578,
+        "y1": 415.3546447753906,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 166.5800018310547,
+        "y0": 403.13336181640625,
+        "x1": 169.33999633789062,
+        "y1": 415.3546447753906,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 238.61000061035156,
+        "y0": 403.13336181640625,
+        "x1": 320.21002197265625,
+        "y1": 415.3546447753906,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 90.02400207519531,
+        "y0": 415.7333679199219,
+        "x1": 92.78400421142578,
+        "y1": 427.95465087890625,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 194.4199981689453,
+        "y0": 415.7333679199219,
+        "x1": 202.72999572753906,
+        "y1": 427.95465087890625,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 238.61000061035156,
+        "y0": 415.7333679199219,
+        "x1": 462.2362060546875,
+        "y1": 427.95465087890625,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 238.61000061035156,
+        "y0": 428.4733581542969,
+        "x1": 398.71002197265625,
+        "y1": 440.69464111328125,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 90.02400207519531,
+        "y0": 441.0733642578125,
+        "x1": 92.78400421142578,
+        "y1": 453.2946472167969,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 194.4199981689453,
+        "y0": 441.0733642578125,
+        "x1": 202.72999572753906,
+        "y1": 453.2946472167969,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 238.61000061035156,
+        "y0": 441.0733642578125,
+        "x1": 393.7900085449219,
+        "y1": 453.2946472167969,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 90.02400207519531,
+        "y0": 453.6733703613281,
+        "x1": 92.78400421142578,
+        "y1": 465.8946533203125,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 194.4199981689453,
+        "y0": 453.6733703613281,
+        "x1": 202.72999572753906,
+        "y1": 465.8946533203125,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 238.61000061035156,
+        "y0": 453.6733703613281,
+        "x1": 349.27001953125,
+        "y1": 465.8946533203125,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 473.5,
+        "y0": 453.6733703613281,
+        "x1": 476.260009765625,
+        "y1": 465.8946533203125,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 90.02400207519531,
+        "y0": 466.39337158203125,
+        "x1": 92.78400421142578,
+        "y1": 478.6146545410156,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 194.4199981689453,
+        "y0": 466.39337158203125,
+        "x1": 202.72999572753906,
+        "y1": 478.6146545410156,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      },
+      {
+        "page": 7,
+        "x0": 238.61000061035156,
+        "y0": 466.39337158203125,
+        "x1": 327.4637756347656,
+        "y1": 478.6146545410156,
+        "matched_text": "(COV) COVERAGE \u2013 OCCUPANCY HOMEOWNERS 1 HO Policies including any changes in Cov"
+      }
+    ],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 9,
+        "x0": 103.81999969482422,
+        "y0": 99.02334594726562,
+        "x1": 137.05999755859375,
+        "y1": 111.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 166.5800018310547,
+        "y0": 99.02334594726562,
+        "x1": 169.33999633789062,
+        "y1": 111.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 238.61000061035156,
+        "y0": 99.02334594726562,
+        "x1": 418.3900146484375,
+        "y1": 111.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 90.02400207519531,
+        "y0": 111.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 123.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 238.61000061035156,
+        "y0": 111.02334594726562,
+        "x1": 331.3791809082031,
+        "y1": 123.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      }
+    ],
+    [
+      {
+        "page": 9,
+        "x0": 103.81999969482422,
+        "y0": 99.02334594726562,
+        "x1": 137.05999755859375,
+        "y1": 111.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 166.5800018310547,
+        "y0": 99.02334594726562,
+        "x1": 169.33999633789062,
+        "y1": 111.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 238.61000061035156,
+        "y0": 99.02334594726562,
+        "x1": 418.3900146484375,
+        "y1": 111.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 90.02400207519531,
+        "y0": 111.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 123.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 238.61000061035156,
+        "y0": 111.02334594726562,
+        "x1": 331.3791809082031,
+        "y1": 123.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      }
+    ],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 12,
+        "x0": 103.8239974975586,
+        "y0": 99.02334594726562,
+        "x1": 170.05999755859375,
+        "y1": 111.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 99.02334594726562,
+        "x1": 463.27001953125,
+        "y1": 111.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 111.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 123.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.22000122070312,
+        "y0": 111.02334594726562,
+        "x1": 203.92999267578125,
+        "y1": 123.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 111.02334594726562,
+        "x1": 450.6700134277344,
+        "y1": 123.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 123.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 135.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.4600067138672,
+        "y0": 123.02334594726562,
+        "x1": 203.5699920654297,
+        "y1": 135.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 123.02334594726562,
+        "x1": 418.0299987792969,
+        "y1": 135.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 135.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 147.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.4600067138672,
+        "y0": 135.02334594726562,
+        "x1": 203.5699920654297,
+        "y1": 147.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 135.02334594726562,
+        "x1": 289.010009765625,
+        "y1": 147.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 147.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 159.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.22000122070312,
+        "y0": 147.02334594726562,
+        "x1": 203.92999267578125,
+        "y1": 159.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 147.02334594726562,
+        "x1": 263.33001708984375,
+        "y1": 159.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 159.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 171.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.82000732421875,
+        "y0": 159.02334594726562,
+        "x1": 203.3300018310547,
+        "y1": 171.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 159.02334594726562,
+        "x1": 273.77001953125,
+        "y1": 171.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 171.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 183.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 194.05999755859375,
+        "y0": 171.02334594726562,
+        "x1": 202.97000122070312,
+        "y1": 183.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 171.02334594726562,
+        "x1": 299.0899963378906,
+        "y1": 183.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 183.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 195.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.22000122070312,
+        "y0": 183.02334594726562,
+        "x1": 203.92999267578125,
+        "y1": 195.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 183.02334594726562,
+        "x1": 297.3768615722656,
+        "y1": 195.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 103.8239974975586,
+        "y0": 208.10336303710938,
+        "x1": 170.05999755859375,
+        "y1": 220.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 208.10336303710938,
+        "x1": 464.1100158691406,
+        "y1": 220.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 220.10336303710938,
+        "x1": 92.78400421142578,
+        "y1": 232.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.05999755859375,
+        "y0": 220.10336303710938,
+        "x1": 204.76998901367188,
+        "y1": 232.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 220.10336303710938,
+        "x1": 451.510009765625,
+        "y1": 232.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 232.10336303710938,
+        "x1": 92.78400421142578,
+        "y1": 244.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.3000030517578,
+        "y0": 232.10336303710938,
+        "x1": 204.4099884033203,
+        "y1": 244.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 232.10336303710938,
+        "x1": 418.8699951171875,
+        "y1": 244.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 244.10336303710938,
+        "x1": 92.78400421142578,
+        "y1": 256.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.3000030517578,
+        "y0": 244.10336303710938,
+        "x1": 204.4099884033203,
+        "y1": 256.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 244.10336303710938,
+        "x1": 289.8500061035156,
+        "y1": 256.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 256.1333312988281,
+        "x1": 92.78400421142578,
+        "y1": 268.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.05999755859375,
+        "y0": 256.1333312988281,
+        "x1": 204.76998901367188,
+        "y1": 268.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 256.1333312988281,
+        "x1": 264.1700134277344,
+        "y1": 268.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 268.1333312988281,
+        "x1": 92.78400421142578,
+        "y1": 280.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.66000366210938,
+        "y0": 268.1333312988281,
+        "x1": 204.1699981689453,
+        "y1": 280.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 268.1333312988281,
+        "x1": 274.6100158691406,
+        "y1": 280.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 280.13336181640625,
+        "x1": 92.78400421142578,
+        "y1": 292.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.89999389648438,
+        "y0": 280.13336181640625,
+        "x1": 203.80999755859375,
+        "y1": 292.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 280.13336181640625,
+        "x1": 299.9300231933594,
+        "y1": 292.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 292.13336181640625,
+        "x1": 92.78400421142578,
+        "y1": 304.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.05999755859375,
+        "y0": 292.13336181640625,
+        "x1": 204.76998901367188,
+        "y1": 304.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 292.13336181640625,
+        "x1": 298.2168884277344,
+        "y1": 304.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      }
+    ],
+    [
+      {
+        "page": 12,
+        "x0": 118.45855712890625,
+        "y0": 304.01336669921875,
+        "x1": 191.4199981689453,
+        "y1": 316.2346496582031,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 292.01336669921875,
+        "x1": 242.20999145507812,
+        "y1": 304.2346496582031,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 304.01336669921875,
+        "x1": 519.0711669921875,
+        "y1": 316.2346496582031,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 316.01336669921875,
+        "x1": 330.22088623046875,
+        "y1": 328.2346496582031,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 22,
+        "x0": 118.45855712890625,
+        "y0": 412.13336181640625,
+        "x1": 191.4199981689453,
+        "y1": 424.3546447753906,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 412.13336181640625,
+        "x1": 500.8441162109375,
+        "y1": 424.3546447753906,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 424.1533508300781,
+        "x1": 348.3375549316406,
+        "y1": 436.3746337890625,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      }
+    ],
+    [
+      {
+        "page": 12,
+        "x0": 103.8239974975586,
+        "y0": 437.1133728027344,
+        "x1": 173.77999877929688,
+        "y1": 449.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 425.1133728027344,
+        "x1": 242.20999145507812,
+        "y1": 437.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 437.1133728027344,
+        "x1": 494.2641906738281,
+        "y1": 449.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 449.1133728027344,
+        "x1": 397.75,
+        "y1": 461.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 461.1133728027344,
+        "x1": 92.78400421142578,
+        "y1": 473.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 194.77999877929688,
+        "y0": 461.1133728027344,
+        "x1": 203.08999633789062,
+        "y1": 473.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 461.1133728027344,
+        "x1": 408.07000732421875,
+        "y1": 473.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 475.0333557128906,
+        "x1": 92.78400421142578,
+        "y1": 487.254638671875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 194.77999877929688,
+        "y0": 475.0333557128906,
+        "x1": 203.08999633789062,
+        "y1": 487.254638671875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 475.0333557128906,
+        "x1": 358.3177185058594,
+        "y1": 487.254638671875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 103.8239974975586,
+        "y0": 532.1533203125,
+        "x1": 173.77999877929688,
+        "y1": 544.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 532.1533203125,
+        "x1": 494.2641906738281,
+        "y1": 544.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 544.1533203125,
+        "x1": 397.75,
+        "y1": 556.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 556.1533203125,
+        "x1": 92.78400421142578,
+        "y1": 568.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 195.25999450683594,
+        "y0": 556.1533203125,
+        "x1": 203.5699920654297,
+        "y1": 568.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 556.1533203125,
+        "x1": 408.07000732421875,
+        "y1": 568.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 568.1533203125,
+        "x1": 92.78400421142578,
+        "y1": 580.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 195.25999450683594,
+        "y0": 568.1533203125,
+        "x1": 203.5699920654297,
+        "y1": 580.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 568.1533203125,
+        "x1": 358.3177185058594,
+        "y1": 580.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 13,
+        "x0": 129.49855041503906,
+        "y0": 327.6533508300781,
+        "x1": 162.739990234375,
+        "y1": 339.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      },
+      {
+        "page": 13,
+        "x0": 239.4499969482422,
+        "y0": 315.6533508300781,
+        "x1": 242.20999145507812,
+        "y1": 327.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      },
+      {
+        "page": 13,
+        "x0": 239.4499969482422,
+        "y0": 327.6533508300781,
+        "x1": 412.2480773925781,
+        "y1": 339.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      },
+      {
+        "page": 24,
+        "x0": 129.49855041503906,
+        "y0": 276.6533508300781,
+        "x1": 162.739990234375,
+        "y1": 288.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      },
+      {
+        "page": 24,
+        "x0": 238.61000061035156,
+        "y0": 264.6533508300781,
+        "x1": 241.3699951171875,
+        "y1": 276.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      },
+      {
+        "page": 24,
+        "x0": 238.61000061035156,
+        "y0": 276.6533508300781,
+        "x1": 411.4080810546875,
+        "y1": 288.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 5,
+        "x0": 383.48883056640625,
+        "y0": 301.8533630371094,
+        "x1": 398.4701232910156,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 401.34051513671875,
+        "y0": 301.8533630371094,
+        "x1": 417.0393981933594,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 419.9097900390625,
+        "y0": 301.8533630371094,
+        "x1": 456.9490051269531,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 459.84149169921875,
+        "y0": 301.8533630371094,
+        "x1": 498.0950927734375,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 500.9654846191406,
+        "y0": 301.8533630371094,
+        "x1": 512.9548950195312,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 515.8253173828125,
+        "y0": 301.8533630371094,
+        "x1": 535.0128784179688,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 537.88330078125,
+        "y0": 301.8533630371094,
+        "x1": 549.7623291015625,
+        "y1": 314.07464599609375,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 239.4499969482422,
+        "y0": 314.453369140625,
+        "x1": 271.0354309082031,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 275.197509765625,
+        "y0": 314.453369140625,
+        "x1": 286.5907897949219,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 290.77496337890625,
+        "y0": 314.453369140625,
+        "x1": 317.25994873046875,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 321.4661865234375,
+        "y0": 314.453369140625,
+        "x1": 347.4874572753906,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 351.572265625,
+        "y0": 314.453369140625,
+        "x1": 390.67596435546875,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 394.8601379394531,
+        "y0": 314.453369140625,
+        "x1": 404.80718994140625,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 408.9913635253906,
+        "y0": 314.453369140625,
+        "x1": 428.2892761230469,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 432.47344970703125,
+        "y0": 314.453369140625,
+        "x1": 442.64129638671875,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 446.85858154296875,
+        "y0": 314.453369140625,
+        "x1": 481.2923278808594,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 485.47650146484375,
+        "y0": 314.453369140625,
+        "x1": 496.8697814941406,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 501.053955078125,
+        "y0": 314.453369140625,
+        "x1": 508.7157287597656,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 512.9219970703125,
+        "y0": 314.453369140625,
+        "x1": 549.7403564453125,
+        "y1": 326.6746520996094,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      },
+      {
+        "page": 5,
+        "x0": 239.4499969482422,
+        "y0": 327.0533752441406,
+        "x1": 437.6731872558594,
+        "y1": 339.274658203125,
+        "matched_text": "ty) for specific location of risk as shown in Place Code Manual. If risk is loca"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      {
+        "page": 9,
+        "x0": 103.81999969482422,
+        "y0": 99.02334594726562,
+        "x1": 137.05999755859375,
+        "y1": 111.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 166.5800018310547,
+        "y0": 99.02334594726562,
+        "x1": 169.33999633789062,
+        "y1": 111.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 238.61000061035156,
+        "y0": 99.02334594726562,
+        "x1": 418.3900146484375,
+        "y1": 111.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 90.02400207519531,
+        "y0": 111.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 123.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      },
+      {
+        "page": 9,
+        "x0": 238.61000061035156,
+        "y0": 111.02334594726562,
+        "x1": 331.3791809082031,
+        "y1": 123.24462890625,
+        "matched_text": "(DED) DEDUCTIBLE TYPE OR AMOUNT HO Clause 1: Wind"
+      }
+    ],
+    [],
+    [
+      {
+        "page": 12,
+        "x0": 103.8239974975586,
+        "y0": 99.02334594726562,
+        "x1": 170.05999755859375,
+        "y1": 111.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 99.02334594726562,
+        "x1": 463.27001953125,
+        "y1": 111.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 111.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 123.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.22000122070312,
+        "y0": 111.02334594726562,
+        "x1": 203.92999267578125,
+        "y1": 123.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 111.02334594726562,
+        "x1": 450.6700134277344,
+        "y1": 123.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 123.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 135.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.4600067138672,
+        "y0": 123.02334594726562,
+        "x1": 203.5699920654297,
+        "y1": 135.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 123.02334594726562,
+        "x1": 418.0299987792969,
+        "y1": 135.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 135.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 147.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.4600067138672,
+        "y0": 135.02334594726562,
+        "x1": 203.5699920654297,
+        "y1": 147.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 135.02334594726562,
+        "x1": 289.010009765625,
+        "y1": 147.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 147.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 159.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.22000122070312,
+        "y0": 147.02334594726562,
+        "x1": 203.92999267578125,
+        "y1": 159.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 147.02334594726562,
+        "x1": 263.33001708984375,
+        "y1": 159.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 159.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 171.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.82000732421875,
+        "y0": 159.02334594726562,
+        "x1": 203.3300018310547,
+        "y1": 171.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 159.02334594726562,
+        "x1": 273.77001953125,
+        "y1": 171.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 171.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 183.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 194.05999755859375,
+        "y0": 171.02334594726562,
+        "x1": 202.97000122070312,
+        "y1": 183.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 171.02334594726562,
+        "x1": 299.0899963378906,
+        "y1": 183.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 183.02334594726562,
+        "x1": 92.78400421142578,
+        "y1": 195.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 193.22000122070312,
+        "y0": 183.02334594726562,
+        "x1": 203.92999267578125,
+        "y1": 195.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 12,
+        "x0": 238.61000061035156,
+        "y0": 183.02334594726562,
+        "x1": 297.3768615722656,
+        "y1": 195.24462890625,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 103.8239974975586,
+        "y0": 208.10336303710938,
+        "x1": 170.05999755859375,
+        "y1": 220.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 208.10336303710938,
+        "x1": 464.1100158691406,
+        "y1": 220.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 220.10336303710938,
+        "x1": 92.78400421142578,
+        "y1": 232.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.05999755859375,
+        "y0": 220.10336303710938,
+        "x1": 204.76998901367188,
+        "y1": 232.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 220.10336303710938,
+        "x1": 451.510009765625,
+        "y1": 232.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 232.10336303710938,
+        "x1": 92.78400421142578,
+        "y1": 244.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.3000030517578,
+        "y0": 232.10336303710938,
+        "x1": 204.4099884033203,
+        "y1": 244.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 232.10336303710938,
+        "x1": 418.8699951171875,
+        "y1": 244.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 244.10336303710938,
+        "x1": 92.78400421142578,
+        "y1": 256.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.3000030517578,
+        "y0": 244.10336303710938,
+        "x1": 204.4099884033203,
+        "y1": 256.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 244.10336303710938,
+        "x1": 289.8500061035156,
+        "y1": 256.32464599609375,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 256.1333312988281,
+        "x1": 92.78400421142578,
+        "y1": 268.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.05999755859375,
+        "y0": 256.1333312988281,
+        "x1": 204.76998901367188,
+        "y1": 268.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 256.1333312988281,
+        "x1": 264.1700134277344,
+        "y1": 268.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 268.1333312988281,
+        "x1": 92.78400421142578,
+        "y1": 280.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.66000366210938,
+        "y0": 268.1333312988281,
+        "x1": 204.1699981689453,
+        "y1": 280.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 268.1333312988281,
+        "x1": 274.6100158691406,
+        "y1": 280.3546142578125,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 280.13336181640625,
+        "x1": 92.78400421142578,
+        "y1": 292.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.89999389648438,
+        "y0": 280.13336181640625,
+        "x1": 203.80999755859375,
+        "y1": 292.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 280.13336181640625,
+        "x1": 299.9300231933594,
+        "y1": 292.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 292.13336181640625,
+        "x1": 92.78400421142578,
+        "y1": 304.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 194.05999755859375,
+        "y0": 292.13336181640625,
+        "x1": 204.76998901367188,
+        "y1": 304.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 292.13336181640625,
+        "x1": 298.2168884277344,
+        "y1": 304.3546447753906,
+        "matched_text": "(ROOFCOV) ROOF COVERING (choose predominate type) A Composition Shingle (Asphalt"
+      }
+    ],
+    [
+      {
+        "page": 12,
+        "x0": 118.45855712890625,
+        "y0": 304.01336669921875,
+        "x1": 191.4199981689453,
+        "y1": 316.2346496582031,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 292.01336669921875,
+        "x1": 242.20999145507812,
+        "y1": 304.2346496582031,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 304.01336669921875,
+        "x1": 519.0711669921875,
+        "y1": 316.2346496582031,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 316.01336669921875,
+        "x1": 330.22088623046875,
+        "y1": 328.2346496582031,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 22,
+        "x0": 118.45855712890625,
+        "y0": 412.13336181640625,
+        "x1": 191.4199981689453,
+        "y1": 424.3546447753906,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 412.13336181640625,
+        "x1": 500.8441162109375,
+        "y1": 424.3546447753906,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 424.1533508300781,
+        "x1": 348.3375549316406,
+        "y1": 436.3746337890625,
+        "matched_text": "(ROOFCRED) ROOF COVERING PREMIUM CREDIT AND YEAR OF INSTALLATION ("
+      }
+    ],
+    [
+      {
+        "page": 12,
+        "x0": 103.8239974975586,
+        "y0": 437.1133728027344,
+        "x1": 173.77999877929688,
+        "y1": 449.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 425.1133728027344,
+        "x1": 242.20999145507812,
+        "y1": 437.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 437.1133728027344,
+        "x1": 494.2641906738281,
+        "y1": 449.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 449.1133728027344,
+        "x1": 397.75,
+        "y1": 461.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 461.1133728027344,
+        "x1": 92.78400421142578,
+        "y1": 473.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 194.77999877929688,
+        "y0": 461.1133728027344,
+        "x1": 203.08999633789062,
+        "y1": 473.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 461.1133728027344,
+        "x1": 408.07000732421875,
+        "y1": 473.33465576171875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 90.02400207519531,
+        "y0": 475.0333557128906,
+        "x1": 92.78400421142578,
+        "y1": 487.254638671875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 194.77999877929688,
+        "y0": 475.0333557128906,
+        "x1": 203.08999633789062,
+        "y1": 487.254638671875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 12,
+        "x0": 239.4499969482422,
+        "y0": 475.0333557128906,
+        "x1": 358.3177185058594,
+        "y1": 487.254638671875,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 103.8239974975586,
+        "y0": 532.1533203125,
+        "x1": 173.77999877929688,
+        "y1": 544.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 532.1533203125,
+        "x1": 494.2641906738281,
+        "y1": 544.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 544.1533203125,
+        "x1": 397.75,
+        "y1": 556.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 556.1533203125,
+        "x1": 92.78400421142578,
+        "y1": 568.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 195.25999450683594,
+        "y0": 556.1533203125,
+        "x1": 203.5699920654297,
+        "y1": 568.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 556.1533203125,
+        "x1": 408.07000732421875,
+        "y1": 568.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 90.02400207519531,
+        "y0": 568.1533203125,
+        "x1": 92.78400421142578,
+        "y1": 580.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 195.25999450683594,
+        "y0": 568.1533203125,
+        "x1": 203.5699920654297,
+        "y1": 580.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      },
+      {
+        "page": 22,
+        "x0": 239.4499969482422,
+        "y0": 568.1533203125,
+        "x1": 358.3177185058594,
+        "y1": 580.3746337890625,
+        "matched_text": "(COSMETIC) EXCLUSION OF COSMETIC DAMAGE TO ROOF COVERINGS ENDORSEMENT 0 Endorsem"
+      }
+    ],
+    [
+      {
+        "page": 23,
+        "x0": 103.8239974975586,
+        "y0": 352.01336669921875,
+        "x1": 169.45999145507812,
+        "y1": 364.2346496582031,
+        "matched_text": "(ROOFACV) ACTUAL CASH VALUE FOR ROOF ENDORSEMENT"
+      },
+      {
+        "page": 23,
+        "x0": 239.4499969482422,
+        "y0": 340.01336669921875,
+        "x1": 242.20999145507812,
+        "y1": 352.2346496582031,
+        "matched_text": "(ROOFACV) ACTUAL CASH VALUE FOR ROOF ENDORSEMENT"
+      },
+      {
+        "page": 23,
+        "x0": 239.4499969482422,
+        "y0": 352.01336669921875,
+        "x1": 509.9079895019531,
+        "y1": 364.2346496582031,
+        "matched_text": "(ROOFACV) ACTUAL CASH VALUE FOR ROOF ENDORSEMENT"
+      }
+    ],
+    [
+      {
+        "page": 23,
+        "x0": 119.2985610961914,
+        "y0": 427.0333557128906,
+        "x1": 174.6199951171875,
+        "y1": 439.254638671875,
+        "matched_text": "(DEPREC) DIFFERENCE IN ACTUAL CASH VALUE AND"
+      },
+      {
+        "page": 23,
+        "x0": 239.4499969482422,
+        "y0": 415.01336669921875,
+        "x1": 242.20999145507812,
+        "y1": 427.2346496582031,
+        "matched_text": "(DEPREC) DIFFERENCE IN ACTUAL CASH VALUE AND"
+      },
+      {
+        "page": 23,
+        "x0": 239.4499969482422,
+        "y0": 427.0333557128906,
+        "x1": 476.0814208984375,
+        "y1": 439.254638671875,
+        "matched_text": "(DEPREC) DIFFERENCE IN ACTUAL CASH VALUE AND"
+      }
+    ],
+    [
+      {
+        "page": 13,
+        "x0": 129.49855041503906,
+        "y0": 327.6533508300781,
+        "x1": 162.739990234375,
+        "y1": 339.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      },
+      {
+        "page": 13,
+        "x0": 239.4499969482422,
+        "y0": 315.6533508300781,
+        "x1": 242.20999145507812,
+        "y1": 327.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      },
+      {
+        "page": 13,
+        "x0": 239.4499969482422,
+        "y0": 327.6533508300781,
+        "x1": 412.2480773925781,
+        "y1": 339.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      },
+      {
+        "page": 24,
+        "x0": 129.49855041503906,
+        "y0": 276.6533508300781,
+        "x1": 162.739990234375,
+        "y1": 288.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      },
+      {
+        "page": 24,
+        "x0": 238.61000061035156,
+        "y0": 264.6533508300781,
+        "x1": 241.3699951171875,
+        "y1": 276.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      },
+      {
+        "page": 24,
+        "x0": 238.61000061035156,
+        "y0": 276.6533508300781,
+        "x1": 411.4080810546875,
+        "y1": 288.8746337890625,
+        "matched_text": "(BCC) BUILDING CODE CREDIT (TWIA"
+      }
+    ],
+    []
+  ],
+  "page_dimensions": {
+    "1": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "2": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "3": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "4": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "5": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "6": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "7": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "8": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "9": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "10": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "11": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "12": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "13": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "14": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "15": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "16": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "17": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "18": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "19": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "20": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "21": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "22": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "23": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "24": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "25": {
+      "width": 612.0,
+      "height": 792.0
+    }
+  }
+}

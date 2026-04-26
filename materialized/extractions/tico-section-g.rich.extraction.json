@@ -2005,47 +2005,47 @@
   "citations": [
     {
       "node_temp_id": "field-noticecountrecordlayout962d-sp-1-1",
-      "char_start": 542,
-      "char_end": 742,
+      "char_start": 537,
+      "char_end": 737,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-aed-2-3",
-      "char_start": 607,
-      "char_end": 807,
+      "char_start": 608,
+      "char_end": 808,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-at-5-2",
-      "char_start": 1060,
-      "char_end": 1260,
+      "char_start": 1088,
+      "char_end": 1288,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-cno-12-3",
-      "char_start": 1209,
-      "char_end": 1409,
+      "char_start": 1240,
+      "char_end": 1440,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-top-15-2",
-      "char_start": 1265,
-      "char_end": 1465,
+      "char_start": 1300,
+      "char_end": 1500,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-zip-17-5",
-      "char_start": 1681,
-      "char_end": 1881,
+      "char_start": 1718,
+      "char_end": 1918,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-apc-22-8",
-      "char_start": 1744,
-      "char_end": 1944,
+      "char_start": 1785,
+      "char_end": 1985,
       "kind": "defines"
     }
   ],
   "uncited_spans": [],
-  "document_total_chars": 2033
+  "document_total_chars": 2096
 }

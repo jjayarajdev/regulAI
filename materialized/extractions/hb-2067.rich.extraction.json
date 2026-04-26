@@ -1,17 +1,17 @@
 {
-  "summary": "H.B. No. 2067 amends Texas Insurance Code Chapter 551 provisions governing declination, cancellation, and nonrenewal of insurance policies. The bill requires insurers to provide written reasons for declination, cancellation, or nonrenewal without waiting for a request, adds a written declination notice requirement for liability and commercial property insurance applications, and applies to applications and policies made, delivered, issued, or renewed on or after September 1, 2025.",
+  "summary": "HB 2067 amends Texas Insurance Code Chapter 551 provisions on declination, cancellation, and nonrenewal of insurance policies. It authorizes commissioner notice rules, makes insurer written reason statements mandatory without request language, adds a written declination notice requirement for liability and commercial property insurance applications, and takes effect September 1, 2025.",
   "proposed_nodes": [
     {
       "temp_id": "doc-hb2067",
       "type": "RegulationDocument",
-      "name": "H.B. No. 2067 \u2014 Declination, Cancellation, or Nonrenewal of Insurance Policies",
+      "name": "HB 2067 \u2014 Declination, Cancellation, Nonrenewal of Insurance Policies",
       "confidence": 0.98,
       "description": null,
-      "title": "H.B. No. 2067 \u2014 An Act relating to declination, cancellation, or nonrenewal of insurance policies",
+      "title": "HB 2067 \u2014 Declination, Cancellation, Nonrenewal of Insurance Policies",
       "effective_date": "2025-09-01",
       "kind": "Statute",
       "hash": null,
-      "source_url": "HB02067I.pdf",
+      "source_url": null,
       "edition_name": null,
       "supersedes_edition": null,
       "section": null,
@@ -47,19 +47,19 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "rule-sec1",
+      "temp_id": "rule-sec1-551001a",
       "type": "Rule",
-      "name": "Section 1 \u2014 Commissioner Authority for Declination, Cancellation, and Nonrenewal Rules",
+      "name": "Section 1 \u2014 Amend Insurance Code \u00a7551.001(a): Commissioner authority to adopt notice rules",
       "confidence": 0.96,
       "description": null,
-      "title": "Commissioner authority for declination, cancellation, and nonrenewal rules",
+      "title": "Amend Insurance Code \u00a7551.001(a): Commissioner authority to adopt notice rules",
       "effective_date": null,
       "kind": null,
       "hash": null,
       "source_url": null,
       "edition_name": null,
       "supersedes_edition": null,
-      "section": "Act",
+      "section": "SECTION",
       "rule_number": 1,
       "report_name": null,
       "cadence": null,
@@ -92,19 +92,19 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "rule-sec2",
+      "temp_id": "rule-sec2-551002a",
       "type": "Rule",
-      "name": "Section 2 \u2014 Written Statement of Reasons Required for Declination, Cancellation, or Nonrenewal",
+      "name": "Section 2 \u2014 Amend Insurance Code \u00a7551.002(a): written statement of reasons required",
       "confidence": 0.96,
       "description": null,
-      "title": "Written statement of reasons required",
+      "title": "Amend Insurance Code \u00a7551.002(a): written statement of reasons required",
       "effective_date": null,
       "kind": null,
       "hash": null,
       "source_url": null,
       "edition_name": null,
       "supersedes_edition": null,
-      "section": "Act",
+      "section": "SECTION",
       "rule_number": 2,
       "report_name": null,
       "cadence": null,
@@ -137,19 +137,19 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "rule-sec3",
+      "temp_id": "rule-sec3-5510521",
       "type": "Rule",
-      "name": "Section 3 \u2014 Written Notice of Declination Required",
+      "name": "Section 3 \u2014 Add Insurance Code \u00a7551.0521: written notice of declination required",
       "confidence": 0.97,
       "description": null,
-      "title": "Written notice of declination required",
+      "title": "Add Insurance Code \u00a7551.0521: written notice of declination required",
       "effective_date": null,
       "kind": null,
       "hash": null,
       "source_url": null,
       "edition_name": null,
       "supersedes_edition": null,
-      "section": "Act",
+      "section": "SECTION",
       "rule_number": 3,
       "report_name": null,
       "cadence": null,
@@ -182,19 +182,19 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "rule-sec4",
+      "temp_id": "rule-sec4-551055",
       "type": "Rule",
-      "name": "Section 4 \u2014 Reason for Declination, Cancellation, or Nonrenewal Required",
+      "name": "Section 4 \u2014 Amend Insurance Code \u00a7551.055: reason for declination, cancellation, or nonrenewal required in notice",
       "confidence": 0.97,
       "description": null,
-      "title": "Reason for declination, cancellation, or nonrenewal required",
+      "title": "Amend Insurance Code \u00a7551.055: reason for declination, cancellation, or nonrenewal required in notice",
       "effective_date": null,
       "kind": null,
       "hash": null,
       "source_url": null,
       "edition_name": null,
       "supersedes_edition": null,
-      "section": "Act",
+      "section": "SECTION",
       "rule_number": 4,
       "report_name": null,
       "cadence": null,
@@ -227,19 +227,19 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "rule-sec5",
+      "temp_id": "rule-sec5-551109",
       "type": "Rule",
-      "name": "Section 5 \u2014 Insurer Statement",
-      "confidence": 0.96,
+      "name": "Section 5 \u2014 Amend Insurance Code \u00a7551.109: insurer statement required",
+      "confidence": 0.97,
       "description": null,
-      "title": "Insurer statement",
+      "title": "Amend Insurance Code \u00a7551.109: insurer statement required",
       "effective_date": null,
       "kind": null,
       "hash": null,
       "source_url": null,
       "edition_name": null,
       "supersedes_edition": null,
-      "section": "Act",
+      "section": "SECTION",
       "rule_number": 5,
       "report_name": null,
       "cadence": null,
@@ -272,19 +272,19 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "rule-sec6",
+      "temp_id": "rule-sec6-applicability",
       "type": "Rule",
-      "name": "Section 6 \u2014 Applicability of Change in Law",
+      "name": "Section 6 \u2014 Applicability to applications and policies on or after effective date",
       "confidence": 0.95,
       "description": null,
-      "title": "Applicability of change in law",
+      "title": "Applicability to applications and policies on or after effective date",
       "effective_date": null,
       "kind": null,
       "hash": null,
       "source_url": null,
       "edition_name": null,
       "supersedes_edition": null,
-      "section": "Act",
+      "section": "SECTION",
       "rule_number": 6,
       "report_name": null,
       "cadence": null,
@@ -317,19 +317,19 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "rule-sec7",
+      "temp_id": "rule-sec7-effective-date",
       "type": "Rule",
-      "name": "Section 7 \u2014 Effective Date",
+      "name": "Section 7 \u2014 Effective date September 1, 2025",
       "confidence": 0.99,
       "description": null,
-      "title": "Effective date",
+      "title": "Effective date September 1, 2025",
       "effective_date": "2025-09-01",
       "kind": null,
       "hash": null,
       "source_url": null,
       "edition_name": null,
       "supersedes_edition": null,
-      "section": "Act",
+      "section": "SECTION",
       "rule_number": 7,
       "report_name": null,
       "cadence": null,
@@ -362,10 +362,10 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "cov-liability-insurance",
+      "temp_id": "coverage-liability-insurance",
       "type": "CoverageType",
       "name": "Liability Insurance",
-      "confidence": 0.9,
+      "confidence": 0.92,
       "description": null,
       "title": null,
       "effective_date": null,
@@ -407,10 +407,10 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "cov-commercial-property-insurance",
+      "temp_id": "coverage-commercial-property-insurance",
       "type": "CoverageType",
       "name": "Commercial Property Insurance",
-      "confidence": 0.9,
+      "confidence": 0.92,
       "description": null,
       "title": null,
       "effective_date": null,
@@ -455,7 +455,7 @@
   "proposed_relationships": [
     {
       "type": "CONTAINED_IN",
-      "src_temp_id": "rule-sec1",
+      "src_temp_id": "rule-sec1-551001a",
       "dst_temp_id": "doc-hb2067",
       "char_start": null,
       "char_end": null,
@@ -463,7 +463,7 @@
     },
     {
       "type": "CONTAINED_IN",
-      "src_temp_id": "rule-sec2",
+      "src_temp_id": "rule-sec2-551002a",
       "dst_temp_id": "doc-hb2067",
       "char_start": null,
       "char_end": null,
@@ -471,7 +471,7 @@
     },
     {
       "type": "CONTAINED_IN",
-      "src_temp_id": "rule-sec3",
+      "src_temp_id": "rule-sec3-5510521",
       "dst_temp_id": "doc-hb2067",
       "char_start": null,
       "char_end": null,
@@ -479,7 +479,7 @@
     },
     {
       "type": "CONTAINED_IN",
-      "src_temp_id": "rule-sec4",
+      "src_temp_id": "rule-sec4-551055",
       "dst_temp_id": "doc-hb2067",
       "char_start": null,
       "char_end": null,
@@ -487,7 +487,7 @@
     },
     {
       "type": "CONTAINED_IN",
-      "src_temp_id": "rule-sec5",
+      "src_temp_id": "rule-sec5-551109",
       "dst_temp_id": "doc-hb2067",
       "char_start": null,
       "char_end": null,
@@ -495,7 +495,7 @@
     },
     {
       "type": "CONTAINED_IN",
-      "src_temp_id": "rule-sec6",
+      "src_temp_id": "rule-sec6-applicability",
       "dst_temp_id": "doc-hb2067",
       "char_start": null,
       "char_end": null,
@@ -503,7 +503,7 @@
     },
     {
       "type": "CONTAINED_IN",
-      "src_temp_id": "rule-sec7",
+      "src_temp_id": "rule-sec7-effective-date",
       "dst_temp_id": "doc-hb2067",
       "char_start": null,
       "char_end": null,
@@ -511,188 +511,117 @@
     },
     {
       "type": "APPLIES_TO",
-      "src_temp_id": "rule-sec3",
-      "dst_temp_id": "cov-liability-insurance",
-      "char_start": 1401,
-      "char_end": 1466,
-      "citation_kind": "references"
+      "src_temp_id": "rule-sec3-5510521",
+      "dst_temp_id": "coverage-liability-insurance",
+      "char_start": null,
+      "char_end": null,
+      "citation_kind": null
     },
     {
       "type": "APPLIES_TO",
-      "src_temp_id": "rule-sec3",
-      "dst_temp_id": "cov-commercial-property-insurance",
-      "char_start": 1467,
-      "char_end": 1533,
-      "citation_kind": "references"
-    },
-    {
-      "type": "CITES",
-      "src_temp_id": "rule-sec1",
-      "dst_temp_id": "rule-sec1",
-      "char_start": 250,
-      "char_end": 648,
-      "citation_kind": "defines"
-    },
-    {
-      "type": "CITES",
-      "src_temp_id": "rule-sec2",
-      "dst_temp_id": "rule-sec2",
-      "char_start": 649,
-      "char_end": 1127,
-      "citation_kind": "defines"
-    },
-    {
-      "type": "CITES",
-      "src_temp_id": "rule-sec3",
-      "dst_temp_id": "rule-sec3",
-      "char_start": 1342,
-      "char_end": 1577,
-      "citation_kind": "defines"
-    },
-    {
-      "type": "CITES",
-      "src_temp_id": "rule-sec4",
-      "dst_temp_id": "rule-sec4",
-      "char_start": 1578,
-      "char_end": 2023,
-      "citation_kind": "defines"
-    },
-    {
-      "type": "CITES",
-      "src_temp_id": "rule-sec5",
-      "dst_temp_id": "rule-sec5",
-      "char_start": 2024,
-      "char_end": 2437,
-      "citation_kind": "defines"
-    },
-    {
-      "type": "CITES",
-      "src_temp_id": "rule-sec6",
-      "dst_temp_id": "rule-sec6",
-      "char_start": 2438,
-      "char_end": 3023,
-      "citation_kind": "defines"
-    },
-    {
-      "type": "CITES",
-      "src_temp_id": "rule-sec7",
-      "dst_temp_id": "rule-sec7",
-      "char_start": 3024,
-      "char_end": 3076,
-      "citation_kind": "defines"
+      "src_temp_id": "rule-sec3-5510521",
+      "dst_temp_id": "coverage-commercial-property-insurance",
+      "char_start": null,
+      "char_end": null,
+      "citation_kind": null
     }
   ],
   "citations": [
     {
       "node_temp_id": "doc-hb2067",
-      "char_start": 75,
-      "char_end": 193,
+      "char_start": 0,
+      "char_end": 71,
       "kind": "defines"
     },
     {
       "node_temp_id": "doc-hb2067",
-      "char_start": 3024,
-      "char_end": 3076,
+      "char_start": 238,
+      "char_end": 327,
       "kind": "defines"
     },
     {
-      "node_temp_id": "rule-sec1",
-      "char_start": 250,
-      "char_end": 648,
+      "node_temp_id": "doc-hb2067",
+      "char_start": 3198,
+      "char_end": 3254,
       "kind": "defines"
     },
     {
-      "node_temp_id": "rule-sec2",
-      "char_start": 649,
-      "char_end": 1127,
+      "node_temp_id": "rule-sec1-551001a",
+      "char_start": 329,
+      "char_end": 810,
       "kind": "defines"
     },
     {
-      "node_temp_id": "rule-sec3",
-      "char_start": 1128,
-      "char_end": 1240,
+      "node_temp_id": "rule-sec2-551002a",
+      "char_start": 812,
+      "char_end": 1348,
       "kind": "defines"
     },
     {
-      "node_temp_id": "rule-sec3",
-      "char_start": 1342,
-      "char_end": 1577,
+      "node_temp_id": "rule-sec3-5510521",
+      "char_start": 1350,
+      "char_end": 1469,
       "kind": "defines"
     },
     {
-      "node_temp_id": "rule-sec4",
-      "char_start": 1578,
-      "char_end": 2023,
+      "node_temp_id": "rule-sec3-5510521",
+      "char_start": 1506,
+      "char_end": 1749,
       "kind": "defines"
     },
     {
-      "node_temp_id": "rule-sec5",
-      "char_start": 2024,
-      "char_end": 2437,
+      "node_temp_id": "rule-sec4-551055",
+      "char_start": 1749,
+      "char_end": 2221,
       "kind": "defines"
     },
     {
-      "node_temp_id": "rule-sec6",
-      "char_start": 2438,
-      "char_end": 2820,
+      "node_temp_id": "rule-sec5-551109",
+      "char_start": 2223,
+      "char_end": 2673,
       "kind": "defines"
     },
     {
-      "node_temp_id": "rule-sec6",
-      "char_start": 2931,
-      "char_end": 3023,
+      "node_temp_id": "rule-sec6-applicability",
+      "char_start": 2675,
+      "char_end": 3196,
       "kind": "defines"
     },
     {
-      "node_temp_id": "rule-sec7",
-      "char_start": 3024,
-      "char_end": 3076,
+      "node_temp_id": "rule-sec7-effective-date",
+      "char_start": 3198,
+      "char_end": 3254,
       "kind": "defines"
     },
     {
-      "node_temp_id": "cov-liability-insurance",
-      "char_start": 1401,
-      "char_end": 1466,
-      "kind": "references"
+      "node_temp_id": "coverage-liability-insurance",
+      "char_start": 1612,
+      "char_end": 1631,
+      "kind": "defines"
     },
     {
-      "node_temp_id": "cov-commercial-property-insurance",
-      "char_start": 1467,
-      "char_end": 1533,
-      "kind": "references"
+      "node_temp_id": "coverage-commercial-property-insurance",
+      "char_start": 1637,
+      "char_end": 1673,
+      "kind": "defines"
     }
   ],
   "uncited_spans": [
     {
-      "char_start": 0,
-      "char_end": 64,
-      "note": "header / source and page metadata"
+      "char_start": 72,
+      "char_end": 237,
+      "note": "preamble/header"
     },
     {
-      "char_start": 65,
-      "char_end": 75,
-      "note": "preamble / author line, no closed-vocabulary node extracted"
+      "char_start": 1469,
+      "char_end": 1506,
+      "note": "page number/header"
     },
     {
-      "char_start": 194,
-      "char_end": 249,
-      "note": "preamble / enactment clause, no extraction needed"
-    },
-    {
-      "char_start": 1241,
-      "char_end": 1341,
-      "note": "page number / OCR line-number and page-footer artifacts"
-    },
-    {
-      "char_start": 2821,
-      "char_end": 2930,
-      "note": "page number / OCR line-number and page-header artifacts"
-    },
-    {
-      "char_start": 3077,
-      "char_end": 3113,
-      "note": "page number / final page-footer artifacts"
+      "char_start": 3076,
+      "char_end": 3097,
+      "note": "page number/header"
     }
   ],
-  "document_total_chars": 3113
+  "document_total_chars": 3255
 }
