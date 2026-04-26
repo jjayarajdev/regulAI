@@ -8398,7 +8398,7 @@
       "is_required": null,
       "code_list_name": null,
       "code": "Z",
-      "notes": "$15,000 * For the Seacoast Territories (1, 8, 9, 10, and 11), code 1 is $100 Deductible on Wind, Hurricane, and Hail \u2013 Full Coverage on other Extended Coverage Perils. ** Code 7 applies in territories Territories 8, 9, and 10, and those portions of La Porte, Morgan's Point, Pasadena, Seabrook, and Shore Acres in Territory 1 that are located in the Catastrophe Area, subject to Wind Exclusion Endorsement. HO Clause 2: Other than Wind and Hail, or Clause 3: Tenants, including Condominium Owners",
+      "notes": "$15,000 * For the Seacoast Territories (1, 8, 9, 10, and 11), code 1 is $100 Deductible on Wind, Hurricane, and Hail \u2013 Full Coverage on other Extended Coverage Perils. ** Code 7 applies in Territories 8, 9, and 10, and those portions of La Porte, Morgan's Point, Pasadena, Seabrook, and Shore Acres in Territory 1 that are located in the Catastrophe Area, subject to Wind Exclusion Endorsement. HO Clause 2: Other than Wind and Hail, or Clause 3: Tenants, including Condominium Owners",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -12898,7 +12898,7 @@
       "is_required": null,
       "code_list_name": null,
       "code": "140",
-      "notes": "Tenure Discount Depending on whether the insurer uses tenure in rating or tiering, report the tenure of the insured using the following codes. \"Tenure\" is defined as the number of years previously insured with the insurer at the time the policy is issued or renewed. Insurers must report this code in all premium transactions, including those that do not qualify for a tenure-based discount. Do not report tenure discounts elsewhere. not Not used in rating or tiering 0\u20132 years 3\u20135 years 6\u20138 years 9\u201310 years 11\u201315 years 16\u201319 years 20 or more years",
+      "notes": "Tenure Discount Depending on whether the insurer uses tenure in rating or tiering, report the tenure of the insured using the following codes. \"Tenure\" is defined as the number of years previously insured with the insurer at the time the policy is issued or renewed. Insurers must report this code in all premium transactions, including those that do not qualify for a tenure-based discount. Do not report tenure discounts elsewhere. Not used in rating or tiering 0\u20132 years 3\u20135 years 6\u20138 years 9\u201310 years 11\u201315 years 16\u201319 years 20 or more years",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -13438,7 +13438,7 @@
       "is_required": null,
       "code_list_name": null,
       "code": "2",
-      "notes": "Policy does not provide coverage for the dwelling (DW Only).",
+      "notes": "Policy does not provide coverage for the dwelling.",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -15328,7 +15328,7 @@
       "is_required": null,
       "code_list_name": null,
       "code": "Z",
-      "notes": "$15,000 * For the Seacoast Territories (1, 8, 9, 10, and 11), code 1 is $100 Deductible on Wind, Hurricane, and Hail \u2013 Full Coverage on other Extended Coverage Perils. ** Code 7 applies in territories Territories 8, 9, and 10, and those portions of La Porte, Morgan's Point, Pasadena, Seabrook, and Shore Acres in Territory 1 that are located in the Catastrophe Area, subject to Wind Exclusion Endorsement.",
+      "notes": "$15,000 * For the Seacoast Territories (1, 8, 9, 10, and 11), code 1 is $100 Deductible on Wind, Hurricane, and Hail \u2013 Full Coverage on other Extended Coverage Perils. ** Code 7 applies in Territories 8, 9, and 10, and those portions of La Porte, Morgan's Point, Pasadena, Seabrook, and Shore Acres in Territory 1 that are located in the Catastrophe Area, subject to Wind Exclusion Endorsement.",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -16678,7 +16678,7 @@
       "is_required": false,
       "code_list_name": null,
       "code": null,
-      "notes": "Reserved/unused columns. Skip Section D: for Losses",
+      "notes": "Reserved/unused columns. Skip",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -17058,14 +17058,6 @@
     }
   ],
   "proposed_relationships": [
-    {
-      "type": "CITES",
-      "src_temp_id": "layout-premium-record-layout",
-      "dst_temp_id": "doc-stat-plan-section-c",
-      "char_start": 0,
-      "char_end": 200,
-      "citation_kind": "defines"
-    },
     {
       "type": "CONTAINED_IN",
       "src_temp_id": "field-premiumrecordlayout5374-sp-1-1",
@@ -20086,431 +20078,269 @@
   "citations": [
     {
       "node_temp_id": "field-premiumrecordlayout5374-sp-1-1",
-      "char_start": 364,
-      "char_end": 564,
+      "char_start": 367,
+      "char_end": 567,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-acdt-2-3",
-      "char_start": 427,
-      "char_end": 627,
+      "char_start": 432,
+      "char_end": 632,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rt-5-2",
-      "char_start": 599,
-      "char_end": 799,
+      "char_start": 616,
+      "char_end": 816,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-policy-7-10",
-      "char_start": 1535,
-      "char_end": 1735,
+      "char_start": 1580,
+      "char_end": 1780,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-trm-17-1",
-      "char_start": 1703,
-      "char_end": 1903,
+      "char_start": 1751,
+      "char_end": 1951,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-eff-18-5",
-      "char_start": 1762,
-      "char_end": 1962,
+      "char_start": 1815,
+      "char_end": 2015,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-exp-23-3",
-      "char_start": 1898,
-      "char_end": 2098,
+      "char_start": 1954,
+      "char_end": 2154,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-place-26-5",
-      "char_start": 2024,
-      "char_end": 2224,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-31-2",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 2082,
+      "char_end": 2282,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-ins-33-5",
-      "char_start": 2310,
-      "char_end": 2510,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-38-3",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 2370,
+      "char_end": 2570,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-lob-41-2",
-      "char_start": 2679,
-      "char_end": 2879,
+      "char_start": 2746,
+      "char_end": 2946,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-cno-43-3",
-      "char_start": 3323,
-      "char_end": 3523,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-46-4",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 3413,
+      "char_end": 3613,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-fm-50-1",
-      "char_start": 3386,
-      "char_end": 3586,
+      "char_start": 3480,
+      "char_end": 3680,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-fam-51-1",
-      "char_start": 5065,
-      "char_end": 5265,
+      "char_start": 5135,
+      "char_end": 5335,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-cov-52-1",
-      "char_start": 5557,
-      "char_end": 5757,
+      "char_start": 5644,
+      "char_end": 5844,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-ct-53-1",
-      "char_start": 6374,
-      "char_end": 6574,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-54-2",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 6486,
+      "char_end": 6686,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-ppc-56-1",
-      "char_start": 7138,
-      "char_end": 7338,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-57-2",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 7328,
+      "char_end": 7528,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-frpm-59-5",
-      "char_start": 11369,
-      "char_end": 11569,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-64-3",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 11839,
+      "char_end": 12039,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-eprm-67-4",
-      "char_start": 11771,
-      "char_end": 11971,
+      "char_start": 12247,
+      "char_end": 12447,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-alob-71-2",
-      "char_start": 11967,
-      "char_end": 12167,
+      "char_start": 12443,
+      "char_end": 12643,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-alins-73-3",
-      "char_start": 12424,
-      "char_end": 12624,
+      "char_start": 12908,
+      "char_end": 13108,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-aprm-76-4",
-      "char_start": 12646,
-      "char_end": 12846,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-80-3",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 13130,
+      "char_end": 13330,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-roofcov-83-1",
-      "char_start": 12884,
-      "char_end": 13084,
+      "char_start": 13374,
+      "char_end": 13574,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-roofcred-84-1",
-      "char_start": 13356,
-      "char_end": 13556,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-85-4",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 13870,
+      "char_end": 14070,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-cosmetic-89-1",
-      "char_start": 13840,
-      "char_end": 14040,
+      "char_start": 14365,
+      "char_end": 14565,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-zip-91-9",
-      "char_start": 14015,
-      "char_end": 14215,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-101-8",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-109-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-116-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-122-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-129-5",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 14546,
+      "char_end": 14746,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-bcc-134-2",
-      "char_start": 14991,
-      "char_end": 15191,
+      "char_start": 15545,
+      "char_end": 15745,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-loc-136-1",
-      "char_start": 15472,
-      "char_end": 15672,
+      "char_start": 16046,
+      "char_end": 16246,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-oc10-138-1",
-      "char_start": 15847,
-      "char_end": 16047,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-141-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-143-3",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-146-5",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 16431,
+      "char_end": 16631,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rcb-151-1",
-      "char_start": 17016,
-      "char_end": 17216,
+      "char_start": 17629,
+      "char_end": 17829,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rcpp-152-1",
-      "char_start": 17374,
-      "char_end": 17574,
+      "char_start": 17986,
+      "char_end": 18186,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rct-153-1",
-      "char_start": 17639,
-      "char_end": 17839,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-156-6",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 18259,
+      "char_end": 18459,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-yoc-162-4",
-      "char_start": 20224,
-      "char_end": 20424,
+      "char_start": 20924,
+      "char_end": 21124,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-ale-166-3",
-      "char_start": 20389,
-      "char_end": 20589,
+      "char_start": 21092,
+      "char_end": 21292,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-clm-173-1",
-      "char_start": 21352,
-      "char_end": 21552,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-174-10",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 22062,
+      "char_end": 22262,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rv1-174-1",
-      "char_start": 23019,
-      "char_end": 23219,
+      "char_start": 23756,
+      "char_end": 23956,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rv2-175-1",
-      "char_start": 23063,
-      "char_end": 23263,
+      "char_start": 23802,
+      "char_end": 24002,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rv3-176-1",
-      "char_start": 23089,
-      "char_end": 23289,
+      "char_start": 23830,
+      "char_end": 24030,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rv4-177-1",
-      "char_start": 23130,
-      "char_end": 23330,
+      "char_start": 23873,
+      "char_end": 24073,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rv5-178-1",
-      "char_start": 23170,
-      "char_end": 23370,
+      "char_start": 23915,
+      "char_end": 24115,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rv6-179-1",
-      "char_start": 23215,
-      "char_end": 23415,
+      "char_start": 23962,
+      "char_end": 24162,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rv7-180-1",
-      "char_start": 23258,
-      "char_end": 23458,
+      "char_start": 24007,
+      "char_end": 24207,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rv8-181-1",
-      "char_start": 23324,
-      "char_end": 23524,
+      "char_start": 24075,
+      "char_end": 24275,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rv9-182-1",
-      "char_start": 23362,
-      "char_end": 23562,
+      "char_start": 24115,
+      "char_end": 24315,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-premiumrecordlayout5374-rv10-183-1",
-      "char_start": 23412,
-      "char_end": 23612,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-184-17",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-90-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-100-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-115-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-128-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-137-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-139-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-154-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-premiumrecordlayout5374-skip-169-4",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 24167,
+      "char_end": 24367,
       "kind": "defines"
     }
   ],
   "uncited_spans": [],
-  "document_total_chars": 23927
+  "document_total_chars": 24682
 }

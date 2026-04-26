@@ -24619,22 +24619,6 @@
   ],
   "proposed_relationships": [
     {
-      "type": "CITES",
-      "src_temp_id": "layout-homeowners-loss-record-layout",
-      "dst_temp_id": "doc-tico-recordlayout-ho",
-      "char_start": 0,
-      "char_end": 200,
-      "citation_kind": "defines"
-    },
-    {
-      "type": "CITES",
-      "src_temp_id": "layout-homeowners-premium-record-layout",
-      "dst_temp_id": "doc-tico-recordlayout-ho",
-      "char_start": 0,
-      "char_end": 200,
-      "citation_kind": "defines"
-    },
-    {
       "type": "CONTAINED_IN",
       "src_temp_id": "field-homeownerspremiumrecordlayoue257-sp-1-1",
       "dst_temp_id": "layout-homeowners-premium-record-layout",
@@ -29007,18 +28991,6 @@
       "kind": "defines"
     },
     {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-acdt-month-3-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-acdt-year-4-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
       "node_temp_id": "field-homeownerspremiumrecordlayoue257-rt-5-2",
       "char_start": 995,
       "char_end": 1195,
@@ -29055,21 +29027,9 @@
       "kind": "defines"
     },
     {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-31-3",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
       "node_temp_id": "field-homeownerspremiumrecordlayoue257-ins-34-4",
       "char_start": 2229,
       "char_end": 2429,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-38-3",
-      "char_start": 0,
-      "char_end": 200,
       "kind": "defines"
     },
     {
@@ -29193,36 +29153,6 @@
       "kind": "defines"
     },
     {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-101-8",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-109-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-116-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-122-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-129-5",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
       "node_temp_id": "field-homeownerspremiumrecordlayoue257-bcc-134-2",
       "char_start": 11832,
       "char_end": 12032,
@@ -29235,93 +29165,9 @@
       "kind": "defines"
     },
     {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-141-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-144-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-146-5",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-63-17",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-90-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-100-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-115-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-128-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-137-4",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-143-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerspremiumrecordlayoue257-skip-151-50",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-23-3",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
       "node_temp_id": "field-homeownerslossrecordlayout9bfe-place-26-5",
       "char_start": 1938,
       "char_end": 2138,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-32-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-38-3",
-      "char_start": 0,
-      "char_end": 200,
       "kind": "defines"
     },
     {
@@ -29334,12 +29180,6 @@
       "node_temp_id": "field-homeownerslossrecordlayout9bfe-co-43-3",
       "char_start": 17160,
       "char_end": 17360,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-46-4",
-      "char_start": 0,
-      "char_end": 200,
       "kind": "defines"
     },
     {
@@ -29379,24 +29219,6 @@
       "kind": "defines"
     },
     {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-62-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-68-9",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-77-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
       "node_temp_id": "field-homeownerslossrecordlayout9bfe-roof-83-6",
       "char_start": 9518,
       "char_end": 9718,
@@ -29421,12 +29243,6 @@
       "kind": "defines"
     },
     {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-90-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
       "node_temp_id": "field-homeownerslossrecordlayout9bfe-roofacv-92-1",
       "char_start": 22480,
       "char_end": 22680,
@@ -29439,42 +29255,6 @@
       "kind": "defines"
     },
     {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-98-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-101-8",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-109-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-116-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-122-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-129-5",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
       "node_temp_id": "field-homeownerslossrecordlayout9bfe-bcc-134-2",
       "char_start": 11832,
       "char_end": 12032,
@@ -29484,90 +29264,6 @@
       "node_temp_id": "field-homeownerslossrecordlayout9bfe-loc-136-1",
       "char_start": 12343,
       "char_end": 12543,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-141-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-144-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-146-5",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-1-22",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-31-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-34-4",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-56-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-59-3",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-100-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-115-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-128-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-137-4",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-143-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-homeownerslossrecordlayout9bfe-skip-151-50",
-      "char_start": 0,
-      "char_end": 200,
       "kind": "defines"
     }
   ],

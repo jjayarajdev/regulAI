@@ -130,7 +130,7 @@ PARSER_TARGETS: list[ParseTarget] = [
             description="Section C of the Stat Plan — column-by-column wire format for premium records, all residential lines.",
             hash="tico-tx-stat-plan-2026-01-01",  # matches the seeded RegulationDocument
         ),
-        layouts=[("Premium Record Layout", 42, 63)],
+        layouts=[("Premium Record Layout", 40, 60)],
     ),
     ParseTarget(
         slug="tico-section-d",
@@ -143,7 +143,7 @@ PARSER_TARGETS: list[ParseTarget] = [
             description="Section D of the Stat Plan — column-by-column wire format for loss records.",
             hash="tico-tx-stat-plan-2026-01-01",
         ),
-        layouts=[("Loss Record Layout", 64, 79)],
+        layouts=[("Loss Record Layout", 61, 76)],
     ),
     ParseTarget(
         slug="tico-section-e",
@@ -156,7 +156,7 @@ PARSER_TARGETS: list[ParseTarget] = [
             description="Section E of the Stat Plan — wire format for HB 2067 cancellation/nonrenewal/declination notice reports.",
             hash="tico-tx-stat-plan-2026-01-01",
         ),
-        layouts=[("Notice Record Layout", 80, 84)],
+        layouts=[("Notice Record Layout", 77, 80)],
     ),
     ParseTarget(
         slug="tico-section-g",
@@ -169,7 +169,7 @@ PARSER_TARGETS: list[ParseTarget] = [
             description="Section G of the Stat Plan — wire format for HB 2067 actual cancellation/nonrenewal/declination count reports.",
             hash="tico-tx-stat-plan-2026-01-01",
         ),
-        layouts=[("Notice Count Record Layout", 91, 92)],
+        layouts=[("Notice Count Record Layout", 87, 89)],
     ),
 ]
 
@@ -610,15 +610,12 @@ def build_extraction(
             record_format="fixed-width-200",
             description=f"Wire-format layout parsed from {pdf_path.name}.",
         ))
-        # Layout CITES the source document (whole-doc citation).
-        rels.append(ProposedRelationship(
-            type=RelationshipType.CITES,
-            src_temp_id=tid,
-            dst_temp_id=doc_temp,
-            char_start=0,
-            char_end=min(len(text), 200),
-            citation_kind=CitationKind.DEFINES,
-        ))
+        # Note: we deliberately don't emit a whole-doc CITES from the layout
+        # to the document. Such a citation would land on chars 0-200 of the
+        # markdown — i.e. the file's `# TICO …` header, which doesn't exist
+        # in the PDF — yielding spurious "rect not located" entries that
+        # masked real-content coverage. The layout is still tied to the
+        # doc via its individual fields' CITES edges.
 
     # 3. FieldRequirement + CodeList + CodeValue per parsed field.
     # Dedup parsed fields that page-break duplicates produced.
@@ -666,13 +663,18 @@ def build_extraction(
             src_temp_id=field_temp,
             dst_temp_id=layout_temps[pf.layout_name],
         ))
-        # CITES: field → source doc with the spec span
-        citations.append(CitationProposal(
-            node_temp_id=field_temp,
-            char_start=char_start,
-            char_end=char_end,
-            kind=CitationKind.DEFINES,
-        ))
+        # CITES: field → source doc with the spec span. Skip when the field
+        # is a synthetic gap-filler (SKIP) or its anchor isn't in the source
+        # markdown — citing chars 0-200 of the markdown header is noise that
+        # would land on the synthetic frontmatter, not a real PDF span.
+        anchor_found = text.find(f"({pf.short_code})") >= 0
+        if pf.short_code != "SKIP" and anchor_found:
+            citations.append(CitationProposal(
+                node_temp_id=field_temp,
+                char_start=char_start,
+                char_end=char_end,
+                kind=CitationKind.DEFINES,
+            ))
 
         # CodeList + CodeValues if this field has enumerated codes.
         # Each field gets its own codelist (always field-specific name to

@@ -29,6 +29,7 @@ class DocEntry:
 
 
 # Section page ranges within the TICO Stat Plan PDF (computed from page markers).
+# Updated 2026-04-26 for the cleaner ResidentialStatPlan2026.pdf (89-page edition).
 DOCS: list[DocEntry] = [
     DocEntry(
         slug="tico-section-a",
@@ -38,7 +39,7 @@ DOCS: list[DocEntry] = [
         blurb="35 numbered rules covering scope, identifiers, designated agent, transmittal form, and HB 2067 reasons + counts.",
         pdf_path=TICO_PDF,
         pdf_start_page=4,
-        pdf_end_page=26,
+        pdf_end_page=24,
     ),
     DocEntry(
         slug="tico-section-b",
@@ -47,8 +48,8 @@ DOCS: list[DocEntry] = [
         path=Path("synthetic_regulations/real/sections/section_B_coding.md"),
         blurb="The actual code tables — Cause of Loss, Line of Business, Deductible types, Construction, Roof, etc.",
         pdf_path=TICO_PDF,
-        pdf_start_page=27,
-        pdf_end_page=41,
+        pdf_start_page=25,
+        pdf_end_page=39,
     ),
     DocEntry(
         slug="tico-section-c",
@@ -57,8 +58,8 @@ DOCS: list[DocEntry] = [
         path=Path("synthetic_regulations/real/sections/section_C_record.md"),
         blurb="Field-by-field layout of premium records.",
         pdf_path=TICO_PDF,
-        pdf_start_page=42,
-        pdf_end_page=63,
+        pdf_start_page=40,
+        pdf_end_page=60,
     ),
     DocEntry(
         slug="tico-section-d",
@@ -67,8 +68,8 @@ DOCS: list[DocEntry] = [
         path=Path("synthetic_regulations/real/sections/section_D_record.md"),
         blurb="Field-by-field layout of loss records.",
         pdf_path=TICO_PDF,
-        pdf_start_page=64,
-        pdf_end_page=79,
+        pdf_start_page=61,
+        pdf_end_page=76,
     ),
     DocEntry(
         slug="tico-section-e",
@@ -77,8 +78,8 @@ DOCS: list[DocEntry] = [
         path=Path("synthetic_regulations/real/sections/section_E_record.md"),
         blurb="HB 2067 notice report layout (cancellation, nonrenewal, declination notices).",
         pdf_path=TICO_PDF,
-        pdf_start_page=80,
-        pdf_end_page=84,
+        pdf_start_page=77,
+        pdf_end_page=80,
     ),
     DocEntry(
         slug="tico-section-f",
@@ -87,8 +88,8 @@ DOCS: list[DocEntry] = [
         path=Path("synthetic_regulations/real/sections/section_F_additional.md"),
         blurb="Full HB 2067 reason code list with definitions and source indicators.",
         pdf_path=TICO_PDF,
-        pdf_start_page=85,
-        pdf_end_page=90,
+        pdf_start_page=81,
+        pdf_end_page=86,
     ),
     DocEntry(
         slug="tico-section-g",
@@ -97,8 +98,8 @@ DOCS: list[DocEntry] = [
         path=Path("synthetic_regulations/real/sections/section_G_record.md"),
         blurb="HB 2067 count report layout for actual cancellations/nonrenewals/declinations.",
         pdf_path=TICO_PDF,
-        pdf_start_page=91,
-        pdf_end_page=92,
+        pdf_start_page=87,
+        pdf_end_page=89,
     ),
     DocEntry(
         slug="hb-2067",

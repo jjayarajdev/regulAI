@@ -1,0 +1,2404 @@
+# tico_recordLayoutHomeOwners
+# Source: tico_recordLayoutHomeOwners.pdf
+# Pages: 25
+
+
+
+===== PAGE 1 =====
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+TEXAS STATISTICAL PLAN 
+RECORD LAYOUT 
+ 
+FOR 
+ 
+RESIDENTIAL RISKS 
+HOMEOWNERS 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 2 =====
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+                                                           TEXAS 
+STATISTICAL PLAN 
+RECORD LAYOUT 
+FOR  
+RESIDENTIAL RISKS - HOMEOWNERS 
+ 
+ 
+ 
+ 
+TABLE OF CONTENTS 
+ 
+ 
+ 
+ 
+PAGES 
+ 
+A. RECORD LAYOUT FOR PREMIUMS 
+ 
+1 – 12 
+B. RECORD LAYOUT FOR LOSSES 
+ 
+13 – 21 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 3 =====
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+TEXAS STATISTICAL PLAN 
+ 
+FOR 
+ 
+RESIDENTIAL RISKS - HOMEOWNERS 
+ 
+RECORD LAYOUT FOR PREMIUMS 
+ 
+ 
+
+
+===== PAGE 4 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+1 
+ 
+ 
+COLUMNS 
+CODE 
+TYPE OR DESCRIPTION 
+ 
+1 (SP) 
+STAT PLAN 
+ 
+ 
+4 
+Residential Homeowners 
+2 (SUG) 
+SUGGESTION 
+ 
+6 
+Suggestion 
+ 
+ 
+ 
+SKIP – Tape Reporting 
+3-4 (ACDT) 
+ACCOUNTING DATE: 
+3 
+MONTH 
+ 
+1-9 
+January – September 
+ 
+0 
+October 
+ 
+- 
+November 
+ 
+& 
+December 
+4 
+YEAR 
+ 
+ 
+* 
+Unit Positions of Year; for example, "7" for 2017 
+5-6 (RT) 
+RECORD TYPE 
+ 
+05 
+Flat Cancellations 
+ 
+06 
+Pro Rata – Cancellations 
+ 
+91 
+New/Renewals Daily Report  (including endorsements from 
+inception) 
+ 
+92 
+Endorsements After Inception (AP and RP) 
+ 
+93 
+Reinstatements of Pro Rata Cancellations 
+ 
+94 
+Form HO-160 
+ 
+95 
+Individual company enhancement endorsement 
+ 
+96 
+Additional Entries for Individual Optional 
+Credits/Endorsements 
+ 
+97 
+Use when Record Type 96 needs to be Deleted/Changed 
+
+
+===== PAGE 5 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+2 
+ 
+7-16 (POLICY) 
+POLICY NUMBER 
+ 
+* 
+Policy Number as shown on daily report 
+ 
+17 (TRM) 
+TERM 
+ 
+1 
+One year or less 
+ 
+9 
+Over one year 
+ 
+18-22 (EFF) 
+EFFECTIVE DATE 
+ 
+* 
+Effective date of daily report, endorsement, pro rata cancellation. 
+Report Month, Day, Year. MMDDY 
+ 
+23-25 (EXP) 
+EXPIRATION DATE 
+ 
+* 
+Expiration date of daily reports or short-term endorsement. Report 
+Month and Year. MMY 
+ 
+26-30 (PLACE) 
+PLACE CODE 
+ 
+* 
+Place Code (County Community) for specific location of risk as 
+shown in Place Code Manual. If risk is located in a specific 
+community, use the Community Place Code. If risk is located outside 
+a specific community, use the County Code. 
+ 
+31-33 
+* 
+SKIP 
+ 
+34-37 (INS) 
+AMOUNT OF INSURANCE 
+ 
+* 
+Nearest thousands of dollars, if the amount of insurance is less than 
+$1,500, then code "01." 
+ 
+If no amount of insurance report “0” in amount field.  If the amount 
+is a credit, indicate in the unit’s position. 
+ 
+38-40 
+FIRE FLEX 
+ 
+* 
+Amount of flex from Benchmark rates, for example, if flex is 20% 
+downward, report "080." If flex is 12-1/2% downward, report "088." 
+If premium is written 20% in excess, report "120." If there is not a 
+promulgated Benchmark rate, report "100." 
+ 
+41-42 (LOB) 
+LINE OF BUSINESS 
+ 
+02 
+Homeowners Tenants Policies 
+ 
+03 
+Homeowners Policies 
+ 
+ 
+ 
+
+
+===== PAGE 6 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+3 
+ 
+43-45 (CNO) 
+COMPANY NUMBER 
+ 
+* 
+Assigned by TICO. 
+ 
+46-47 (IOC) 
+INDIVIDUAL OPTIONAL CREDITS 
+ 
+01 
+Protection not otherwise recognized 
+ 
+02 
+Building Features 
+ 
+03 
+Care and Condition of Premises 
+ 
+04 
+Loss Experience 
+ 
+05 
+Companion Policy 
+ 
+06 
+Insured to full replacement cost 
+ 
+07 
+Senior Citizens Discount 
+ 
+08 
+Neighborhood Watch and Safety Programs 
+ 
+09 
+Dry Hydrants 
+ 
+10 
+Personal Property ID 
+ 
+11 
+Roof Coverings Discount 
+ 
+12 
+Actual Cash Value for Roofs Endorsement 
+ 
+ 
+48 (PSC) 
+ 
+PREMIUM SURCHARGE – CLAIMS 
+ 
+1 
+Homeowners – Form HO-330 
+ 
+ 
+49 (PRC) 
+ 
+PREMIUM REDUCTION CERTIFICATE 
+ 
+1 
+5% credit applied 
+ 
+2 
+15% credit applied 
+ 
+3 
+Both credits applied 
+ 
+ 
+50 (FM) 
+ 
+FORM (POLICY) 
+ 
+ 
+ 
+HO (02, 03) 
+ 
+ 
+1 
+HO Policy A 
+ 
+ 
+2 
+HO Policy B 
+ 
+ 
+3 
+HO Policy C 
+ 
+ 
+4 
+Tenants Form B 
+ 
+ 
+5 
+Tenants Form C 
+ 
+ 
+9 
+HO Policy A – Enhanced (HO 
+Policy A+) 
+ 
+OTHER APPROVED FORMS 
+ 
+ 
+A 
+Independent HO Basic Policy Form 
+ 
+B 
+Independent Tenant Broad Policy Form 
+ 
+C 
+Independent Condo Broad Policy Form 
+ 
+E 
+Independent Tenant Special Policy Form 
+ 
+F 
+HO 00 02 (ISO Homeowners 2 - Broad Form) 
+ 
+G 
+HO 00 03 (ISO Homeowners 3 - Special Form) 
+ 
+H 
+HO 00 04 (ISO Homeowners 4 - Contents Broad Form) 
+ 
+I 
+HO 00 05 (ISO Homeowners 5 - Comprehensive Form) 
+ 
+J 
+HO 00 06 (ISO Homeowners 6 - Unit Owners Form) 
+ 
+K 
+HO 00 08 (ISO Homeowners 8 - Modified Coverage Form) 
+ 
+ 
+
+
+===== PAGE 7 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+4 
+ 
+50 (FM) 
+FORM (POLICY) 
+ 
+ 
+OTHER APPROVED FORMS (Cont.) 
+ 
+L 
+Independent HO Broad Policy Form 
+ 
+M 
+Independent HO Special Policy Form 
+ 
+N 
+Independent Condo Special Policy Form 
+ 
+V 
+Independent Personal Liability Policy Form 
+ 
+W 
+Form 1 (AAIS Basic Form) 
+ 
+X 
+Form 2 (AAIS Broad Form) 
+ 
+Y 
+Form 3 (AAIS Special Form) 
+ 
+Z 
+Form 4 (AAIS Contents Broad Form) 
+ 
+6 
+Form 5 (AAIS Special Building and Contents Form) 
+ 
+7 
+Form 6 (AAIS Unit-Owners Form) 
+ 
+8 
+Form 8 (AAIS Limited Form) 
+ 
+51 (FAM) 
+NUMBER OF FAMILIES – DWELLING AND PERSONAL  PROPERTY 
+ 
+ 
+ 
+HOMEOWNERS 
+ 
+1 
+1 or 2 Families 
+ 
+8 
+Tenants Forms with $250 Optional Theft Deductible 
+ 
+9 
+Tenants Forms without $250 Optional Theft Deductible 
+ 
+52 (COV) 
+COVERAGE – OCCUPANCY 
+ 
+ 
+ 
+HOMEOWNERS 
+ 
+1 
+HO Policies including any changes in Coverage B 
+and Deductible Adjustment charges 
+ 
+2 
+Homeowner–Non-owner occupied 
+ 
+3 
+Tenants Form–Dwelling 
+ 
+ 
+4 
+Tenants Form–Apartment 
+ 
+5 
+Tenants Form–All Others 
+ 
+ 
+6 
+Residential Condominium Contents 
+ 
+8 
+Tenant Form–Liability only 
+ 
+9 
+All policies, excluding tenants, with other 
+premium bearing endorsements including 
+Replacement Cost Endorsement and Increased 
+Limits 
+ 
+53 (CT) 
+ 
+CONSTRUCTION 
+ 
+1 
+Frame 
+ 
+2 
+Brick Veneer or Stone Veneer 
+ 
+3 
+Brick, Stone, or Masonry 
+ 
+4 
+Fire Resistive and Semi-Fire Resistive 
+ 
+5 
+Mobile or manufactured home 
+ 
+8 
+Stucco or Asbestos 
+ 
+ 
+ 
+
+
+===== PAGE 8 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+5 
+ 
+54-55 (SPPC) 
+ 
+PROTECTION – ISO PUBLIC PROTECTION CLASS 
+INCLUDING NEW SPLIT CLASSIFICATIONS 
+ 
+01 
+1 
+ 
+02 
+2 
+ 
+03 
+3 
+ 
+04 
+4 
+ 
+05 
+5 
+ 
+06 
+6 
+ 
+07 
+7 
+ 
+08 
+8 
+ 
+19 
+8B 
+ 
+09 
+9 
+ 
+10 
+10 
+ 
+20 
+10W 
+ 
+12 
+1X 
+ 
+22 
+2X 
+ 
+32 
+3X 
+ 
+42 
+4X 
+ 
+52 
+5X 
+ 
+62 
+6X 
+ 
+72 
+7X 
+ 
+82 
+8X 
+ 
+13 
+1Y 
+ 
+23 
+2Y 
+ 
+33 
+3Y 
+ 
+43 
+4Y 
+ 
+53 
+5Y 
+ 
+63 
+6Y 
+ 
+73 
+7Y 
+ 
+83 
+8Y 
+ 
+56 (PPC) 
+ 
+PROTECTION - ISO PUBLIC PROTECTION CLASS  (PPC) 
+ 
+1 
+ 
+ 
+2 
+ 
+ 
+3 
+ 
+ 
+4 
+Report actual ISO PPC used to rate the risk. 
+ 
+5 
+Report PPC = 10 as "A." 
+ 
+6 
+Report PPC = 8B as "B." 
+ 
+7 
+ 
+ 
+8 
+ 
+ 
+9 
+ 
+ 
+A 
+ 
+ 
+B 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 9 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+6 
+ 
+57 (DED) 
+ 
+DEDUCTIBLE TYPE OR AMOUNT 
+ 
+HO Clause 1: Wind and Hail 
+ 
+*1 
+Full Coverage 
+ 
+2 
+$100 
+ 
+3 
+$250 
+ 
+4 
+1/2% 
+ 
+5 
+1% 
+ 
+6 
+$500 
+ 
+**7 
+No Wind Coverage 
+ 
+8 
+$1,000 
+ 
+9 
+Greater than 10% 
+ 
+A 
+1-1/2% 
+ 
+B 
+2% 
+ 
+C 
+2 1/2% 
+ 
+D 
+3% 
+ 
+E 
+4% 
+ 
+F 
+5% 
+ 
+G 
+$1,500 
+ 
+H 
+$2,000 
+ 
+I 
+$2,500 
+ 
+J 
+$3,000 
+ 
+K 
+$4,000 
+ 
+L 
+$5,000 
+ 
+M 
+$750 
+ 
+N 
+10% 
+ 
+O 
+$3,500 
+ 
+P 
+$7,500 
+ 
+Q 
+$10,000 
+ 
+R 
+6% 
+ 
+S 
+7% 
+ 
+T 
+8% 
+ 
+U 
+9% 
+ 
+V 
+$25,000 
+ 
+W 
+$50,000 
+ 
+X 
+$100,000 
+ 
+Y 
+$200 
+ 
+Z 
+$15,000 
+ 
+ 
+* For the Seacoast Territories (1, 8, 9, 10, and 11), code 1 is $100 Deductible on 
+Wind, Hurricane, and Hail – Full coverage on other Extended Coverage Perils 
+ 
+ 
+** Code 7 applies in territories 8, 9, 10, and those portions of La Porte, Morgan's 
+Point, Pasadena, Seabrook, Shore Acres in Territory 1 that are located in the 
+Catastrophe Area, subject to Wind Exclusion Endorsement 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 10 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+7 
+ 
+58 (DED) 
+DEDUCTIBLE TYPE OR AMOUNT 
+HO Clause 2: Other than Wind and Hail, or Clause 3: Tenants 
+ 
+*1 
+Full Coverage 
+ 
+2 
+$100 
+ 
+3 
+$250 
+ 
+4 
+1/2% 
+ 
+5 
+1% 
+ 
+6 
+$500 
+ 
+**7 
+No Wind Coverage 
+ 
+8 
+$1,000 
+ 
+9 
+Greater than 10% 
+ 
+A 
+1-1/2% 
+ 
+B 
+2% 
+ 
+C 
+2 1/2% 
+ 
+D 
+3% 
+ 
+E 
+4% 
+ 
+F 
+5% 
+ 
+G 
+$1,500 
+ 
+H 
+$2,000 
+ 
+I 
+$2,500 
+ 
+J 
+$3,000 
+ 
+K 
+$4,000 
+ 
+L 
+$5,000 
+ 
+M 
+$750 
+ 
+N 
+10% 
+ 
+O 
+$3,500 
+ 
+P 
+$7,500 
+ 
+Q 
+$10,000 
+ 
+R 
+6% 
+ 
+S 
+7% 
+ 
+T 
+8% 
+ 
+U 
+9% 
+ 
+V 
+$25,000 
+ 
+W 
+$50,000 
+ 
+X 
+$100,000 
+ 
+Y 
+$200 
+ 
+Z 
+$15,000 
+ 
+ 
+* For the Seacoast Territories (1, 8, 9, 10, and 11), code 1 is $100 Deductible on 
+Wind, Hurricane, and Hail – Full coverage on other Extended Coverage Perils 
+ 
+ 
+** Code 7 applies in territories 8, 9, 10, and those portions of La Porte, Morgan's 
+Point, Pasadena, Seabrook, Shore Acres in Territory 1 that are located in the 
+Catastrophe Area, subject to Wind Exclusion Endorsement 
+ 
+ 
+ 
+
+
+===== PAGE 11 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+8 
+ 
+ 
+59-62 (FRPM) 
+PREMIUM – HOMEOWNERS 
+ 
+* 
+Dollars only. Example:  $1,583.40, report 1583. Do not report EC 
+premium in this field. 
+ 
+ 
+Homeowners. Report total premium (excluding Form HO-160). 
+ 
+ 
+Homeowners premium for Form HO-160. Report on separate line 
+with Record Type 94. 
+ 
+ 
+If premium is credit, indicate in unit’s position. 
+ 
+63-65                             * 
+ 
+ 
+66 (SE)                          1 
+ 
+67-70                             * 
+ 
+71-72                             * 
+ 
+73-75                             *  
+                                      
+76-79                             *     
+                                     
+ 
+SKIP  
+ 
+SPECIAL ENDORSEMENT  
+Replacement Cost Endorsement  
+ 
+SKIP  
+ 
+SKIP  
+ 
+SKIP  
+ 
+SKIP 
+ 
+ 
+80-82 (OPTCR) 
+ OPTIONAL HOMEOWNERS CREDITS 
+ 
+* 
+ Record Individual Credits. If no credit, report "100." 
+ 
+ 
+83-88 (ROOF) 
+ 
+ROOF CONSTRUCTION (optional unless fields 84-88 
+are applicable to policy) 
+   
+ 
+ 
+
+
+===== PAGE 12 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+9 
+ 
+83 (ROOFCOV) 
+ROOF COVERING (choose predominate type) 
+ 
+A 
+Composition Shingle (Asphalt, Fiberglass, etc.) 
+ 
+B 
+Wood (Shingle, Shake, Hardboard, etc.) 
+ 
+C 
+Aluminum 
+ 
+D 
+Steel 
+ 
+E 
+Copper 
+ 
+F 
+Roll Roofing 
+ 
+G 
+Tar and Gravel (Built-up) 
+ 
+H 
+Tile (Concrete or Clay) 
+ 
+I 
+Slate 
+ 
+J 
+Fiber Cement/Concrete 
+ 
+K 
+Plastic 
+ 
+L 
+Recycled Roofing Products 
+ 
+M 
+Single Ply Membrane 
+ 
+N 
+Other 
+ 
+O 
+Metal (specific type unknown) 
+ 
+ 
+84-88 (ROOFCRED) 
+ 
+ROOF COVERING PREMIUM CREDIT AND YEAR OF 
+INSTALLATION (yyyy = year) 
+ 
+ 
+(Report "voluntary" roof premium credits under Optional Credits. 
+Report only roof coverings meeting UL2218, or other standards 
+approved by TDI, here) 
+ 
+00000 
+None – No Credit Applicable 
+ 
+1yyyy 
+Class 1 Credit + yyyy 
+ 
+2yyyy 
+Class 2 Credit + yyyy 
+ 
+3yyyy 
+Class 3 Credit + yyyy 
+ 
+4yyyy 
+Class 4 Credit + yyyy 
+ 
+ 
+89 (COSMETIC) 
+ 
+EXCLUSION OF COSMETIC DAMAGE TO ROOF 
+COVERINGS ENDORSEMENT 
+ 
+0 
+Endorsement is not attached to policy 
+ 
+1 
+Endorsement is attached to policy 
+ 
+ 
+90 
+ 
+* 
+ 
+SKIP 
+ 
+ 
+91-99 (ZIP) 
+ 
+ZIP CODE 
+ 
+* 
+Code the nine-digit ZIP code for each risk. The first five digits are 
+mandatory.  Report Plus 4 if available 
+ 
+ 
+100 
+ 
+P 
+ 
+TAPE REPORTING Premium 
+ 
+ 
+101-108 
+ 
+* 
+ 
+OPTIONAL COVERAGE ENDORSEMENTS 
+(Report the actual endorsement number, excluding dashes, for 
+example, HO161, HO162, etc., for mold, water, foundation, or other 
+endorsement coverages as specified by TDI.) 
+  
+ 
+109-114 
+ 
+* 
+ 
+AMOUNT OF COVERAGE FOR FIELD "101-108" 
+(Percent or dollar amount as applicable) 
+ 
+
+
+===== PAGE 13 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+10 
+ 
+ 
+ 
+115 
+ 
+ 
+HO-A ADDITIONAL EXTENDED COVERAGE 
+ 
+0 
+Endorsement HO-170 is not attached to policy 
+ 
+1 
+Endorsement HO-170 is attached to policy 
+  
+ 
+116-121 
+ 
+* 
+ 
+DEDUCTIBLE 1 (Wind and Hail) 
+(Report actual dollar amount of the deductible) 
+ 
+122-127 
+ 
+* 
+ 
+DEDUCTIBLE 2 (Other Than Wind and Hail; TN)  
+(Report actual dollar amount of the deductible) 
+ 
+128 
+ 
+WIND COVERAGE 
+ 
+0 
+Wind Coverage is included 
+ 
+1 
+Wind coverage is excluded 
+ 
+ 
+129-133 
+ 
+* 
+ 
+SKIP 
+ 
+ 
+134-135 (BCC) 
+ 
+BUILDING CODE CREDIT (TWIA ONLY) 
+ 
+01 
+Seaward – New Structure Built to New Code 
+ 
+02 
+Seaward – Retrofitted Structures 
+ 
+03 
+Inland I – New Structure Built to New Code 
+ 
+04 
+Inland I – New Structure Built to Higher Standards than New Code 
+ 
+05 
+Inland I – Retrofitted Structures 
+ 
+ 
+Inland II – New Structure Built to Higher  Standards than New Code: 
+ 
+06 
+ 
+Built to Inland I Standard 
+ 
+07 
+ 
+Built to Seaward Standard 
+ 
+08 
+Inland II – Retrofitted Structures 
+ 
+09 
+Not Applicable 
+ 
+ 
+136 (LOC) 
+LAW AND ORDINANCE COVERAGE 
+ 
+0 
+No Additional Law and Ordinance Coverage is attached 
+(other than the mandatory $5,000 provided in the policy) 
+ 
+1 
+10% Additional Law and Ordinance Coverage Purchased  
+ 
+2 
+15% Additional Law and Ordinance Coverage Purchased 
+ 
+3 
+25% Additional Law and Ordinance Coverage Purchased 
+ 
+4 
+Other Approved Limits Purchased 
+ 
+137 
+RESIDENTIAL SPRINKLER PREMIUM CREDIT 
+ 
+Report the use of a premium credit for installation of an approved 
+automatic sprinkler system. Do not report this premium credit under 
+Individual Optional Credits. 
+ 
+ 
+0 
+No credit in force on policy 
+ 
+1 
+Credit in force on policy 
+ 
+138 
+* 
+SKIP 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 14 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+11 
+ 
+139 
+PROPERTY PROTECTION PLAN POLICY 
+ 
+0 
+Policy is not a Property Protection Plan policy 
+ 
+1 
+Policy is a Property Protection Plan policy 
+ 
+140 
+ 
+TENURE DISCOUNT 
+ 
+If the insurer offers a tenure discount, report the tenure of the insured 
+using the following codes. Tenure is defined as the number of years 
+previously insured with the insurer at the time the policy is issued or 
+renewed. Insurers offering this discount must report all premium 
+transactions, including those that do not qualify for the discount. Do 
+not report tenure discounts elsewhere (do not report tenure discounts 
+in positions 46-47 as Individual Optional Credits). 
+ 
+ 
+0 
+0 Years 
+ 
+1 
+1 Year 
+ 
+2 
+2 Years 
+ 
+3 
+3 Years 
+ 
+4 
+4 Years 
+ 
+5 
+5 Years 
+ 
+6 
+6 or more Years 
+ 
+141-142 
+ 
+TENURE DISCOUNT AMOUNT 
+ 
+* 
+Report the tenure discount amount. Report 10% as "10." Report no 
+discount as "00." Do not report the tenure discount amount elsewhere 
+(do not report tenure discount amount in positions 80-82 as 
+Individual Optional Credits). 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 15 =====
+
+HOMEOWNERS 
+PREMIUMS 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+12 
+ 
+143 
+ 
+TEAR OUT AND REPLACEMENT OF BUILDING AND 
+LAND COVERAGE ENDORSEMENT 
+ 
+Report one of the following codes for all transactions on or after 
+October 1, 1996, to indicate if the policy contains one of the 
+following endorsements:  HO-155, HO-170.  These endorsements 
+limit the coverage for the cost of tearing out and replacing any part of 
+the building and land necessary to access, repair, or replace that part 
+of a plumbing drain system located within or under the slab or 
+foundation of the dwelling. Do not report this foundation 
+exclusion/limited coverage endorsement elsewhere (do not report this 
+foundation exclusion/limited coverage endorsement in positions 46-
+47 as Individual Optional Credits). 
+ 
+ 
+1 
+Endorsement is attached to this policy 
+ 
+2 
+Endorsement is not attached to this policy 
+ 
+144-145 
+TEAR OUT AND REPLACEMENT OF BUILDING AND 
+LAND COVERAGE ENDORSEMENT AMOUNT 
+ 
+Report the tear out and replacement of building and land coverage 
+endorsement amount. Report 10% as "10." Report no discount as 
+"00." For HO-170, always report "98." Do not report the tear out and 
+replacement of building and land coverage endorsement amount 
+elsewhere (do not report this discount amount in positions 80-82 as 
+Individual Optional Credits). 
+ 
+ 
+98 
+ 
+For all HO-170 Endorsements 
+ 
+146-150 
+NAIC COMPANY NUMBER 
+ 
+* 
+Report the five-digit NAIC company number. 
+ 
+
+
+===== PAGE 16 =====
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+TEXAS STATISTICAL PLAN 
+ 
+FOR 
+ 
+RESIDENTIAL RISKS 
+HOMEOWNERS 
+ 
+RECORD LAYOUT FOR LOSSES
+
+
+===== PAGE 17 =====
+
+ 
+13 
+ 
+ 
+TEXAS 
+STATISTICAL PLAN 
+RESIDENTIAL RISKS 
+HOMEOWNERS 
+LOSSES 
+ 
+COLUMNS 
+CODE 
+TYPE OR DESCRIPTION 
+ 
+1 (SP) 
+STAT PLAN 
+ 
+4 
+Residential Homeowners 
+ 
+2 
+* 
+SKIP 
+ 
+3-4 
+ 
+ACCOUNTING DATE 
+ 
+3 
+ 
+MONTH 
+ 
+1-9 
+January – September 
+ 
+0 
+October 
+ 
+- 
+November 
+ 
+& 
+December 
+ 
+4 
+YEAR 
+ 
+* 
+Unit positions of year, e.g., “5” for 2015 
+ 
+5-6 
+* 
+SKIP 
+ 
+7-16 (POLICY) 
+POLICY NUMBER 
+ 
+* 
+Policy Number as shown on daily report 
+ 
+17 
+* 
+SKIP 
+ 
+18-22 
+LOSS OCCURRENCE DATE 
+ 
+* 
+Date of Loss 
+ 
+Report Month (2), Day (2), Year (1) 
+ 
+MMDDY 
+ 
+ 
+
+
+===== PAGE 18 =====
+
+HOMEOWNERS 
+LOSSES 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+14 
+ 
+23-25 
+POLICY EFFECTIVE DATE 
+ 
+* 
+Report Month (2), Year (1) 
+ 
+MMY 
+ 
+26-30 (PLACE) 
+PLACE CODE 
+ 
+* 
+Place Code (County – Community) for specific location of risk as 
+shown in the Place Code Manual. If risk is located in a specific 
+community, report the Community Place Code. If risk is located 
+outside a specific community, report the County Code. 
+ 
+31 
+KIND 
+ 
+6 
+Paid Losses 
+ 
+7 
+Outstanding Losses 
+ 
+32-33 
+* 
+SKIP 
+ 
+34-37 (A - INS) 
+AMOUNT OF INSURANCE 
+ 
+* 
+As per original premium coding. For specific codes refer to Premium 
+Coding Guidelines. 
+ 
+38-40 
+* 
+SKIP 
+ 
+41-42 (LOB) 
+LINE OF BUSINESS 
+ 
+02 
+Homeowners Tenants Policies, THO-B, THO-C 
+ 
+03 
+Homeowners Policies 
+ 
+50 
+Supplemental Natural Disaster Protection 
+ 
+ 
+43-45 (CO) 
+COMPANY NUMBER 
+ 
+* 
+As per original premium coding. For specific codes refer to Premium 
+Coding Guidelines. 
+ 
+46-49 
+* 
+SKIP 
+ 
+50 (F) 
+FORM 
+ 
+* 
+As per original premium coding. For specific codes refer to Premium 
+Coding Guidelines. 
+ 
+51 (FM) 
+NUMBER OF FAMILIES 
+ 
+* 
+As per original premium coding. For specific codes refer to Premium 
+Coding Guidelines. 
+ 
+52 (CV) 
+COVERAGE – OCCUPANCY 
+ 
+* 
+As per original premium coding. For specific codes refer to Premium 
+Coding Guidelines. 
+ 
+53 (CT) 
+CONSTRUCTION 
+ 
+* 
+As per original premium coding. For specific codes refer to Premium 
+Coding Guidelines. 
+
+
+===== PAGE 19 =====
+
+HOMEOWNERS 
+LOSSES 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+15 
+ 
+ 
+ 
+ 
+54-55 (SPPC) 
+ 
+PROTECTION – ISO PROTECTION CLASS INCLUDING 
+NEW SPLIT CLASSIFICATIONS 
+ 
+01 
+1 
+ 
+02 
+2 
+ 
+03 
+3 
+ 
+04 
+4 
+ 
+05 
+5 
+ 
+06 
+6 
+ 
+07 
+7 
+ 
+08 
+8 
+ 
+19 
+8B 
+ 
+09 
+9 
+ 
+10 
+10 
+ 
+20 
+10W 
+ 
+12 
+1X 
+ 
+22 
+2X 
+ 
+32 
+3X 
+ 
+42 
+4X 
+ 
+52 
+5X 
+ 
+62 
+6X 
+ 
+72 
+7X 
+ 
+82 
+8X 
+ 
+13 
+1Y 
+ 
+23 
+2Y 
+ 
+33 
+3Y 
+ 
+43 
+4Y 
+ 
+53 
+5Y 
+ 
+63 
+6Y 
+ 
+73 
+7Y 
+ 
+83 
+8Y 
+ 
+56 
+ 
+PROTECTION - ISO PUBLIC PROTECTION CLASS (PPC) 
+ 
+1 
+ 
+ 
+2 
+ 
+ 
+3 
+ 
+ 
+4 
+Report actual ISO PPC used to rate the risk. 
+ 
+5 
+Report PPC = 10 as "A." 
+ 
+6 
+Report PPC = 8B as "B." 
+ 
+7 
+ 
+ 
+8 
+ 
+ 
+9 
+ 
+ 
+A 
+ 
+ 
+B 
+ 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 20 =====
+
+HOMEOWNERS 
+LOSSES 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+16 
+ 
+57-58 (DED) 
+DEDUCTIBLE 
+ 
+* 
+As per original premium coding. For specific codes refer to Premium 
+Coding Guidelines. 
+ 
+59 
+TYPE OF LOSS CODE HO 
+ 
+1 
+Coverage A Losses – Section I (Dwelling) 
+ 
+1 
+Coverage B Losses – Section I (Unscheduled Personal Property) 
+ 
+1 
+Coverage C Losses – Section II (Personal Liability) 
+ 
+1 
+Coverage D Losses – Section II (Medical Payments to Others) 
+ 
+ 
+ 
+ 
+2 
+All Other Losses from additional premium paying endorsements 
+ 
+3 
+All losses paid due to coverage added by attachment of Enhancement 
+Endorsement 
+ 
+ 
+NOTE: For watercraft losses covered under the basic policy (where total horsepower 
+on outboard motors is less than or equal to 25 horsepower or sailboat is less than 26 
+feet in length), report "1." 
+ 
+ 
+60 
+* 
+SKIP 
+ 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 21 =====
+
+HOMEOWNERS 
+LOSSES 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+17 
+ 
+61 
+ 
+CLAIM COUNT 
+ 
+* 
+A. Cases to be counted as claims must be only those in connection 
+with which a loss payment has been made. 
+ 
+ 
+ 
+No case may be counted as a claim if it involves only allocated loss 
+adjustment expense or the cost of bail bond. 
+ 
+ 
+ 
+B. A claim closed without a loss payment must not be counted as a 
+claim. 
+ 
+ 
+ 
+C. A claim partly paid and partly outstanding must carry the claim 
+count in the paid record. 
+ 
+ 
+ 
+D. A case involving loss payments under more than one differently 
+coded statistical entry must have a claim count for each entry. 
+ 
+ 
+ 
+E. Salvage, subrogation, and other recoveries (not reinsurance) may 
+be recorded as a credit to claim count only if the recovery is the total 
+cost of the claim reported under that statistical entry. 
+ 
+ 
+ 
+F. A claim on which more than one payment is made may only be 
+counted once. 
+ 
+ 
+ 
+G. In case of a loss involving two or more claims, each claim must be 
+counted and reported separately. 
+ 
+ 
+62-67 
+AMOUNT OF LOSS 
+ 
+* 
+Dollars only. Indicate credit in unit's position. 
+ 
+ 
+ 
+
+
+===== PAGE 22 =====
+
+HOMEOWNERS 
+LOSSES 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+18 
+ 
+68-76 
+ 
+NINE-DIGIT ZIP CODE 
+ 
+* 
+The five-digit ZIP code of the location of the risk involved in the loss. 
+Report "ZIP code plus 4" if available. 
+ 
+77-82 
+* 
+SKIP 
+ 
+83-88 (ROOF) 
+ROOF CONSTRUCTION (optional unless fields 
+84-88 are applicable to policy) 
+ 
+83 (ROOFCOV) 
+ROOF COVERING (choose predominate type) 
+ 
+A 
+Composition Shingle (Asphalt, Fiberglass, etc.) 
+ 
+B 
+Wood (Shingle, Shake, Hardboard, etc.) 
+ 
+C 
+Aluminum 
+ 
+D 
+Steel 
+ 
+E 
+Copper 
+ 
+F 
+Roll Roofing 
+ 
+G 
+Tar and Gravel (Built-up) 
+ 
+H 
+Tile (Concrete or Clay) 
+ 
+I 
+Slate 
+ 
+J 
+Fiber Cement/Concrete 
+ 
+K 
+Plastic 
+ 
+L 
+Recycled Roofing Products 
+ 
+M 
+Single Ply Membrane Systems 
+ 
+N 
+Other 
+ 
+O 
+Metal (specific type unknown) 
+ 
+84-88 (ROOFCRED) 
+ROOF COVERING PREMIUM CREDIT AND YEAR 
+OF INSTALLATION (yyyy = year) 
+ 
+(Report only premium credits for roof coverings meeting UL2218, or 
+other standards approved by TDI, here) 
+ 
+00000 
+None – No Credit Applicable 
+ 
+1yyyy 
+Class 1 Credit + yyyy 
+ 
+2yyyy 
+Class 2 Credit + yyyy 
+ 
+3yyyy 
+Class 3 Credit + yyyy 
+ 
+4yyyy 
+Class 4 Credit + yyyy 
+ 
+89 (COSMETIC) 
+EXCLUSION OF COSMETIC DAMAGE TO ROOF 
+COVERINGS ENDORSEMENT 
+ 
+0 
+Endorsement is not attached to policy 
+ 
+1 
+Endorsement is attached to policy 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 23 =====
+
+HOMEOWNERS 
+LOSSES 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+19 
+ 
+90-91 
+CAUSE OF LOSS 
+ 
+05 
+Fire – Internal Source 
+ 
+10 
+Fire – External Source 
+ 
+15 
+Fire – Unknown Source 
+ 
+20 
+Lightning – No Fire 
+ 
+35 
+Smoke 
+ 
+25 
+Windstorm 
+ 
+30 
+Hail 
+ 
+33 
+Explosion 
+ 
+40 
+Aircraft and Vehicles 
+ 
+45 
+Riot and Civil Commotion 
+ 
+50 
+Vandalism and Malicious Mischief 
+ 
+55 
+Collapse 
+ 
+60 
+Discharge – Damage to Slab or Foundation 
+ 
+61 
+Discharge – Other Damage 
+ 
+70 
+Freeze – Damage to Slab or Foundation 
+ 
+71 
+Freeze – Other Damage 
+ 
+75 
+Burglary, Theft, Robbery 
+ 
+80 
+Other – Physical Damage 
+ 
+90 
+Other – Liability and Medical Payments 
+ 
+ 
+92 (ROOFACV) 
+ 
+ACTUAL CASH VALUE FOR ROOF ENDORSEMENT 
+ 
+Report forms that are ACV (including roof covering)  
+by design as "0" 
+ 
+0 
+Endorsement is not attached to policy 
+ 
+1 
+Endorsement is attached to policy 
+ 
+ 
+93-97 (DEPREC) 
+ 
+DIFFERENCE IN ACTUAL CASH VALUE AND 
+REPLACEMENT COST 
+ 
+* 
+(Example: The replacement cost of a roof with a like product is $3,000. The 
+Actual Cash Value of an existing roof is determined to be $2,500. Report the 
+difference of $500 here.) 
+ 
+ 
+98-99 
+ 
+* 
+ 
+SKIP 
+ 
+ 
+100 
+ 
+ 
+TAPE REPORTING 
+ 
+L 
+Loss 
+ 
+ 
+101-108 
+ 
+* 
+ 
+OPTIONAL COVERAGE ENDORSEMENTS 
+(Report the actual endorsement number, excluding dashes, for 
+example, "HO161," "HO162,"etc.), for mold, water, foundation, or 
+other endorsement coverages as specified by TDI.) 
+  
+ 
+109-114 
+ 
+* 
+ 
+AMOUNT OF COVERAGE FOR FIELD "101-108" 
+(Percent or dollar amount as applicable) 
+ 
+ 
+115 
+ 
+HO-A ADDITIONAL EXTENDED COVERAGE 
+ 
+0 
+Endorsement HO-170 is not attached to policy 
+ 
+1 
+Endorsement HO-170 is attached to policy 
+ 
+
+
+===== PAGE 24 =====
+
+HOMEOWNERS 
+LOSSES 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+20 
+ 
+ 
+ 
+116-121 
+ 
+ 
+* 
+ 
+ 
+DEDUCTIBLE 1 (Wind and Hail) 
+(Report actual dollar amount of the deductible) 
+ 
+122-127 
+ 
+* 
+ 
+DEDUCTIBLE 2 (Other Than Wind and Hail; TN)  
+(Report actual dollar amount of the deductible) 
+ 
+ 
+128 
+ 
+ 
+WIND COVERAGE 
+ 
+0 
+Wind Coverage is included 
+ 
+1 
+Wind coverage is excluded 
+  
+ 
+129-133 
+ 
+* 
+ 
+SKIP 
+ 
+ 
+134-135 (BCC) 
+ 
+BUILDING CODE CREDIT (TWIA ONLY) 
+ 
+01 
+Seaward – New Structure Built to New Code 
+ 
+02 
+Seaward – Retrofitted Structure 
+ 
+03 
+Inland I – New Structure Built to New Code 
+ 
+04 
+Inland I – New Structures to Higher Standards than New Code. 
+ 
+05 
+Inland I – Retrofitted Structures 
+ 
+Inland II – New Structure Built to Higher Standards than the New 
+Code: 
+ 
+06 
+ 
+Built to Inland I Standard 
+ 
+07 
+ 
+Built to Seaward Standard 
+ 
+08 
+Inland II – Retrofitted Structures 
+ 
+09 
+Not Applicable 
+ 
+136 (LOC) 
+LAW AND ORDINANCE COVERAGE 
+ 
+0 
+No Additional Law and Ordinance Coverage is attached 
+(other than the mandatory $5,000 provided in the policy) 
+ 
+1 
+10% Additional Law and Ordinance Coverage Purchased 
+ 
+2 
+15% Additional Law and Ordinance Coverage Purchased 
+ 
+3 
+25% Additional Law and Ordinance Coverage Purchased 
+ 
+4 
+Other Approved Limits Purchased 
+ 
+137 
+ 
+RESIDENTIAL SPRINKLER PREMIUM CREDIT 
+                                       
+ 
+ 
+                                       0 
+                                       1 
+Report the use of a premium credit for installation of an approved 
+automatic sprinkler system.  
+ 
+No credit in force on policy  
+Credit in force on policy 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+138 
+* 
+SKIP 
+ 
+139 
+ 
+PROPERTY PROTECTION PLAN POLICY 
+ 
+0 
+Policy is not a Property Protection Plan policy. 
+ 
+1 
+Policy is a Property Protection Plan policy. 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 25 =====
+
+HOMEOWNERS 
+LOSSES 
+ 
+COLUMNS 
+CODES 
+TYPE OR DESCRIPTION 
+ 
+21 
+ 
+ 
+ 
+140 
+ 
+ 
+TENURE DISCOUNT 
+ 
+If the insurer offers a tenure discount, report the tenure of the insured 
+using the following codes. Tenure is defined as the number of years 
+previously insured with the insurer at the time the policy is issued or 
+renewed. Insurers offering this discount must report all premium 
+transactions, including those that do not qualify for the discount. Do 
+not report tenure discounts elsewhere (do not report tenure discounts 
+in positions 46-47 as Individual Optional Credits). 
+ 
+0 
+0 Years 
+ 
+1 
+1 Year 
+ 
+2 
+2 Years 
+ 
+3 
+3 Years 
+ 
+4 
+4 Years 
+ 
+5 
+5 Years 
+ 
+6 
+6 or More Years 
+ 
+141-142 
+TENURE DISCOUNT AMOUNT 
+* 
+Report the tenure discount amount. Report 10% as "10." Report no 
+discount as "00." Do not report the tenure discount amount elsewhere 
+(do not report tenure discount amount in positions 80-82 as 
+Individual Optional Credit). 
+ 
+143 
+TEAR OUT AND REPLACEMENT OF BUILDING AND 
+COVERAGE ENDORSEMENT 
+Report one of the following codes for all transactions on or after 
+July 1, 1996, to indicate if the policy contains one of the following 
+endorsements: HO-155, HO-170. These endorsements limit the 
+coverage for the cost of tearing out and replacing any part of the 
+building and necessary to access, repair, or replace that part of a 
+plumbing drain system located within or coverage endorsement 
+elsewhere (do not report this foundation exclusion/limited coverage 
+endorsement in positions 46-47 as Individual Optional Credits). 
+ 
+1 
+Endorsement is attached to this policy 
+ 
+2 
+Endorsement is not attached to this policy 
+ 
+144-145 
+TEAR OUT AND REPLACEMENT OF BUILDING AND 
+LAND  COVERAGE ENDORSEMENT AMOUNT 
+* 
+Report the tear out and replacement of building and land coverage 
+endorsement amount. Report 10% as "10." Report no discount as 
+"00." For HO-170, always report "98." Do not report the tear out and 
+replacement of building and land coverage endorsement amount 
+elsewhere (do not report this discount amount in positions 80-82 as 
+Individual Optional Credits). 
+ 
+146-150 
+NAIC COMPANY NUMBER 
+ 
+* 
+Report the five-digit NAIC company number. 
+ 

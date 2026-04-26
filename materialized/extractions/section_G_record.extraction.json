@@ -1,5 +1,5 @@
 {
-  "summary": "Deterministic parse of TX_Statistical_Plan_Residential_Risks_2026.pdf: 9 fields across 1 record layouts.",
+  "summary": "Deterministic parse of TX_Statistical_Plan_Residential_Risks_2026.pdf: 10 fields across 1 record layouts.",
   "proposed_nodes": [
     {
       "temp_id": "doc-stat-plan-section-g",
@@ -94,7 +94,7 @@
     {
       "temp_id": "field-noticecountrecordlayout962d-sp-1-1",
       "type": "FieldRequirement",
-      "name": "4 (SP) \u2014 Notice Count Record Layout",
+      "name": "6 (SP) \u2014 Notice Count Record Layout",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -111,7 +111,7 @@
       "deadline_days_after_close": null,
       "layout_name": null,
       "record_format": null,
-      "field_name": "4",
+      "field_name": "6",
       "position_start": 1,
       "position_length": 1,
       "format": "free-form",
@@ -163,7 +163,7 @@
       "is_required": true,
       "code_list_name": null,
       "code": null,
-      "notes": "This is the date the Action is effective. For declinations, report the Notification Date (from Section E). For flat cancellations, report the effective date of the policy. For all other actions, report the date the coverage ends.",
+      "notes": "This is the date the Action Type is effective. For declinations, report the Notification Date (from Section E). For flat cancellations, report the effective date of the policy. For all other actions, report the date the coverage ends.",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -1288,7 +1288,52 @@
       "is_required": null,
       "code_list_name": null,
       "code": "05",
-      "notes": "Mobile homeowners (MHO) Section G: Record Layout For Number of Actual Cancellations, Nonrenewals, and Declinations Description Private flood \u2013 Stand-alone Flood Policies on Residential Dwellings (primary coverage)",
+      "notes": "Mobile homeowners (MHO)",
+      "coverage_name": null,
+      "applies_to_forms": null,
+      "form_code": null,
+      "form_name": null,
+      "coverage_effect": null,
+      "against_target": null,
+      "tolerance": null,
+      "org_name": null,
+      "org_kind": null,
+      "trigger_name": null,
+      "condition_summary": null,
+      "severity": null,
+      "document_temp_id": null,
+      "bulletin_temp_id": null,
+      "from_report_temp_id": null,
+      "code_list_temp_id": "codelist-field-noticecountrecordlayout962d-top-15-2"
+    },
+    {
+      "temp_id": "codelist-field-noticecountrecordlayout962d-top-15-2-cv-5",
+      "type": "CodeValue",
+      "name": "Type of Policy (TOP) \u2014 Notice Count Record Layout col15 = 06",
+      "confidence": 1.0,
+      "description": null,
+      "title": null,
+      "effective_date": null,
+      "kind": null,
+      "hash": null,
+      "source_url": null,
+      "edition_name": null,
+      "supersedes_edition": null,
+      "section": null,
+      "rule_number": null,
+      "report_name": null,
+      "cadence": null,
+      "deadline_days_after_close": null,
+      "layout_name": null,
+      "record_format": null,
+      "field_name": null,
+      "position_start": null,
+      "position_length": null,
+      "format": null,
+      "is_required": null,
+      "code_list_name": null,
+      "code": "06",
+      "notes": "Private flood \u2013 Stand-alone Flood Policies on Residential Dwellings (primary coverage) Section G: Record Layout For Number of Actual Cancellations, Nonrenewals, and Declinations Description",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -1442,9 +1487,9 @@
       "code_list_temp_id": "codelist-field-noticecountrecordlayout962d-zip-17-5"
     },
     {
-      "temp_id": "field-noticecountrecordlayout962d-cnt-22-8",
+      "temp_id": "field-noticecountrecordlayout962d-apc-22-8",
       "type": "FieldRequirement",
-      "name": "Count (CNT) \u2014 Notice Count Record Layout",
+      "name": "Actualized Policy Count (APC) \u2014 Notice Count Record Layout",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -1461,7 +1506,7 @@
       "deadline_days_after_close": null,
       "layout_name": null,
       "record_format": null,
-      "field_name": "Count",
+      "field_name": "Actualized Policy Count",
       "position_start": 22,
       "position_length": 8,
       "format": "code",
@@ -1487,11 +1532,11 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "codelist-field-noticecountrecordlayout962d-cnt-22-8",
+      "temp_id": "codelist-field-noticecountrecordlayout962d-apc-22-8",
       "type": "CodeList",
-      "name": "Count (CNT) \u2014 Notice Count Record Layout col22",
+      "name": "Actualized Policy Count (APC) \u2014 Notice Count Record Layout col22",
       "confidence": 1.0,
-      "description": "Enumerated values for Count (cols 22+8).",
+      "description": "Enumerated values for Actualized Policy Count (cols 22+8).",
       "title": null,
       "effective_date": null,
       "kind": null,
@@ -1511,7 +1556,7 @@
       "position_length": null,
       "format": null,
       "is_required": null,
-      "code_list_name": "Count (CNT) \u2014 Notice Count Record Layout col22",
+      "code_list_name": "Actualized Policy Count (APC) \u2014 Notice Count Record Layout col22",
       "code": null,
       "notes": null,
       "coverage_name": null,
@@ -1532,9 +1577,9 @@
       "code_list_temp_id": null
     },
     {
-      "temp_id": "codelist-field-noticecountrecordlayout962d-cnt-22-8-cv-0",
+      "temp_id": "codelist-field-noticecountrecordlayout962d-apc-22-8-cv-0",
       "type": "CodeValue",
-      "name": "Count (CNT) \u2014 Notice Count Record Layout col22 = *",
+      "name": "Actualized Policy Count (APC) \u2014 Notice Count Record Layout col22 = *",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -1574,12 +1619,12 @@
       "document_temp_id": null,
       "bulletin_temp_id": null,
       "from_report_temp_id": null,
-      "code_list_temp_id": "codelist-field-noticecountrecordlayout962d-cnt-22-8"
+      "code_list_temp_id": "codelist-field-noticecountrecordlayout962d-apc-22-8"
     },
     {
-      "temp_id": "field-noticecountrecordlayout962d-skip-30-171",
+      "temp_id": "field-noticecountrecordlayout962d-skip-30-21",
       "type": "FieldRequirement",
-      "name": "SKIP cols 30-200 (SKIP) \u2014 Notice Count Record Layout",
+      "name": "SKIP cols 30-50 (SKIP) \u2014 Notice Count Record Layout",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -1596,9 +1641,54 @@
       "deadline_days_after_close": null,
       "layout_name": null,
       "record_format": null,
-      "field_name": "SKIP cols 30-200",
+      "field_name": "SKIP cols 30-50",
       "position_start": 30,
-      "position_length": 171,
+      "position_length": 21,
+      "format": "free-form",
+      "is_required": false,
+      "code_list_name": null,
+      "code": null,
+      "notes": "Reserved/unused columns. Skip",
+      "coverage_name": null,
+      "applies_to_forms": null,
+      "form_code": null,
+      "form_name": null,
+      "coverage_effect": null,
+      "against_target": null,
+      "tolerance": null,
+      "org_name": null,
+      "org_kind": null,
+      "trigger_name": null,
+      "condition_summary": null,
+      "severity": null,
+      "document_temp_id": null,
+      "bulletin_temp_id": null,
+      "from_report_temp_id": null,
+      "code_list_temp_id": null
+    },
+    {
+      "temp_id": "field-noticecountrecordlayout962d-skip-51-150",
+      "type": "FieldRequirement",
+      "name": "SKIP cols 51-200 (SKIP) \u2014 Notice Count Record Layout",
+      "confidence": 1.0,
+      "description": null,
+      "title": null,
+      "effective_date": null,
+      "kind": null,
+      "hash": null,
+      "source_url": null,
+      "edition_name": null,
+      "supersedes_edition": null,
+      "section": null,
+      "rule_number": null,
+      "report_name": null,
+      "cadence": null,
+      "deadline_days_after_close": null,
+      "layout_name": null,
+      "record_format": null,
+      "field_name": "SKIP cols 51-200",
+      "position_start": 51,
+      "position_length": 150,
       "format": "free-form",
       "is_required": false,
       "code_list_name": null,
@@ -1623,14 +1713,6 @@
     }
   ],
   "proposed_relationships": [
-    {
-      "type": "CITES",
-      "src_temp_id": "layout-notice-count-record-layout",
-      "dst_temp_id": "doc-stat-plan-section-g",
-      "char_start": 0,
-      "char_end": 200,
-      "citation_kind": "defines"
-    },
     {
       "type": "CONTAINED_IN",
       "src_temp_id": "field-noticecountrecordlayout962d-sp-1-1",
@@ -1848,6 +1930,14 @@
       "citation_kind": null
     },
     {
+      "type": "HAS_VALUE",
+      "src_temp_id": "codelist-field-noticecountrecordlayout962d-top-15-2",
+      "dst_temp_id": "codelist-field-noticecountrecordlayout962d-top-15-2-cv-5",
+      "char_start": null,
+      "char_end": null,
+      "citation_kind": null
+    },
+    {
       "type": "CONTAINED_IN",
       "src_temp_id": "field-noticecountrecordlayout962d-zip-17-5",
       "dst_temp_id": "layout-notice-count-record-layout",
@@ -1873,7 +1963,7 @@
     },
     {
       "type": "CONTAINED_IN",
-      "src_temp_id": "field-noticecountrecordlayout962d-cnt-22-8",
+      "src_temp_id": "field-noticecountrecordlayout962d-apc-22-8",
       "dst_temp_id": "layout-notice-count-record-layout",
       "char_start": null,
       "char_end": null,
@@ -1881,23 +1971,31 @@
     },
     {
       "type": "CODED_BY",
-      "src_temp_id": "field-noticecountrecordlayout962d-cnt-22-8",
-      "dst_temp_id": "codelist-field-noticecountrecordlayout962d-cnt-22-8",
+      "src_temp_id": "field-noticecountrecordlayout962d-apc-22-8",
+      "dst_temp_id": "codelist-field-noticecountrecordlayout962d-apc-22-8",
       "char_start": null,
       "char_end": null,
       "citation_kind": null
     },
     {
       "type": "HAS_VALUE",
-      "src_temp_id": "codelist-field-noticecountrecordlayout962d-cnt-22-8",
-      "dst_temp_id": "codelist-field-noticecountrecordlayout962d-cnt-22-8-cv-0",
+      "src_temp_id": "codelist-field-noticecountrecordlayout962d-apc-22-8",
+      "dst_temp_id": "codelist-field-noticecountrecordlayout962d-apc-22-8-cv-0",
       "char_start": null,
       "char_end": null,
       "citation_kind": null
     },
     {
       "type": "CONTAINED_IN",
-      "src_temp_id": "field-noticecountrecordlayout962d-skip-30-171",
+      "src_temp_id": "field-noticecountrecordlayout962d-skip-30-21",
+      "dst_temp_id": "layout-notice-count-record-layout",
+      "char_start": null,
+      "char_end": null,
+      "citation_kind": null
+    },
+    {
+      "type": "CONTAINED_IN",
+      "src_temp_id": "field-noticecountrecordlayout962d-skip-51-150",
       "dst_temp_id": "layout-notice-count-record-layout",
       "char_start": null,
       "char_end": null,
@@ -1907,59 +2005,47 @@
   "citations": [
     {
       "node_temp_id": "field-noticecountrecordlayout962d-sp-1-1",
-      "char_start": 546,
-      "char_end": 746,
+      "char_start": 542,
+      "char_end": 742,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-aed-2-3",
-      "char_start": 610,
-      "char_end": 810,
+      "char_start": 607,
+      "char_end": 807,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-at-5-2",
-      "char_start": 1040,
-      "char_end": 1240,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-noticecountrecordlayout962d-skip-7-5",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 1060,
+      "char_end": 1260,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-cno-12-3",
-      "char_start": 1179,
-      "char_end": 1379,
+      "char_start": 1209,
+      "char_end": 1409,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-top-15-2",
-      "char_start": 1231,
-      "char_end": 1431,
+      "char_start": 1265,
+      "char_end": 1465,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-noticecountrecordlayout962d-zip-17-5",
-      "char_start": 1630,
-      "char_end": 1830,
+      "char_start": 1681,
+      "char_end": 1881,
       "kind": "defines"
     },
     {
-      "node_temp_id": "field-noticecountrecordlayout962d-cnt-22-8",
-      "char_start": 1689,
-      "char_end": 1889,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-noticecountrecordlayout962d-skip-30-171",
-      "char_start": 0,
-      "char_end": 200,
+      "node_temp_id": "field-noticecountrecordlayout962d-apc-22-8",
+      "char_start": 1744,
+      "char_end": 1944,
       "kind": "defines"
     }
   ],
   "uncited_spans": [],
-  "document_total_chars": 1934
+  "document_total_chars": 2033
 }

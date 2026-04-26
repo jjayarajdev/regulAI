@@ -12,25 +12,28 @@ Run via: uv run python -m scripts.extract_pdfs
 
 from pathlib import Path
 
-from pypdf import PdfReader
+import fitz  # PyMuPDF — same library the parser uses, so extracted text matches what
+              # parse_record_layout walks. Using pypdf here would produce a different
+              # tokenization and break the parser's regexes / citation offsets.
 
 REFERENCES = Path("references/regulations")
 OUTPUT_DIR = Path("synthetic_regulations/real")
 
 
 def extract_pdf(pdf_path: Path, out_path: Path) -> None:
-    reader = PdfReader(str(pdf_path))
     chunks: list[str] = []
     chunks.append(f"# {pdf_path.stem}\n")
     chunks.append(f"# Source: {pdf_path.name}\n")
-    chunks.append(f"# Pages: {len(reader.pages)}\n\n")
-    for i, page in enumerate(reader.pages, start=1):
-        chunks.append(f"\n\n===== PAGE {i} =====\n\n")
-        text = page.extract_text() or ""
-        chunks.append(text)
+    with fitz.open(pdf_path) as pdf:
+        chunks.append(f"# Pages: {pdf.page_count}\n\n")
+        for i in range(pdf.page_count):
+            chunks.append(f"\n\n===== PAGE {i + 1} =====\n\n")
+            chunks.append(pdf.load_page(i).get_text())
     out_path.write_text("".join(chunks), encoding="utf-8")
+    with fitz.open(pdf_path) as pdf_for_count:
+        n_pages = pdf_for_count.page_count
     print(f"  ✓ {pdf_path.name} → {out_path} "
-          f"({len(reader.pages)} pages, {out_path.stat().st_size} bytes)")
+          f"({n_pages} pages, {out_path.stat().st_size} bytes)")
 
 
 def main() -> None:

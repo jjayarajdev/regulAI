@@ -3109,7 +3109,7 @@
     {
       "temp_id": "field-lossrecordlayoutdbff-cv-52-1",
       "type": "FieldRequirement",
-      "name": "Coverage \u2013 \u2014Occupancy (CV) \u2014 Loss Record Layout",
+      "name": "Coverage\u2014Occupancy (CV) \u2014 Loss Record Layout",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -3126,7 +3126,7 @@
       "deadline_days_after_close": null,
       "layout_name": null,
       "record_format": null,
-      "field_name": "Coverage \u2013 \u2014Occupancy",
+      "field_name": "Coverage\u2014Occupancy",
       "position_start": 52,
       "position_length": 1,
       "format": "code",
@@ -3154,9 +3154,9 @@
     {
       "temp_id": "codelist-field-lossrecordlayoutdbff-cv-52-1",
       "type": "CodeList",
-      "name": "Coverage \u2013 \u2014Occupancy (CV) \u2014 Loss Record Layout col52",
+      "name": "Coverage\u2014Occupancy (CV) \u2014 Loss Record Layout col52",
       "confidence": 1.0,
-      "description": "Enumerated values for Coverage \u2013 \u2014Occupancy (cols 52+1).",
+      "description": "Enumerated values for Coverage\u2014Occupancy (cols 52+1).",
       "title": null,
       "effective_date": null,
       "kind": null,
@@ -3176,7 +3176,7 @@
       "position_length": null,
       "format": null,
       "is_required": null,
-      "code_list_name": "Coverage \u2013 \u2014Occupancy (CV) \u2014 Loss Record Layout col52",
+      "code_list_name": "Coverage\u2014Occupancy (CV) \u2014 Loss Record Layout col52",
       "code": null,
       "notes": null,
       "coverage_name": null,
@@ -3199,7 +3199,7 @@
     {
       "temp_id": "codelist-field-lossrecordlayoutdbff-cv-52-1-cv-0",
       "type": "CodeValue",
-      "name": "Coverage \u2013 \u2014Occupancy (CV) \u2014 Loss Record Layout col52 = *",
+      "name": "Coverage\u2014Occupancy (CV) \u2014 Loss Record Layout col52 = *",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -3403,7 +3403,7 @@
       "is_required": false,
       "code_list_name": null,
       "code": null,
-      "notes": "Reserved/unused columns. (SPPC) Protection \u2013\u2014 ISO Protection Class, Including New Split Classifications",
+      "notes": "Reserved/unused columns. (SPPC) Protection\u2014ISO Protection Class, Including New Split Classifications",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -4729,7 +4729,7 @@
     {
       "temp_id": "field-lossrecordlayoutdbff-ppc-56-1",
       "type": "FieldRequirement",
-      "name": "Protection \u2013\u2014 ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout",
+      "name": "Protection\u2014ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -4746,7 +4746,7 @@
       "deadline_days_after_close": null,
       "layout_name": null,
       "record_format": null,
-      "field_name": "Protection \u2013\u2014 ISO Public Protection Class (PPC)",
+      "field_name": "Protection\u2014ISO Public Protection Class (PPC)",
       "position_start": 56,
       "position_length": 1,
       "format": "code",
@@ -4774,9 +4774,9 @@
     {
       "temp_id": "codelist-field-lossrecordlayoutdbff-ppc-56-1",
       "type": "CodeList",
-      "name": "Protection \u2013\u2014 ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56",
+      "name": "Protection\u2014ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56",
       "confidence": 1.0,
-      "description": "Enumerated values for Protection \u2013\u2014 ISO Public Protection Class (PPC) (cols 56+1).",
+      "description": "Enumerated values for Protection\u2014ISO Public Protection Class (PPC) (cols 56+1).",
       "title": null,
       "effective_date": null,
       "kind": null,
@@ -4796,7 +4796,7 @@
       "position_length": null,
       "format": null,
       "is_required": null,
-      "code_list_name": "Protection \u2013\u2014 ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56",
+      "code_list_name": "Protection\u2014ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56",
       "code": null,
       "notes": null,
       "coverage_name": null,
@@ -4819,7 +4819,7 @@
     {
       "temp_id": "codelist-field-lossrecordlayoutdbff-ppc-56-1-cv-0",
       "type": "CodeValue",
-      "name": "Protection \u2013\u2014 ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 1",
+      "name": "Protection\u2014ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 1",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -4864,7 +4864,7 @@
     {
       "temp_id": "codelist-field-lossrecordlayoutdbff-ppc-56-1-cv-1",
       "type": "CodeValue",
-      "name": "Protection \u2013\u2014 ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 3",
+      "name": "Protection\u2014ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 3",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -4909,7 +4909,7 @@
     {
       "temp_id": "codelist-field-lossrecordlayoutdbff-ppc-56-1-cv-2",
       "type": "CodeValue",
-      "name": "Protection \u2013\u2014 ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 5",
+      "name": "Protection\u2014ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 5",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -4954,7 +4954,7 @@
     {
       "temp_id": "codelist-field-lossrecordlayoutdbff-ppc-56-1-cv-3",
       "type": "CodeValue",
-      "name": "Protection \u2013\u2014 ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 6",
+      "name": "Protection\u2014ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 6",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -4999,7 +4999,7 @@
     {
       "temp_id": "codelist-field-lossrecordlayoutdbff-ppc-56-1-cv-4",
       "type": "CodeValue",
-      "name": "Protection \u2013\u2014 ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 7",
+      "name": "Protection\u2014ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 7",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -5044,7 +5044,7 @@
     {
       "temp_id": "codelist-field-lossrecordlayoutdbff-ppc-56-1-cv-5",
       "type": "CodeValue",
-      "name": "Protection \u2013\u2014 ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 9",
+      "name": "Protection\u2014ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = 9",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -5089,7 +5089,7 @@
     {
       "temp_id": "codelist-field-lossrecordlayoutdbff-ppc-56-1-cv-6",
       "type": "CodeValue",
-      "name": "Protection \u2013\u2014 ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = B",
+      "name": "Protection\u2014ISO Public Protection Class (PPC) (PPC) \u2014 Loss Record Layout col56 = B",
       "confidence": 1.0,
       "description": null,
       "title": null,
@@ -10648,7 +10648,7 @@
       "is_required": null,
       "code_list_name": null,
       "code": "2",
-      "notes": "Policy does not provide coverage for the dwelling (Ten and Con Only)-.",
+      "notes": "Policy does not provide coverage for the dwelling.",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -12538,7 +12538,7 @@
       "is_required": null,
       "code_list_name": null,
       "code": "Z",
-      "notes": "$15,000 * For the Seacoast Territories (1, 8, 9, 10, and 11), code 1 is $100 Deductible on Wind, Hurricane, and Hail \u2013 Full Coverage on other Extended Coverage Perils. ** Code 7 applies in territories Territories 8, 9, and 10, and those portions of La Porte, Morgan's Point, Pasadena, Seabrook, and Shore Acres in Territory 1 that are located in the Catastrophe Area, subject to Wind Exclusion Endorsement.",
+      "notes": "$15,000 * For the Seacoast Territories (1, 8, 9, 10, and 11), code 1 is $100 Deductible on Wind, Hurricane, and Hail \u2013 Full Coverage on other Extended Coverage Perils. ** Code 7 applies in Territories 8, 9, and 10, and those portions of La Porte, Morgan's Point, Pasadena, Seabrook, and Shore Acres in Territory 1 that are located in the Catastrophe Area, subject to Wind Exclusion Endorsement.",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -12673,7 +12673,7 @@
       "is_required": true,
       "code_list_name": null,
       "code": null,
-      "notes": "Nearest thousands of dollars. If the amount of insurance is less than $1,500, then code \"01.\" If loss of use limit is greater than $998,499, then report \"999.\" If no loss of use coverage, then report \"0\" in the amount field. If a previously reported loss record must be reversed, report this field as a credit of the previously reported value. See Rule 12 for instructions on coding negative quantities. 169\u2013172 (HO PP) Amount of Insurance\u2014Personal Property Coverage (HO) Homeowner policies only. For tenant and condo forms, report personal property limit under INS (pos. 33\u201337). For dwelling policies, report personal property limit under ALINS (pos. 73\u2013 75). Nearest thousands of dollars. If the amount of insurance is less than $1,500, then code \"01.\" If personal property limit is greater than $9,998,499, report \"9999.\" If a previously reported loss record must be reversed, report this field as a credit of the previously reported value. See Rule 12 for instructions on coding negative quantities.",
+      "notes": "Nearest thousands of dollars. If the amount of insurance is less than $1,500, then code \"01.\" If loss of use limit is greater than $998,499, then report \"999.\" If no loss of use coverage, then report \"0\" in the amount field. If a previously reported loss record must be reversed, report this field as a credit of the previously reported value. See Rule 12 for instructions on coding negative quantities. 169\u2013172 (HO PP) Amount of Insurance\u2014Personal Property Coverage (HO) Homeowner policies only. For tenant and condo forms, report personal property limit under INS (pos. 33\u201337). Nearest thousands of dollars. If the amount of insurance is less than $1,500, then code \"01.\" If personal property limit is greater than $9,998,499, report \"9999.\" If a previously reported loss record must be reversed, report this field as a credit of the previously reported value. See Rule 12 for instructions on coding negative quantities.",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -13033,7 +13033,7 @@
       "is_required": null,
       "code_list_name": null,
       "code": "4",
-      "notes": "Claim open, previously reported as closed Claim closed with payment (CWIP) at the end of the month \uf0b7 claim closed at the end of the month; and \uf0b7 one or more indemnity payments made to the insured and not recovered fully from the insured*,**.",
+      "notes": "Claim open, previously reported as closed Claim closed with payment (CWIP) at the end of the month \u2022 claim closed at the end of the month; and \u2022 one or more indemnity payments made to the insured and not recovered fully from the insured*,**.",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -13123,7 +13123,7 @@
       "is_required": null,
       "code_list_name": null,
       "code": "5",
-      "notes": "Claim CWIP, previously reported as closed Claim closed without payment (CWOP) at the end of the month \uf0b7 claim closed at the end of the month; and \uf0b7 indemnity payments made to the insured (if any) were all recovered fully from the insured*,**.",
+      "notes": "Claim CWIP, previously reported as closed Claim closed without payment (CWOP) at the end of the month \u2022 claim closed at the end of the month; and \u2022 indemnity payments made to the insured (if any) were all recovered fully from the insured*,**.",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -13573,7 +13573,7 @@
       "is_required": false,
       "code_list_name": null,
       "code": null,
-      "notes": "Reserved/unused columns. Skip Section E: Record Layout for Cancellation, Nonrenewal, and Declination Notices Section E: for Cancellation, Nonrenewal, and Declination Notices",
+      "notes": "Reserved/unused columns. Skip",
       "coverage_name": null,
       "applies_to_forms": null,
       "form_code": null,
@@ -14043,14 +14043,6 @@
     }
   ],
   "proposed_relationships": [
-    {
-      "type": "CITES",
-      "src_temp_id": "layout-loss-record-layout",
-      "dst_temp_id": "doc-stat-plan-section-d",
-      "char_start": 0,
-      "char_end": 200,
-      "citation_kind": "defines"
-    },
     {
       "type": "CONTAINED_IN",
       "src_temp_id": "field-lossrecordlayoutdbff-sp-1-1",
@@ -16535,359 +16527,173 @@
   "citations": [
     {
       "node_temp_id": "field-lossrecordlayoutdbff-sp-1-1",
-      "char_start": 352,
-      "char_end": 552,
+      "char_start": 354,
+      "char_end": 554,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-acdt-2-3",
-      "char_start": 414,
-      "char_end": 614,
+      "char_start": 419,
+      "char_end": 619,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-policy-7-10",
-      "char_start": 594,
-      "char_end": 794,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-17-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-23-3",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 616,
+      "char_end": 816,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-place-26-5",
-      "char_start": 1032,
-      "char_end": 1232,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-38-3",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 1069,
+      "char_end": 1269,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-lob-41-2",
-      "char_start": 2607,
-      "char_end": 2807,
+      "char_start": 2686,
+      "char_end": 2886,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-co-43-3",
-      "char_start": 3592,
-      "char_end": 3792,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-46-4",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 3702,
+      "char_end": 3902,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-f-50-1",
-      "char_start": 3730,
-      "char_end": 3930,
+      "char_start": 3845,
+      "char_end": 4045,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-fm-51-1",
-      "char_start": 3944,
-      "char_end": 4144,
+      "char_start": 4065,
+      "char_end": 4265,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-cv-52-1",
-      "char_start": 4071,
-      "char_end": 4271,
+      "char_start": 4195,
+      "char_end": 4395,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-ct-53-1",
-      "char_start": 4202,
-      "char_end": 4402,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-54-2",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 4325,
+      "char_end": 4525,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-ppc-56-1",
-      "char_start": 4733,
-      "char_end": 4933,
+      "char_start": 4916,
+      "char_end": 5116,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-ded-57-2",
-      "char_start": 4943,
-      "char_end": 5143,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-61-7",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-68-9",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-77-6",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 5146,
+      "char_end": 5346,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-roofcov-83-1",
-      "char_start": 6857,
-      "char_end": 7057,
+      "char_start": 7101,
+      "char_end": 7301,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-roofcred-84-1",
-      "char_start": 7329,
-      "char_end": 7529,
+      "char_start": 7597,
+      "char_end": 7797,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-roofyear-85-4",
-      "char_start": 7599,
-      "char_end": 7799,
+      "char_start": 7875,
+      "char_end": 8075,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-cosmetic-89-1",
-      "char_start": 7812,
-      "char_end": 8012,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-90-2",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 8090,
+      "char_end": 8290,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-deprec-93-5",
-      "char_start": 8702,
-      "char_end": 8902,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-98-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-101-8",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-109-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-116-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-122-6",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-129-5",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 9017,
+      "char_end": 9217,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-bcc-134-2",
-      "char_start": 10008,
-      "char_end": 10208,
+      "char_start": 10347,
+      "char_end": 10547,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-loc-136-1",
-      "char_start": 10488,
-      "char_end": 10688,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-137-3",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-141-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-143-3",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-146-5",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 10848,
+      "char_end": 11048,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-rcb-151-1",
-      "char_start": 11835,
-      "char_end": 12035,
+      "char_start": 12229,
+      "char_end": 12429,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-rcpp-152-1",
-      "char_start": 12099,
-      "char_end": 12299,
+      "char_start": 12478,
+      "char_end": 12678,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-rct-153-1",
-      "char_start": 12467,
-      "char_end": 12667,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-156-6",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 12857,
+      "char_end": 13057,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-yoc-162-4",
-      "char_start": 15038,
-      "char_end": 15238,
+      "char_start": 15508,
+      "char_end": 15708,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-ale-166-3",
-      "char_start": 15203,
-      "char_end": 15403,
+      "char_start": 15676,
+      "char_end": 15876,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-ncc-173-1",
-      "char_start": 16409,
-      "char_end": 16609,
+      "char_start": 16806,
+      "char_end": 17006,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-cs-174-1",
-      "char_start": 16853,
-      "char_end": 17053,
+      "char_start": 17259,
+      "char_end": 17459,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-claimid-175-2",
-      "char_start": 18028,
-      "char_end": 18228,
+      "char_start": 18462,
+      "char_end": 18662,
       "kind": "defines"
     },
     {
       "node_temp_id": "field-lossrecordlayoutdbff-rcc-177-1",
-      "char_start": 18322,
-      "char_end": 18522,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-178-23",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-5-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-31-7",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-59-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-92-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-100-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-115-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-128-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-140-1",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-154-2",
-      "char_start": 0,
-      "char_end": 200,
-      "kind": "defines"
-    },
-    {
-      "node_temp_id": "field-lossrecordlayoutdbff-skip-169-4",
-      "char_start": 0,
-      "char_end": 200,
+      "char_start": 18759,
+      "char_end": 18959,
       "kind": "defines"
     }
   ],
   "uncited_spans": [],
-  "document_total_chars": 18937
+  "document_total_chars": 19386
 }

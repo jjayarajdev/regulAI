@@ -6,31 +6,63 @@
 
 ===== PAGE 1 =====
 
-By: AA Paul H.B. A No. A 2067
+By:AAPaul
+H.B.ANo.A2067
 A BILL TO BE ENTITLED
 AN ACT
 relating to declination, cancellation, or nonrenewal of insurance
 policies.
 BE IT ENACTED BY THE LEGISLATURE OF THE STATE OF TEXAS:
-SECTION A 1. AA Section 551.001(a), Insurance Code, is amended
+SECTIONA1.AASection
+551.001(a),
+Insurance
+Code,
+is
+amended
 to read as follows:
-(a) AA The commissioner may, as necessary, adopt and enforce
+(a)AAThe commissioner may, as necessary, adopt and enforce
 reasonable rules, including notice requirements, relating to the
 declination, cancellation, and nonrenewal of any insurance policy
 regulated by the department under:
-(1) AA Chapter 5;
-(2) AA Chapter 1804, 1805, 2171, or 2301; or
-(3) AA Subtitle C, D, E, or F, Title 10.
-SECTION A 2. AA Section 551.002(a), Insurance Code, is amended
+(1)AAChapter 5;
+(2)AAChapter 1804, 1805, 2171, or 2301; or
+(3)AASubtitle C, D, E, or F, Title 10.
+SECTIONA2.AASection
+551.002(a),
+Insurance
+Code,
+is
+amended
 to read as follows:
-(a) AA The commissioner shall require an insurer that
+(a)AAThe
+commissioner
+shall
+require
+an
+insurer
+that
 declines, cancels, or refuses to renew an insurance policy to which
 Section 551.001 applies[, on request by an applicant for insurance
 or a policyholder,] to provide to the applicant or policyholder a
 written statement of the reasons for the declination, cancellation,
-or nonrenewal of the [an insurance] policy [to which Section
+or
+nonrenewal
+of
+the
+[an
+insurance]
+policy
+[to
+which
+Section
 551.001 applies].
-SECTION A 3. AA Subchapter B, Chapter 551, Insurance Code, is
+SECTIONA3.AASubchapter
+B,
+Chapter
+551,
+Insurance
+Code,
+is
 amended by adding Section 551.0521 to read as follows:
 1
 2
@@ -56,36 +88,96 @@ amended by adding Section 551.0521 to read as follows:
 22
 23
 24
-89R9486 SCR-F 1
+89R9486 SCR-F
+1
+
 
 ===== PAGE 2 =====
 
-Sec. A 551.0521. AA WRITTEN NOTICE OF DECLINATION REQUIRED. An
+Sec.A551.0521.AAWRITTEN NOTICE OF DECLINATION REQUIRED.
+An
 insurer that declines an application for a liability insurance or
 commercial property insurance policy shall deliver or mail written
 notice of the declination to the applicant.
-SECTION A 4. AA Section 551.055, Insurance Code, is amended to
+SECTIONA4.AASection
+551.055,
+Insurance Code,
+is amended to
 read as follows:
-Sec. A 551.055. AA REASON FOR DECLINATION, CANCELLATION, OR
-NONRENEWAL REQUIRED. In a notice to an applicant or insured
-relating to declination, cancellation, or refusal to renew, an
+Sec.A551.055.AAREASON
+FOR
+DECLINATION,
+CANCELLATION,
+OR
+NONRENEWAL
+REQUIRED.
+In
+a
+notice
+to
+an
+applicant
+or
+insured
+relating
+to
+declination,
+cancellation,
+or
+refusal
+to
+renew,
+an
 insurer must state the reason for the declination, cancellation, or
-nonrenewal. The statement must comply with:
-(1) AA Sections 551.002(b) and (c); and
-(2) AA rules adopted under Section 551.002(d).
-SECTION A 5. AA Section 551.109, Insurance Code, is amended to
+nonrenewal.
+The statement must comply with:
+(1)AASections 551.002(b) and (c); and
+(2)AArules adopted under Section 551.002(d).
+SECTIONA5.AASection
+551.109,
+Insurance Code,
+is amended to
 read as follows:
-Sec. A 551.109. AA INSURER STATEMENT. An insurer shall[, at the
-request of an applicant for insurance or an insured,] provide a
+Sec.A551.109.AAINSURER STATEMENT.
+An insurer shall[, at the
+request
+of
+an
+applicant
+for
+insurance
+or
+an
+insured,]
+provide
+a
 written statement of the reason for a declination, cancellation, or
-nonrenewal of an insurance policy. The statement must comply with:
-(1) AA Sections 551.002(b) and (c); and
-(2) AA rules adopted under Section 551.002(d).
-SECTION A 6. AA The change in law made by this Act applies only
+nonrenewal of an insurance policy.
+The statement must comply with:
+(1)AASections 551.002(b) and (c); and
+(2)AArules adopted under Section 551.002(d).
+SECTIONA6.AAThe change in law made by this Act applies only
 to an application for insurance that is made or an insurance policy
 that is delivered, issued for delivery, or renewed on or after the
-effective date of this Act. An application made or policy
-delivered, issued for delivery, or renewed before the effective
+effective
+date
+of
+this
+Act.
+An
+application
+made
+or
+policy
+delivered,
+issued
+for
+delivery,
+or
+renewed
+before
+the
+effective
 date of this Act is governed by the law as it existed immediately
 1
 2
@@ -114,16 +206,17 @@ date of this Act is governed by the law as it existed immediately
 25
 26
 27
-H.B. A No. A 2067
+H.B.ANo.A2067
 2
+
 
 ===== PAGE 3 =====
 
 before the effective date of this Act, and that law is continued in
 effect for that purpose.
-SECTION A 7. AA This Act takes effect September 1, 2025.
+SECTIONA7.AAThis Act takes effect September 1, 2025.
 1
 2
 3
-H.B. A No. A 2067
+H.B.ANo.A2067
 3
