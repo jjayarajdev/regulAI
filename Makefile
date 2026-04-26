@@ -81,6 +81,12 @@ cypher-favorites:
 	@echo "Wrote cypher/saved-cypher.json"
 	@echo "Import in Neo4j Browser: ☰ → Favorites → ⋮ → Import favorites"
 
+cypher-guide:
+	uv run python -m scripts.build_cypher_guide
+	@echo ""
+	@echo "Then in Neo4j Browser at http://localhost:7474, run:"
+	@echo "    :play http://localhost:8765/cypher-guide"
+
 apply-bulletin:
 	@if [ -z "$(BULLETIN)" ] && [ -z "$(ALL)" ]; then \
 	    echo "Usage: make apply-bulletin BULLETIN=\"<name>\"  OR  make apply-bulletin ALL=1"; exit 1; \

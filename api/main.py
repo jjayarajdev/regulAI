@@ -15,7 +15,8 @@ import json
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 import random as _random
@@ -42,6 +43,20 @@ from scripts.generate_sample_submission import fetch_layout, fill_record
 from scripts.validate_submission import validate_record
 
 app = FastAPI(title="RegulAI LHS", version="0.1.0")
+
+# CORS — Neo4j Browser is served from :7474 and needs to fetch the
+# Cypher guide HTML from our :8765. Local-dev origins only.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:7474",
+        "http://127.0.0.1:7474",
+        "http://localhost:8765",
+        "http://127.0.0.1:8765",
+    ],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 UI_DIR = Path("ui")
 MOCK_UI_DIR = Path("mock-ui-v2")
@@ -246,6 +261,30 @@ def kg_stats() -> JSONResponse:
             {"error": str(e), "neo4j_browser_url": "http://localhost:7474"},
             status_code=503,
         )
+
+
+# -- Neo4j Browser guide served for `:play` -----------------------------------
+
+
+@app.get("/cypher-guide", response_class=HTMLResponse)
+@app.get("/cypher-guide.html", response_class=HTMLResponse)
+def cypher_guide() -> HTMLResponse:
+    """Curated Cypher tour, loaded in Neo4j Browser via `:play`.
+
+    From a Browser cell:
+        :play http://localhost:8765/cypher-guide
+
+    Pages of explanatory text + clickable runnable Cypher cards. Same
+    queries as cypher/saved-cypher.json but loaded a different way (and
+    without the buggy favorites-import flow).
+    """
+    guide_path = Path("cypher/guide.html")
+    if not guide_path.exists():
+        raise HTTPException(
+            status_code=503,
+            detail=f"Guide not built yet. Run `make cypher-guide` to generate {guide_path}.",
+        )
+    return HTMLResponse(content=guide_path.read_text(encoding="utf-8"))
 
 
 @app.get("/api/health")

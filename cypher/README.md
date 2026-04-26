@@ -1,7 +1,6 @@
 # Saved Cypher — RegulAI POC queries
 
-Curated Cypher queries that exercise every facet of the LHS slice. Use them
-in Neo4j Browser to demo, audit, and debug the KG.
+Curated Cypher queries that exercise every facet of the LHS slice. Six folders, **32 queries**.
 
 ```
 cypher/
@@ -11,44 +10,85 @@ cypher/
 ├── 04_temporal_bulletin.cypher     rules-level loop (before/after bulletin)
 ├── 05_validation.cypher            KG hygiene checks
 ├── 06_demo_killer.cypher           the 5 queries to run during a demo
-├── saved-cypher.json               Neo4j Browser-importable favorites
+├── guide.html                      Neo4j Browser-loadable guide
+├── saved-cypher.json               Browser-importable favorites JSON
 └── README.md                       this file
 ```
 
-Total: **6 folders, 32 queries**.
-
 ---
 
-## Two ways to use them
+## How to use them — three options
 
-### A) Import as Neo4j Browser favorites (recommended for a demo)
+The Browser-favorites import is fragile across versions. Try option **A** first.
 
-This is the "saved Cypher by default" path. Import `cypher/saved-cypher.json`
-once into your Browser instance and every query appears in the favorites
-panel, organized by folder.
+### A. Load as a Browser guide (most reliable) ✅
+
+In Neo4j Browser at `http://localhost:7474`, run:
+
+```cypher
+:play http://localhost:8765/cypher-guide
+```
+
+You get a paginated walkthrough with explanatory text and clickable
+runnable Cypher cards. Pages: 1 index slide + 32 query slides. Use ←/→
+to navigate.
+
+> **Prerequisites**: `make ui` running (FastAPI on :8765). The endpoint
+> returns the HTML built from `cypher/*.cypher`. CORS is allowed for
+> `localhost:7474`.
+
+To regenerate after editing a `.cypher` file:
+
+```bash
+make cypher-guide
+# rebuilds cypher/guide.html
+# (the FastAPI route reads the file fresh on every request, so no restart)
+```
+
+### B. Copy-paste from the .cypher files
+
+Each `.cypher` file is plain text, with section headers (`// N.M Title`)
+above every query and a brief comment explaining what it does.
+Open in any editor, copy a block, paste into Neo4j Browser, run.
+
+### C. Browser-favorites import (fragile across versions)
 
 ```
-1. Open Neo4j Browser at http://localhost:7474
+1. Open http://localhost:7474
 2. Click ☰ (top-left) → Favorites
 3. Click the ⋮ menu next to "My Favorites" → "Import favorites"
 4. Select cypher/saved-cypher.json
 ```
 
-You'll see six folders ("KG Overview", "Wire Format Exploration", etc.).
-Click any saved query to load it into the editor; press Cmd/Ctrl-Enter to run.
+Some Browser versions silently reject the format. If A or B work for you,
+use those instead.
 
-To regenerate the JSON (e.g. after editing a `.cypher` file):
+To regenerate the JSON:
 
 ```bash
 make cypher-favorites
-# writes a fresh cypher/saved-cypher.json
 ```
 
-### B) Copy-paste from the .cypher files
+### D. localStorage paste (if all else fails) — last resort
 
-Each `.cypher` file is human-readable, with section headers (`// N.M  Title`)
-above every query and a brief comment explaining what it does. Open in any
-editor, copy a block, paste into Neo4j Browser, run.
+If the import dialog doesn't accept the file, you can write favorites
+straight into the Browser's localStorage. Open Neo4j Browser, then open
+DevTools (F12) → Console, and paste:
+
+```js
+fetch('http://localhost:8765/cypher-guide')
+  .then(() => fetch('http://localhost:8765/cypher/saved-cypher.json'))
+  .then(r => r.json())
+  .then(favs => {
+    localStorage.setItem('neo4j.documents', JSON.stringify({
+      allDocuments: favs,
+      folders: favs.filter(f => f.isFolder),
+    }));
+    location.reload();
+  });
+```
+
+(This is hacky and may not survive Browser version upgrades. The `:play` route is the supported path.)
 
 ---
 
@@ -63,7 +103,7 @@ If you only run six queries, run these:
 | 3. How do you know? | `3.1 How a FieldRequirement traces to a regulation span` | `03_provenance.cypher` |
 | 4. What changed when the bulletin landed? | `4.1` and `4.2` (before/after) | `04_temporal_bulletin.cypher` |
 | 5. Is the KG clean? | `5.1 Phantom RecordLayouts` (should be empty) | `05_validation.cypher` |
-| 6. The killer demo | `6.3 Full provenance for a single fact` | `06_demo_killer.cypher` |
+| 6. The killer demo | `6.4 Bulletin diff visualization` | `06_demo_killer.cypher` |
 
 That's the whole LHS story in six queries.
 
@@ -72,10 +112,5 @@ That's the whole LHS story in six queries.
 ## Notes
 
 - These queries assume the KG is in its post-`make rebuild-kg` state.
-  If you've manually mutated the KG, results will diverge.
-- Queries 4.1–4.6 require `make apply-bulletin ALL=1` to have run (it
-  runs automatically as the last step of `make rebuild-kg`).
-- The `:play` Browser command can also load these as a guided walkthrough
-  (we don't ship a guide HTML today; PRs welcome).
-- All Cypher targets `GRENode`-labelled nodes; the closed vocabulary lives
-  in `packages/core/enums.py`.
+- Queries 4.1–4.6 require `make apply-bulletin ALL=1` (runs automatically as the last step of `make rebuild-kg`).
+- All Cypher targets `GRENode`-labelled nodes; the closed vocabulary lives in `packages/core/enums.py`.
