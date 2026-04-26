@@ -84,8 +84,8 @@ SLIDE_TEMPLATE = """    <slide class="row-fluid">
         <h3>{title}</h3>
         {prose_html}
         <figure>
-          <pre class="runnable">{cypher}</pre>
-          <figcaption>Click ▶ to run this query.</figcaption>
+          <pre mode="cypher" class="pre-scrollable code runnable">{cypher}</pre>
+          <figcaption>Click ▶ in the top-right of the block to run.</figcaption>
         </figure>
       </div>
     </slide>"""
