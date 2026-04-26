@@ -29,17 +29,12 @@ class DocEntry:
 
 
 # Section page ranges within the TICO Stat Plan PDF (computed from page markers).
-# Updated 2026-04-26 for the cleaner ResidentialStatPlan2026.pdf (89-page edition).
-# Updated 2026-04-26 (v2): paths now point at the pymupdf4llm-derived rich
-# markdown in materialized/rich/. Char offsets in cached extractions are
-# anchored to that representation, which is what the UI's Rich view renders;
-# this gives char-perfect highlights without text-search fallback.
 DOCS: list[DocEntry] = [
     DocEntry(
         slug="tico-section-a",
         label="TICO Stat Plan — Section A: General Rules",
         category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
-        path=Path("materialized/rich/tico-section-a.rich.md"),
+        path=Path("synthetic_regulations/real/sections/section_A_general.md"),
         blurb="35 numbered rules covering scope, identifiers, designated agent, transmittal form, and HB 2067 reasons + counts.",
         pdf_path=TICO_PDF,
         pdf_start_page=4,
@@ -49,7 +44,7 @@ DOCS: list[DocEntry] = [
         slug="tico-section-b",
         label="TICO Stat Plan — Section B: Coding for Premiums and Losses",
         category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
-        path=Path("materialized/rich/tico-section-b.rich.md"),
+        path=Path("synthetic_regulations/real/sections/section_B_coding.md"),
         blurb="The actual code tables — Cause of Loss, Line of Business, Deductible types, Construction, Roof, etc.",
         pdf_path=TICO_PDF,
         pdf_start_page=25,
@@ -59,7 +54,7 @@ DOCS: list[DocEntry] = [
         slug="tico-section-c",
         label="TICO Stat Plan — Section C: Record Layout for Premiums",
         category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
-        path=Path("materialized/rich/tico-section-c.rich.md"),
+        path=Path("synthetic_regulations/real/sections/section_C_record.md"),
         blurb="Field-by-field layout of premium records.",
         pdf_path=TICO_PDF,
         pdf_start_page=40,
@@ -69,7 +64,7 @@ DOCS: list[DocEntry] = [
         slug="tico-section-d",
         label="TICO Stat Plan — Section D: Record Layout for Losses",
         category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
-        path=Path("materialized/rich/tico-section-d.rich.md"),
+        path=Path("synthetic_regulations/real/sections/section_D_record.md"),
         blurb="Field-by-field layout of loss records.",
         pdf_path=TICO_PDF,
         pdf_start_page=61,
@@ -79,7 +74,7 @@ DOCS: list[DocEntry] = [
         slug="tico-section-e",
         label="TICO Stat Plan — Section E: Record Layout for Notices",
         category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
-        path=Path("materialized/rich/tico-section-e.rich.md"),
+        path=Path("synthetic_regulations/real/sections/section_E_record.md"),
         blurb="HB 2067 notice report layout (cancellation, nonrenewal, declination notices).",
         pdf_path=TICO_PDF,
         pdf_start_page=77,
@@ -89,7 +84,7 @@ DOCS: list[DocEntry] = [
         slug="tico-section-f",
         label="TICO Stat Plan — Section F: Notice Reason Code Instructions",
         category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
-        path=Path("materialized/rich/tico-section-f.rich.md"),
+        path=Path("synthetic_regulations/real/sections/section_F_additional.md"),
         blurb="Full HB 2067 reason code list with definitions and source indicators.",
         pdf_path=TICO_PDF,
         pdf_start_page=81,
@@ -99,7 +94,7 @@ DOCS: list[DocEntry] = [
         slug="tico-section-g",
         label="TICO Stat Plan — Section G: Record Layout for Counts",
         category="Texas Statistical Plan for Residential Risks (eff. 2026-01-01)",
-        path=Path("materialized/rich/tico-section-g.rich.md"),
+        path=Path("synthetic_regulations/real/sections/section_G_record.md"),
         blurb="HB 2067 count report layout for actual cancellations/nonrenewals/declinations.",
         pdf_path=TICO_PDF,
         pdf_start_page=87,
@@ -109,7 +104,7 @@ DOCS: list[DocEntry] = [
         slug="hb-2067",
         label="HB 2067 — Declination, Cancellation, Nonrenewal of Insurance Policies",
         category="Texas statute",
-        path=Path("materialized/rich/hb-2067.rich.md"),
+        path=Path("synthetic_regulations/real/HB02067I.txt"),
         blurb="89th Legislature, Regular Session. Authorizes the Commissioner to adopt notice and reporting rules.",
         pdf_path=HB2067_PDF,
         pdf_start_page=1,
@@ -119,7 +114,7 @@ DOCS: list[DocEntry] = [
         slug="tico-record-layout-homeowners",
         label="TICO Wire Layout — Homeowners (Premiums + Losses)",
         category="Texas Statistical Plan — Operational Wire Layouts",
-        path=Path("materialized/rich/tico-record-layout-homeowners.rich.md"),
+        path=Path("synthetic_regulations/real/wire_layouts/tico_recordLayoutHomeOwners.txt"),
         blurb="Operational record layout TICO actually receives. Defines the 200-char fixed-width line per record, column-by-column, with all enumerated code values. Source for deterministic KG population (parser, not LLM).",
         pdf_path=TICO_RECORDLAYOUT_HO_PDF,
         pdf_start_page=1,

@@ -1,0 +1,980 @@
+{
+  "citation_rects": [
+    [
+      {
+        "page": 78,
+        "x0": 99.54373931884766,
+        "y0": 104.7879409790039,
+        "x1": 123.63047790527344,
+        "y1": 123.77235412597656,
+        "matched_text": "(SP) Stat Plan 5 Residential \u2013 Dwellings, Homeowners 2\u20134 (NDT) Notification Date"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 104.7879409790039,
+        "x1": 289.1705017089844,
+        "y1": 123.77235412597656,
+        "matched_text": "(SP) Stat Plan 5 Residential \u2013 Dwellings, Homeowners 2\u20134 (NDT) Notification Date"
+      },
+      {
+        "page": 78,
+        "x0": 90.18000030517578,
+        "y0": 119.4279556274414,
+        "x1": 93.18852233886719,
+        "y1": 138.19277954101562,
+        "matched_text": "(SP) Stat Plan 5 Residential \u2013 Dwellings, Homeowners 2\u20134 (NDT) Notification Date"
+      },
+      {
+        "page": 78,
+        "x0": 90.18000030517578,
+        "y0": 134.06796264648438,
+        "x1": 93.18852233886719,
+        "y1": 152.83279418945312,
+        "matched_text": "(SP) Stat Plan 5 Residential \u2013 Dwellings, Homeowners 2\u20134 (NDT) Notification Date"
+      },
+      {
+        "page": 78,
+        "x0": 197.75999450683594,
+        "y0": 119.4279556274414,
+        "x1": 206.70851135253906,
+        "y1": 138.19277954101562,
+        "matched_text": "(SP) Stat Plan 5 Residential \u2013 Dwellings, Homeowners 2\u20134 (NDT) Notification Date"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 119.4279556274414,
+        "x1": 423.8485107421875,
+        "y1": 138.19277954101562,
+        "matched_text": "(SP) Stat Plan 5 Residential \u2013 Dwellings, Homeowners 2\u20134 (NDT) Notification Date"
+      },
+      {
+        "page": 78,
+        "x0": 90.18000030517578,
+        "y0": 148.70797729492188,
+        "x1": 145.77049255371094,
+        "y1": 167.69239807128906,
+        "matched_text": "(SP) Stat Plan 5 Residential \u2013 Dwellings, Homeowners 2\u20134 (NDT) Notification Date"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 148.70797729492188,
+        "x1": 332.490478515625,
+        "y1": 167.69239807128906,
+        "matched_text": "(SP) Stat Plan 5 Residential \u2013 Dwellings, Homeowners 2\u20134 (NDT) Notification Date"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 163.28793334960938,
+        "x1": 522.8283081054688,
+        "y1": 182.05276489257812,
+        "matched_text": "(SP) Stat Plan 5 Residential \u2013 Dwellings, Homeowners 2\u20134 (NDT) Notification Date"
+      },
+      {
+        "page": 78,
+        "x0": 239.98902893066406,
+        "y0": 177.92428588867188,
+        "x1": 469.8882751464844,
+        "y1": 196.68911743164062,
+        "matched_text": "(SP) Stat Plan 5 Residential \u2013 Dwellings, Homeowners 2\u20134 (NDT) Notification Date"
+      }
+    ],
+    [
+      {
+        "page": 78,
+        "x0": 111.3659439086914,
+        "y0": 148.70797729492188,
+        "x1": 145.77049255371094,
+        "y1": 167.69239807128906,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 148.70797729492188,
+        "x1": 332.490478515625,
+        "y1": 167.69239807128906,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 163.28793334960938,
+        "x1": 522.8283081054688,
+        "y1": 182.05276489257812,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      },
+      {
+        "page": 78,
+        "x0": 239.98902893066406,
+        "y0": 177.92428588867188,
+        "x1": 509.4525146484375,
+        "y1": 196.68911743164062,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      },
+      {
+        "page": 78,
+        "x0": 239.989013671875,
+        "y0": 192.56063842773438,
+        "x1": 384.95794677734375,
+        "y1": 211.32546997070312,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 207.20797729492188,
+        "x1": 243.03048706054688,
+        "y1": 226.19239807128906,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      },
+      {
+        "page": 78,
+        "x0": 90.18000030517578,
+        "y0": 221.84793090820312,
+        "x1": 99.488525390625,
+        "y1": 240.8323516845703,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 221.84793090820312,
+        "x1": 277.8304748535156,
+        "y1": 240.8323516845703,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      },
+      {
+        "page": 78,
+        "x0": 90.18000030517578,
+        "y0": 236.48794555664062,
+        "x1": 93.18852233886719,
+        "y1": 255.25277709960938,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      },
+      {
+        "page": 78,
+        "x0": 192.05999755859375,
+        "y0": 236.48794555664062,
+        "x1": 212.40850830078125,
+        "y1": 255.25277709960938,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 236.48794555664062,
+        "x1": 267.5422058105469,
+        "y1": 255.25277709960938,
+        "matched_text": "(NDT) Notification Date This is the date on which the notice providing the reaso"
+      }
+    ],
+    [
+      {
+        "page": 78,
+        "x0": 111.3659439086914,
+        "y0": 353.4879455566406,
+        "x1": 136.71047973632812,
+        "y1": 372.4723815917969,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 353.4879455566406,
+        "x1": 305.010498046875,
+        "y1": 372.4723815917969,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 90.18000030517578,
+        "y0": 368.1279602050781,
+        "x1": 93.18852233886719,
+        "y1": 386.8927917480469,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 194.82000732421875,
+        "y0": 368.1279602050781,
+        "x1": 209.70851135253906,
+        "y1": 386.8927917480469,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 368.1279602050781,
+        "x1": 302.468505859375,
+        "y1": 386.8927917480469,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 90.18000030517578,
+        "y0": 382.7679443359375,
+        "x1": 93.18852233886719,
+        "y1": 401.53277587890625,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 194.82000732421875,
+        "y0": 382.7679443359375,
+        "x1": 209.70851135253906,
+        "y1": 401.53277587890625,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 382.7679443359375,
+        "x1": 301.6885070800781,
+        "y1": 401.53277587890625,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 90.18000030517578,
+        "y0": 397.407958984375,
+        "x1": 93.18852233886719,
+        "y1": 416.17279052734375,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 194.82000732421875,
+        "y0": 397.407958984375,
+        "x1": 209.70851135253906,
+        "y1": 416.17279052734375,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 240.0,
+        "y0": 397.407958984375,
+        "x1": 297.78851318359375,
+        "y1": 416.17279052734375,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 90.18000030517578,
+        "y0": 412.0479431152344,
+        "x1": 93.18852233886719,
+        "y1": 430.8127746582031,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      },
+      {
+        "page": 78,
+        "x0": 90.18000030517578,
+        "y0": 426.6879577636719,
+        "x1": 114.6135025024414,
+        "y1": 445.6723937988281,
+        "matched_text": "(AT) Action Type 80 Cancellation 81 Nonrenewal 82 Declination 7\u201311"
+      }
+    ],
+    [
+      {
+        "page": 79,
+        "x0": 325.8028869628906,
+        "y0": 48.264320373535156,
+        "x1": 561.0087890625,
+        "y1": 67.02913665771484,
+        "matched_text": "ncellation, Nonrenewal, and Declination Notices Columns Code Type or"
+      },
+      {
+        "page": 79,
+        "x0": 558.0,
+        "y0": 63.25800323486328,
+        "x1": 560.4660034179688,
+        "y1": 78.63899993896484,
+        "matched_text": "ncellation, Nonrenewal, and Declination Notices Columns Code Type or"
+      },
+      {
+        "page": 79,
+        "x0": 86.94000244140625,
+        "y0": 74.84793853759766,
+        "x1": 134.91049194335938,
+        "y1": 93.83235168457031,
+        "matched_text": "ncellation, Nonrenewal, and Declination Notices Columns Code Type or"
+      },
+      {
+        "page": 79,
+        "x0": 185.6999969482422,
+        "y0": 74.84793853759766,
+        "x1": 215.0704803466797,
+        "y1": 93.83235168457031,
+        "matched_text": "ncellation, Nonrenewal, and Declination Notices Columns Code Type or"
+      },
+      {
+        "page": 79,
+        "x0": 238.5,
+        "y0": 74.84793853759766,
+        "x1": 277.7929992675781,
+        "y1": 93.83235168457031,
+        "matched_text": "ncellation, Nonrenewal, and Declination Notices Columns Code Type or"
+      },
+      {
+        "page": 80,
+        "x0": 325.8028869628906,
+        "y0": 48.264320373535156,
+        "x1": 561.0087890625,
+        "y1": 67.02913665771484,
+        "matched_text": "ncellation, Nonrenewal, and Declination Notices Columns Code Type or"
+      },
+      {
+        "page": 80,
+        "x0": 558.0,
+        "y0": 63.25800323486328,
+        "x1": 560.4660034179688,
+        "y1": 78.63899993896484,
+        "matched_text": "ncellation, Nonrenewal, and Declination Notices Columns Code Type or"
+      },
+      {
+        "page": 80,
+        "x0": 86.94000244140625,
+        "y0": 74.84793853759766,
+        "x1": 134.91049194335938,
+        "y1": 93.83235168457031,
+        "matched_text": "ncellation, Nonrenewal, and Declination Notices Columns Code Type or"
+      },
+      {
+        "page": 80,
+        "x0": 185.6999969482422,
+        "y0": 74.84793853759766,
+        "x1": 215.0704803466797,
+        "y1": 93.83235168457031,
+        "matched_text": "ncellation, Nonrenewal, and Declination Notices Columns Code Type or"
+      },
+      {
+        "page": 80,
+        "x0": 238.5,
+        "y0": 74.84793853759766,
+        "x1": 277.7929992675781,
+        "y1": 93.83235168457031,
+        "matched_text": "ncellation, Nonrenewal, and Declination Notices Columns Code Type or"
+      }
+    ],
+    [
+      {
+        "page": 79,
+        "x0": 129.17999267578125,
+        "y0": 100.10794830322266,
+        "x1": 161.97048950195312,
+        "y1": 119.09236145019531,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 243.83999633789062,
+        "y0": 100.10794830322266,
+        "x1": 319.95050048828125,
+        "y1": 119.09236145019531,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 95.4000015258789,
+        "y0": 114.74796295166016,
+        "x1": 98.40852355957031,
+        "y1": 133.51278686523438,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 197.63999938964844,
+        "y0": 114.74796295166016,
+        "x1": 212.5285186767578,
+        "y1": 133.51278686523438,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 114.74796295166016,
+        "x1": 285.968505859375,
+        "y1": 133.51278686523438,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 95.4000015258789,
+        "y0": 129.38796997070312,
+        "x1": 98.40852355957031,
+        "y1": 148.15280151367188,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 197.63999938964844,
+        "y0": 129.38796997070312,
+        "x1": 212.5285186767578,
+        "y1": 148.15280151367188,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 129.38796997070312,
+        "x1": 397.02850341796875,
+        "y1": 148.15280151367188,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 95.4000015258789,
+        "y0": 144.02798461914062,
+        "x1": 98.40852355957031,
+        "y1": 162.79281616210938,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 197.63999938964844,
+        "y0": 144.02798461914062,
+        "x1": 212.5285186767578,
+        "y1": 162.79281616210938,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 144.02798461914062,
+        "x1": 420.1885070800781,
+        "y1": 162.79281616210938,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 95.4000015258789,
+        "y0": 158.66793823242188,
+        "x1": 98.40852355957031,
+        "y1": 177.43276977539062,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 197.63999938964844,
+        "y0": 158.66793823242188,
+        "x1": 212.5285186767578,
+        "y1": 177.43276977539062,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 158.66793823242188,
+        "x1": 290.1085205078125,
+        "y1": 177.43276977539062,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 95.4000015258789,
+        "y0": 173.24795532226562,
+        "x1": 98.40852355957031,
+        "y1": 192.01278686523438,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 197.63999938964844,
+        "y0": 173.24795532226562,
+        "x1": 212.5285186767578,
+        "y1": 192.01278686523438,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 173.24795532226562,
+        "x1": 383.28851318359375,
+        "y1": 192.01278686523438,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 95.4000015258789,
+        "y0": 187.88796997070312,
+        "x1": 98.40852355957031,
+        "y1": 206.65280151367188,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 197.63999938964844,
+        "y0": 187.88796997070312,
+        "x1": 212.5285186767578,
+        "y1": 206.65280151367188,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 187.88796997070312,
+        "x1": 425.64935302734375,
+        "y1": 206.65280151367188,
+        "matched_text": "(TOP) Type of Policy 01 Tenants 02 Condominium owners (Condo) 03 Owner-occupied "
+      }
+    ],
+    [
+      {
+        "page": 79,
+        "x0": 111.05999755859375,
+        "y0": 231.80795288085938,
+        "x1": 139.0285186767578,
+        "y1": 250.79237365722656,
+        "matched_text": "(RSI) Reason Source Indicator Indicate whether at least one of the reasons for t"
+      },
+      {
+        "page": 79,
+        "x0": 203.5800018310547,
+        "y0": 231.80795288085938,
+        "x1": 206.58851623535156,
+        "y1": 250.57278442382812,
+        "matched_text": "(RSI) Reason Source Indicator Indicate whether at least one of the reasons for t"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 231.80795288085938,
+        "x1": 373.1104736328125,
+        "y1": 250.79237365722656,
+        "matched_text": "(RSI) Reason Source Indicator Indicate whether at least one of the reasons for t"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 246.44796752929688,
+        "x1": 552.4046630859375,
+        "y1": 265.2127990722656,
+        "matched_text": "(RSI) Reason Source Indicator Indicate whether at least one of the reasons for t"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 261.0843200683594,
+        "x1": 551.2671508789062,
+        "y1": 279.8491516113281,
+        "matched_text": "(RSI) Reason Source Indicator Indicate whether at least one of the reasons for t"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 275.66796875,
+        "x1": 307.0885009765625,
+        "y1": 294.43280029296875,
+        "matched_text": "(RSI) Reason Source Indicator Indicate whether at least one of the reasons for t"
+      },
+      {
+        "page": 79,
+        "x0": 95.4000015258789,
+        "y0": 290.3079528808594,
+        "x1": 98.40852355957031,
+        "y1": 309.0727844238281,
+        "matched_text": "(RSI) Reason Source Indicator Indicate whether at least one of the reasons for t"
+      },
+      {
+        "page": 79,
+        "x0": 200.63999938964844,
+        "y0": 290.3079528808594,
+        "x1": 209.58851623535156,
+        "y1": 309.0727844238281,
+        "matched_text": "(RSI) Reason Source Indicator Indicate whether at least one of the reasons for t"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 290.3079528808594,
+        "x1": 322.14483642578125,
+        "y1": 309.2923889160156,
+        "matched_text": "(RSI) Reason Source Indicator Indicate whether at least one of the reasons for t"
+      }
+    ],
+    [
+      {
+        "page": 79,
+        "x0": 111.05999755859375,
+        "y0": 422.0079650878906,
+        "x1": 142.98851013183594,
+        "y1": 440.9924011230469,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      },
+      {
+        "page": 79,
+        "x0": 203.5800018310547,
+        "y0": 422.0079650878906,
+        "x1": 206.58851623535156,
+        "y1": 440.7727966308594,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 422.0079650878906,
+        "x1": 334.7704772949219,
+        "y1": 440.9924011230469,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 436.64794921875,
+        "x1": 555.615234375,
+        "y1": 455.41278076171875,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 451.2879638671875,
+        "x1": 368.6485290527344,
+        "y1": 470.05279541015625,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      },
+      {
+        "page": 79,
+        "x0": 95.4000015258789,
+        "y0": 465.8679504394531,
+        "x1": 98.40852355957031,
+        "y1": 484.6327819824219,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      },
+      {
+        "page": 79,
+        "x0": 200.5800018310547,
+        "y0": 465.8679504394531,
+        "x1": 209.6485137939453,
+        "y1": 484.6327819824219,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 465.8679504394531,
+        "x1": 476.228515625,
+        "y1": 484.6327819824219,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      },
+      {
+        "page": 79,
+        "x0": 95.4000015258789,
+        "y0": 480.5079650878906,
+        "x1": 98.40852355957031,
+        "y1": 499.2727966308594,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      },
+      {
+        "page": 79,
+        "x0": 199.5,
+        "y0": 480.5079650878906,
+        "x1": 210.728515625,
+        "y1": 499.2727966308594,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 480.5079650878906,
+        "x1": 320.11090087890625,
+        "y1": 499.2727966308594,
+        "matched_text": "(60D) 60-Day Indicator Indicate if cancellation notice was sent during the first"
+      }
+    ],
+    [
+      {
+        "page": 79,
+        "x0": 331.2080993652344,
+        "y0": 577.7080078125,
+        "x1": 555.6043090820312,
+        "y1": 596.4727783203125,
+        "matched_text": "he Action Type is effective. For declinations, report the Notification Date."
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 592.2879638671875,
+        "x1": 386.9733581542969,
+        "y1": 611.052734375,
+        "matched_text": "he Action Type is effective. For declinations, report the Notification Date."
+      }
+    ],
+    [
+      {
+        "page": 79,
+        "x0": 347.884521484375,
+        "y0": 577.7080078125,
+        "x1": 555.6043090820312,
+        "y1": 596.4727783203125,
+        "matched_text": "Action Type is effective. For declinations, report the Notification Date. For fl"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 592.2879638671875,
+        "x1": 555.6205444335938,
+        "y1": 611.052734375,
+        "matched_text": "Action Type is effective. For declinations, report the Notification Date. For fl"
+      },
+      {
+        "page": 79,
+        "x0": 244.97999572753906,
+        "y0": 606.927978515625,
+        "x1": 375.632080078125,
+        "y1": 625.6927490234375,
+        "matched_text": "Action Type is effective. For declinations, report the Notification Date. For fl"
+      }
+    ],
+    [
+      {
+        "page": 80,
+        "x0": 359.9900207519531,
+        "y0": 114.74796295166016,
+        "x1": 367.676025390625,
+        "y1": 133.51278686523438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 370.54730224609375,
+        "y0": 114.74796295166016,
+        "x1": 383.8188171386719,
+        "y1": 133.51278686523438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 386.6955871582031,
+        "y0": 114.74796295166016,
+        "x1": 447.94970703125,
+        "y1": 133.51278686523438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 450.82098388671875,
+        "y0": 114.74796295166016,
+        "x1": 467.57208251953125,
+        "y1": 133.51278686523438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 470.443359375,
+        "y0": 114.74796295166016,
+        "x1": 501.6397399902344,
+        "y1": 133.51278686523438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 504.5110168457031,
+        "y0": 114.74796295166016,
+        "x1": 523.2352294921875,
+        "y1": 133.51278686523438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 526.1119384765625,
+        "y0": 114.74796295166016,
+        "x1": 555.586669921875,
+        "y1": 133.51278686523438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 244.97999572753906,
+        "y0": 129.38796997070312,
+        "x1": 309.0142517089844,
+        "y1": 148.15280151367188,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 311.287109375,
+        "y0": 129.38796997070312,
+        "x1": 324.1380920410156,
+        "y1": 148.15280151367188,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 326.41094970703125,
+        "y0": 129.38796997070312,
+        "x1": 384.3238525390625,
+        "y1": 148.15280151367188,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 386.5967102050781,
+        "y0": 129.38796997070312,
+        "x1": 413.5438232421875,
+        "y1": 148.15280151367188,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 415.8166809082031,
+        "y0": 129.38796997070312,
+        "x1": 448.58099365234375,
+        "y1": 148.15280151367188,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 450.8538513183594,
+        "y0": 129.38796997070312,
+        "x1": 477.56597900390625,
+        "y1": 148.15280151367188,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 479.8388366699219,
+        "y0": 129.38796997070312,
+        "x1": 504.1452331542969,
+        "y1": 148.15280151367188,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 506.4180908203125,
+        "y0": 129.38796997070312,
+        "x1": 519.266845703125,
+        "y1": 148.15280151367188,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 521.5396728515625,
+        "y0": 129.38796997070312,
+        "x1": 555.6270751953125,
+        "y1": 148.15280151367188,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 244.97999572753906,
+        "y0": 144.02432250976562,
+        "x1": 280.51129150390625,
+        "y1": 162.78915405273438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 284.34332275390625,
+        "y0": 144.02432250976562,
+        "x1": 319.38818359375,
+        "y1": 162.78915405273438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 323.2234802246094,
+        "y0": 144.02432250976562,
+        "x1": 371.3421936035156,
+        "y1": 162.78915405273438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      },
+      {
+        "page": 80,
+        "x0": 375.18084716796875,
+        "y0": 144.02432250976562,
+        "x1": 408.8169860839844,
+        "y1": 162.78915405273438,
+        "matched_text": "s or applications for which the given combination of notification date, action t"
+      }
+    ],
+    [
+      {
+        "page": 80,
+        "x0": 128.16000366210938,
+        "y0": 202.52798461914062,
+        "x1": 159.00851440429688,
+        "y1": 221.5124053955078,
+        "matched_text": "(RCL) Reason Code List Concatenate all letter codes that apply from the followin"
+      },
+      {
+        "page": 80,
+        "x0": 203.5800018310547,
+        "y0": 202.52798461914062,
+        "x1": 206.58851623535156,
+        "y1": 221.29281616210938,
+        "matched_text": "(RCL) Reason Code List Concatenate all letter codes that apply from the followin"
+      },
+      {
+        "page": 80,
+        "x0": 244.97999572753906,
+        "y0": 202.52798461914062,
+        "x1": 335.5885009765625,
+        "y1": 221.5124053955078,
+        "matched_text": "(RCL) Reason Code List Concatenate all letter codes that apply from the followin"
+      },
+      {
+        "page": 80,
+        "x0": 95.4000015258789,
+        "y0": 217.16793823242188,
+        "x1": 98.40852355957031,
+        "y1": 235.93276977539062,
+        "matched_text": "(RCL) Reason Code List Concatenate all letter codes that apply from the followin"
+      },
+      {
+        "page": 80,
+        "x0": 203.5800018310547,
+        "y0": 217.16793823242188,
+        "x1": 206.58851623535156,
+        "y1": 235.93276977539062,
+        "matched_text": "(RCL) Reason Code List Concatenate all letter codes that apply from the followin"
+      },
+      {
+        "page": 80,
+        "x0": 244.97999572753906,
+        "y0": 217.16793823242188,
+        "x1": 555.6036987304688,
+        "y1": 235.93276977539062,
+        "matched_text": "(RCL) Reason Code List Concatenate all letter codes that apply from the followin"
+      },
+      {
+        "page": 80,
+        "x0": 244.97999572753906,
+        "y0": 231.80795288085938,
+        "x1": 555.6142578125,
+        "y1": 250.57278442382812,
+        "matched_text": "(RCL) Reason Code List Concatenate all letter codes that apply from the followin"
+      },
+      {
+        "page": 80,
+        "x0": 244.98001098632812,
+        "y0": 246.44430541992188,
+        "x1": 392.3624572753906,
+        "y1": 265.2091369628906,
+        "matched_text": "(RCL) Reason Code List Concatenate all letter codes that apply from the followin"
+      }
+    ]
+  ],
+  "page_dimensions": {
+    "77": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "78": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "79": {
+      "width": 612.0,
+      "height": 792.0
+    },
+    "80": {
+      "width": 612.0,
+      "height": 792.0
+    }
+  }
+}

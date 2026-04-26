@@ -187,58 +187,6 @@
     }
     .view-toggle .view-original:hover { color: var(--accent); text-decoration: underline; }
 
-    /* ---- Rich markdown view (pymupdf4llm + markdown-it) ---- */
-    .doc-rich {
-      padding: 24px 28px;
-      background: var(--paper); color: var(--ink-1);
-      border: 1px solid var(--rule); border-radius: var(--radius-md);
-      font-size: 14px; line-height: 1.7;
-    }
-    .doc-rich h1, .doc-rich h2, .doc-rich h3, .doc-rich h4 {
-      font-family: var(--font-display, var(--font-sans));
-      color: var(--ink); font-weight: 600;
-      margin-top: 1.4em; margin-bottom: 0.4em;
-    }
-    .doc-rich h1 { font-size: 22px; }
-    .doc-rich h2 { font-size: 18px; border-bottom: 1px solid var(--rule-soft); padding-bottom: 4px; }
-    .doc-rich h3 { font-size: 15px; color: var(--accent); }
-    .doc-rich h4 { font-size: 14px; }
-    .doc-rich p  { margin: 0 0 12px; color: var(--ink-2); }
-    .doc-rich ul, .doc-rich ol { margin: 0 0 12px; padding-left: 24px; }
-    .doc-rich li { margin-bottom: 4px; color: var(--ink-2); }
-    .doc-rich strong { color: var(--ink); }
-    .doc-rich code {
-      font-family: var(--font-mono); font-size: 12.5px;
-      background: var(--paper-warm); padding: 1px 5px;
-      border-radius: 3px; color: var(--accent-2, var(--accent));
-    }
-    .doc-rich table {
-      border-collapse: collapse; width: 100%;
-      margin: 12px 0; font-size: 13px;
-    }
-    .doc-rich th, .doc-rich td {
-      border: 1px solid var(--rule-soft);
-      padding: 6px 10px; text-align: left; vertical-align: top;
-    }
-    .doc-rich th { background: var(--paper-warm); font-weight: 600; }
-    .doc-rich hr { border: none; border-top: 1px solid var(--rule-soft); margin: 24px 0; }
-    /* Subtle highlight — multi-block citations otherwise look chaotic.
-       The first <mark> gets a thicker border via .first-mark for focus. */
-    .doc-rich mark.cite.active {
-      background: rgba(250, 204, 21, 0.45);
-      padding: 0 1px; border-radius: 2px;
-      mix-blend-mode: multiply;
-      color: inherit;
-    }
-    .doc-rich mark.cite.active.first-mark {
-      box-shadow: 0 0 0 1px var(--accent) inset;
-      animation: cite-flash 0.6s ease;
-    }
-    @keyframes cite-flash {
-      0%   { background: rgba(250, 204, 21, 0.85); }
-      100% { background: rgba(250, 204, 21, 0.45); }
-    }
-
     /* ---- Markdown / text view (default) ---- */
     .doc-text {
       font-family: var(--font-mono); font-size: 12px; line-height: 1.65;
@@ -606,8 +554,6 @@
 
   <script type="module">
     import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/+esm';
-    import markdownit from 'https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm';
-    const md = markdownit({ html: false, linkify: true, breaks: false });
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
 
@@ -615,16 +561,9 @@
     let currentDoc = null;
     let pdfDocument = null;
     let pageTextCache = []; // [{ pageNum, items: [{str, transform, ...}], pageText }]
-    // 'rich'   = pymupdf4llm-derived markdown rendered as HTML — DEFAULT.
-    //            Char offsets in cached extractions are anchored to the
-    //            rich markdown source, so highlights are char-perfect.
-    // 'source' = the raw rich markdown (with `##`, `**`, etc. visible).
-    //            Same source-of-truth, just unrendered. Useful for
-    //            verifying citation byte boundaries.
-    // 'pdf'    = source PDF with PyMuPDF rect overlays — for auditors
-    //            who want the typeset original.
-    let currentViewMode = 'rich';
-    let richMarkdownCache = null; // {slug, raw markdown text}
+    // 'text' = char-perfect <mark> highlights in the plain extracted text
+    // 'pdf'  = source PDF with PyMuPDF rect overlays
+    let currentViewMode = 'text';
     let activeChipId = null;
 
     // ---------- toast / utils ----------
@@ -888,17 +827,9 @@
       const c = extraction.citations[citationIdx];
       if (!c) return false;
 
-      // Source view — char-accurate <mark> in raw markdown text.
-      if (currentViewMode === 'source' || !currentDoc?.has_pdf) {
+      // Text view (default) — char-accurate <mark> in plain extracted text.
+      if (currentViewMode === 'text' || !currentDoc?.has_pdf) {
         return highlightInMarkdown(c.char_start, c.char_end);
-      }
-
-      // Rich view — char-accurate via the source-char→DOM map built
-      // when the rich markdown was rendered. Char offsets reference
-      // the SAME rich markdown that's now displayed, so this is
-      // genuinely precise (not text search).
-      if (currentViewMode === 'rich') {
-        return highlightInRichMarkdownBySrcRange(c.char_start, c.char_end);
       }
 
       // PDF view — PyMuPDF rect overlays first, text-layer fuzzy search fallback.
@@ -908,76 +839,6 @@
       }
       const text = citedText(extraction, sourceText, c);
       return findAndHighlight(text, currentDoc?.pdf_start_page, currentDoc?.pdf_end_page);
-    }
-
-    /** Highlight a [srcStart, srcEnd) range in the rich view. Wraps the
-     *  intersecting portion of EACH text node in its own <mark>, so DOM
-     *  structure is preserved even when the range spans multiple block
-     *  elements (the common case in Section C with its many headings).
-     */
-    function highlightInRichMarkdownBySrcRange(srcStart, srcEnd) {
-      const wrap = document.getElementById('doc-rich');
-      if (!wrap) return false;
-      // Restore from cache so previous highlights are removed AND the
-      // source map references the now-current DOM.
-      if (wrap.dataset.cleanHtml) {
-        wrap.innerHTML = wrap.dataset.cleanHtml;
-      } else {
-        wrap.dataset.cleanHtml = wrap.innerHTML;
-      }
-      wrap._sourceMap = buildSourceMap(wrap, currentDoc.text);
-      const map = wrap._sourceMap;
-
-      // Group source-positions in [srcStart, srcEnd) by their containing
-      // text node. For each node we record the min and max offset that
-      // got mapped from the source range — those become the wrap span.
-      const byNode = new Map(); // node → {minOff, maxOff, order}
-      let order = 0;
-      for (let s = srcStart; s < srcEnd && s < map.length; s++) {
-        const e = map[s];
-        if (!e) continue;
-        const cur = byNode.get(e.node);
-        if (cur) {
-          if (e.off < cur.minOff) cur.minOff = e.off;
-          if (e.off > cur.maxOff) cur.maxOff = e.off;
-        } else {
-          byNode.set(e.node, { minOff: e.off, maxOff: e.off, order: order++ });
-        }
-      }
-      if (byNode.size === 0) {
-        console.warn('[rich highlight] no source-map entries in range', srcStart, srcEnd);
-        return false;
-      }
-
-      // Process in REVERSE DOM order so wrapping early nodes doesn't
-      // invalidate later nodes' references.
-      const entries = [...byNode.entries()].sort((a, b) => b[1].order - a[1].order);
-      let firstMark = null;
-      for (const [node, span] of entries) {
-        if (!node.parentNode) continue; // got detached somehow
-        const start = Math.max(0, span.minOff);
-        const end = Math.min(node.nodeValue.length, span.maxOff + 1);
-        if (end <= start) continue;
-        try {
-          const range = document.createRange();
-          range.setStart(node, start);
-          range.setEnd(node, end);
-          const mark = document.createElement('mark');
-          mark.className = 'cite active';
-          range.surroundContents(mark);
-          firstMark = mark; // first in DOM order = last we set (we processed reverse)
-        } catch (e) {
-          console.warn('[rich highlight] node wrap failed:', e);
-        }
-      }
-      if (firstMark) {
-        // Give the first DOM-order mark a focus class — visible anchor
-        // for the user when a citation spans multiple block elements.
-        firstMark.classList.add('first-mark');
-        firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return true;
-      }
-      return false;
     }
 
     /** Best-effort highlight inside the rich-markdown rendered HTML.
@@ -1736,9 +1597,7 @@
       const meta = data.has_pdf
         ? (currentViewMode === 'pdf'
             ? `PDF · jump to p.${data.pdf_start_page || 1}`
-            : currentViewMode === 'rich'
-              ? `Rich markdown · char-perfect highlights`
-              : `${data.text.length.toLocaleString()} chars · raw source`)
+            : `${data.text.length.toLocaleString()} chars · text view (char-accurate highlights)`)
         : `${data.text.length.toLocaleString()} chars · markdown`;
       $('left-meta').textContent = meta;
 
@@ -1748,10 +1607,9 @@
         const toggle = document.createElement('div');
         toggle.className = 'view-toggle';
         toggle.innerHTML = `
-          <button data-mode="rich"   class="${currentViewMode === 'rich'   ? 'active' : ''}">Rich</button>
-          <button data-mode="source" class="${currentViewMode === 'source' ? 'active' : ''}">Source</button>
-          <button data-mode="pdf"    class="${currentViewMode === 'pdf'    ? 'active' : ''}">PDF</button>
-          <a class="view-original" href="${data.pdf_url}" target="_blank" rel="noopener">Open source PDF ↗</a>
+          <button data-mode="text" class="${currentViewMode === 'text' ? 'active' : ''}">Text view</button>
+          <button data-mode="pdf"  class="${currentViewMode === 'pdf'  ? 'active' : ''}">PDF view</button>
+          <a class="view-original" href="${data.pdf_url}" target="_blank" rel="noopener">Open PDF in new tab ↗</a>
         `;
         toggle.querySelectorAll('button').forEach(btn => {
           btn.addEventListener('click', async () => {
@@ -1765,12 +1623,10 @@
 
       if (currentViewMode === 'pdf' && data.has_pdf && data.pdf_url) {
         await renderPdf(data.pdf_url, data.pdf_start_page || 1);
-      } else if (currentViewMode === 'rich' && data.has_pdf) {
-        await renderRichMarkdown(data.slug, left);
       } else {
-        // Source view — the raw markdown text, char-accurate via <mark>.
-        // For markdown-only docs (synthetic bulletins) this is also the
-        // fallback when no PDF is present.
+        // Text view — char-accurate <mark> highlights in the plain
+        // extracted text. Works for both PDF-backed docs and
+        // markdown-only synthetic bulletins.
         const blurb = document.createElement('div');
         blurb.className = 'doc-blurb';
         blurb.textContent = data.blurb;
@@ -1780,85 +1636,6 @@
         txt.textContent = data.text;
         left.appendChild(txt);
       }
-    }
-
-    async function renderRichMarkdown(slug, container) {
-      const blurb = document.createElement('div');
-      blurb.className = 'doc-blurb';
-      blurb.textContent = currentDoc.blurb;
-      container.appendChild(blurb);
-
-      const wrap = document.createElement('div');
-      wrap.className = 'doc-rich';
-      wrap.id = 'doc-rich';
-      wrap.innerHTML = '<div class="empty"><span class="spinner"></span>Loading rich markdown…</div>';
-      container.appendChild(wrap);
-
-      try {
-        // The doc's `path` already points at materialized/rich/<slug>.rich.md
-        // (registry change), so currentDoc.text IS the rich markdown source.
-        // No separate fetch needed.
-        const mdText = currentDoc.text;
-        wrap.innerHTML = md.render(mdText);
-        // Build a source-char → DOM-position map so citations (which carry
-        // char offsets into mdText) can be highlighted with character
-        // precision. Cache it on the wrap element.
-        wrap._sourceMap = buildSourceMap(wrap, mdText);
-      } catch (e) {
-        wrap.innerHTML = `
-          <div class="empty" style="color: var(--warn);">
-            Could not render rich markdown.
-          </div>`;
-      }
-    }
-
-    /** Build a map from source-markdown char index → (textNode, nodeOffset).
-     *  Walks the rendered DOM and the source string side-by-side, matching
-     *  characters case-insensitively (markdown-it preserves them) and
-     *  skipping over markdown markers in the source that don't appear in
-     *  the rendered text (`#`, `*`, `-`, list bullets, etc.).
-     *
-     *  Returns: array `map` such that `map[srcIdx] = { node, off }` for
-     *  every source-char that ended up in the rendered text. Markup
-     *  characters get `null`.
-     */
-    function buildSourceMap(root, srcText) {
-      const map = new Array(srcText.length).fill(null);
-      // Block tags between which we expect a synthetic space in source
-      // but no text-node character in DOM (handled below by tolerating
-      // whitespace-only gaps in source).
-      const BLOCK_TAGS = new Set([
-        'H1','H2','H3','H4','H5','H6','P','LI','BLOCKQUOTE','PRE','HR',
-        'TABLE','TR','TD','TH','UL','OL','DIV','SECTION','ARTICLE'
-      ]);
-
-      // Flatten DOM into a list of (textNode, raw chars).
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-      const nodes = [];
-      while (walker.nextNode()) nodes.push(walker.currentNode);
-
-      let srcIdx = 0;
-      for (const node of nodes) {
-        const txt = node.nodeValue;
-        for (let off = 0; off < txt.length; off++) {
-          const want = txt[off].toLowerCase();
-          // Skip source chars that don't appear in rendered text:
-          // markdown markers and whitespace before/around them.
-          while (srcIdx < srcText.length) {
-            const sc = srcText[srcIdx].toLowerCase();
-            if (sc === want) {
-              map[srcIdx] = { node, off };
-              srcIdx++;
-              break;
-            }
-            // Skip this source char (it's markup or whitespace that
-            // doesn't make it into the rendered output).
-            srcIdx++;
-          }
-          if (srcIdx > srcText.length) break;
-        }
-      }
-      return map;
     }
 
     // ---------- Document selection ----------
