@@ -114,6 +114,89 @@ def reference_table(table_name: str) -> JSONResponse:
     return JSONResponse({"table": safe, "rows": _jsonify(rows), "count": len(rows)})
 
 
+@router.get("/validate/cancellations")
+def validate_cancellations() -> JSONResponse:
+    """Run every rule from REFERENCE.TSPR_VALIDATION_RULES against BRONZE.
+
+    For each rule we read its `violation_sql` (TRUE → row violates the rule)
+    and execute a SELECT against the rule's `target_table`, returning the
+    record id and the rule's citation so the UI can show provenance.
+    """
+    rules = query(
+        "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
+        "       violation_sql, violation_reason, severity, citation "
+        "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
+        "ORDER BY rule_number"
+    )
+    # Map Bronze record's publicid → friendly policy number.
+    # Single round trip; tiny synthetic dataset.
+    pubid_to_policy: dict[str, str] = {}
+    try:
+        for r in query(
+            """
+            SELECT j.publicid AS pid, p.policynumber AS policy
+            FROM INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j
+            LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id
+            UNION
+            SELECT j.publicid AS pid, p.policynumber AS policy
+            FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICYPERIOD j
+            LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id
+            """
+        ):
+            pubid_to_policy[r["pid"]] = r.get("policy") or r["pid"]
+    except Exception:
+        pass
+
+    violations: list[dict] = []
+    rule_results: list[dict] = []
+    for rule in rules:
+        target = rule["target_table"]
+        sql = (
+            f"SELECT {rule['target_id_expr']} AS record_id "
+            f"FROM INSURANCE_REGULATORY.{target} j "
+            f"WHERE ({rule['violation_sql']})"
+        )
+        try:
+            rows = query(sql)
+        except Exception as e:
+            rule_results.append({
+                **rule,
+                "status": "error",
+                "error": str(e)[:200],
+                "violation_count": 0,
+            })
+            continue
+        rule_results.append({
+            **rule,
+            "status": "pass" if not rows else "fail",
+            "violation_count": len(rows),
+        })
+        for r in rows:
+            pubid = r["record_id"]
+            violations.append({
+                "rule_id": rule["rule_id"],
+                "rule_number": rule["rule_number"],
+                "rule_name": rule["rule_name"],
+                "record_id": pubid,
+                "policy_number": pubid_to_policy.get(pubid, pubid),
+                "violation_reason": rule["violation_reason"],
+                "severity": rule["severity"],
+                "citation": rule["citation"],
+            })
+    summary = {
+        "rules_run": len(rule_results),
+        "rules_passing": sum(1 for r in rule_results if r["status"] == "pass"),
+        "rules_failing": sum(1 for r in rule_results if r["status"] == "fail"),
+        "rules_errored": sum(1 for r in rule_results if r["status"] == "error"),
+        "total_violations": len(violations),
+    }
+    return JSONResponse({
+        "summary": summary,
+        "rules": rule_results,
+        "violations": violations,
+    })
+
+
 @router.get("/state")
 def state() -> JSONResponse:
     """Return whether the demo bulletin is currently applied."""

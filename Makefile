@@ -162,6 +162,15 @@ load-reference-all: build-reference-all
 	  snow sql -c regulai --enable-templating standard -f "$$f" > /dev/null && echo "  ✓ done" || echo "  ✗ failed"; \
 	done
 
+migrate-validation-rules:
+	uv run python -m scripts.migrate_kg_validation_rules
+
+build-validation-rules: migrate-validation-rules
+	uv run python -m scripts.build_validation_rules_reference
+
+load-validation-rules: build-validation-rules
+	@snow sql -c regulai --enable-templating standard -f materialized/reference/tspr_validation_rules.sql
+
 reference: load-reference
 	@echo ""
 	@echo "Verification — querying Snowflake:"

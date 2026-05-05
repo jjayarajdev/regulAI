@@ -91,6 +91,12 @@ def demo() -> FileResponse:
     return FileResponse(UI_DIR / "demo.html")
 
 
+@app.get("/validate")
+def validate_page() -> FileResponse:
+    """Validation engine: live evaluation of REFERENCE.TSPR_VALIDATION_RULES."""
+    return FileResponse(UI_DIR / "validate.html")
+
+
 app.include_router(rhs_router)
 
 
