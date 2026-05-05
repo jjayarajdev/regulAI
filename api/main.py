@@ -97,6 +97,12 @@ def validate_page() -> FileResponse:
     return FileResponse(UI_DIR / "validate.html")
 
 
+@app.get("/pipeline")
+def pipeline_page() -> FileResponse:
+    """Medallion pipeline runner: Bronze → Silver → Gold."""
+    return FileResponse(UI_DIR / "pipeline.html")
+
+
 app.include_router(rhs_router)
 
 

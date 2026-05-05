@@ -171,6 +171,16 @@ build-validation-rules: migrate-validation-rules
 load-validation-rules: build-validation-rules
 	@snow sql -c regulai --enable-templating standard -f materialized/reference/tspr_validation_rules.sql
 
+run-silver:
+	uv run python -m scripts.run_silver
+
+run-gold:
+	uv run python -m scripts.run_gold
+
+run-pipeline: load-bronze load-reference-all load-validation-rules run-silver run-gold
+	@echo ""
+	@echo "Full pipeline complete: Bronze → Silver → Gold."
+
 reference: load-reference
 	@echo ""
 	@echo "Verification — querying Snowflake:"

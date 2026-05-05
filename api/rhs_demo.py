@@ -45,6 +45,71 @@ BULLETIN_OVERRIDE_NAME = "Credit Score Declination Reporting Override"
 BULLETIN_PATH = Path("synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md")
 
 
+@router.post("/pipeline/silver")
+def pipeline_silver() -> JSONResponse:
+    """Run Bronze → Silver and return per-table row counts."""
+    result = _run(["uv", "run", "python", "-m", "scripts.run_silver"])
+    counts = query(
+        "SELECT 'TSPR_PREMIUM_STAGING' AS table_name, COUNT(*) AS row_count "
+        "FROM INSURANCE_REGULATORY.SILVER.TSPR_PREMIUM_STAGING "
+        "UNION ALL "
+        "SELECT 'TSPR_CLAIM_STATE', COUNT(*) FROM INSURANCE_REGULATORY.SILVER.TSPR_CLAIM_STATE "
+        "UNION ALL "
+        "SELECT 'TSPR_LOSS_STAGING', COUNT(*) FROM INSURANCE_REGULATORY.SILVER.TSPR_LOSS_STAGING "
+        "UNION ALL "
+        "SELECT 'TSPR_CANCELLATION_STAGING', COUNT(*) FROM INSURANCE_REGULATORY.SILVER.TSPR_CANCELLATION_STAGING"
+    )
+    return JSONResponse({"ok": result["ok"], "stdout": result["stdout"], "counts": counts})
+
+
+@router.post("/pipeline/gold")
+def pipeline_gold() -> JSONResponse:
+    """Run Silver → Gold and return per-table row counts + transmittal totals."""
+    result = _run(["uv", "run", "python", "-m", "scripts.run_gold"])
+    counts = query(
+        "SELECT 'TSPR_PREMIUM_RECORDS' AS table_name, COUNT(*) AS row_count "
+        "FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS "
+        "UNION ALL "
+        "SELECT 'TSPR_LOSS_RECORDS', COUNT(*) FROM INSURANCE_REGULATORY.GOLD.TSPR_LOSS_RECORDS "
+        "UNION ALL "
+        "SELECT 'TSPR_CANCELLATION_RECORDS', COUNT(*) FROM INSURANCE_REGULATORY.GOLD.TSPR_CANCELLATION_RECORDS "
+        "UNION ALL "
+        "SELECT 'TSPR_MONTHLY_AGGREGATES', COUNT(*) FROM INSURANCE_REGULATORY.GOLD.TSPR_MONTHLY_AGGREGATES"
+    )
+    transmittal = query(
+        "SELECT premium_record_count, loss_record_count, cancellation_notice_count, "
+        "       total_written_premium, total_paid_losses, total_recipient_count, "
+        "       total_cancellations, total_nonrenewals, total_declinations "
+        "FROM INSURANCE_REGULATORY.GOLD.TSPR_MONTHLY_AGGREGATES LIMIT 1"
+    )
+    return JSONResponse({
+        "ok": result["ok"], "stdout": result["stdout"],
+        "counts": counts,
+        "transmittal": _jsonify(transmittal)[0] if transmittal else None,
+    })
+
+
+@router.get("/pipeline/state")
+def pipeline_state() -> JSONResponse:
+    """Per-layer row counts for the pipeline page."""
+    counts = query(
+        """
+        SELECT 'BRONZE' AS layer, COUNT(*) AS table_count, SUM(row_count) AS row_total
+        FROM INSURANCE_REGULATORY.INFORMATION_SCHEMA.TABLES
+        WHERE table_schema = 'BRONZE' AND table_type = 'BASE TABLE' AND row_count > 0
+        UNION ALL
+        SELECT 'SILVER', COUNT(*), SUM(row_count)
+        FROM INSURANCE_REGULATORY.INFORMATION_SCHEMA.TABLES
+        WHERE table_schema = 'SILVER' AND table_type = 'BASE TABLE' AND row_count > 0
+        UNION ALL
+        SELECT 'GOLD', COUNT(*), SUM(row_count)
+        FROM INSURANCE_REGULATORY.INFORMATION_SCHEMA.TABLES
+        WHERE table_schema = 'GOLD' AND table_type = 'BASE TABLE' AND row_count > 0
+        """
+    )
+    return JSONResponse({"layers": _jsonify(counts)})
+
+
 @router.get("/catalog")
 def catalog() -> JSONResponse:
     """Snowflake catalog: every schema, every table, with row counts.
