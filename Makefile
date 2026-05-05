@@ -133,5 +133,30 @@ test:
 e2e:
 	uv run python -m scripts.regression_test
 
+# ── RHS (Snowflake) ─────────────────────────────────────────────────────
+snowflake-test:
+	@snow connection test --connection regulai
+
+snowflake-setup:
+	@snow sql -c regulai -q "\
+		CREATE DATABASE IF NOT EXISTS INSURANCE_REGULATORY; \
+		USE DATABASE INSURANCE_REGULATORY; \
+		CREATE SCHEMA IF NOT EXISTS BRONZE; \
+		CREATE SCHEMA IF NOT EXISTS SILVER; \
+		CREATE SCHEMA IF NOT EXISTS GOLD; \
+		CREATE SCHEMA IF NOT EXISTS REFERENCE; \
+		CREATE SCHEMA IF NOT EXISTS STAGING;"
+
+build-reference:
+	uv run python -m scripts.build_reference_reason_codes
+
+load-reference: build-reference
+	@snow sql -c regulai -f materialized/reference/tspr_reason_code_map.sql
+
+reference: load-reference
+	@echo ""
+	@echo "Verification — querying Snowflake:"
+	@snow sql -c regulai -q "SELECT tspr_reason_code, description, must_appear_alone, credit_score_companion_required FROM INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP ORDER BY tspr_reason_code;"
+
 clean:
 	docker compose down
