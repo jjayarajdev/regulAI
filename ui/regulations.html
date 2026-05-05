@@ -465,6 +465,53 @@
       display: flex; gap: 10px; align-items: center;
     }
     .action-bar .spacer { flex: 1; }
+
+    /* Right pane tabs */
+    .pane-tabs { display: flex; gap: 0; }
+    .pane-tabs .tab {
+      background: transparent; border: 0; border-bottom: 2px solid transparent;
+      padding: 6px 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--ink-4); cursor: pointer;
+      border-radius: 0;
+    }
+    .pane-tabs .tab.active { color: var(--ink-1); border-bottom-color: var(--accent); }
+    .pane-tabs .tab:hover { color: var(--ink-2); border-color: transparent; }
+    .tab-body { display: none; }
+    .tab-body.active { display: block; }
+
+    /* Snowflake panel */
+    .sf-panel { padding: 4px 0; }
+    .sf-panel .header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 12px; gap: 16px; flex-wrap: wrap;
+    }
+    .sf-panel .table-name {
+      font-family: var(--font-mono); font-size: 12px; color: var(--accent); font-weight: 600;
+    }
+    .sf-panel .meta-line { font-size: 12px; color: var(--ink-4); }
+    .sf-panel table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .sf-panel th {
+      text-align: left; padding: 6px 8px;
+      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--ink-4); border-bottom: 1px solid var(--rule);
+    }
+    .sf-panel td {
+      padding: 8px; border-bottom: 1px solid var(--rule); vertical-align: top;
+    }
+    .sf-panel tr:last-child td { border-bottom: 0; }
+    .sf-panel .code-letter {
+      font-family: var(--font-mono); font-weight: 600; font-size: 12px;
+      background: rgba(33, 113, 242, 0.08); color: var(--accent);
+      padding: 2px 8px; border-radius: 3px; display: inline-block;
+    }
+    .sf-panel .flag-yes { color: #16a34a; font-weight: 600; }
+    .sf-panel .flag-no { color: var(--ink-4); }
+    .sf-panel .provenance {
+      margin-top: 14px; padding: 10px 12px;
+      background: rgba(33, 113, 242, 0.04); border-left: 2px solid var(--accent);
+      font-size: 11.5px; color: var(--ink-3); line-height: 1.5;
+    }
+    .sf-panel .provenance code { font-family: var(--font-mono); }
     button {
       font-family: var(--font-ui); font-size: 12px; font-weight: 500;
       padding: 8px 14px; border-radius: var(--radius-md);
@@ -535,11 +582,47 @@
 
     <section class="pane right">
       <div class="pane-header">
-        <div class="pane-title">Extracted entities</div>
+        <div class="pane-tabs">
+          <button class="tab active" data-tab="extraction">Extracted entities</button>
+          <button class="tab" data-tab="snowflake">Deployed in Snowflake</button>
+        </div>
         <div class="pane-meta" id="right-meta">—</div>
       </div>
-      <div class="pane-body" id="right-body">
-        <div class="empty">Load a document to see KG-grouped extractions.</div>
+      <div class="pane-body">
+        <div id="extraction-tab-body" class="tab-body active">
+          <div id="right-body">
+            <div class="empty">Load a document to see KG-grouped extractions.</div>
+          </div>
+        </div>
+        <div id="snowflake-tab-body" class="tab-body">
+          <div class="sf-panel">
+            <div class="header">
+              <div>
+                <div class="table-name">INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP</div>
+                <div class="meta-line" id="sf-meta">Loading…</div>
+              </div>
+              <button id="btn-sync-sf" class="primary">Sync from KG</button>
+            </div>
+            <table id="sf-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Description</th>
+                  <th>Must Alone</th>
+                  <th>Needs Companion</th>
+                  <th>Canon v</th>
+                </tr>
+              </thead>
+              <tbody><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+            </table>
+            <div class="provenance">
+              <strong>Provenance.</strong> Each row was generated from a <code>CodeValue</code>
+              node in the KG. The <code>kg_code_value_id</code> column on every row points back
+              to the source node for full lineage. Re-running <em>Sync from KG</em> regenerates
+              the table from current KG state — including any active <code>BulletinOverride</code>s.
+            </div>
+          </div>
+        </div>
       </div>
       <div class="action-bar" id="action-bar" hidden>
         <button id="btn-extract" class="primary" hidden>Run Sentinel (GPT-5.5)</button>
@@ -1568,7 +1651,11 @@
     }
 
     function showActionBar(showExtract, showReExtract, showApprove) {
-      $('action-bar').hidden = !(showExtract || showReExtract || showApprove);
+      const shouldShow = !!(showExtract || showReExtract || showApprove);
+      $('action-bar').dataset.shouldShow = shouldShow ? 'true' : 'false';
+      // Only show the extraction action bar when the extraction tab is active.
+      const onExtractionTab = document.querySelector('.pane-tabs .tab.active')?.dataset.tab === 'extraction';
+      $('action-bar').hidden = !shouldShow || !onExtractionTab;
       $('btn-extract').hidden = !showExtract;
       $('btn-reextract').hidden = !showReExtract;
       $('btn-approve').hidden = !showApprove;
@@ -1709,11 +1796,73 @@
       }
     }
 
+    // ---- Snowflake panel (right pane "Deployed in Snowflake" tab) ------------
+    let sfLoaded = false;
+    async function loadSnowflakePanel() {
+      const tbody = document.querySelector('#sf-table tbody');
+      const meta = $('sf-meta');
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">Loading from Snowflake…</td></tr>';
+      try {
+        const r = await fetch('/api/rhs/reference/reason-codes').then(r => r.json());
+        tbody.innerHTML = '';
+        for (const row of r.rows) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><span class="code-letter">${row.tspr_reason_code}</span></td>
+            <td>${row.description}</td>
+            <td class="${row.must_appear_alone ? 'flag-yes' : 'flag-no'}">${row.must_appear_alone ? 'TRUE' : '·'}</td>
+            <td class="${row.credit_score_companion_required ? 'flag-yes' : 'flag-no'}">${row.credit_score_companion_required ? 'TRUE' : '·'}</td>
+            <td>${row.kg_canon_version || 1}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+        const stand = r.rows.filter(x => x.must_appear_alone).length;
+        const comp = r.rows.filter(x => x.credit_score_companion_required).length;
+        meta.textContent = `${r.count} rows · ${stand} standalone · ${comp} companion-required`;
+        sfLoaded = true;
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="empty">Failed to query Snowflake: ${e.message}</td></tr>`;
+        meta.textContent = '';
+      }
+    }
+    async function syncSnowflake() {
+      const btn = $('btn-sync-sf');
+      btn.disabled = true; btn.textContent = 'Syncing KG → Snowflake…';
+      try {
+        const r = await fetch('/api/rhs/bulletin/reset', { method: 'POST' }).then(r => r.json());
+        // Reset endpoint also rebuilds + reloads the reference; reusing it is the simplest "sync" call today.
+        // (When more reference tables are wired, this will become a dedicated /sync endpoint.)
+        if (!r.ok) throw new Error('Sync failed');
+        await loadSnowflakePanel();
+        toast('Snowflake reference synced from KG.');
+      } catch (e) {
+        toast('Sync failed: ' + e.message);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Sync from KG';
+      }
+    }
+
+    function activateTab(name) {
+      document.querySelectorAll('.pane-tabs .tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === name);
+      });
+      document.querySelectorAll('.tab-body').forEach(b => {
+        b.classList.toggle('active', b.id === name + '-tab-body');
+      });
+      // Hide the (extraction) action bar on the snowflake tab.
+      $('action-bar').hidden = name !== 'extraction' || $('action-bar').dataset.shouldShow !== 'true';
+      if (name === 'snowflake' && !sfLoaded) loadSnowflakePanel();
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       $('doc-select').addEventListener('change', e => selectDoc(e.target.value));
       $('btn-extract').addEventListener('click', runExtract);
       $('btn-reextract').addEventListener('click', runExtract);
       $('btn-approve').addEventListener('click', runApprove);
+      $('btn-sync-sf').addEventListener('click', syncSnowflake);
+      document.querySelectorAll('.pane-tabs .tab').forEach(t => {
+        t.addEventListener('click', () => activateTab(t.dataset.tab));
+      });
       await loadDocs();
       await loadStats();
       setInterval(loadStats, 15000);

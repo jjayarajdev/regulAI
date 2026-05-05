@@ -18,7 +18,10 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 
+from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 from packages.rhs.snowflake_client import query
+
+REASON_CODE_LIST_NAME = "Reason Code List (RCL) — Notice Record Layout col36"
 
 
 def _jsonify(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -63,6 +66,51 @@ def state() -> JSONResponse:
             "Declination During Catastrophe Periods"
         ),
     })
+
+
+@router.get("/kg/reason-code/{code}")
+def kg_reason_code(code: str) -> JSONResponse:
+    """Read the active CodeValue for a reason code from Neo4j (the canon).
+
+    Returns the active row plus any superseded version, so the UI can show
+    "before / after" provenance from the KG side.
+    """
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        result = s.run(
+            """
+            MATCH (cl:CodeList {name: $list_name})-[:HAS_VALUE]->(cv:CodeValue {code: $code})
+            OPTIONAL MATCH (cl)-[:CITES]->(doc:RegulationDocument)
+            RETURN
+              cv.id AS id,
+              cv.code AS code,
+              cv.notes AS description,
+              cv.must_appear_alone AS must_appear_alone,
+              cv.companion_required AS companion_required,
+              cv.status AS status,
+              cv.version AS version,
+              CASE
+                WHEN cv.effective_from IS NOT NULL THEN toString(cv.effective_from)
+                ELSE NULL
+              END AS effective_from,
+              CASE
+                WHEN cv.effective_to IS NOT NULL THEN toString(cv.effective_to)
+                ELSE NULL
+              END AS effective_to,
+              doc.id AS source_doc_id,
+              doc.title AS source_doc_title
+            ORDER BY
+              CASE WHEN cv.status IS NULL OR cv.status <> 'superseded' THEN 0 ELSE 1 END,
+              cv.version DESC
+            """,
+            list_name=REASON_CODE_LIST_NAME,
+            code=code,
+        )
+        rows = [dict(r) for r in result]
+    active = next(
+        (r for r in rows if (r["status"] or "").lower() != "superseded"),
+        rows[0] if rows else None,
+    )
+    return JSONResponse({"code": code, "active": active, "all_versions": rows})
 
 
 @router.get("/reference/reason-codes")
