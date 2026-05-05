@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RegulAI · End-to-End Demo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root {
+    --bg: #0c1117;
+    --card: #131922;
+    --border: #1f2733;
+    --muted: #6b7686;
+    --text: #d8dee9;
+    --accent: #5eead4;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --good: #22c55e;
+    --link: #60a5fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  header {
+    padding: 24px 32px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+  }
+  header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  header h1 span { color: var(--muted); font-weight: 400; margin-left: 8px; }
+  header nav { display: flex; gap: 16px; font-size: 13px; }
+  header nav a { color: var(--link); text-decoration: none; }
+  header nav a:hover { text-decoration: underline; }
+
+  .actions {
+    padding: 16px 32px; background: var(--card); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  button {
+    background: var(--accent); color: #0c1117; border: 0; padding: 8px 16px; border-radius: 4px;
+    font-weight: 600; cursor: pointer; font-size: 13px;
+  }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  button.danger { background: var(--bad); color: white; }
+  .status-badge {
+    padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500;
+  }
+  .status-badge.baseline { background: rgba(96, 165, 250, 0.15); color: var(--link); }
+  .status-badge.applied { background: rgba(245, 158, 11, 0.15); color: var(--warn); }
+
+  main {
+    display: grid; grid-template-columns: 1.2fr 1fr 1.2fr;
+    gap: 16px; padding: 16px 32px; min-height: calc(100vh - 130px);
+  }
+  .panel {
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .panel h2 {
+    margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--border);
+    font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;
+    color: var(--muted); background: rgba(255,255,255,0.02);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel h2 .source { font-size: 11px; font-weight: 400; color: var(--muted); text-transform: none; }
+  .panel-body { padding: 16px; overflow: auto; flex: 1; min-height: 0; }
+  .panel-help { padding: 8px 16px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); background: rgba(255,255,255,0.01); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+  tr.changed td { background: rgba(94, 234, 212, 0.08); }
+  td.code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+  td.bool-yes { color: var(--accent); font-weight: 600; }
+  td.bool-no { color: var(--muted); }
+
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600;
+  }
+  .pill.valid { background: rgba(34, 197, 94, 0.15); color: var(--good); }
+  .pill.invalid { background: rgba(239, 68, 68, 0.15); color: var(--bad); }
+
+  .bulletin-text {
+    background: rgba(0,0,0,0.2); padding: 12px; border-radius: 4px; max-height: 100%;
+    overflow: auto; font-size: 12px; white-space: pre-wrap; line-height: 1.4;
+  }
+  .bulletin-text h1, .bulletin-text h2 { font-size: 13px; margin: 12px 0 4px; }
+  .bulletin-text strong { color: var(--accent); }
+
+  .empty { color: var(--muted); padding: 24px; text-align: center; font-style: italic; }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--card); border: 1px solid var(--accent); padding: 12px 16px; border-radius: 4px;
+    font-size: 13px; max-width: 360px; opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .toast.error { border-color: var(--bad); }
+
+  .summary { font-size: 12px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>RegulAI · End-to-End Demo <span id="bulletinState"></span></h1>
+  <nav>
+    <a href="/">Landing</a>
+    <a href="/explore">Regulation Browser</a>
+    <a href="/demo">Demo</a>
+  </nav>
+</header>
+
+<div class="actions">
+  <span id="state-text" class="summary">Loading current state…</span>
+  <span style="flex: 1"></span>
+  <button id="apply-btn" onclick="applyBulletin()">Apply Bulletin →</button>
+  <button id="reset-btn" class="secondary" onclick="resetBulletin()">Reset to Baseline</button>
+</div>
+
+<main>
+  <!-- LEFT: regulation source -->
+  <section class="panel">
+    <h2>1. Regulatory Canon <span class="source">KG · Aura</span></h2>
+    <div class="panel-help">
+      Reason Code List from the TSPR plan, with constraint flags. Rows in
+      <span style="color:var(--accent)">green</span> changed because of a bulletin.
+    </div>
+    <div class="panel-body">
+      <table>
+        <thead><tr><th>Code</th><th>Description</th><th>Alone?</th><th>Companion?</th></tr></thead>
+        <tbody id="reference-tbody"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+      </table>
+      <div class="summary" id="reference-summary"></div>
+    </div>
+  </section>
+
+  <!-- MIDDLE: bulletin viewer -->
+  <section class="panel">
+    <h2>2. Bulletin <span class="source" id="bulletin-source">B-2026-Q4-118</span></h2>
+    <div class="panel-help">
+      Synthetic Commissioner's Bulletin. When applied, Sentinel materializes
+      it into the KG and the reference table regenerates.
+    </div>
+    <div class="panel-body">
+      <div class="bulletin-text" id="bulletin-text">Loading bulletin…</div>
+    </div>
+  </section>
+
+  <!-- RIGHT: validation -->
+  <section class="panel">
+    <h2>3. Validation Outcome <span class="source">Snowflake JOIN</span></h2>
+    <div class="panel-help">
+      <code>BRONZE.GW_PC_JOB ⋈ BRONZE.GW_PC_POLICY ⋈ REFERENCE.TSPR_REASON_CODE_MAP</code>.
+      Cancellation transactions from Guidewire validated against the regulation.
+    </div>
+    <div class="panel-body">
+      <table>
+        <thead><tr><th>Policy</th><th>Action</th><th>Reason</th><th>Outcome</th></tr></thead>
+        <tbody id="validation-tbody"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+      </table>
+      <div class="summary" id="validation-summary"></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+let priorReferenceMap = new Map();  // code -> {alone, companion} prior state
+let priorValidationMap = new Map(); // policy -> validation_status
+
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => { t.className = 'toast' + (isError ? ' error' : ''); }, 3000);
+}
+
+async function loadState() {
+  const r = await fetch('/api/rhs/state').then(r => r.json());
+  const stateText = document.getElementById('state-text');
+  const badge = document.getElementById('bulletinState');
+  if (r.bulletin_applied) {
+    stateText.innerHTML = `<strong style="color:var(--warn)">Bulletin B-2026-Q4-118 currently applied.</strong> Reset to see baseline.`;
+    badge.innerHTML = '<span class="status-badge applied">Bulletin Applied</span>';
+  } else {
+    stateText.innerHTML = `Baseline state — no bulletin overrides active.`;
+    badge.innerHTML = '<span class="status-badge baseline">Baseline</span>';
+  }
+}
+
+async function loadReference() {
+  const r = await fetch('/api/rhs/reference/reason-codes').then(r => r.json());
+  const tbody = document.getElementById('reference-tbody');
+  tbody.innerHTML = '';
+  let stand = 0, comp = 0;
+  for (const row of r.rows) {
+    const tr = document.createElement('tr');
+    const prior = priorReferenceMap.get(row.tspr_reason_code);
+    if (prior && (prior.alone !== row.must_appear_alone || prior.companion !== row.credit_score_companion_required)) {
+      tr.className = 'changed';
+    }
+    tr.innerHTML = `
+      <td class="code">${row.tspr_reason_code}</td>
+      <td>${row.description}</td>
+      <td class="${row.must_appear_alone ? 'bool-yes' : 'bool-no'}">${row.must_appear_alone ? '✓' : '·'}</td>
+      <td class="${row.credit_score_companion_required ? 'bool-yes' : 'bool-no'}">${row.credit_score_companion_required ? '✓' : '·'}</td>
+    `;
+    tbody.appendChild(tr);
+    if (row.must_appear_alone) stand++;
+    if (row.credit_score_companion_required) comp++;
+    priorReferenceMap.set(row.tspr_reason_code, {
+      alone: row.must_appear_alone,
+      companion: row.credit_score_companion_required,
+    });
+  }
+  document.getElementById('reference-summary').textContent =
+    `${r.count} reason codes · ${stand} standalone · ${comp} companion-required`;
+}
+
+async function loadBulletin() {
+  const txt = await fetch('/api/rhs/bulletin').then(r => r.text());
+  // Light markdown-to-HTML for headers and bold
+  const html = txt
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  document.getElementById('bulletin-text').innerHTML = html;
+}
+
+async function loadValidation() {
+  const r = await fetch('/api/rhs/validation').then(r => r.json());
+  const tbody = document.getElementById('validation-tbody');
+  tbody.innerHTML = '';
+  for (const row of r.rows) {
+    const tr = document.createElement('tr');
+    const prior = priorValidationMap.get(row.policy);
+    if (prior && prior !== row.validation_status) tr.className = 'changed';
+    const pillClass = row.validation_status === 'VALID' ? 'valid' : 'invalid';
+    tr.innerHTML = `
+      <td class="code">${row.policy}</td>
+      <td>${row.action}</td>
+      <td class="code">${row.reason_code}</td>
+      <td>
+        <span class="pill ${pillClass}">${row.validation_status}</span>
+        ${row.violation_reason ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${row.violation_reason}</div>` : ''}
+      </td>
+    `;
+    tbody.appendChild(tr);
+    priorValidationMap.set(row.policy, row.validation_status);
+  }
+  document.getElementById('validation-summary').textContent =
+    `${r.count} cancellations · ${r.invalid_count} invalid`;
+}
+
+async function refreshAll() {
+  await Promise.all([loadState(), loadReference(), loadBulletin(), loadValidation()]);
+}
+
+async function applyBulletin() {
+  const btn = document.getElementById('apply-btn');
+  btn.disabled = true; btn.textContent = 'Applying…';
+  try {
+    const r = await fetch('/api/rhs/bulletin/apply', { method: 'POST' }).then(r => r.json());
+    if (r.ok) {
+      toast('Bulletin applied. Watch for green-highlighted rows.');
+      await refreshAll();
+    } else {
+      toast('Bulletin apply failed. See server log.', true);
+      console.error('apply failed', r);
+    }
+  } catch (e) {
+    toast('Network error: ' + e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Apply Bulletin →';
+  }
+}
+
+async function resetBulletin() {
+  const btn = document.getElementById('reset-btn');
+  btn.disabled = true; btn.textContent = 'Resetting…';
+  try {
+    const r = await fetch('/api/rhs/bulletin/reset', { method: 'POST' }).then(r => r.json());
+    if (r.ok) {
+      toast('Reset complete. Showing baseline.');
+      await refreshAll();
+    } else {
+      toast('Reset failed. See server log.', true);
+      console.error('reset failed', r);
+    }
+  } catch (e) {
+    toast('Network error: ' + e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Reset to Baseline';
+  }
+}
+
+refreshAll();
+</script>
+
+</body>
+</html>

@@ -234,6 +234,23 @@ def job() -> pa.Table:
     })
 
 
+def _coerce_timestamps_us(tbl: pa.Table) -> pa.Table:
+    """Force microsecond precision on all timestamp columns.
+
+    Snowflake's COPY INTO interprets Parquet TIMESTAMP_NANOS as if the
+    underlying int64 were microseconds, producing dates ~50,000 years out.
+    Casting to TIMESTAMP_MICROS at write time avoids the mismatch.
+    """
+    new_fields = []
+    for field in tbl.schema:
+        if pa.types.is_timestamp(field.type):
+            new_fields.append(field.with_type(pa.timestamp("us")))
+        else:
+            new_fields.append(field)
+    new_schema = pa.schema(new_fields)
+    return tbl.cast(new_schema)
+
+
 def main() -> int:
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
 
@@ -248,7 +265,10 @@ def main() -> int:
         out_dir = OUTPUT_ROOT / name
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / "data.parquet"
-        pq.write_table(tbl, out_path)
+        # use_deprecated_int96_timestamps writes a 96-bit Julian-day +
+        # nanosecond format that Snowflake's COPY INTO interprets correctly
+        # without any timestamp scale ambiguity.
+        pq.write_table(tbl, out_path, use_deprecated_int96_timestamps=True)
         print(f"  ✓ {out_path}  ({tbl.num_rows} rows, {tbl.num_columns} cols)")
 
     print()

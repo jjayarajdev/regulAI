@@ -1,7 +1,7 @@
 -- =============================================================
 -- INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP
 -- Generated from RegulAI KG (single source of truth for plan rules).
--- Generated at: 2026-05-05T08:29:11+00:00
+-- Generated at: 2026-05-05T09:09:31+00:00
 -- Source CodeList node: 'Reason Code List (RCL) — Notice Record Layout col36'
 -- Neo4j: neo4j+s://eaa350ec.databases.neo4j.io
 --

@@ -31,6 +31,7 @@ from api.registry import (
     rects_path_for,
     wire_layouts_for,
 )
+from api.rhs_demo import router as rhs_router
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 from packages.adapters.shared.llm.openai_adapter import OpenAIAdapter
 from packages.config.settings import settings
@@ -82,6 +83,15 @@ def root() -> FileResponse:
 def explore() -> FileResponse:
     """Side-by-side regulation review UI (the working tool)."""
     return FileResponse(UI_DIR / "regulations.html")
+
+
+@app.get("/demo")
+def demo() -> FileResponse:
+    """End-to-end RHS demo: KG → reference → Snowflake → validation flip."""
+    return FileResponse(UI_DIR / "demo.html")
+
+
+app.include_router(rhs_router)
 
 
 # -- Regulations API ----------------------------------------------------------
