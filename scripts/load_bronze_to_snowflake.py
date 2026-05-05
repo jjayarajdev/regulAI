@@ -15,13 +15,25 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-PARQUET_ROOT = Path("materialized/bronze_parquet/policycenter")
+PARQUET_ROOT = Path("materialized/bronze_parquet")
 
+# (group_dir, source_name, snowflake_table)
 TABLES = [
-    ("pc_uwcompany", "GW_PC_UWCOMPANY"),
-    ("pc_policy", "GW_PC_POLICY"),
-    ("pc_policyperiod", "GW_PC_POLICYPERIOD"),
-    ("pc_job", "GW_PC_JOB"),
+    ("policycenter", "pc_uwcompany", "GW_PC_UWCOMPANY"),
+    ("policycenter", "pc_policy", "GW_PC_POLICY"),
+    ("policycenter", "pc_policyperiod", "GW_PC_POLICYPERIOD"),
+    ("policycenter", "pc_job", "GW_PC_JOB"),
+    ("policycenter", "pc_address", "GW_PC_ADDRESS"),
+    ("policycenter", "pc_hopolicyline", "GW_PC_HOPOLICYLINE"),
+    ("policycenter", "pc_hocoverage", "GW_PC_HOCOVERAGE"),
+    ("policycenter", "pc_hodwelling", "GW_PC_HODWELLING"),
+    ("billingcenter", "bc_policyperiodpremium", "GW_BC_POLICYPERIODPREMIUM"),
+    ("claimcenter", "cc_claim", "GW_CC_CLAIM"),
+    ("claimcenter", "cc_exposure", "GW_CC_EXPOSURE"),
+    ("claimcenter", "cc_transaction", "GW_CC_TRANSACTION"),
+    ("claimcenter", "cc_reserveline", "GW_CC_RESERVELINE"),
+    ("claimcenter", "cc_address", "GW_CC_ADDRESS"),
+    ("claimcenter", "cc_claim_status_history", "GW_CC_CLAIM_STATUS_HISTORY"),
 ]
 
 
@@ -47,47 +59,50 @@ def main() -> int:
         "COMMENT = 'Synthetic Guidewire Parquet ingest for demo';"
     )
 
-    print("[2/4] Truncating Bronze tables (idempotent reload)")
-    for _, sf_name in TABLES:
+    print(f"[2/4] Truncating {len(TABLES)} Bronze tables (idempotent reload)")
+    for _, _, sf_name in TABLES:
         run_sql(
             "USE DATABASE INSURANCE_REGULATORY; "
             f"TRUNCATE TABLE BRONZE.{sf_name};"
         )
 
     print("[3/4] PUT Parquet files → stage")
-    for src, _ in TABLES:
-        path = PARQUET_ROOT / src / "data.parquet"
+    for group, src, _ in TABLES:
+        path = PARQUET_ROOT / group / src / "data.parquet"
         if not path.exists():
             print(f"  ERROR: {path} not found. Run `make build-bronze` first.")
             return 1
         sql = (
             "USE DATABASE INSURANCE_REGULATORY; "
             f"PUT 'file://{path.resolve()}' "
-            f"@STAGING.BRONZE_INGEST/policycenter/{src}/ "
+            f"@STAGING.BRONZE_INGEST/{group}/{src}/ "
             "AUTO_COMPRESS=FALSE OVERWRITE=TRUE;"
         )
         run_sql(sql)
-        print(f"  ✓ uploaded {src}/data.parquet")
+        print(f"  ✓ uploaded {group}/{src}/data.parquet")
 
     print("[4/4] COPY INTO each Bronze table")
-    for src, sf_name in TABLES:
+    for group, src, sf_name in TABLES:
         sql = (
             "USE DATABASE INSURANCE_REGULATORY; "
             f"COPY INTO BRONZE.{sf_name} "
-            f"FROM @STAGING.BRONZE_INGEST/policycenter/{src}/ "
+            f"FROM @STAGING.BRONZE_INGEST/{group}/{src}/ "
             "FILE_FORMAT = (TYPE = PARQUET) "
             "MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE "
             "ON_ERROR = ABORT_STATEMENT;"
         )
         run_sql(sql)
-        # Get count
         count_sql = (
             "USE DATABASE INSURANCE_REGULATORY; "
             f"SELECT COUNT(*) FROM BRONZE.{sf_name};"
         )
         out = run_sql(count_sql)
-        print(f"  ✓ COPY INTO {sf_name}")
-        print(f"    {out.strip().split(chr(10))[-2] if chr(10) in out else out.strip()}")
+        rows = "?"
+        for line in out.strip().splitlines():
+            if line.strip().startswith("|") and line.strip()[1:].strip().split("|")[0].strip().isdigit():
+                rows = line.strip().split("|")[1].strip()
+                break
+        print(f"  ✓ {sf_name:<32} {rows} rows")
 
     print()
     print("Bronze loaded. Run `make demo-join` to see Guidewire ⋈ KG canon.")
