@@ -158,5 +158,33 @@ reference: load-reference
 	@echo "Verification — querying Snowflake:"
 	@snow sql -c regulai -q "SELECT tspr_reason_code, description, must_appear_alone, credit_score_companion_required FROM INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP ORDER BY tspr_reason_code;"
 
+bronze-ddl:
+	@echo "Loading IBM Bronze DDLs (PolicyCenter + ClaimCenter)..."
+	@snow sql -c regulai --enable-templating standard -f "references/files -Snowflake/01_bronze_policycenter.sql" 2>&1 | tail -3
+	@snow sql -c regulai --enable-templating standard -f "references/files -Snowflake/02_bronze_claimcenter.sql" 2>&1 | tail -3
+
+build-bronze:
+	uv run python -m scripts.generate_bronze_data
+
+load-bronze: build-bronze
+	uv run python -m scripts.load_bronze_to_snowflake
+
+demo-join:
+	@snow sql -c regulai -q "USE DATABASE INSURANCE_REGULATORY; \
+		SELECT \
+			p.policynumber AS policy, \
+			j.subtype AS action, \
+			COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason) AS reason_code, \
+			r.description AS regulation_describes, \
+			CASE \
+				WHEN r.must_appear_alone AND LENGTH(COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason)) > 1 THEN 'INVALID — must_appear_alone' \
+				WHEN r.credit_score_companion_required AND LENGTH(COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason)) = 1 THEN 'INVALID — credit_score needs companion' \
+				ELSE 'VALID' \
+			END AS validation_status \
+		FROM BRONZE.GW_PC_JOB j \
+		JOIN BRONZE.GW_PC_POLICY p ON p.id = j.policy_id \
+		LEFT JOIN REFERENCE.TSPR_REASON_CODE_MAP r ON r.tspr_reason_code = SUBSTR(COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason), 1, 1) \
+		ORDER BY p.policynumber;"
+
 clean:
 	docker compose down
