@@ -512,6 +512,57 @@
       font-size: 11.5px; color: var(--ink-3); line-height: 1.5;
     }
     .sf-panel .provenance code { font-family: var(--font-mono); }
+
+    /* Catalog */
+    .sf-schema { margin-bottom: 16px; }
+    .sf-schema-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 8px 12px; background: rgba(33, 113, 242, 0.04);
+      border-radius: 4px 4px 0 0; border-left: 2px solid var(--accent);
+    }
+    .sf-schema-name {
+      font-family: var(--font-mono); font-weight: 700; font-size: 12px;
+      color: var(--accent); letter-spacing: 0.04em;
+    }
+    .sf-schema-meta { font-size: 10.5px; color: var(--ink-4); }
+    .sf-schema-desc {
+      font-size: 11.5px; color: var(--ink-3); padding: 4px 12px 6px;
+      font-style: italic;
+    }
+    .sf-table-list {
+      list-style: none; margin: 0; padding: 0;
+      border-left: 2px solid var(--rule); margin-left: 8px;
+    }
+    .sf-table-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 5px 12px; font-size: 12px;
+      border-bottom: 1px dashed var(--rule);
+    }
+    .sf-table-row:last-child { border-bottom: 0; }
+    .sf-table-row .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .sf-table-row .dot.on { background: #16a34a; }
+    .sf-table-row .dot.off { background: var(--rule-strong); }
+    .sf-table-row .t-name {
+      font-family: var(--font-mono); flex: 1; color: var(--ink-2);
+    }
+    .sf-table-row.populated .t-name { color: var(--ink-1); font-weight: 600; }
+    .sf-table-row .t-rows {
+      font-size: 11px; color: var(--ink-4); font-variant-numeric: tabular-nums;
+    }
+    .sf-table-row .t-view {
+      font-size: 10.5px; padding: 2px 8px; margin: 0;
+    }
+    #sf-table-detail table th {
+      text-align: left; padding: 4px 6px; font-size: 10px;
+      color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--rule); white-space: nowrap;
+    }
+    #sf-table-detail table td {
+      padding: 4px 6px; border-bottom: 1px solid var(--rule); font-size: 11px;
+      vertical-align: top;
+    }
     button {
       font-family: var(--font-ui); font-size: 12px; font-weight: 500;
       padding: 8px 14px; border-radius: var(--radius-md);
@@ -598,28 +649,34 @@
           <div class="sf-panel">
             <div class="header">
               <div>
-                <div class="table-name">INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP</div>
+                <div class="table-name">INSURANCE_REGULATORY · all schemas</div>
                 <div class="meta-line" id="sf-meta">Loading…</div>
               </div>
-              <button id="btn-sync-sf" class="primary">Sync from KG</button>
+              <button id="btn-sync-sf" class="primary">Sync references from KG</button>
             </div>
-            <table id="sf-table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Description</th>
-                  <th>Must Alone</th>
-                  <th>Needs Companion</th>
-                  <th>Canon v</th>
-                </tr>
-              </thead>
-              <tbody><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
-            </table>
+
+            <!-- Catalog: list of schemas + tables -->
+            <div id="sf-catalog"></div>
+
+            <!-- Selected table viewer (shown after click) -->
+            <div id="sf-table-detail" hidden style="margin-top:18px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div class="table-name" id="sf-detail-name"></div>
+                <button id="sf-detail-close" style="font-size:11px;padding:4px 10px;">× Close</button>
+              </div>
+              <div id="sf-detail-meta" class="meta-line" style="margin-bottom:10px;"></div>
+              <div style="overflow-x:auto;">
+                <table id="sf-detail-table" style="font-size:11px;"></table>
+              </div>
+            </div>
+
             <div class="provenance">
-              <strong>Provenance.</strong> Each row was generated from a <code>CodeValue</code>
-              node in the KG. The <code>kg_code_value_id</code> column on every row points back
-              to the source node for full lineage. Re-running <em>Sync from KG</em> regenerates
-              the table from current KG state — including any active <code>BulletinOverride</code>s.
+              <strong>What you're looking at.</strong>
+              The <em>BRONZE</em> schema holds raw Guidewire CDC events (synthetic for the demo).
+              The <em>REFERENCE</em> schema holds TSPR plan rules — every row generated from the KG
+              with full provenance via <code>kg_code_value_id</code>.
+              The <em>SILVER</em> and <em>GOLD</em> schemas hold field-mapped staging and
+              submission-ready SDF records (DDL provisioned, populated as the medallion runs).
             </div>
           </div>
         </div>
@@ -1796,49 +1853,113 @@
       }
     }
 
-    // ---- Snowflake panel (right pane "Deployed in Snowflake" tab) ------------
+    // ---- Snowflake catalog (right pane "Deployed in Snowflake" tab) ------------
     let sfLoaded = false;
     async function loadSnowflakePanel() {
-      const tbody = document.querySelector('#sf-table tbody');
       const meta = $('sf-meta');
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">Loading from Snowflake…</td></tr>';
+      const cat = $('sf-catalog');
+      cat.innerHTML = '<div class="empty" style="padding:14px;">Querying Snowflake…</div>';
       try {
-        const r = await fetch('/api/rhs/reference/reason-codes').then(r => r.json());
-        tbody.innerHTML = '';
-        for (const row of r.rows) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><span class="code-letter">${row.tspr_reason_code}</span></td>
-            <td>${row.description}</td>
-            <td class="${row.must_appear_alone ? 'flag-yes' : 'flag-no'}">${row.must_appear_alone ? 'TRUE' : '·'}</td>
-            <td class="${row.credit_score_companion_required ? 'flag-yes' : 'flag-no'}">${row.credit_score_companion_required ? 'TRUE' : '·'}</td>
-            <td>${row.kg_canon_version || 1}</td>
-          `;
-          tbody.appendChild(tr);
+        const r = await fetch('/api/rhs/catalog').then(r => r.json());
+        cat.innerHTML = '';
+        let totalTables = 0, totalPop = 0, totalRows = 0;
+        for (const s of r.schemas) {
+          totalTables += s.table_count;
+          totalPop += s.populated_count;
+          totalRows += s.total_rows;
         }
-        const stand = r.rows.filter(x => x.must_appear_alone).length;
-        const comp = r.rows.filter(x => x.credit_score_companion_required).length;
-        meta.textContent = `${r.count} rows · ${stand} standalone · ${comp} companion-required`;
+        meta.textContent = `${r.schemas.length} schemas · ${totalTables} tables · ${totalPop} populated · ${totalRows} total rows`;
+
+        for (const schema of r.schemas) {
+          const block = document.createElement('div');
+          block.className = 'sf-schema';
+          block.innerHTML = `
+            <div class="sf-schema-head">
+              <div class="sf-schema-name">${schema.schema}</div>
+              <div class="sf-schema-meta">${schema.populated_count} of ${schema.table_count} populated · ${schema.total_rows} rows</div>
+            </div>
+            <div class="sf-schema-desc">${schema.description}</div>
+            <ul class="sf-table-list"></ul>
+          `;
+          const ul = block.querySelector('.sf-table-list');
+          for (const t of schema.tables) {
+            const li = document.createElement('li');
+            const populated = t.row_count > 0;
+            li.className = 'sf-table-row' + (populated ? ' populated' : '');
+            li.innerHTML = `
+              <span class="dot ${populated ? 'on' : 'off'}"></span>
+              <span class="t-name">${t.table_name}</span>
+              <span class="t-rows">${t.row_count} ${t.row_count === 1 ? 'row' : 'rows'}</span>
+              ${populated && schema.schema === 'REFERENCE'
+                ? `<button class="t-view" data-table="${t.table_name}">View →</button>`
+                : ''}
+            `;
+            ul.appendChild(li);
+          }
+          cat.appendChild(block);
+        }
+        // Wire view buttons
+        cat.querySelectorAll('.t-view').forEach(btn => {
+          btn.addEventListener('click', () => loadTableDetail(btn.dataset.table));
+        });
         sfLoaded = true;
       } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="5" class="empty">Failed to query Snowflake: ${e.message}</td></tr>`;
+        cat.innerHTML = `<div class="empty" style="padding:14px;">Failed to query Snowflake: ${e.message}</div>`;
         meta.textContent = '';
       }
     }
+
+    async function loadTableDetail(tableName) {
+      const detail = $('sf-table-detail');
+      const detailName = $('sf-detail-name');
+      const detailMeta = $('sf-detail-meta');
+      const detailTable = $('sf-detail-table');
+      detail.hidden = false;
+      detailName.textContent = `INSURANCE_REGULATORY.REFERENCE.${tableName}`;
+      detailTable.innerHTML = '<tbody><tr><td class="empty" style="padding:14px;">Loading rows…</td></tr></tbody>';
+      detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      try {
+        const r = await fetch(`/api/rhs/reference/table/${tableName}`).then(r => r.json());
+        detailMeta.textContent = `${r.count} rows · all generated from the KG`;
+        if (!r.rows.length) {
+          detailTable.innerHTML = '<tbody><tr><td class="empty" style="padding:14px;">No rows.</td></tr></tbody>';
+          return;
+        }
+        // Pick a small set of meaningful columns + provenance
+        const allCols = Object.keys(r.rows[0]);
+        const previewCols = allCols.filter(c =>
+          ['tspr_code','tspr_reason_code','description','must_appear_alone','credit_score_companion_required','kg_canon_version'].includes(c)
+        );
+        const cols = previewCols.length ? previewCols : allCols.slice(0, 6);
+        const fmt = v => {
+          if (v === true) return '<span class="flag-yes">TRUE</span>';
+          if (v === false) return '<span class="flag-no">·</span>';
+          if (v === null || v === undefined) return '<span class="flag-no">—</span>';
+          return String(v).length > 80 ? String(v).slice(0, 80) + '…' : String(v);
+        };
+        const thead = '<thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead>';
+        const tbody = '<tbody>' + r.rows.map(row =>
+          '<tr>' + cols.map(c => `<td>${fmt(row[c])}</td>`).join('') + '</tr>'
+        ).join('') + '</tbody>';
+        detailTable.innerHTML = thead + tbody;
+      } catch (e) {
+        detailTable.innerHTML = `<tbody><tr><td class="empty" style="padding:14px;">Failed: ${e.message}</td></tr></tbody>`;
+      }
+    }
+
     async function syncSnowflake() {
       const btn = $('btn-sync-sf');
       btn.disabled = true; btn.textContent = 'Syncing KG → Snowflake…';
       try {
         const r = await fetch('/api/rhs/bulletin/reset', { method: 'POST' }).then(r => r.json());
-        // Reset endpoint also rebuilds + reloads the reference; reusing it is the simplest "sync" call today.
-        // (When more reference tables are wired, this will become a dedicated /sync endpoint.)
         if (!r.ok) throw new Error('Sync failed');
+        sfLoaded = false;
         await loadSnowflakePanel();
-        toast('Snowflake reference synced from KG.');
+        toast('Snowflake references synced from KG.');
       } catch (e) {
         toast('Sync failed: ' + e.message);
       } finally {
-        btn.disabled = false; btn.textContent = 'Sync from KG';
+        btn.disabled = false; btn.textContent = 'Sync references from KG';
       }
     }
 
@@ -1860,6 +1981,7 @@
       $('btn-reextract').addEventListener('click', runExtract);
       $('btn-approve').addEventListener('click', runApprove);
       $('btn-sync-sf').addEventListener('click', syncSnowflake);
+      $('sf-detail-close').addEventListener('click', () => { $('sf-table-detail').hidden = true; });
       document.querySelectorAll('.pane-tabs .tab').forEach(t => {
         t.addEventListener('click', () => activateTab(t.dataset.tab));
       });

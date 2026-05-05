@@ -153,6 +153,15 @@ build-reference:
 load-reference: build-reference
 	@snow sql -c regulai -f materialized/reference/tspr_reason_code_map.sql
 
+build-reference-all: build-reference
+	uv run python -m scripts.build_all_reference_tables
+
+load-reference-all: build-reference-all
+	@for f in materialized/reference/*.sql; do \
+	  echo "→ Loading $$f"; \
+	  snow sql -c regulai --enable-templating standard -f "$$f" > /dev/null && echo "  ✓ done" || echo "  ✗ failed"; \
+	done
+
 reference: load-reference
 	@echo ""
 	@echo "Verification — querying Snowflake:"

@@ -45,6 +45,75 @@ BULLETIN_OVERRIDE_NAME = "Credit Score Declination Reporting Override"
 BULLETIN_PATH = Path("synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md")
 
 
+@router.get("/catalog")
+def catalog() -> JSONResponse:
+    """Snowflake catalog: every schema, every table, with row counts.
+
+    Powers the "what's in Snowflake and where" view. Calls
+    INFORMATION_SCHEMA.TABLES once and falls back to per-table
+    COUNT(*) where row_count is stale.
+    """
+    rows = query(
+        """
+        SELECT table_schema AS schema_name,
+               table_name,
+               row_count,
+               bytes,
+               comment,
+               TO_VARCHAR(last_altered, 'YYYY-MM-DD HH24:MI:SS') AS last_altered
+        FROM INSURANCE_REGULATORY.INFORMATION_SCHEMA.TABLES
+        WHERE table_type = 'BASE TABLE'
+          AND table_schema IN ('BRONZE','SILVER','GOLD','REFERENCE','STAGING')
+        ORDER BY table_schema, table_name
+        """
+    )
+    # Group by schema
+    by_schema: dict[str, list] = {}
+    for r in rows:
+        by_schema.setdefault(r["schema_name"], []).append({
+            "table_name": r["table_name"],
+            "row_count": r["row_count"] or 0,
+            "bytes": r["bytes"] or 0,
+            "comment": r["comment"] or "",
+            "last_altered": r["last_altered"],
+        })
+    descriptions = {
+        "BRONZE": "Raw Guidewire CDC events — append-only, faithful replica of GDP exports.",
+        "SILVER": "TSPR field-mapped staging — every Guidewire field translated to TSPR semantics.",
+        "GOLD": "Submission-ready SDF records — one row per record, validated and approved.",
+        "REFERENCE": "TSPR plan rules as data — generated from RegulAI's KG.",
+        "STAGING": "External stage area for Snowpipe ingest.",
+    }
+    schemas = []
+    # Show schemas in pipeline order: Bronze → Silver → Gold → Reference, then Staging
+    schema_order = ["BRONZE", "SILVER", "GOLD", "REFERENCE", "STAGING"]
+    for name in schema_order:
+        tables = by_schema.get(name, [])
+        populated = sum(1 for t in tables if t["row_count"] > 0)
+        schemas.append({
+            "schema": name,
+            "description": descriptions.get(name, ""),
+            "table_count": len(tables),
+            "populated_count": populated,
+            "total_rows": sum(t["row_count"] for t in tables),
+            "tables": tables,
+        })
+    return JSONResponse({"schemas": schemas})
+
+
+@router.get("/reference/table/{table_name}")
+def reference_table(table_name: str) -> JSONResponse:
+    """Generic SELECT for any reference table — returns rows + column metadata."""
+    safe = "".join(c for c in table_name if c.isalnum() or c == "_")
+    if not safe or len(safe) > 64:
+        raise HTTPException(status_code=400, detail="invalid table name")
+    try:
+        rows = query(f"SELECT * FROM INSURANCE_REGULATORY.REFERENCE.{safe} ORDER BY tspr_code LIMIT 200")
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    return JSONResponse({"table": safe, "rows": _jsonify(rows), "count": len(rows)})
+
+
 @router.get("/state")
 def state() -> JSONResponse:
     """Return whether the demo bulletin is currently applied."""
