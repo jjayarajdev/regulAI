@@ -1,7 +1,7 @@
 -- =============================================================
 -- INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP
 -- Generated from RegulAI KG (single source of truth for plan rules).
--- Generated at: 2026-05-05T06:16:11+00:00
+-- Generated at: 2026-05-05T08:29:11+00:00
 -- Source CodeList node: 'Reason Code List (RCL) — Notice Record Layout col36'
 -- Neo4j: neo4j+s://eaa350ec.databases.neo4j.io
 --
@@ -88,7 +88,7 @@ INSERT INTO TSPR_REASON_CODE_MAP (
 INSERT INTO TSPR_REASON_CODE_MAP (
     tspr_reason_code, description, must_appear_alone, credit_score_companion_required, constraint_rationale, kg_code_value_id, kg_source_document_id, kg_source_document_title, kg_canon_version, generated_at
 ) VALUES (
-    'J', 'Insurer withdrawing from the market', TRUE, FALSE, 'Rule A.34 — market withdrawal (J) cannot appear alongside any other reason code; it is a complete and standalone reason.', '911bd8d9-63b4-4ea4-916d-d97772ef1524', NULL, NULL, 1, CURRENT_TIMESTAMP()
+    'J', 'Insurer withdrawing from the market', TRUE, FALSE, 'Rule A.34 — market withdrawal cannot appear alongside any other reason code; it is a complete and standalone reason.', '911bd8d9-63b4-4ea4-916d-d97772ef1524', NULL, NULL, 1, CURRENT_TIMESTAMP()
 );
 
 -- Code K: Location of risk

@@ -169,6 +169,35 @@ build-bronze:
 load-bronze: build-bronze
 	uv run python -m scripts.load_bronze_to_snowflake
 
+## Bulletin demo flow — show the flip
+demo-bulletin-baseline:
+	@echo "═══ BASELINE (no bulletin) ═══"
+	@echo ""
+	@$(MAKE) -s demo-join
+
+demo-bulletin-apply:
+	@echo "═══ APPLYING BULLETIN B-2026-Q4-118 ═══"
+	@echo "  → Materializing bulletin into KG..."
+	@uv run python -m scripts.apply_credit_score_bulletin 2>&1 | grep -v "Received notification" | tail -10
+	@echo ""
+	@echo "  → Bumping versions (supersede old Code L)..."
+	@uv run python -m scripts.apply_bulletin --bulletin "Credit Score Declination Reporting Override" 2>&1 | tail -5
+	@echo ""
+	@echo "  → Regenerating reference table from KG..."
+	@$(MAKE) -s load-reference > /dev/null
+	@echo "  ✓ Snowflake reference table updated"
+	@echo ""
+	@echo "═══ AFTER BULLETIN — POL-0011 should now be VALID ═══"
+	@$(MAKE) -s demo-join
+
+demo-bulletin-reset:
+	@echo "═══ RESETTING bulletin (back to baseline) ═══"
+	@uv run python -m scripts.reset_credit_score_bulletin 2>&1 | grep -v "Received notification"
+	@echo ""
+	@echo "  → Regenerating reference table from KG..."
+	@$(MAKE) -s load-reference > /dev/null
+	@echo '  ✓ Reset complete. Run "make demo-bulletin-baseline" to see baseline.'
+
 demo-join:
 	@snow sql -c regulai -q "USE DATABASE INSURANCE_REGULATORY; \
 		SELECT \

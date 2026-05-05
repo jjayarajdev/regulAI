@@ -21,24 +21,19 @@ from packages.config.settings import settings
 
 REASON_CODE_LIST_NAME = "Reason Code List (RCL) — Notice Record Layout col36"
 
-# Validation flags from Rule A.34 + Tex. Ins. Code §559.052(a)(2).
-# These are stored as Rules in the KG; for now we encode them inline with
-# explicit citations. A future iteration should derive them from rule edges.
-SPECIAL_FLAGS: dict[str, dict[str, bool | str]] = {
-    "L": {
-        "credit_score_companion_required": True,
-        "rationale": (
-            "Tex. Ins. Code §559.052(a)(2) — credit/insurance score may not "
-            "be the sole reason for cancellation, nonrenewal, or declination."
-        ),
-    },
-    "J": {
-        "must_appear_alone": True,
-        "rationale": (
-            "Rule A.34 — market withdrawal (J) cannot appear alongside any "
-            "other reason code; it is a complete and standalone reason."
-        ),
-    },
+# Citations for the constraint flags now sourced from CodeValue properties
+# in the KG. Rationale text remains here because the citation is editorial
+# context for the SQL row, not regulatory canon. The flags themselves come
+# from the KG and are subject to BulletinOverride versioning.
+RATIONALE_BY_FLAG: dict[str, str] = {
+    "must_appear_alone": (
+        "Rule A.34 — market withdrawal cannot appear alongside any other "
+        "reason code; it is a complete and standalone reason."
+    ),
+    "companion_required": (
+        "Tex. Ins. Code §559.052(a)(2) — credit/insurance score may not "
+        "be the sole reason for cancellation, nonrenewal, or declination."
+    ),
 }
 
 
@@ -50,16 +45,27 @@ def _q(s: str | None) -> str:
 
 
 def fetch_reason_codes() -> list[dict]:
+    """Read active CodeValues for the Reason Code List with constraint flags.
+
+    Edition pinning: only emit codes whose status is not 'superseded'. This
+    ensures BulletinOverride re-evaluation (which marks old versions
+    superseded and introduces new ones) is reflected in the next reference
+    schema regeneration without any code change.
+    """
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
         result = s.run(
             """
             MATCH (cl:CodeList {name: $list_name})-[:HAS_VALUE]->(cv:CodeValue)
+            WHERE cv.status IS NULL OR cv.status <> 'superseded'
             OPTIONAL MATCH (cl)-[:CITES]->(doc:RegulationDocument)
             RETURN
               cv.code AS code,
               cv.notes AS description,
               cv.id AS code_id,
               cv.version AS version,
+              cv.must_appear_alone AS must_appear_alone,
+              cv.companion_required AS companion_required,
+              cv.effective_from AS effective_from,
               doc.id AS source_doc_id,
               doc.title AS source_doc_title
             ORDER BY cv.code
@@ -104,10 +110,14 @@ def build_sql(rows: list[dict]) -> str:
     out.append("")
 
     for r in rows:
-        flags = SPECIAL_FLAGS.get(r["code"], {})
-        must_alone = "TRUE" if flags.get("must_appear_alone") else "FALSE"
-        cs_companion = "TRUE" if flags.get("credit_score_companion_required") else "FALSE"
-        rationale = flags.get("rationale")
+        must_alone = bool(r["must_appear_alone"])
+        comp_req = bool(r["companion_required"])
+        # Pick the rationale that matches whichever flag is set.
+        rationale = None
+        if must_alone:
+            rationale = RATIONALE_BY_FLAG["must_appear_alone"]
+        elif comp_req:
+            rationale = RATIONALE_BY_FLAG["companion_required"]
 
         out.append(f"-- Code {r['code']}: {r['description']}")
         out.append("INSERT INTO TSPR_REASON_CODE_MAP (")
@@ -119,8 +129,9 @@ def build_sql(rows: list[dict]) -> str:
         )
         out.append(") VALUES (")
         out.append(
-            f"    {_q(r['code'])}, {_q(r['description'])}, {must_alone}, "
-            f"{cs_companion}, {_q(rationale)}, "
+            f"    {_q(r['code'])}, {_q(r['description'])}, "
+            f"{'TRUE' if must_alone else 'FALSE'}, "
+            f"{'TRUE' if comp_req else 'FALSE'}, {_q(rationale)}, "
             f"{_q(r['code_id'])}, {_q(r['source_doc_id'])}, "
             f"{_q(r['source_doc_title'])}, "
             f"{r['version'] if r['version'] is not None else 'NULL'}, "
@@ -154,13 +165,13 @@ def main() -> int:
     print()
     print("Codes:")
     for r in rows:
-        flags = SPECIAL_FLAGS.get(r["code"], {})
         flag_str = ""
-        if flags.get("must_appear_alone"):
+        if r["must_appear_alone"]:
             flag_str = "  [must_appear_alone]"
-        elif flags.get("credit_score_companion_required"):
-            flag_str = "  [credit_score_companion_required]"
-        print(f"  {r['code']}  {r['description']}{flag_str}")
+        elif r["companion_required"]:
+            flag_str = "  [companion_required]"
+        eff_str = f"  (effective {r['effective_from']})" if r.get("effective_from") else ""
+        print(f"  {r['code']}  {r['description']}{flag_str}{eff_str}")
     print()
     print(f"Next: make load-reference")
     return 0
