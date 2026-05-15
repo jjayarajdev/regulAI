@@ -2800,7 +2800,7 @@
     if (app.busy) return;
     app.busy = true;
     const fq = `?filing=${encodeURIComponent(app.currentFilingId)}`;
-    const [filings, st, val, valFlat, bronze, pl, kgRules, bulletinTxt] = await Promise.all([
+    const [filings, st, val, valFlat, bronze, pl, kgRules, bulletinTxt, audit] = await Promise.all([
       get('/filings'),
       get('/state'),
       get('/validate/cancellations' + fq),
@@ -2809,8 +2809,9 @@
       get('/pipeline/state'),
       get('/kg/rules'),
       fetch('/api/rhs/bulletin').then(r => r.ok ? r.text() : null).catch(() => null),
+      get('/audit/' + encodeURIComponent(app.currentFilingId)),
     ]);
-    app.data = { filings, st, val, valFlat, bronze, pl, kgRules, bulletinTxt };
+    app.data = { filings, st, val, valFlat, bronze, pl, kgRules, bulletinTxt, audit };
     // Populate the inline bulletin-text panel
     const pre = bind('bulletin-text');
     if (pre) pre.textContent = bulletinTxt || 'Bulletin text not available.';
@@ -4225,10 +4226,79 @@ RETURN r, rel, n</pre>
     }
   }
 
-  // ─── Audit log (synthesized from current state) ─────────────────
+  // Render the timeline from real GOLD_AUDIT.USER_ACTION rows
+  function renderAuditPersisted(audit) {
+    const sub = bind('audit-sub');
+    const tl = bind('audit-timeline');
+    const actions = audit.actions || [];
+    const exceptions = audit.exceptions || [];
+    const batch = audit.batch || {};
+
+    const openCount = exceptions.filter(e => (e.resolution_status || e.RESOLUTION_STATUS) === 'open').length;
+    const fixedCount = exceptions.filter(e => (e.resolution_status || e.RESOLUTION_STATUS) === 'fixed').length;
+
+    if (sub) {
+      sub.innerHTML = `
+        <span style="color:var(--good);font-weight:500;">${actions.length} persisted events</span>
+        from <code style="font-family:var(--f-mono);">GOLD_AUDIT.USER_ACTION</code> ·
+        ${openCount} open exception${openCount !== 1 ? 's' : ''} ·
+        ${fixedCount} resolved
+        ${batch.last_validated_at || batch.LAST_VALIDATED_AT ? `· last validation ${esc(batch.last_validated_at || batch.LAST_VALIDATED_AT)}` : ''}
+      `;
+    }
+
+    // Style helpers per action type
+    const ACTION_META = {
+      validation_run: { color: 'var(--sf)',   icon: 'V', label: 'Validation run' },
+      manual_fix:     { color: 'var(--accent)',icon: 'F', label: 'Manual fix' },
+      bulletin_apply: { color: 'var(--kg)',   icon: 'B', label: 'Bulletin applied' },
+      bulletin_reset: { color: 'var(--ink-3)',icon: 'R', label: 'Bulletin reset' },
+      approve:        { color: 'var(--good)', icon: '✓', label: 'Approved' },
+      submit:         { color: 'var(--good)', icon: '↑', label: 'Submitted' },
+    };
+
+    tl.innerHTML = actions.map(a => {
+      const at = a.action_type || a.ACTION_TYPE;
+      const meta = ACTION_META[at] || { color: 'var(--ink-2)', icon: '·', label: at };
+      const actor = a.actor || a.ACTOR || 'system';
+      const target = a.target_record || a.TARGET_RECORD;
+      const rule = a.target_rule || a.TARGET_RULE;
+      const summary = a.summary || a.SUMMARY || '';
+      const acted_at = a.acted_at || a.ACTED_AT || '';
+      return `
+        <div class="tl">
+          <div class="tl-head">
+            <span class="tl-action" style="color:${meta.color};">${esc(meta.label)}</span>
+            <span class="tl-time">${esc(acted_at)}</span>
+          </div>
+          <div class="tl-card">
+            <div class="tl-actor">
+              <div class="avatar" style="background:${meta.color};">${esc(meta.icon)}</div>
+              <div class="meta">
+                <div class="nm">${esc(actor)}</div>
+                <div class="rl" style="font-family:var(--f-mono);">${esc(at)}</div>
+              </div>
+            </div>
+            <div class="tl-detail">
+              ${esc(summary)}
+              ${(target || rule) ? `
+                <div class="tl-foot">
+                  ${target ? `<span>target&nbsp;<b>${esc(target)}</b></span>` : ''}
+                  ${rule   ? `<span>rule/field&nbsp;<b>${esc(rule)}</b></span>` : ''}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ─── Audit log (persisted from GOLD_AUDIT) ──────────────────────
   function renderAudit() {
     const v = app.data.val;
     const st = app.data.st;
+    const audit = app.data.audit;
     const sub = bind('audit-sub');
     const tl = bind('audit-timeline');
     if (!tl) return;
@@ -4236,6 +4306,12 @@ RETURN r, rel, n</pre>
     if (!st || !v) {
       if (sub) sub.innerHTML = `<span style="color:var(--warn);">${esc(backendError())}</span>`;
       tl.innerHTML = `<div style="padding:32px;text-align:center;color:var(--ink-3);">${esc(backendError())}</div>`;
+      return;
+    }
+
+    // Use persisted audit events when available, fall back to synthesized
+    if (audit && Array.isArray(audit.actions) && audit.actions.length > 0) {
+      renderAuditPersisted(audit);
       return;
     }
 

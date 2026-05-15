@@ -10,6 +10,7 @@ does.
 from __future__ import annotations
 
 import datetime as dt
+import json
 import subprocess
 from decimal import Decimal
 from pathlib import Path
@@ -121,6 +122,179 @@ def _scope_clause(filing_id: str | None, policy_id_col: str = "p.id") -> str:
 def filings_list() -> JSONResponse:
     """List all known filings + which one is currently the default context."""
     return JSONResponse({"filings": FILINGS, "default": FILINGS[0]["id"]})
+
+
+# ── Audit-persistence helpers ────────────────────────────────────────
+# Every validation/fix/bulletin action writes to GOLD_AUDIT or GOLD_FILING.
+# Failures don't raise — audit is best-effort so it can't break the live demo.
+
+import uuid as _uuid
+
+def _sql_quote(s: Any) -> str:
+    """Escape a value for inline SQL — single quotes doubled, NULL for None."""
+    if s is None:
+        return "NULL"
+    return "'" + str(s).replace("'", "''")[:480] + "'"
+
+
+def _audit_safe(fn):
+    """Decorator: swallow exceptions from audit writes so the live path never fails."""
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            print(f"[audit] {fn.__name__} failed: {e}")
+            return None
+    return wrapper
+
+
+@_audit_safe
+def _ensure_filing_batch(filing_id: str, status: str = "draft") -> str:
+    """Create a FILING_BATCH row for this filing if one doesn't exist."""
+    f = _filing(filing_id) or FILINGS[0]
+    rows = query(
+        f"SELECT filing_batch_id FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"WHERE filing_batch_id = '{f['id']}'"
+    )
+    if rows:
+        return f["id"]
+    query(
+        f"INSERT INTO INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"(filing_batch_id, filing_id, plan_code, plan_name, "
+        f" reporting_period_start, reporting_period_end, cadence, due_date, channel, status) "
+        f"VALUES ("
+        f"  {_sql_quote(f['id'])}, {_sql_quote(f['id'])}, {_sql_quote(f['plan_code'])}, "
+        f"  {_sql_quote(f['plan_name'])}, "
+        f"  TO_DATE({_sql_quote(f['period_start'])}), TO_DATE({_sql_quote(f['period_end'])}), "
+        f"  {_sql_quote(f['cadence'])}, TO_DATE({_sql_quote(f['due_date'])}), "
+        f"  {_sql_quote(f['channel'])}, {_sql_quote(status)}"
+        f")"
+    )
+    return f["id"]
+
+
+@_audit_safe
+def _record_validation_run(filing_id: str, rule_results: list[dict], violations: list[dict]) -> str | None:
+    """Persist a complete validation run to GOLD_AUDIT.RULE_MATCH_RESULT.
+
+    Writes one row per rule × failing-record (pass-rows are summarized by absence).
+    Returns the run_id so callers can update FILING_BATCH.last_validation_run_id.
+    """
+    batch = _ensure_filing_batch(filing_id, status="validating") or filing_id
+    run_id = "run-" + _uuid.uuid4().hex[:12]
+    rows_sql = []
+    # 1 row per violation
+    for v in violations:
+        match_id = "m-" + _uuid.uuid4().hex[:14]
+        rows_sql.append(
+            f"({_sql_quote(match_id)}, {_sql_quote(run_id)}, {_sql_quote(batch)}, "
+            f" {_sql_quote(v.get('record_id'))}, {_sql_quote(v.get('policy_number'))}, "
+            f" {_sql_quote(v.get('rule_id'))}, {_sql_quote(v.get('rule_number'))}, "
+            f" {_sql_quote(v.get('rule_name'))}, NULL, 'fail', "
+            f" {_sql_quote(v.get('violation_reason'))}, {_sql_quote(v.get('severity'))}, "
+            f" {_sql_quote(v.get('citation'))}, NULL, NULL, CURRENT_TIMESTAMP())"
+        )
+    # 1 summary "pass" row per rule that didn't trigger
+    for r in rule_results:
+        if r.get("violation_count", 0) == 0:
+            match_id = "m-" + _uuid.uuid4().hex[:14]
+            rows_sql.append(
+                f"({_sql_quote(match_id)}, {_sql_quote(run_id)}, {_sql_quote(batch)}, "
+                f" NULL, NULL, "
+                f" {_sql_quote(r.get('rule_id'))}, {_sql_quote(r.get('rule_number'))}, "
+                f" {_sql_quote(r.get('rule_name'))}, {_sql_quote(r.get('target_table'))}, 'pass', "
+                f" NULL, {_sql_quote(r.get('severity'))}, "
+                f" {_sql_quote(r.get('citation'))}, NULL, NULL, CURRENT_TIMESTAMP())"
+            )
+
+    if rows_sql:
+        query(
+            "INSERT INTO INSURANCE_REGULATORY.GOLD_AUDIT.RULE_MATCH_RESULT "
+            "(match_id, run_id, filing_batch_id, source_record_id, policy_number, "
+            " rule_id, rule_number, rule_name, target_table, status, "
+            " violation_reason, severity, citation, evidence, validation_version, run_at) "
+            "VALUES " + ", ".join(rows_sql)
+        )
+
+    # Reconcile FILING_EXCEPTION: open new ones for current violations,
+    # mark previously-open ones that are no longer in the current run as 'fixed'.
+    current_keys = {(v["policy_number"], v["rule_id"]) for v in violations}
+
+    # Open any new exceptions
+    for v in violations:
+        exc_id = f"exc-{filing_id}-{v.get('policy_number','')}-{(v.get('rule_id') or '')[:8]}".replace(" ", "")[:64]
+        query(
+            f"MERGE INTO INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION t "
+            f"USING (SELECT {_sql_quote(exc_id)} AS exception_id) s "
+            f"  ON t.exception_id = s.exception_id "
+            f"WHEN NOT MATCHED THEN INSERT "
+            f"(exception_id, filing_batch_id, source_record_id, policy_number, "
+            f" rule_id, rule_number, rule_name, severity, violation_reason, citation, "
+            f" opened_at, resolution_status) VALUES ("
+            f"  {_sql_quote(exc_id)}, {_sql_quote(batch)}, {_sql_quote(v.get('record_id'))}, "
+            f"  {_sql_quote(v.get('policy_number'))}, {_sql_quote(v.get('rule_id'))}, "
+            f"  {_sql_quote(v.get('rule_number'))}, {_sql_quote(v.get('rule_name'))}, "
+            f"  {_sql_quote(v.get('severity'))}, {_sql_quote(v.get('violation_reason'))}, "
+            f"  {_sql_quote(v.get('citation'))}, CURRENT_TIMESTAMP(), 'open')"
+        )
+
+    # Close exceptions no longer present in this filing's current run
+    open_rows = query(
+        f"SELECT exception_id, policy_number, rule_id FROM INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
+        f"WHERE filing_batch_id = {_sql_quote(batch)} AND resolution_status = 'open'"
+    )
+    for row in open_rows:
+        key = (
+            row.get("policy_number") or row.get("POLICY_NUMBER"),
+            row.get("rule_id") or row.get("RULE_ID"),
+        )
+        if key not in current_keys:
+            exc_id = row.get("exception_id") or row.get("EXCEPTION_ID")
+            query(
+                f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
+                f"SET resolution_status = 'fixed', resolved_at = CURRENT_TIMESTAMP() "
+                f"WHERE exception_id = {_sql_quote(exc_id)}"
+            )
+
+    # Update filing-batch summary
+    query(
+        f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"SET last_validated_at = CURRENT_TIMESTAMP(), "
+        f"    last_validation_run_id = {_sql_quote(run_id)}, "
+        f"    open_blockers = {len(violations)}, "
+        f"    status = '{('resolving' if violations else 'approved')}' "
+        f"WHERE filing_batch_id = {_sql_quote(batch)}"
+    )
+
+    # Also log a USER_ACTION for the run itself
+    _record_action(filing_id, "validation_run", actor="system",
+                   summary=f"{len(rule_results)} rules · {len(violations)} violations",
+                   details={"run_id": run_id, "passing": sum(1 for r in rule_results if r.get('violation_count', 0) == 0),
+                            "failing": sum(1 for r in rule_results if r.get('violation_count', 0) > 0),
+                            "violations": len(violations)})
+    return run_id
+
+
+@_audit_safe
+def _record_action(filing_id: str, action_type: str, *,
+                   actor: str = "system",
+                   target_record: str | None = None,
+                   target_rule: str | None = None,
+                   summary: str | None = None,
+                   details: dict | None = None) -> None:
+    """Log a row to GOLD_AUDIT.USER_ACTION."""
+    batch = _ensure_filing_batch(filing_id) or filing_id
+    action_id = "act-" + _uuid.uuid4().hex[:14]
+    details_sql = "NULL"
+    if details:
+        details_sql = f"PARSE_JSON({_sql_quote(json.dumps(details))})"
+    query(
+        f"INSERT INTO INSURANCE_REGULATORY.GOLD_AUDIT.USER_ACTION "
+        f"(action_id, filing_batch_id, action_type, actor, target_record, target_rule, summary, details, acted_at) "
+        f"SELECT {_sql_quote(action_id)}, {_sql_quote(batch)}, {_sql_quote(action_type)}, "
+        f"       {_sql_quote(actor)}, {_sql_quote(target_record)}, {_sql_quote(target_rule)}, "
+        f"       {_sql_quote(summary)}, {details_sql}, CURRENT_TIMESTAMP()"
+    )
 
 
 @router.post("/pipeline/silver")
@@ -342,10 +516,17 @@ def validate_cancellations(filing: str | None = None) -> JSONResponse:
         "rules_errored": sum(1 for r in rule_results if r["status"] == "error"),
         "total_violations": len(violations),
     }
+
+    # Persist this run to audit (best-effort, never fails the request)
+    run_id = None
+    if filing:
+        run_id = _record_validation_run(filing, rule_results, violations)
+
     return JSONResponse({
         "summary": summary,
         "rules": rule_results,
         "violations": violations,
+        "run_id": run_id,
     })
 
 
@@ -605,6 +786,27 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
         if isinstance(v, Decimal): return float(v)
         return v
 
+    # Audit: log the manual fix. Filing is inferred from the policy_id range.
+    pid = None
+    pid_rows = query(f"SELECT id FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY WHERE policynumber = '{policy}' LIMIT 1")
+    if pid_rows:
+        pid = pid_rows[0].get("id") or pid_rows[0].get("ID")
+    filing_id = None
+    if pid is not None:
+        for f in FILINGS:
+            if f["policy_id_min"] <= int(pid) <= f["policy_id_max"]:
+                filing_id = f["id"]
+                break
+    if filing_id:
+        _record_action(
+            filing_id, "manual_fix",
+            actor=(body.get("actor") or "user"),
+            target_record=policy,
+            target_rule=field,
+            summary=f"{col}: {_safe(old)} → {new_str or '∅'}",
+            details={"table": spec["table"], "field": col, "old": _safe(old), "new": new_str},
+        )
+
     return JSONResponse({
         "ok": True,
         "policy_number": policy,
@@ -697,6 +899,58 @@ def _run(cmd: list[str]) -> dict:
     }
 
 
+@router.get("/audit/{filing_id}")
+def audit_history(filing_id: str, limit: int = 50) -> JSONResponse:
+    """Read the persisted audit history for a filing.
+
+    Returns the most recent N user actions (validation runs, manual fixes,
+    bulletin applies, etc.) plus the filing's batch metadata and current
+    exception list. Powers the Audit Log screen.
+    """
+    try:
+        batch_rows = query(
+            f"SELECT filing_batch_id, status, last_validated_at, last_validation_run_id, "
+            f"       open_blockers, generated_at, submitted_at, acked_at "
+            f"FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+            f"WHERE filing_batch_id = '{filing_id}'"
+        )
+    except Exception:
+        batch_rows = []
+
+    try:
+        actions = query(
+            f"SELECT action_id, action_type, actor, target_record, target_rule, "
+            f"       summary, "
+            f"       TO_VARCHAR(acted_at, 'YYYY-MM-DD HH24:MI:SS') AS acted_at "
+            f"FROM INSURANCE_REGULATORY.GOLD_AUDIT.USER_ACTION "
+            f"WHERE filing_batch_id = '{filing_id}' "
+            f"ORDER BY acted_at DESC "
+            f"LIMIT {int(limit)}"
+        )
+    except Exception:
+        actions = []
+
+    try:
+        exceptions = query(
+            f"SELECT exception_id, source_record_id, policy_number, rule_number, rule_name, "
+            f"       severity, violation_reason, resolution_status, resolution_action, "
+            f"       TO_VARCHAR(opened_at, 'YYYY-MM-DD HH24:MI:SS') AS opened_at, "
+            f"       TO_VARCHAR(resolved_at, 'YYYY-MM-DD HH24:MI:SS') AS resolved_at "
+            f"FROM INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
+            f"WHERE filing_batch_id = '{filing_id}' "
+            f"ORDER BY opened_at DESC"
+        )
+    except Exception:
+        exceptions = []
+
+    return JSONResponse({
+        "filing_id": filing_id,
+        "batch":     _jsonify(batch_rows)[0] if batch_rows else None,
+        "actions":   _jsonify(actions),
+        "exceptions":_jsonify(exceptions),
+    })
+
+
 @router.post("/bulletin/apply")
 def bulletin_apply() -> JSONResponse:
     """Apply the credit-score bulletin: materialize → version-bump → reload reference."""
@@ -728,7 +982,19 @@ def bulletin_apply() -> JSONResponse:
         "materialized/reference/tspr_reason_code_map.sql",
     ])})
 
-    return JSONResponse({"ok": all(s["ok"] for s in steps), "steps": steps})
+    ok = all(s["ok"] for s in steps)
+    # Audit the bulletin apply against every filing (it affects the canon, which is shared)
+    if ok:
+        for f in FILINGS:
+            _record_action(
+                f["id"], "bulletin_apply",
+                actor="D. Reyes",
+                target_rule=BULLETIN_OVERRIDE_NAME,
+                summary=f"Applied bulletin {BULLETIN_PATH.stem}",
+                details={"bulletin": BULLETIN_PATH.stem, "steps": [s["step"] for s in steps]},
+            )
+
+    return JSONResponse({"ok": ok, "steps": steps})
 
 
 @router.post("/bulletin/reset")
@@ -752,4 +1018,14 @@ def bulletin_reset() -> JSONResponse:
         "materialized/reference/tspr_reason_code_map.sql",
     ])})
 
-    return JSONResponse({"ok": all(s["ok"] for s in steps), "steps": steps})
+    ok = all(s["ok"] for s in steps)
+    if ok:
+        for f in FILINGS:
+            _record_action(
+                f["id"], "bulletin_reset",
+                actor="D. Reyes",
+                target_rule=BULLETIN_OVERRIDE_NAME,
+                summary=f"Reset bulletin {BULLETIN_PATH.stem} (canon back to baseline)",
+            )
+
+    return JSONResponse({"ok": ok, "steps": steps})
