@@ -15,7 +15,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
@@ -330,6 +330,50 @@ def kg_reason_code(code: str) -> JSONResponse:
     return JSONResponse({"code": code, "active": active, "all_versions": rows})
 
 
+@router.get("/kg/rules")
+def kg_rules() -> JSONResponse:
+    """List every Rule node in the canon (KG).
+
+    Returns id, name, parsed section letter, citation, and an `executable`
+    flag (true when the rule has been bridged to Snowflake — i.e., it has
+    `target_table` + `violation_sql` properties, so it can be run).
+    """
+    import re
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        result = s.run(
+            """
+            MATCH (r:Rule)
+            OPTIONAL MATCH (r)-[:CITES]->(c:Citation)
+            WITH r, head(collect(c)) AS c
+            RETURN
+              r.id            AS id,
+              r.name          AS name,
+              r.target_table  AS target_table,
+              r.violation_sql AS violation_sql,
+              r.severity      AS severity,
+              CASE
+                WHEN c IS NOT NULL THEN coalesce(c.full_citation, c.text, c.name)
+                ELSE NULL
+              END             AS citation
+            ORDER BY r.name
+            """
+        )
+        rules = [dict(r) for r in result]
+    for r in rules:
+        m = re.match(r"Rule\s+([A-Z])\.", r.get("name") or "")
+        r["section"] = m.group(1) if m else "Other"
+        r["executable"] = bool(r.get("target_table"))
+        # Don't ship the SQL/citation noise in the list view
+        r.pop("target_table", None)
+        r.pop("violation_sql", None)
+    counts = {
+        "total": len(rules),
+        "executable": sum(1 for r in rules if r["executable"]),
+        "descriptive": sum(1 for r in rules if not r["executable"]),
+    }
+    return JSONResponse({"rules": rules, "counts": counts})
+
+
 @router.get("/reference/reason-codes")
 def reference_reason_codes() -> JSONResponse:
     """Read REFERENCE.TSPR_REASON_CODE_MAP — what the regulation currently says."""
@@ -342,6 +386,68 @@ def reference_reason_codes() -> JSONResponse:
         "ORDER BY tspr_reason_code"
     )
     return JSONResponse({"rows": _jsonify(rows), "count": len(rows)})
+
+
+@router.post("/bronze/fix")
+def bronze_fix(body: dict = Body(...)) -> JSONResponse:
+    """Manually correct a record's reason code in Bronze.
+
+    Simulates a carrier editing the policy in PolicyCenter and the change
+    propagating into Bronze via CDC. Real-life: the carrier opens the policy,
+    changes the reason code, Guidewire's CDC stream replays the new value
+    into Bronze, and the validator re-runs.
+
+    Body: { "policy_number": "POL-0012", "new_code": "J" }
+    """
+    policy = (body.get("policy_number") or "").strip().upper()
+    new_code = (body.get("new_code") or "").strip().upper()
+
+    if not policy or not policy.startswith("POL-"):
+        raise HTTPException(400, "policy_number must be like POL-0012")
+    # Allow up to 3 valid TSPR letters (or empty = clear the field)
+    if new_code and (not new_code.isalpha() or len(new_code) > 3):
+        raise HTTPException(400, "new_code must be 1–3 letters (or empty)")
+
+    # Look up the job row for this policy
+    rows = query(
+        "SELECT j.publicid, j.cancellationreason, j.nonrenewalreason, "
+        "       j.declinereason, j.subtype "
+        "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j "
+        "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+        f"WHERE p.policynumber = '{policy}'"
+    )
+    if not rows:
+        raise HTTPException(404, f"no job record found for policy {policy}")
+    row = rows[0]
+
+    # Figure out which of the three reason columns to update.
+    # Snowflake returns column keys in lowercase; fall back to upper just in case.
+    def g(k):
+        return row.get(k) if k in row else row.get(k.upper())
+    if g("cancellationreason") is not None:
+        col, old = "cancellationreason", g("cancellationreason")
+    elif g("nonrenewalreason") is not None:
+        col, old = "nonrenewalreason", g("nonrenewalreason")
+    elif g("declinereason") is not None:
+        col, old = "declinereason", g("declinereason")
+    else:
+        raise HTTPException(400, "no reason code on this record to fix")
+
+    pubid = g("publicid")
+    new_val_sql = "NULL" if not new_code else f"'{new_code}'"
+    query(
+        f"UPDATE INSURANCE_REGULATORY.BRONZE.GW_PC_JOB "
+        f"SET {col} = {new_val_sql} "
+        f"WHERE publicid = '{pubid}'"
+    )
+
+    return JSONResponse({
+        "ok": True,
+        "policy_number": policy,
+        "field": col,
+        "old_value": old,
+        "new_value": new_code or None,
+    })
 
 
 @router.get("/bronze/cancellations")

@@ -103,6 +103,12 @@ def pipeline_page() -> FileResponse:
     return FileResponse(UI_DIR / "pipeline.html")
 
 
+@app.get("/workstation")
+def workstation_page() -> FileResponse:
+    """Unified regulatory workstation — single UI binding all RHS endpoints."""
+    return FileResponse(UI_DIR / "workstation.html")
+
+
 app.include_router(rhs_router)
 
 
