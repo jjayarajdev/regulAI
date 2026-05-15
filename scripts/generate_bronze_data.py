@@ -18,6 +18,12 @@ Section E (cancellations/nonrenewals/declinations):
   POL-0018  Cancellation, reason DG  — valid: claims + wind/hail exposure
   POL-0019  Declination,  reason IO  — INVALID: I and O are not valid TSPR codes
 
+Other intentional data-quality quirks (exercise rules outside A.34):
+  POL-0017  naic_number = "ABC45"        — INVALID per A.22 (must be 5 digits)
+  POL-0014  writtenpremium = $50         — INVALID per A.30 (out of range)
+  POL-0015  termtype = "Custom"          — WARNING per A.40 (not a standard term)
+  POL-0010  job.noticedate = NULL        — INVALID per A.42 (notice date required)
+
 Section D (claims) — four scenarios that exercise the loss flow:
   CLM-001   Wind, reserve only          (KIND=7, NCC=1, no payment)
   CLM-002   Hail roof, ACV paid + RC    (KIND=6/7, DEPREC populated)
@@ -131,7 +137,13 @@ def policyperiod() -> pa.Table:
         2019: "Declined",
     }
     rows = [
-        {"id": 3000 + pid, "policy_id": pid, "status": POLICY_STATUS[pid], "termtype": "Annual"}
+        {
+            "id": 3000 + pid,
+            "policy_id": pid,
+            "status": POLICY_STATUS[pid],
+            # POL-0015 (id 2015) gets a non-standard termtype → triggers A.40
+            "termtype": "Custom" if pid == 2015 else "Annual",
+        }
         for pid in POLICY_DETAILS
     ]
     n = len(rows)
@@ -168,12 +180,14 @@ def policyperiod() -> pa.Table:
         "nonrenewalcode": [None] * n,
         "writtendate": [_ts(2025, 12, 1)] * n,
         "totalpremium": [1500.00] * n,
-        "writtenpremium": [1500.00] * n,
+        # POL-0014 (id 2014) gets a tiny premium → triggers A.30 range rule
+        "writtenpremium": [50.00 if r["policy_id"] == 2014 else 1500.00 for r in rows],
         "totalcost": [1500.00] * n,
         "fulltermamount": [1500.00] * n,
         "earnedpremium": [375.00] * n,
         "uwcompanycode": ["REGULAI_INS"] * n,
-        "naic_number": [NAIC] * n,
+        # POL-0017 (id 2017) gets a non-numeric NAIC → triggers A.22 regex rule
+        "naic_number": ["ABC45" if r["policy_id"] == 2017 else NAIC for r in rows],
         "tico_company_number": [TICO] * n,
         "createtime": [_ts(2025, 12, 1)] * n,
         "updatetime": [_ts(2026, 3, 31)] * n,
@@ -196,12 +210,13 @@ def job() -> pa.Table:
             "cancellationdate": _ts(2026, 3, 1),
             "within60days": False,
         },
-        # POL-0010: nonrenewal, reasons L+D (credit + claims) — valid combo
+        # POL-0010: nonrenewal, reasons L+D — valid combo, BUT noticedate is missing
+        # (intentional gap → triggers A.42 notice-date-required rule)
         {
             "id": 7010, "policy_id": 2010, "subtype": "Renewal",
             "status": "NonRenewed", "cancellationreason": None,
             "nonrenewalreason": "LD", "declinereason": None,
-            "noticedate": _ts(2026, 3, 1),
+            "noticedate": None,
             "effectivedate": _ts(2026, 4, 1),
             "cancellationdate": None,
             "within60days": False,
