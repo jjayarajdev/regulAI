@@ -9,27 +9,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0f1014;
-    --bg-1: #161820;
-    --bg-2: #1c1f29;
-    --bg-3: #232735;
-    --line: #2a2e3c;
-    --line-2: #3a3f4f;
-    --line-bright: #565b6e;
-    --ink: #e5e7ee;
-    --ink-2: #a4a9b8;
-    --ink-3: #6b6f7e;
-    --ink-4: #444856;
-    --accent: #7c9cf5;
-    --accent-2: #4f6df2;
-    --good: #4ade80;
-    --warn: #fbbf24;
-    --bad: #f87171;
-    --bad-bg: rgba(248,113,113,0.08);
-    --warn-bg: rgba(251,191,36,0.10);
-    --good-bg: rgba(74,222,128,0.08);
-    --kg: #a78bfa;
-    --sf: #5eead4;
+    /* Neutral light palette — Linear/Jira-light style */
+    --bg:        #faf9f6;   /* page · warm paper */
+    --bg-1:      #ffffff;   /* card surfaces, top bar, rail */
+    --bg-2:      #f3f1ec;   /* hover, active row */
+    --bg-3:      #ebe8e0;   /* deeper hover, board column */
+    --line:      #e7e4dc;   /* 1px borders */
+    --line-2:    #d4d0c5;   /* 1px borders, stronger */
+    --line-bright:#a8a399;  /* dividers/strokes */
+    --ink:       #1c1c19;   /* primary text */
+    --ink-2:     #4f4d49;   /* secondary text */
+    --ink-3:     #7a766f;   /* muted text */
+    --ink-4:     #b0aca2;   /* placeholders */
+    --accent:    #4f4dd6;   /* brand · muted indigo */
+    --accent-2:  #3a39b3;   /* brand hover */
+    --good:      #2d7d4b;   /* pass · forest */
+    --warn:      #b56014;   /* warn · burnt orange */
+    --bad:       #b03030;   /* error · brick */
+    --good-bg:   rgba(45,125,75,0.10);
+    --warn-bg:   rgba(181,96,20,0.12);
+    --bad-bg:    rgba(176,48,48,0.10);
+    --kg:        #6e58c8;
+    --sf:        #1f8a82;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
