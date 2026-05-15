@@ -8,28 +8,37 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..500;1,9..144,300..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
-  /* ── tokens ───────────────────────────────────────────────── */
+  /* ── tokens · cool slate (Stripe/Vercel) ─────────────────────── */
   :root {
-    --paper: #faf9f6;
-    --surface: #ffffff;
+    --paper:   #f7f9fb;    /* page background · cool off-white */
+    --surface: #ffffff;    /* cards, rail, header */
+    --paper-2: #f1f4f8;    /* subtle hover */
+    --paper-3: #e8eef4;    /* deeper hover */
 
-    --ink: #18181b;
-    --ink-2: #52525b;
-    --ink-3: #8a8a90;
-    --ink-4: #c6c6c9;
+    --ink:   #0f172a;      /* slate-900 */
+    --ink-2: #475569;      /* slate-600 */
+    --ink-3: #94a3b8;      /* slate-400 */
+    --ink-4: #cbd5e1;      /* slate-300 */
 
-    --line: #ebeae5;
-    --line-2: #dcdbd5;
+    --line:   #e5e9ef;     /* slate-200 */
+    --line-2: #cbd5e1;     /* slate-300 */
 
-    --accent: #1e293b;
-    --accent-soft: #f1f3f6;
+    --accent:      #6366f1;             /* indigo-500 */
+    --accent-2:    #4f46e5;             /* indigo-600 */
+    --accent-soft: rgba(99,102,241,0.08);
 
-    --good: #2f6f4f;
-    --warn: #8a5a16;
-    --bad:  #9b2c2c;
+    --good: #16a34a;       /* green-600 */
+    --warn: #d97706;       /* amber-600 */
+    --bad:  #dc2626;       /* red-600 */
+    --good-bg: rgba(22,163,74,0.08);
+    --warn-bg: rgba(217,119,6,0.10);
+    --bad-bg:  rgba(220,38,38,0.08);
 
-    --kg: #5b4d8a;   /* restrained violet */
-    --sf: #2c6b6b;   /* restrained teal   */
+    --kg: #7c3aed;         /* violet-600 */
+    --sf: #0891b2;         /* cyan-600 */
+
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+    --shadow:    0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
 
     --f-serif: "Fraunces", Georgia, serif;
     --f-sans:  "Inter", -apple-system, system-ui, sans-serif;
@@ -652,7 +661,195 @@
   }
   .filing-back:hover { color: var(--ink); }
 
-  /* Section summary cards (Option B — compact + Details popup) */
+  /* ── Phase 2 · Filing ticket-board (kanban) ──────────────────── */
+  .filing-kanban-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1200px) { .filing-kanban-layout { grid-template-columns: 1fr; } }
+
+  .kanban-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .k-col {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 280px;
+    display: flex; flex-direction: column;
+  }
+  .k-col-h {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .k-col-h.high  { color: var(--bad);  border-top: 3px solid var(--bad); }
+  .k-col-h.med   { color: var(--warn); border-top: 3px solid var(--warn); }
+  .k-col-h.low   { color: var(--ink-2); border-top: 3px solid var(--ink-4); }
+  .k-col-h .ct {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    background: var(--paper);
+    padding: 1px 8px;
+    border-radius: 9px;
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+  .k-body {
+    padding: 10px;
+    flex: 1;
+    min-height: 100px;
+  }
+  .ticket {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all .12s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  .ticket:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.10);
+    transform: translateY(-1px);
+  }
+  .ticket-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 8px;
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+  }
+  .ticket-id { color: var(--accent); font-weight: 600; }
+  .ticket-title {
+    font-size: 13px; font-weight: 500; color: var(--ink);
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+  .ticket-reason {
+    font-size: 12px; color: var(--ink-2);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .ticket-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px;
+    padding-top: 9px;
+    border-top: 1px dashed var(--line);
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+  .ticket-pills {
+    display: flex; gap: 5px; flex-wrap: wrap;
+  }
+  .ticket-pill {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 9px;
+    background: var(--paper-2);
+    color: var(--ink-2);
+  }
+  .ticket-pill.code {
+    color: var(--bad); background: var(--bad-bg);
+  }
+  .ticket-pill.fix {
+    color: var(--good); background: var(--good-bg);
+  }
+  .ticket-action {
+    background: var(--ink); color: #fff;
+    border: 1px solid var(--ink);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .ticket-action:hover { background: #000; }
+  .ticket-action.ghost {
+    background: var(--surface); color: var(--ink-2);
+    border-color: var(--line-2);
+  }
+  .ticket-action.ghost:hover { color: var(--ink); border-color: var(--ink-3); }
+  .ticket-action.fix-bul {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+    box-shadow: 0 1px 2px rgba(99,102,241,0.18);
+  }
+  .ticket-action.fix-bul:hover { background: var(--accent-2); border-color: var(--accent-2); }
+  .ticket-assignee {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 9px; font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+  }
+  .ticket-assignee.mo { background: #f97316; }
+  .ticket-assignee.dr { background: #6366f1; }
+  .ticket-assignee.jp { background: #7c3aed; }
+  .ticket-assignee.un {
+    background: var(--paper); color: var(--ink-3);
+    border: 1.5px dashed var(--ink-4);
+    font-size: 11px;
+  }
+
+  /* Kanban activity panel */
+  .kanban-activity {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .ka-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+    font-weight: 600;
+  }
+  .ka-row {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line);
+    display: grid; grid-template-columns: 28px 1fr;
+    gap: 10px;
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  .ka-row:last-child { border-bottom: none; }
+  .ka-row .icon {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 600;
+    color: #fff;
+    flex-shrink: 0;
+    background: var(--accent);
+  }
+  .ka-row .icon.sy { background: var(--ink); }
+  .ka-row .icon.kg { background: var(--kg); }
+  .ka-row .icon.sf { background: var(--sf); }
+  .ka-row .icon.bul { background: var(--warn); }
+  .ka-row .who { color: var(--ink); font-weight: 500; }
+  .ka-row .what { color: var(--ink-2); }
+  .ka-row .when { color: var(--ink-3); font-size: 11px; font-family: var(--f-mono); margin-top: 3px; display: block; }
+
+  /* Section summary cards (kept for non-Filing screens that still use them) */
   .section-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
@@ -1781,7 +1978,10 @@
     display: grid;
     grid-template-columns: 200px 1fr;
     gap: 28px;
+    box-shadow: var(--shadow-sm);
+    transition: border-color .12s ease, box-shadow .12s ease;
   }
+  .tl-card:hover { border-color: var(--line-2); box-shadow: var(--shadow); }
   .tl-actor { display: flex; align-items: center; gap: 12px; }
   .tl-actor .avatar { width: 32px; height: 32px; font-size: 11.5px; }
   .tl-actor .meta { line-height: 1.25; }
@@ -1852,6 +2052,19 @@
       <div class="rail-link" data-screen="regulations">Regulations<span class="count" data-bind="rail-regs-count">—</span></div>
       <div class="rail-link" data-screen="bulletins">Bulletins<span class="count" data-bind="rail-bul-count">—</span></div>
       <div class="rail-link" data-screen="audit">Audit log</div>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-label">My filings</div>
+      <div class="rail-link" data-screen="filing" style="cursor:pointer;">
+        TPA-Q4-2025<span class="count" data-bind="rail-tpa-count">—</span>
+      </div>
+      <div class="rail-link" style="opacity:0.6;cursor:default;">
+        RES-M03-2026<span class="count" style="color:var(--ink-3);">draft</span>
+      </div>
+      <div class="rail-link" style="opacity:0.6;cursor:default;">
+        CL-Q4-2025<span class="count" style="color:var(--good);">ack ✓</span>
+      </div>
     </div>
     <div class="rail-group">
       <div class="rail-label">Sources</div>
@@ -1987,8 +2200,16 @@
           </div>
         </div>
 
-        <div class="section-cards" data-bind="filing-section-cards">
-          <div class="sc"><div class="sc-summary" style="color:var(--ink-3);">loading…</div></div>
+        <div class="filing-kanban-layout">
+          <div class="kanban-board" data-bind="filing-kanban">
+            <div class="k-col"><div class="k-col-h"><span>loading…</span></div></div>
+            <div class="k-col"><div class="k-col-h"><span>loading…</span></div></div>
+            <div class="k-col"><div class="k-col-h"><span>loading…</span></div></div>
+          </div>
+          <aside class="kanban-activity" data-bind="filing-activity">
+            <div class="ka-head">Filing activity</div>
+            <div class="ka-row"><div class="icon sy">…</div><div><span class="who">Loading…</span></div></div>
+          </aside>
         </div>
       </div>
 
@@ -2534,6 +2755,18 @@
     setText('rail-filing-count', filingCt);
     setText('rail-regs-count', v ? v.summary.rules_run : '—');
     setText('rail-bul-count', st ? (st.bulletin_applied ? '✓' : 'new') : '—');
+    // "My filings" section — the active TPA filing's open-blocker count
+    const tpaEl = bind('rail-tpa-count');
+    if (tpaEl) {
+      if (!v) { tpaEl.textContent = '—'; tpaEl.style.color = 'var(--ink-3)'; }
+      else if (v.summary.total_violations > 0) {
+        tpaEl.textContent = v.summary.total_violations;
+        tpaEl.style.color = 'var(--bad)';
+      } else {
+        tpaEl.textContent = '✓';
+        tpaEl.style.color = 'var(--good)';
+      }
+    }
   }
 
   // ─── Topbar + page header live indicators ──────────────────────
@@ -3093,6 +3326,144 @@ RETURN r, rel, n</pre>
       </div>`;
   }
 
+  // ─── Filing kanban + activity (Phase 2 visual rework) ──────────
+  // Bucket violations by severity for the 3-column board.
+  function violationSeverity(vio, rules) {
+    const r = rules.find(x => x.rule_id === vio.rule_id) || {};
+    const sev = (r.severity || vio.severity || 'ERROR').toUpperCase();
+    if (sev === 'WARNING' || sev === 'WARN') return 'med';
+    if (sev === 'INFO') return 'low';
+    return 'high';
+  }
+
+  // Rotate assignees for visual variety (in a real app, comes from KG/ticket store)
+  const ASSIGNEE_POOL = [
+    { id: 'mo', nm: 'M. Okonkwo', role: 'Actuary' },
+    { id: 'dr', nm: 'D. Reyes',   role: 'VP Compliance' },
+    { id: 'jp', nm: 'J. Park',    role: 'Officer' },
+    { id: 'un', nm: '—',           role: 'unassigned' },
+  ];
+  function assigneeFor(vio) {
+    // Deterministic mapping by policy number — same violator gets same assignee every render
+    const pn = vio.policy_number || '';
+    const idx = Math.abs(pn.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % ASSIGNEE_POOL.length;
+    return ASSIGNEE_POOL[idx];
+  }
+
+  function renderTicket(vio, fixable, idx) {
+    const code = reasonCodeFor(vio.policy_number) || '—';
+    const ass = assigneeFor(vio);
+    const isFix = code === 'L';  // bulletin fixes L-companion only
+    const action = isFix
+      ? `<button class="ticket-action fix-bul" data-action="apply-bulletin-now">Apply bulletin</button>`
+      : `<button class="ticket-action ghost" data-action="open-fix-from-ticket" data-policy="${esc(vio.policy_number)}" data-code="${esc(code)}" data-rulenum="${esc(vio.rule_number)}" data-rule="${esc(vio.rule_id)}">Fix manually →</button>`;
+    return `
+      <div class="ticket" data-action="show-policy" data-policy="${esc(vio.policy_number)}">
+        <div class="ticket-head">
+          <span class="ticket-id">FILE-${(1140 + idx).toString().padStart(4, '0')}</span>
+          <span>${esc(vio.policy_number)}</span>
+        </div>
+        <div class="ticket-title">${esc(vio.rule_name.replace(/^Rule\s+/, ''))}</div>
+        <div class="ticket-reason">${esc(vio.violation_reason || '')}</div>
+        <div class="ticket-pills">
+          <span class="ticket-pill code">${esc(code)}</span>
+          <span class="ticket-pill">${esc(vio.rule_number)}</span>
+          ${isFix ? '<span class="ticket-pill fix">bulletin-fixable</span>' : ''}
+        </div>
+        <div class="ticket-foot">
+          <div class="ticket-assignee ${ass.id}" title="${esc(ass.nm)} · ${esc(ass.role)}">${ass.id === 'un' ? '?' : ass.id.toUpperCase()}</div>
+          ${action}
+        </div>
+      </div>`;
+  }
+
+  function renderFilingKanban(v, total, pass, fail, vios, fixable, manual) {
+    const board = bind('filing-kanban');
+    if (!board) return;
+    const buckets = { high: [], med: [], low: [] };
+    (v.violations || []).forEach((vio, i) => {
+      buckets[violationSeverity(vio, v.rules)].push({ vio, idx: i });
+    });
+    const col = (lbl, key, label) => {
+      const items = buckets[key];
+      const body = items.length
+        ? items.map(({ vio, idx }) => renderTicket(vio, fixable, idx)).join('')
+        : `<div style="color:var(--ink-3);font-size:12px;text-align:center;padding:20px 12px;">${key === 'high' ? 'no high-severity blockers' : key === 'med' ? 'no warnings' : 'no informational issues'}</div>`;
+      return `
+        <div class="k-col">
+          <div class="k-col-h ${key}">
+            <span>${esc(label)}</span>
+            <span class="ct">${items.length}</span>
+          </div>
+          <div class="k-body">${body}</div>
+        </div>`;
+    };
+    board.innerHTML = col('hi', 'high', '● Blocks submission')
+                     + col('md', 'med', '● Needs review')
+                     + col('lo', 'low', '● Informational');
+  }
+
+  function renderFilingActivity(v) {
+    const act = bind('filing-activity');
+    if (!act) return;
+    const items = [];
+    items.push({
+      icon: 'sy', icon_label: '!',
+      who: 'Validation engine',
+      what: `re-ran ${v.summary.rules_run} rules · <b style="color:var(--bad);">${v.summary.rules_failing} failing</b> · <b>${v.summary.total_violations}</b> record violations`,
+      when: 'just now',
+    });
+    if (v.violations.length) {
+      const top = v.violations[0];
+      items.push({
+        icon: '', icon_label: top.policy_number.replace('POL-','').slice(0,2),
+        who: top.policy_number,
+        what: `flagged by <b>${esc(top.rule_number)}</b> · ${esc((top.violation_reason||'').slice(0,90))}…`,
+        when: '14:32 CST',
+      });
+    }
+    if (app.data.st?.bulletin_applied) {
+      items.push({
+        icon: 'kg', icon_label: 'B',
+        who: 'KG canon',
+        what: `bulletin <b style="color:var(--accent);">${esc(app.data.st.bulletin_id)}</b> applied · 1 record flipped valid`,
+        when: 'earlier today',
+      });
+    } else {
+      items.push({
+        icon: 'bul', icon_label: 'B',
+        who: 'TDI bulletin',
+        what: `<b>${esc(app.data.st?.bulletin_id || 'B-2026-Q4-118')}</b> received — affects A.34 L-companion rule`,
+        when: '2 days ago',
+      });
+    }
+    items.push({
+      icon: 'sf', icon_label: 'S',
+      who: 'Snowflake',
+      what: `Bronze ingest from PolicyCenter · <b>${(app.data.bronze?.rows || []).length} records</b> · 0 errors`,
+      when: 'overnight',
+    });
+    items.push({
+      icon: '', icon_label: 'JP',
+      who: 'J. Park',
+      what: `drafted TPA-Q4-2025 from Q4 close`,
+      when: 'Feb 8',
+    });
+
+    act.innerHTML = `
+      <div class="ka-head">Filing activity</div>
+      ${items.map(i => `
+        <div class="ka-row">
+          <div class="icon ${i.icon}">${esc(i.icon_label)}</div>
+          <div>
+            <span class="who">${i.who}</span> <span class="what">${i.what}</span>
+            <span class="when">${esc(i.when)}</span>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  }
+
   // ─── Filing Workshop · compact summary + detail popups ─────────
   function renderFiling() {
     const v = app.data.val;
@@ -3141,7 +3512,11 @@ RETURN r, rel, n</pre>
       `).join('')}</div>`;
     }
 
-    // ── Section summary cards ──
+    // ── Filing kanban + activity (Phase 2 redesign) ──
+    renderFilingKanban(v, total, pass, fail, vios, fixable, manual);
+    renderFilingActivity(v);
+    return;
+    // (Legacy summary-cards path retained below for reference, never reached)
     const cards = bind('filing-section-cards');
     if (cards) {
       const blockerCard = `
@@ -3940,6 +4315,18 @@ RETURN r, rel, n</pre>
       const code = el.dataset.code;
       const ruleNum = el.dataset.rulenum;
       slot.innerHTML = renderFixEditor(policy, code, ruleNum);
+    }
+
+    if (action === 'open-fix-from-ticket') {
+      // Ticket "Fix manually →" — open the policy detail panel which has the per-rule fix editor
+      e.stopPropagation();
+      const policy = el.dataset.policy;
+      openDetail_policy(policy);
+      // Auto-expand the matching rule's fix editor inside the panel after a tick
+      setTimeout(() => {
+        const fixBtn = bind('detail-body')?.querySelector(`[data-rulenum="${el.dataset.rulenum}"]`);
+        if (fixBtn) fixBtn.click();
+      }, 200);
     }
 
     if (action === 'open-fix-row') {
