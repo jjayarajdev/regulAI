@@ -53,11 +53,158 @@ TICO = "XYZ"
 INGEST_TS = dt.datetime(2026, 4, 1, 6, 0, 0)
 CDC_TS = dt.datetime(2026, 3, 31, 23, 59, 59)
 
+import random as _rng_module
+
+# Deterministic seed — change to regenerate, keep fixed for reproducible demos.
+BULK_RANDOM_SEED = 20260515
+
+# Bulk policy counts per filing (layered on top of the curated set)
+BULK_COUNTS = {"TPA": 200, "RES": 100, "CL": 50}
+
+# Texas metro ZIP pool with population weights — bulk policies sample from this
+# so we get realistic geo distribution (Houston/Dallas heavy, smaller cities thin).
+_TX_ZIP_POOL = [
+    # zip,    city,             county,        weight
+    ("77002", "Houston",        "Harris",      6),
+    ("77024", "Houston",        "Harris",      4),
+    ("77019", "Houston",        "Harris",      3),
+    ("77018", "Houston",        "Harris",      3),
+    ("75201", "Dallas",         "Dallas",      4),
+    ("75205", "Dallas",         "Dallas",      3),
+    ("75001", "Addison",        "Dallas",      2),
+    ("78701", "Austin",         "Travis",      4),
+    ("78704", "Austin",         "Travis",      3),
+    ("78745", "Austin",         "Travis",      3),
+    ("78712", "Austin",         "Travis",      2),
+    ("78216", "San Antonio",    "Bexar",       4),
+    ("78215", "San Antonio",    "Bexar",       2),
+    ("76101", "Fort Worth",     "Tarrant",     3),
+    ("76001", "Arlington",      "Tarrant",     2),
+    ("76012", "Arlington",      "Tarrant",     2),
+    ("75070", "McKinney",       "Collin",      2),
+    ("78415", "Corpus Christi", "Nueces",      1),
+    ("76301", "Wichita Falls",  "Wichita",     1),
+    ("79101", "Amarillo",       "Potter",      1),
+    ("76710", "Waco",           "McLennan",    1),
+]
+
+# Reason-code distributions per filing — weighted so violations are rare-but-present
+_REASON_DIST = {
+    # (reason_code or None, weight) · None = no cancellation (in-force policy)
+    "TPA": [
+        (None, 50),
+        ("A", 30), ("LD", 12), ("LK", 8), ("LM", 6),
+        ("K", 8), ("M", 4), ("DG", 4), ("J", 3), ("D", 3),
+        # Violations — rare but present so each rule has fresh blockers
+        ("L", 2.5), ("JD", 1.5), ("LJ", 1), ("IO", 0.5),
+    ],
+    "RES": [
+        (None, 65),
+        ("A", 22), ("LD", 10), ("M", 8), ("K", 6), ("N", 4), ("LK", 4),
+        ("DG", 2),
+        ("L", 1.5), ("JD", 0.5),
+    ],
+    "CL": [
+        (None, 45),
+        ("A", 20), ("DG", 12), ("J", 10), ("H", 8), ("K", 6),
+        ("M", 3), ("D", 5),
+        ("L", 1),
+    ],
+}
+
+# Subtype heuristic: how is the cancellation/nonrenewal/declination reported?
+_SUBTYPE_FOR_REASON = {
+    # Most A-coded events are cancellations (failure to pay)
+    "A": "Cancellation",
+    # L alone or invalid → typically declinations (initial application rejected)
+    "L": "Submission", "IO": "Submission", "LJ": "Submission",
+    "JD": "Submission",
+    # J alone → market withdrawal, typically a cancellation
+    "J": "Cancellation",
+    # Multi-letter combinations are typically nonrenewals
+    "LD": "Renewal", "LK": "Renewal", "LM": "Renewal", "M": "Renewal", "N": "Renewal", "K": "Renewal",
+    "DG": "Cancellation", "D": "Cancellation", "H": "Cancellation",
+}
+
+# Status that follows from subtype
+_STATUS_FOR_SUBTYPE = {
+    "Cancellation": "Cancelled",
+    "Renewal":      "NonRenewed",
+    "Submission":   "Declined",
+}
+
+
+def _bulk_synth_policies() -> dict[int, dict]:
+    """Generate bulk synthetic policy details (ids 2100..2299 TPA / 2300..2399 RES / 2400..2449 CL).
+
+    Layered on top of the curated POLICY_DETAILS — the curated cases keep their
+    role as the demo narrative (POL-0011 is always The L-Alone Case, etc.),
+    while these add distributional realism for screenshots and stress tests.
+    """
+    rng = _rng_module.Random(BULK_RANDOM_SEED)
+    bulk: dict[int, dict] = {}
+    plans = [
+        # plan_code, id_range,            form_pool,         cov_a_range_k, tenure_max
+        ("TPA", range(2100, 2300), ["A","B","3"],  ( 180,  600), 30),
+        ("RES", range(2300, 2400), ["3","5","6"],  ( 180,  850), 25),
+        ("CL",  range(2400, 2450), ["6","CGL"],    ( 500, 5000), 40),
+    ]
+    for _plan_code, id_range, form_pool, (cov_lo, cov_hi), tenure_max in plans:
+        zip_choices  = [z[0] for z in _TX_ZIP_POOL]
+        zip_weights  = [z[3] for z in _TX_ZIP_POOL]
+        for pid in id_range:
+            zipcode = rng.choices(zip_choices, weights=zip_weights, k=1)[0]
+            year_built = rng.randint(1970, 2024)
+            tenure = rng.randint(0, tenure_max)
+            # triangular distribution gives a "mostly-medium, occasional high" cov_a shape
+            cov_a = int(rng.triangular(cov_lo, cov_hi, (cov_lo + cov_hi) * 0.5) * 1000)
+            bulk[pid] = {
+                "pol":          f"POL-{pid - 2000:04d}",
+                "territory":    rng.choice(["10","20","30","40","50","60"]),
+                "zip":          zipcode,
+                "construction": str(rng.choices([1, 2, 3], weights=[7, 2, 1])[0]),
+                "year_built":   year_built,
+                "form":         rng.choice(form_pool),
+                "cov_a":        cov_a,
+                "tenure_years": tenure,
+            }
+    return bulk
+
+
+def _bulk_jobs_for(policy_id: int, plan_code: str, rng: _rng_module.Random) -> list[dict] | None:
+    """Sample 0 or 1 cancellation/nonrenewal/declination job for a bulk policy."""
+    dist = _REASON_DIST[plan_code]
+    choices = [d[0] for d in dist]
+    weights = [d[1] for d in dist]
+    reason = rng.choices(choices, weights=weights, k=1)[0]
+    if reason is None:
+        return None  # no job — policy is in-force
+    subtype = _SUBTYPE_FOR_REASON.get(reason, "Cancellation")
+    status  = _STATUS_FOR_SUBTYPE.get(subtype, "Bound")
+    job_id  = 7000 + policy_id - 2000   # 7100..7299 for TPA bulk, etc.
+    # Notice/effective dates fall within reporting period
+    month = rng.randint(1, 3) if plan_code != "RES" else 3   # RES bulk is March 2026
+    day   = rng.randint(1, 28)
+    notice_date = dt.datetime(2026, month, day)
+    eff_date    = notice_date + dt.timedelta(days=rng.choice([14, 21, 30]))
+    return [{
+        "id": job_id, "policy_id": policy_id, "subtype": subtype,
+        "status": status,
+        "cancellationreason": reason if subtype == "Cancellation" else None,
+        "nonrenewalreason":   reason if subtype == "Renewal"      else None,
+        "declinereason":      reason if subtype == "Submission"   else None,
+        "noticedate":     notice_date,
+        "effectivedate":  eff_date,
+        "cancellationdate": eff_date if subtype == "Cancellation" else None,
+        "within60days": False,
+    }]
+
+
 # Policy → (territory, ZIP, construction, year_built, form, coverageA)
 # Three filings:
-#   POL-0001..0019  TPA (Texas Private Auto / homeowners — existing)
-#   POL-0030..0034  RES (Residential Monthly)
-#   POL-0050..0053  CL  (Commercial Lines Quarterly)
+#   POL-0001..0019  TPA curated      |  POL-0100..0299  TPA bulk synthetic
+#   POL-0030..0034  RES curated      |  POL-0300..0399  RES bulk synthetic
+#   POL-0050..0053  CL curated       |  POL-0400..0449  CL bulk synthetic
 POLICY_DETAILS = {
     # ── TPA filing (existing) ──
     2001: {"pol": "POL-0001", "territory": "30", "zip": "78701", "construction": "1", "year_built": 2010, "form": "A", "cov_a": 250000, "tenure_years": 5},
@@ -85,12 +232,18 @@ POLICY_DETAILS = {
     2053: {"pol": "POL-0053", "territory": "10", "zip": "78216", "construction": "1", "year_built": 2003, "form": "6", "cov_a": 680000, "tenure_years": 22},
 }
 
-# Filing membership — used to scope queries by current filing context
+# Filing membership — used to scope queries by current filing context.
+# Includes both curated and bulk-synthetic ranges.
 POLICY_FILING = {
-    **{pid: "TPA" for pid in range(2001, 2020)},
-    **{pid: "RES" for pid in range(2030, 2035)},
-    **{pid: "CL"  for pid in range(2050, 2054)},
+    **{pid: "TPA" for pid in list(range(2001, 2020)) + list(range(2100, 2300))},
+    **{pid: "RES" for pid in list(range(2030, 2035)) + list(range(2300, 2400))},
+    **{pid: "CL"  for pid in list(range(2050, 2054)) + list(range(2400, 2450))},
 }
+
+# Merge the bulk synthetic policies into POLICY_DETAILS — this is what every
+# generator function iterates, so all 15 Bronze tables auto-extend with bulk
+# data. The curated 21 keep their explicit definitions; bulk policies follow.
+POLICY_DETAILS.update(_bulk_synth_policies())
 
 
 def _ts(y: int, m: int, d: int, hh: int = 12, mm: int = 0) -> dt.datetime:
@@ -146,7 +299,7 @@ def policy() -> pa.Table:
 def policyperiod() -> pa.Table:
     # Map each policy_id to its period status. Period id = policy id + 3000.
     POLICY_STATUS = {
-        # TPA
+        # TPA curated
         2001: "Bound",
         2007: "Cancelled",
         2010: "NonRenewing",
@@ -159,27 +312,35 @@ def policyperiod() -> pa.Table:
         2017: "NonRenewing",
         2018: "Cancelled",
         2019: "Declined",
-        # RES (residential monthly)
+        # RES curated
         2030: "Cancelled",
         2031: "NonRenewing",
         2032: "Declined",
         2033: "NonRenewing",
         2034: "Bound",
-        # CL (commercial lines quarterly)
+        # CL curated
         2050: "Cancelled",
         2051: "Cancelled",
         2052: "Cancelled",
         2053: "Bound",
     }
+    # For bulk-synthetic policies, default to Bound (status gets overridden later
+    # by the job() function if the policy gets a cancellation/nonrenewal/declination)
+    def _status_for(pid):
+        if pid in POLICY_STATUS:
+            return POLICY_STATUS[pid]
+        return "Bound"
+
     rows = [
         {
             "id": 3000 + pid,
             "policy_id": pid,
-            "status": POLICY_STATUS[pid],
-            # POL-0015 (TPA) gets non-standard termtype → A.40. RES uses Monthly cadence.
+            "status": _status_for(pid),
+            # Termtype: TPA-specific quirk for POL-0015; RES is monthly cadence;
+            # bulk policies follow their filing's cadence.
             "termtype":
                 "Custom"    if pid == 2015
-                else "Monthly" if pid in (2030, 2031, 2032, 2033, 2034)
+                else "Monthly" if (pid in range(2030, 2035) or pid in range(2300, 2400))
                 else "Annual",
         }
         for pid in POLICY_DETAILS
@@ -433,6 +594,20 @@ def job() -> pa.Table:
         },
         # POL-0053: in-force, no cancellation — passive
     ]
+
+    # ── Append bulk-synthetic jobs (sampled per filing's reason-code distribution) ──
+    _bulk_rng = _rng_module.Random(BULK_RANDOM_SEED + 1)
+    for pid in POLICY_DETAILS:
+        # Skip curated ids — they've already been handled above
+        if pid < 2100:
+            continue
+        plan_code = POLICY_FILING.get(pid)
+        if plan_code is None:
+            continue
+        bulk_jobs = _bulk_jobs_for(pid, plan_code, _bulk_rng)
+        if bulk_jobs:
+            rows.extend(bulk_jobs)
+
     n = len(rows)
     return pa.table({
         "_cdc_operation": ["INSERT"] * n,
@@ -486,22 +661,26 @@ def _coerce_timestamps_us(tbl: pa.Table) -> pa.Table:
 def address() -> pa.Table:
     """Risk-location addresses (one per policy)."""
     n = len(POLICY_DETAILS)
-    cities = {
+    # Build cities/counties from the bulk ZIP pool (covers all bulk + curated ZIPs)
+    cities = {z[0]: z[1] for z in _TX_ZIP_POOL}
+    counties = {z[0]: z[2] for z in _TX_ZIP_POOL}
+    # Curated ZIPs not in the bulk pool — fill from explicit mapping
+    cities.update({
         "78701": "Austin",   "75001": "Addison",      "76001": "Arlington",
-        "77001": "Houston",  "77002": "Houston",      "75201": "Dallas",
+        "77001": "Houston",  "75201": "Dallas",
         "75070": "McKinney", "78415": "Corpus Christi","76301": "Wichita Falls",
         "79101": "Amarillo", "78216": "San Antonio",  "76710": "Waco",
         "75205": "Dallas",   "78704": "Austin",       "77024": "Houston",
         "76012": "Arlington","78712": "Austin",
-    }
-    counties = {
+    })
+    counties.update({
         "78701": "Travis",   "75001": "Dallas",       "76001": "Tarrant",
-        "77001": "Harris",   "77002": "Harris",       "75201": "Dallas",
+        "77001": "Harris",   "75201": "Dallas",
         "75070": "Collin",   "78415": "Nueces",       "76301": "Wichita",
         "79101": "Potter",   "78216": "Bexar",        "76710": "McLennan",
         "75205": "Dallas",   "78704": "Travis",       "77024": "Harris",
         "76012": "Tarrant",  "78712": "Travis",
-    }
+    })
     rows = []
     for i, (pid, d) in enumerate(POLICY_DETAILS.items()):
         rows.append({

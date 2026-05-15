@@ -56,7 +56,10 @@ FILINGS = [
         "id":           "TPA-Q4-2025",
         "plan_name":    "Texas Private Passenger Auto / Homeowners",
         "plan_code":    "TPA",
-        "policy_id_min": 2001, "policy_id_max": 2019,
+        # Multiple id ranges so curated demo cases + bulk synthetic both scope here.
+        # Curated: 2001-2019 (named storytelling cases · POL-0011 L-alone, etc.)
+        # Bulk:    2100-2299 (200 distribution-driven synthetic policies)
+        "policy_id_ranges": [(2001, 2019), (2100, 2299)],
         "cadence":      "Quarterly",
         "period_start": "2025-10-01",
         "period_end":   "2025-12-31",
@@ -68,7 +71,8 @@ FILINGS = [
         "id":           "RES-M03-2026",
         "plan_name":    "Residential Property — March 2026",
         "plan_code":    "RES",
-        "policy_id_min": 2030, "policy_id_max": 2034,
+        # Curated: 2030-2034.  Bulk: 2300-2399 (100 synthetic residential policies)
+        "policy_id_ranges": [(2030, 2034), (2300, 2399)],
         "cadence":      "Monthly",
         "period_start": "2026-03-01",
         "period_end":   "2026-03-31",
@@ -80,7 +84,8 @@ FILINGS = [
         "id":           "CL-Q4-2025",
         "plan_name":    "Commercial Lines",
         "plan_code":    "CL",
-        "policy_id_min": 2050, "policy_id_max": 2053,
+        # Curated: 2050-2053.  Bulk: 2400-2449 (50 synthetic commercial policies)
+        "policy_id_ranges": [(2050, 2053), (2400, 2449)],
         "cadence":      "Quarterly",
         "period_start": "2025-10-01",
         "period_end":   "2025-12-31",
@@ -100,22 +105,33 @@ def _filing(filing_id: str | None) -> dict | None:
     return None
 
 
+def _filing_ranges(f: dict) -> list[tuple[int, int]]:
+    """Return all id ranges for a filing; supports both legacy (min/max) and
+    new multi-range (policy_id_ranges) shapes."""
+    if "policy_id_ranges" in f:
+        return list(f["policy_id_ranges"])
+    return [(f["policy_id_min"], f["policy_id_max"])]
+
+
 def _filing_policy_numbers(filing_id: str | None) -> set[str] | None:
-    """For a filing, return the set of policy numbers in its id range.
+    """For a filing, return the set of policy numbers in all its id ranges.
     Returns None when no filing scope is applied."""
     f = _filing(filing_id)
     if not f:
         return None
-    # POL-0001 through POL-0019 etc. — synthetic IDs use pid=2000+N pattern
-    return {f"POL-{(pid - 2000):04d}" for pid in range(f["policy_id_min"], f["policy_id_max"] + 1)}
+    pids: set[int] = set()
+    for lo, hi in _filing_ranges(f):
+        pids.update(range(lo, hi + 1))
+    return {f"POL-{(pid - 2000):04d}" for pid in pids}
 
 
 def _scope_clause(filing_id: str | None, policy_id_col: str = "p.id") -> str:
-    """SQL fragment that constrains a policy.id column to the filing's id range."""
+    """SQL fragment that constrains a policy.id column to all of the filing's id ranges."""
     f = _filing(filing_id)
     if not f:
         return ""
-    return f" AND {policy_id_col} BETWEEN {f['policy_id_min']} AND {f['policy_id_max']} "
+    parts = [f"{policy_id_col} BETWEEN {lo} AND {hi}" for lo, hi in _filing_ranges(f)]
+    return f" AND ({' OR '.join(parts)}) "
 
 
 @router.get("/filings")
