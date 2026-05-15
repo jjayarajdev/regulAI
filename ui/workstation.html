@@ -2589,8 +2589,9 @@
       eyebrow: 'Filing Workshop',
       title: 'One filing, <em>every check</em>',
       what: `
-        <p>The working surface for a single filing (TSPR Q4 2025). Shows every rule's
-        pass/fail result and every record-level blocker.</p>
+        <p>The working surface for the <b>currently selected filing</b>. The kanban board, rules
+        table, and live records all reflect only this filing's policies. Switch filings via the
+        rail to see the same workshop scoped to a different statistical plan.</p>
         <h4>Filter chips at top</h4>
         <p>Click <code>passing</code> / <code>failing</code> to slice the rules table.
         The numbers in the chips are live counts.</p>
@@ -2719,7 +2720,40 @@
     const h = HELP[screen] || HELP.dashboard;
     setText('help-eyebrow', h.eyebrow);
     setHTML('help-title', h.title);
-    setHTML('help-body', h[app.helpTab] || h.what);
+
+    // Filing-aware banner — prepended to every tab body, shows what filing is active
+    const f = (app.data.filings?.filings || []).find(x => x.id === app.currentFilingId) || {};
+    const v = app.data.val;
+    const bronze = app.data.bronze;
+    const planName = f.plan_name || 'Texas Statistical Plan Q4 2025';
+    const cadence  = f.cadence   || 'Quarterly';
+    const due      = f.due_date  || '—';
+    const period   = (f.period_start && f.period_end) ? `${f.period_start} → ${f.period_end}` : '—';
+    const channel  = f.channel   || 'TICO ShareFile';
+    const policyCt = (bronze?.rows || []).length;
+    const violCt   = v?.summary?.total_violations;
+    const rulesCt  = v?.summary?.rules_run;
+    const passCt   = v?.summary?.rules_passing;
+
+    const filingBanner = `
+      <div style="padding:12px 14px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 4px 4px 0;margin-bottom:18px;font-size:12.5px;line-height:1.5;">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);font-weight:600;margin-bottom:4px;">Currently scoped to</div>
+        <div style="color:var(--ink);font-weight:500;margin-bottom:3px;">${esc(app.currentFilingId)} · ${esc(planName)}</div>
+        <div style="color:var(--ink-2);">
+          ${esc(cadence)} · period ${esc(period)} · due <b>${esc(due)}</b><br/>
+          <b>${policyCt}</b> policies in this filing · <b style="color:${(violCt ?? 0) > 0 ? 'var(--bad)' : 'var(--good)'};">${violCt ?? '—'}</b> violation${violCt === 1 ? '' : 's'} · <b>${passCt ?? '—'}/${rulesCt ?? '—'}</b> rules passing<br/>
+          Submission channel · <b>${esc(channel)}</b>
+        </div>
+      </div>`;
+
+    const switchHint = `
+      <div class="tip" style="margin-top:20px;">
+        <b>Switch filings any time.</b> The <em>My filings</em> group on the left rail lists all three
+        in-flight filings (TPA, RES, CL). Click any one and every screen — overview, kanban,
+        regulations, bulletins, audit — re-scopes to that filing.
+      </div>`;
+
+    setHTML('help-body', filingBanner + (h[app.helpTab] || h.what) + switchHint);
     $$('.help-tab').forEach(t => t.classList.toggle('active', t.dataset.helpTab === app.helpTab));
   }
 
