@@ -388,65 +388,143 @@ def reference_reason_codes() -> JSONResponse:
     return JSONResponse({"rows": _jsonify(rows), "count": len(rows)})
 
 
+_FIX_FIELDS: dict[str, dict] = {
+    # field name → which Bronze table + column + value-handling
+    "reason_code":   {"table": "BRONZE.GW_PC_JOB",          "col": None,             "kind": "reason"},
+    "noticedate":    {"table": "BRONZE.GW_PC_JOB",          "col": "noticedate",     "kind": "date"},
+    "naic_number":   {"table": "BRONZE.GW_PC_POLICYPERIOD", "col": "naic_number",    "kind": "text"},
+    "writtenpremium":{"table": "BRONZE.GW_PC_POLICYPERIOD", "col": "writtenpremium", "kind": "number"},
+    "termtype":      {"table": "BRONZE.GW_PC_POLICYPERIOD", "col": "termtype",       "kind": "text"},
+}
+
+
+def _g(row: dict, k: str):
+    return row.get(k) if k in row else row.get(k.upper())
+
+
 @router.post("/bronze/fix")
 def bronze_fix(body: dict = Body(...)) -> JSONResponse:
-    """Manually correct a record's reason code in Bronze.
+    """Manually correct a Bronze field for a given policy.
 
     Simulates a carrier editing the policy in PolicyCenter and the change
-    propagating into Bronze via CDC. Real-life: the carrier opens the policy,
-    changes the reason code, Guidewire's CDC stream replays the new value
-    into Bronze, and the validator re-runs.
+    propagating into Bronze via CDC. The field name decides which Bronze
+    table/column to update.
 
-    Body: { "policy_number": "POL-0012", "new_code": "J" }
+    Body: {
+      "policy_number": "POL-0015",
+      "field":         "termtype",   # one of: reason_code, naic_number,
+                                     #         writtenpremium, termtype, noticedate
+      "new_value":     "Annual"
+    }
+
+    Legacy shape `{policy_number, new_code}` is still accepted (treated as
+    field=reason_code).
     """
     policy = (body.get("policy_number") or "").strip().upper()
-    new_code = (body.get("new_code") or "").strip().upper()
+    field  = (body.get("field") or "reason_code").strip().lower()
+    raw_val = body.get("new_value")
+    if raw_val is None:
+        raw_val = body.get("new_code")  # backward compat
 
     if not policy or not policy.startswith("POL-"):
-        raise HTTPException(400, "policy_number must be like POL-0012")
-    # Allow up to 3 valid TSPR letters (or empty = clear the field)
-    if new_code and (not new_code.isalpha() or len(new_code) > 3):
-        raise HTTPException(400, "new_code must be 1–3 letters (or empty)")
+        raise HTTPException(400, "policy_number must be like POL-0015")
+    if field not in _FIX_FIELDS:
+        raise HTTPException(400, f"unknown field '{field}'; one of {list(_FIX_FIELDS)}")
 
-    # Look up the job row for this policy
-    rows = query(
-        "SELECT j.publicid, j.cancellationreason, j.nonrenewalreason, "
-        "       j.declinereason, j.subtype "
-        "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j "
-        "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
-        f"WHERE p.policynumber = '{policy}'"
-    )
-    if not rows:
-        raise HTTPException(404, f"no job record found for policy {policy}")
-    row = rows[0]
+    spec = _FIX_FIELDS[field]
+    kind = spec["kind"]
 
-    # Figure out which of the three reason columns to update.
-    # Snowflake returns column keys in lowercase; fall back to upper just in case.
-    def g(k):
-        return row.get(k) if k in row else row.get(k.upper())
-    if g("cancellationreason") is not None:
-        col, old = "cancellationreason", g("cancellationreason")
-    elif g("nonrenewalreason") is not None:
-        col, old = "nonrenewalreason", g("nonrenewalreason")
-    elif g("declinereason") is not None:
-        col, old = "declinereason", g("declinereason")
+    # ── Normalize the new value depending on the field's kind ───────
+    if kind == "reason":
+        new_str = (raw_val or "").strip().upper()
+        if new_str and (not new_str.isalpha() or len(new_str) > 3):
+            raise HTTPException(400, "reason_code must be 1–3 letters (or empty)")
+        sql_value = "NULL" if not new_str else f"'{new_str}'"
+    elif kind == "text":
+        new_str = (raw_val or "").strip()
+        if len(new_str) > 64 or "'" in new_str:
+            raise HTTPException(400, "text value must be <=64 chars and contain no quotes")
+        sql_value = "NULL" if not new_str else f"'{new_str}'"
+    elif kind == "number":
+        if raw_val in (None, ""):
+            sql_value = "NULL"
+        else:
+            try:
+                num = float(raw_val)
+            except (TypeError, ValueError):
+                raise HTTPException(400, "new_value must be a number")
+            sql_value = str(num)
+        new_str = sql_value if sql_value != "NULL" else None
+    elif kind == "date":
+        if raw_val in (None, ""):
+            sql_value = "NULL"
+            new_str = None
+        else:
+            import re as _re
+            ds = str(raw_val).strip()
+            if not _re.match(r"^\d{4}-\d{2}-\d{2}", ds):
+                raise HTTPException(400, "date must be YYYY-MM-DD")
+            sql_value = f"TO_TIMESTAMP_NTZ('{ds[:10]}')"
+            new_str = ds[:10]
     else:
-        raise HTTPException(400, "no reason code on this record to fix")
+        raise HTTPException(500, f"unknown field kind {kind}")
 
-    pubid = g("publicid")
-    new_val_sql = "NULL" if not new_code else f"'{new_code}'"
+    # ── Find the target row ─────────────────────────────────────────
+    if spec["table"] == "BRONZE.GW_PC_JOB":
+        rows = query(
+            "SELECT j.publicid, j.cancellationreason, j.nonrenewalreason, "
+            "       j.declinereason, j.noticedate "
+            "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j "
+            "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+            f"WHERE p.policynumber = '{policy}'"
+        )
+    else:  # POLICYPERIOD
+        rows = query(
+            "SELECT j.publicid, j.naic_number, j.writtenpremium, j.termtype "
+            "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICYPERIOD j "
+            "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+            f"WHERE p.policynumber = '{policy}'"
+        )
+    if not rows:
+        raise HTTPException(404, f"no {spec['table'].split('.')[-1]} record for policy {policy}")
+    row = rows[0]
+    pubid = _g(row, "publicid")
+
+    # ── Decide which actual column to update ────────────────────────
+    if kind == "reason":
+        # Pick whichever reason column on this job is non-null
+        for cand in ("cancellationreason", "nonrenewalreason", "declinereason"):
+            if _g(row, cand) is not None:
+                col, old = cand, _g(row, cand)
+                break
+        else:
+            # All three null — update declinereason as the conventional fallback
+            col, old = "declinereason", None
+    else:
+        col = spec["col"]
+        old = _g(row, col)
+
+    # ── Execute the update ──────────────────────────────────────────
     query(
-        f"UPDATE INSURANCE_REGULATORY.BRONZE.GW_PC_JOB "
-        f"SET {col} = {new_val_sql} "
+        f"UPDATE INSURANCE_REGULATORY.{spec['table']} "
+        f"SET {col} = {sql_value} "
         f"WHERE publicid = '{pubid}'"
     )
+
+    # Coerce DB-returned types into JSON-safe forms (Decimal, datetime, etc.)
+    def _safe(v: Any) -> Any:
+        if v is None: return None
+        if isinstance(v, (dt.datetime, dt.date, dt.time)): return v.isoformat()
+        if isinstance(v, Decimal): return float(v)
+        return v
 
     return JSONResponse({
         "ok": True,
         "policy_number": policy,
+        "table": spec["table"],
         "field": col,
-        "old_value": old,
-        "new_value": new_code or None,
+        "old_value": _safe(old),
+        "new_value": new_str,
     })
 
 

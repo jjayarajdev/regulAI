@@ -2769,22 +2769,30 @@
 
       <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 10px;font-weight:500;">Validation results · ${ruleResults.filter(r => r.fail).length} fail / ${ruleResults.filter(r => !r.fail).length} pass</h4>
       <div style="border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:18px;">
-        ${ruleResults.map(rr => `
-          <div style="display:grid;grid-template-columns:80px 1fr auto;gap:14px;padding:11px 14px;border-bottom:1px solid var(--line);${rr.fail ? 'background:rgba(155,44,44,0.04);' : ''}">
-            <span style="font-family:var(--f-mono);font-size:12px;${rr.fail ? 'color:var(--bad);' : 'color:var(--ink-2);'}">${esc(rr.rule.rule_number)}</span>
-            <span style="font-size:13px;">${esc(rr.rule.rule_name)}<br/><span style="font-size:11.5px;color:var(--ink-3);">${esc(rr.reason || '')}</span></span>
-            <span style="font-family:var(--f-mono);font-size:11.5px;${rr.fail ? 'color:var(--bad);' : 'color:var(--good);'}">${rr.fail ? '✗ fail' : '✓ pass'}</span>
-          </div>`).join('')}
+        ${ruleResults.map(rr => {
+          const ruleNum = rr.rule.rule_number;
+          const fixSpec = FIX_SPEC[ruleNum];
+          const isReason = !fixSpec && (ruleNum === '34' || ruleNum === 'A.34-valid-codes');
+          const fixBtn = rr.fail
+            ? `<button class="vio-action" data-action="open-fix-row" data-policy="${esc(policy)}" data-rulenum="${esc(ruleNum)}" data-current="${esc(code)}" style="font-size:11px;padding:4px 10px;">Fix →</button>`
+            : '';
+          return `
+            <div class="rule-result-row" data-rulenum="${esc(ruleNum)}">
+              <div style="display:grid;grid-template-columns:80px 1fr auto auto;gap:14px;padding:11px 14px;border-bottom:1px solid var(--line);${rr.fail ? 'background:rgba(155,44,44,0.04);' : ''}align-items:center;">
+                <span style="font-family:var(--f-mono);font-size:12px;${rr.fail ? 'color:var(--bad);' : 'color:var(--ink-2);'}">${esc(ruleNum)}</span>
+                <span style="font-size:13px;">${esc(rr.rule.rule_name)}<br/><span style="font-size:11.5px;color:var(--ink-3);">${esc(rr.reason || '')}</span></span>
+                <span style="font-family:var(--f-mono);font-size:11.5px;${rr.fail ? 'color:var(--bad);' : 'color:var(--good);'}">${rr.fail ? '✗ fail' : '✓ pass'}</span>
+                ${fixBtn}
+              </div>
+              <div class="fix-editor-slot"></div>
+            </div>`;
+        }).join('')}
       </div>
 
-      ${violations.length ? `
-        <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 10px;font-weight:500;">Actions</h4>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          ${isLOnly ? `<button class="btn primary" data-action="apply-bulletin-now">Apply bulletin B-2026-Q4-118</button>` : ''}
-          <button class="btn" data-action="open-fix" data-policy="${esc(policy)}" data-code="${esc(code)}" data-rulenum="${esc(violations[0].rule_number)}">Manually fix this record</button>
-        </div>
-        <div class="fix-editor-slot" style="margin-top:14px;"></div>
-      ` : `<div style="font-size:13px;color:var(--good);">✓ Policy passes all executable rules.</div>`}
+      ${violations.length && isLOnly ? `
+        <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 10px;font-weight:500;">Quick action</h4>
+        <button class="btn primary" data-action="apply-bulletin-now">Apply bulletin B-2026-Q4-118 (clears L-companion violation)</button>
+      ` : violations.length === 0 ? `<div style="font-size:13px;color:var(--good);">✓ Policy passes all executable rules.</div>` : ''}
     `);
   }
 
@@ -2960,7 +2968,49 @@ RETURN r, rel, n</pre>
     return r ? r.reason_code : null;
   }
 
-  // Suggest 2–3 valid fixes for a violation based on its current code
+  // Per-rule fix descriptor → tells the UI which Bronze field to edit and
+  // how to render the editor (suggestions, type, validator).
+  const FIX_SPEC = {
+    '22': {
+      field: 'naic_number', table: 'BRONZE.GW_PC_POLICYPERIOD',
+      label: 'NAIC company number', kind: 'text',
+      hint: 'Must be exactly 5 digits',
+      suggestions: [{ value: '12345', why: 'Lone Star Mutual' }, { value: '19876', why: 'alt NAIC on file' }],
+      validate: (v) => /^\d{5}$/.test(v) || 'Must be 5 digits',
+    },
+    '30': {
+      field: 'writtenpremium', table: 'BRONZE.GW_PC_POLICYPERIOD',
+      label: 'Written premium', kind: 'number',
+      hint: 'Plausible range $100 – $50,000',
+      suggestions: [{ value: '1500', why: 'typical HO annual' }, { value: '850', why: 'lower-end' }, { value: '2400', why: 'high-end' }],
+      validate: (v) => { const n = +v; return (n >= 100 && n <= 50000) || 'Out of range'; },
+    },
+    '34': null, // reason-code rules use existing suggestFixes path
+    '40': {
+      field: 'termtype', table: 'BRONZE.GW_PC_POLICYPERIOD',
+      label: 'Policy term type', kind: 'select',
+      hint: 'Must be a standard term',
+      suggestions: [
+        { value: 'Annual',     why: 'standard annual' },
+        { value: 'SemiAnnual', why: 'semi-annual' },
+        { value: 'Monthly',    why: 'monthly billing' },
+      ],
+      validate: (v) => ['Annual','SemiAnnual','Monthly'].includes(v) || 'Pick a standard term',
+    },
+    '42': {
+      field: 'noticedate', table: 'BRONZE.GW_PC_JOB',
+      label: 'Notice date', kind: 'date',
+      hint: 'YYYY-MM-DD · the date the carrier notified the insured',
+      suggestions: [
+        { value: '2026-02-15', why: 'mid-Feb' },
+        { value: '2026-03-01', why: 'start of Mar' },
+      ],
+      validate: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) || 'Must be YYYY-MM-DD',
+    },
+    'A.34-valid-codes': null, // reason-code path
+  };
+
+  // Suggest 2–3 valid fixes for a reason-code violation based on its current code
   function suggestFixes(currentCode) {
     const VALID = ['A','B','C','D','E','F','G','H','J','K','L','M','N','P','Q','R','S','T','X','Y','Z'];
     const c = (currentCode || '').toUpperCase();
@@ -2988,10 +3038,42 @@ RETURN r, rel, n</pre>
     return sg.slice(0, 4);
   }
 
+  // Generic editor for any FIX_SPEC entry (non-reason-code rules)
+  function renderGenericFixEditor(policy, ruleNum, spec, currentValue) {
+    const inputType = spec.kind === 'number' ? 'number' : (spec.kind === 'date' ? 'date' : 'text');
+    const inputAttrs = spec.kind === 'number'
+      ? 'step="0.01" style="width:140px;"'
+      : spec.kind === 'date'
+        ? 'style="width:170px;"'
+        : 'style="width:160px;"';
+    return `
+      <div class="fix-editor" data-policy="${esc(policy)}" data-field="${esc(spec.field)}" data-rule="${esc(ruleNum)}">
+        <div class="fe-head">Fix · ${esc(policy)} · rule ${esc(ruleNum)} · field <code style="font-family:var(--f-mono);">${esc(spec.field)}</code></div>
+        <div class="fe-row">
+          <span style="color:var(--ink-2);">Current:</span>
+          <span style="font-family:var(--f-mono);background:rgba(155,44,44,0.10);color:var(--bad);padding:2px 8px;border-radius:3px;">${esc(currentValue ?? '—')}</span>
+          <span style="color:var(--ink-3);">→</span>
+          <input type="${inputType}" class="fe-input" ${inputAttrs} placeholder="${esc(spec.label.toLowerCase())}" />
+        </div>
+        <div class="fe-row" style="margin-bottom:4px;color:var(--ink-3);font-size:12px;">${esc(spec.hint)}</div>
+        ${spec.suggestions?.length ? `
+          <div class="fe-row" style="margin-bottom:6px;color:var(--ink-3);font-size:12px;">Suggestions:</div>
+          <div class="fe-suggest">
+            ${spec.suggestions.map(s => `<span class="fe-sg" data-action="fe-suggest" data-code="${esc(s.value)}">${esc(s.value)}<span class="why">${esc(s.why)}</span></span>`).join('')}
+          </div>` : ''}
+        <div class="fe-actions">
+          <button class="btn primary" data-action="apply-fix-generic" style="padding:6px 14px;font-size:12px;">Save fix</button>
+          <button class="btn ghost" data-action="cancel-fix" style="padding:6px 14px;font-size:12px;">Cancel</button>
+        </div>
+        <div class="fe-msg"></div>
+      </div>`;
+  }
+
   function renderFixEditor(policy, currentCode, ruleNum) {
+    // Reason-code editor (existing, for rules 34 and A.34-valid-codes)
     const sg = suggestFixes(currentCode);
     return `
-      <div class="fix-editor" data-policy="${esc(policy)}">
+      <div class="fix-editor" data-policy="${esc(policy)}" data-field="reason_code" data-rule="${esc(ruleNum)}">
         <div class="fe-head">Manually fix · ${esc(policy)} · violates rule ${esc(ruleNum || '')}</div>
         <div class="fe-row">
           <span style="color:var(--ink-2);">Current:</span>
@@ -3310,23 +3392,67 @@ RETURN r, rel, n</pre>
           app.selectedKgRule = (app.data.kgRules?.rules || []).find(r => r.id === kgId);
         }
         renderRegulationsDetail();
+        renderRegulationsDataTable();  // refresh highlights for the new selection
+        // Also re-mark the tree's active state
+        $$('.tree-node.rule', tree).forEach(x => x.classList.remove('active'));
+        n.classList.add('active');
       }));
     }
 
     renderRegulationsDetail();
 
-    // Live data — each row clickable to open policy detail panel
+    // Live data — extracted so it can re-render on rule selection
+    renderRegulationsDataTable();
+  }
+
+  // Re-renders just the live-records table; highlights driven by which
+  // rule is currently selected so the user can see *this rule's* violators.
+  function renderRegulationsDataTable() {
+    const v = app.data.val;
+    const bronze = app.data.bronze;
     const tbody = bind('reg-data-tbody');
-    if (tbody && bronze) {
-      const violSet = new Set((v.violations || []).map(x => x.policy_number));
-      tbody.innerHTML = bronze.rows.map(r => `
-        <tr class="clk-row ${violSet.has(r.policy) ? 'fail' : ''}" data-action="show-policy" data-policy="${esc(r.policy)}">
-          <td>${esc(r.policy)}</td>
+    if (!tbody || !bronze || !v) return;
+
+    const sel = app.selectedRule;
+    // Build a map: policy_number → array of rule_numbers it violates
+    const violationsByPolicy = {};
+    (v.violations || []).forEach(vio => {
+      (violationsByPolicy[vio.policy_number] ||= []).push(vio);
+    });
+
+    // The set we use to highlight: if a rule is selected, only that rule's
+    // violators are red. Otherwise all violators are red.
+    const violSet = sel
+      ? new Set((v.violations || []).filter(x => x.rule_id === sel.rule_id).map(x => x.policy_number))
+      : new Set((v.violations || []).map(x => x.policy_number));
+
+    // Update the section header to reflect the dynamic state
+    const dataTableLabel = bind('reg-data-table');
+    if (dataTableLabel && sel) {
+      dataTableLabel.innerHTML = `${esc(sel.target_table || 'BRONZE.GW_PC_JOB')}  <span style="font-size:11px;color:var(--ink-3);margin-left:8px;">highlighting ${violSet.size} record${violSet.size !== 1 ? 's' : ''} that violate <b style="color:var(--bad);">${esc(sel.rule_number || sel.rule_name || '')}</b></span>`;
+    } else if (dataTableLabel) {
+      dataTableLabel.textContent = 'BRONZE.GW_PC_JOB';
+    }
+
+    tbody.innerHTML = bronze.rows.map(r => {
+      const isSelectedFail = violSet.has(r.policy);
+      const allViolations = violationsByPolicy[r.policy] || [];
+      // Show a small "+N more" hint if a row is highlighted for the selected rule
+      // but fails other rules too — keeps the cross-rule picture visible.
+      const otherFails = sel ? allViolations.filter(x => x.rule_id !== sel.rule_id) : [];
+      const otherHint = (isSelectedFail && otherFails.length)
+        ? ` <span style="font-size:10.5px;color:var(--ink-3);font-family:var(--f-sans);">(+${otherFails.length} other rule${otherFails.length > 1 ? 's' : ''})</span>`
+        : (!isSelectedFail && allViolations.length && sel)
+          ? ` <span style="font-size:10.5px;color:var(--amber);font-family:var(--f-sans);" title="fails ${allViolations.map(x => x.rule_number).join(', ')}">⚠ fails other rule${allViolations.length > 1 ? 's' : ''}</span>`
+          : '';
+      return `
+        <tr class="clk-row ${isSelectedFail ? 'fail' : ''}" data-action="show-policy" data-policy="${esc(r.policy)}">
+          <td>${esc(r.policy)}${otherHint}</td>
           <td>${esc(r.action || '—')}</td>
           <td>${esc(r.reason_code || '—')}</td>
           <td>${esc(r.noticedate || '—')}</td>
-        </tr>`).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--ink-3);">no rows</td></tr>`;
-    }
+        </tr>`;
+    }).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--ink-3);">no rows</td></tr>`;
   }
 
   function renderRegulationsDetail() {
@@ -3814,6 +3940,76 @@ RETURN r, rel, n</pre>
       const code = el.dataset.code;
       const ruleNum = el.dataset.rulenum;
       slot.innerHTML = renderFixEditor(policy, code, ruleNum);
+    }
+
+    if (action === 'open-fix-row') {
+      // Per-rule fix from the policy-detail validation table
+      const row = el.closest('.rule-result-row');
+      const slot = row?.querySelector('.fix-editor-slot');
+      if (!slot) return;
+      if (slot.firstChild) { slot.innerHTML = ''; return; }
+      const policy = el.dataset.policy;
+      const ruleNum = el.dataset.rulenum;
+      const currentCode = el.dataset.current;
+      const spec = FIX_SPEC[ruleNum];
+
+      if (spec) {
+        // Look up the current value of the actual field on this policy
+        let currentValue = '—';
+        const bronze = (app.data.bronze?.rows || []).find(r => r.policy === policy);
+        if (spec.field === 'noticedate') currentValue = bronze?.noticedate || '(empty)';
+        else if (spec.field === 'naic_number')   currentValue = 'ABC45';  // demo quirk
+        else if (spec.field === 'writtenpremium') currentValue = '50.00';  // demo quirk
+        else if (spec.field === 'termtype')      currentValue = 'Custom'; // demo quirk
+        slot.innerHTML = renderGenericFixEditor(policy, ruleNum, spec, currentValue);
+      } else {
+        // Reason-code rule — use the existing editor
+        slot.innerHTML = renderFixEditor(policy, currentCode, ruleNum);
+      }
+    }
+
+    if (action === 'apply-fix-generic') {
+      const ed = el.closest('.fix-editor');
+      const policy = ed?.dataset.policy;
+      const field = ed?.dataset.field;
+      const ruleNum = ed?.dataset.rule;
+      const input = ed?.querySelector('.fe-input');
+      const newValue = input?.value;
+      const msg = ed?.querySelector('.fe-msg');
+      const spec = FIX_SPEC[ruleNum];
+
+      // Validate
+      if (spec?.validate) {
+        const result = spec.validate(newValue);
+        if (result !== true) {
+          if (msg) { msg.className = 'fe-msg err'; msg.textContent = String(result); }
+          return;
+        }
+      }
+      el.disabled = true;
+      const orig = el.textContent;
+      el.textContent = 'Saving…';
+      try {
+        const r = await fetch('/api/rhs/bronze/fix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ policy_number: policy, field, new_value: newValue }),
+        });
+        if (!r.ok) {
+          const errText = await r.text();
+          throw new Error(errText);
+        }
+        const result = await r.json();
+        if (msg) { msg.className = 'fe-msg ok'; msg.textContent = `✓ ${result.field}: ${result.old_value} → ${result.new_value}`; }
+        await refresh();
+        // Re-open the same policy detail to show the updated row
+        setTimeout(() => openDetail_policy(policy), 400);
+      } catch (e) {
+        if (msg) { msg.className = 'fe-msg err'; msg.textContent = 'Save failed — ' + (e.message || 'check server'); }
+      } finally {
+        el.disabled = false;
+        el.textContent = orig;
+      }
     }
 
     if (action === 'apply-fix') {
