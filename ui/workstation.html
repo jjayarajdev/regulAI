@@ -1,0 +1,3924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RegulAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..500;1,9..144,300..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ── tokens ───────────────────────────────────────────────── */
+  :root {
+    --paper: #faf9f6;
+    --surface: #ffffff;
+
+    --ink: #18181b;
+    --ink-2: #52525b;
+    --ink-3: #8a8a90;
+    --ink-4: #c6c6c9;
+
+    --line: #ebeae5;
+    --line-2: #dcdbd5;
+
+    --accent: #1e293b;
+    --accent-soft: #f1f3f6;
+
+    --good: #2f6f4f;
+    --warn: #8a5a16;
+    --bad:  #9b2c2c;
+
+    --kg: #5b4d8a;   /* restrained violet */
+    --sf: #2c6b6b;   /* restrained teal   */
+
+    --f-serif: "Fraunces", Georgia, serif;
+    --f-sans:  "Inter", -apple-system, system-ui, sans-serif;
+    --f-mono:  "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  /* ── reset ────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--f-sans);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.005em;
+    overflow: hidden;
+  }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border: 2px solid var(--paper); border-radius: 6px; }
+
+  /* ── chrome ───────────────────────────────────────────────── */
+  .app {
+    display: grid;
+    grid-template-rows: 60px 42px 1fr;
+    grid-template-columns: 240px 1fr;
+    grid-template-areas:
+      "top    top"
+      "rail   pageh"
+      "rail   main";
+    height: 100vh;
+  }
+
+  /* Page header bar */
+  .page-header {
+    grid-area: pageh;
+    display: flex; align-items: center;
+    padding: 0 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+    gap: 14px;
+  }
+  .ph-eyebrow {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+    color: var(--ink-3);
+  }
+  .ph-sep { color: var(--ink-4); }
+  .ph-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .ph-meta {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .ph-meta .live-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--good);
+    display: inline-block; margin-right: 6px;
+    animation: live-pulse 2s ease-in-out infinite;
+  }
+  @keyframes live-pulse { 0%,100%{opacity:0.45;} 50%{opacity:1;} }
+  .ph-meta button.refresh {
+    background: none; border: 1px solid var(--line-2); padding: 4px 10px; border-radius: 4px;
+    font-size: 11.5px; color: var(--ink-2); cursor: pointer;
+  }
+  .ph-meta button.refresh:hover { color: var(--ink); border-color: var(--ink-3); }
+  .ph-meta button.help-btn {
+    background: none; border: 1px solid var(--line-2); padding: 4px 10px; border-radius: 4px;
+    font-size: 11.5px; color: var(--ink-2); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .ph-meta button.help-btn:hover { color: var(--ink); border-color: var(--ink-3); background: var(--accent-soft); }
+  .ph-meta button.help-btn .qmark {
+    display: inline-grid; place-items: center;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: var(--ink); color: #fff;
+    font-size: 10px; font-weight: 600;
+    font-family: var(--f-mono);
+  }
+
+  /* Side-pop help panel */
+  .help-panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 420px; max-width: 90vw;
+    background: var(--surface);
+    border-left: 1px solid var(--line);
+    box-shadow: -8px 0 32px rgba(0,0,0,0.10);
+    transform: translateX(100%);
+    transition: transform .25s ease;
+    z-index: 50;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .help-panel.open { transform: translateX(0); }
+  .help-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+    z-index: 49;
+  }
+  .help-backdrop.open { opacity: 1; pointer-events: auto; }
+  .help-header {
+    padding: 22px 24px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .help-eyebrow {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .help-title {
+    font-family: var(--f-serif);
+    font-size: 24px;
+    font-weight: 300;
+    line-height: 1.2;
+    letter-spacing: -0.018em;
+    color: var(--ink);
+  }
+  .help-title em { font-style: italic; color: var(--accent); }
+  .help-close {
+    width: 30px; height: 30px;
+    display: grid; place-items: center;
+    border: 1px solid var(--line-2);
+    background: var(--surface);
+    border-radius: 4px;
+    font-size: 16px; line-height: 1;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .help-close:hover { color: var(--ink); border-color: var(--ink-3); }
+  .help-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+    padding: 0 24px;
+    flex-shrink: 0;
+  }
+  .help-tab {
+    padding: 10px 0;
+    margin-right: 18px;
+    font-size: 12.5px;
+    color: var(--ink-3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .help-tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+  .help-body {
+    padding: 22px 24px 32px;
+    overflow-y: auto;
+    flex: 1;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--ink-1);
+  }
+  .help-body p { margin-bottom: 14px; }
+  .help-body h4 {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    margin: 22px 0 8px;
+    font-weight: 500;
+  }
+  .help-body h4:first-child { margin-top: 0; }
+  .help-body ul { margin: 0 0 14px 0; padding-left: 18px; }
+  .help-body li { margin-bottom: 6px; color: var(--ink-2); }
+  .help-body code {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    background: var(--accent-soft);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+  .help-body .kv {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 8px 14px;
+    margin: 8px 0 14px;
+    font-size: 12.5px;
+  }
+  .help-body .kv .k { color: var(--ink-3); }
+  .help-body .kv .v { color: var(--ink); }
+  .help-body .tip {
+    padding: 10px 14px;
+    background: var(--accent-soft);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 4px 4px 0;
+    margin: 12px 0;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .help-body .tip b { color: var(--ink); }
+
+  .topbar {
+    grid-area: top;
+    display: flex; align-items: center;
+    padding: 0 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+    gap: 40px;
+  }
+  .brand {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .filing-ctx {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ink-2);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .filing-ctx b { color: var(--ink); font-weight: 500; }
+  .filing-ctx .dot { color: var(--ink-4); }
+  .top-right { display: flex; align-items: center; gap: 18px; }
+  .icon-btn {
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    color: var(--ink-2);
+    border-radius: 4px;
+  }
+  .icon-btn:hover { background: var(--accent-soft); color: var(--ink); }
+  .user {
+    display: flex; align-items: center; gap: 10px;
+    padding-left: 18px;
+    border-left: 1px solid var(--line);
+  }
+  .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: grid; place-items: center;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .user-meta { line-height: 1.2; }
+  .user-name { font-size: 13px; font-weight: 500; }
+  .user-role { font-size: 11.5px; color: var(--ink-3); }
+
+  /* side rail */
+  .rail {
+    grid-area: rail;
+    border-right: 1px solid var(--line);
+    background: var(--paper);
+    padding: 24px 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .rail-group { padding: 0 16px; margin-bottom: 28px; }
+  .rail-label {
+    padding: 0 12px 10px;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .rail-link {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background .12s ease, color .12s ease;
+  }
+  .rail-link:hover { background: var(--accent-soft); color: var(--ink); }
+  .rail-link.active { background: var(--accent-soft); color: var(--ink); font-weight: 500; }
+  .rail-link .count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .rail-link.active .count { color: var(--ink-2); }
+
+  /* main */
+  main {
+    grid-area: main;
+    overflow: hidden;
+    background: var(--paper);
+  }
+  .screen { display: none; height: 100%; overflow-y: auto; }
+  .screen.active { display: block; }
+
+  /* ── shared atoms ─────────────────────────────────────────── */
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .display {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1.05;
+  }
+  .display em { font-style: italic; font-weight: 400; }
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  .mono { font-family: var(--f-mono); }
+  .btn {
+    padding: 8px 16px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--surface);
+    transition: all .12s ease;
+  }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .btn.primary:hover { background: #000; border-color: #000; }
+  .btn.ghost { border-color: transparent; background: transparent; }
+  .btn.ghost:hover { background: var(--accent-soft); }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    padding: 3px 9px;
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    background: var(--surface);
+  }
+  .tag::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3);
+  }
+  .tag.ok::before  { background: var(--good); }
+  .tag.warn::before{ background: var(--warn); }
+  .tag.bad::before { background: var(--bad);  }
+  .tag.ok  { color: var(--good); border-color: rgba(47,111,79,0.25); }
+  .tag.warn{ color: var(--warn); border-color: rgba(138,90,22,0.25); }
+  .tag.bad { color: var(--bad);  border-color: rgba(155,44,44,0.25); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .card-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-title { font-size: 13.5px; font-weight: 500; }
+  .card-title .sub { color: var(--ink-3); font-weight: 400; margin-left: 8px; font-size: 12.5px; }
+
+  /* ────────────────────────────────────────────────────────────
+     DASHBOARD
+     ──────────────────────────────────────────────────────────── */
+  .screen-dashboard { padding: 56px 64px; max-width: 1180px; margin: 0 auto; }
+
+  .dash-head { margin-bottom: 56px; }
+  .dash-eyebrow {
+    font-size: 12px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 18px;
+  }
+  .dash-title {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    max-width: 800px;
+  }
+  .dash-title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .dash-sub {
+    margin-top: 18px;
+    color: var(--ink-2);
+    font-size: 15px;
+    max-width: 560px;
+    line-height: 1.55;
+  }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 56px;
+  }
+  .kpi {
+    padding: 32px 36px 32px 0;
+    border-right: 1px solid var(--line);
+  }
+  .kpi:last-child { border-right: none; padding-right: 0; }
+  .kpi:not(:first-child) { padding-left: 36px; }
+  .kpi-label {
+    font-size: 12px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+  .kpi-value {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+  .kpi-value .unit { font-family: var(--f-sans); font-size: 18px; color: var(--ink-3); margin-left: 4px; font-weight: 400; letter-spacing: 0; }
+  .kpi-meta {
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  .section-h {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .section-h h2 {
+    font-family: var(--f-serif);
+    font-weight: 400;
+    font-size: 22px;
+    letter-spacing: -0.015em;
+  }
+  .section-h .link {
+    color: var(--ink-2);
+    font-size: 13px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .section-h .link:hover { color: var(--ink); border-color: var(--ink-2); }
+
+  .filing-list {
+    border-top: 1px solid var(--line);
+  }
+  .filing-row {
+    display: grid;
+    grid-template-columns: 1.4fr 2fr 1fr auto;
+    gap: 24px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: center;
+    cursor: pointer;
+  }
+  .filing-row:hover { background: var(--accent-soft); margin: 0 -16px; padding: 22px 16px; border-radius: 4px; }
+  .fr-name {
+    font-size: 14.5px;
+    font-weight: 500;
+  }
+  .fr-name .sub {
+    display: block;
+    font-weight: 400;
+    color: var(--ink-3);
+    font-size: 12.5px;
+    margin-top: 3px;
+  }
+  .progress {
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress > div { height: 100%; background: var(--ink); border-radius: 2px; }
+  .progress-meta {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    display: flex; gap: 14px;
+  }
+  .progress-meta b { color: var(--ink-2); font-weight: 500; }
+  .fr-due {
+    text-align: right;
+    font-size: 12.5px;
+    color: var(--ink-3);
+  }
+  .fr-due b {
+    display: block;
+    font-size: 14.5px;
+    color: var(--ink);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .grid-2col {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 56px;
+    margin-top: 64px;
+  }
+
+  .activity { padding: 8px 0; }
+  .act {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  .act:last-child { border-bottom: none; }
+  .act-time {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    padding-top: 2px;
+  }
+  .act-msg {
+    font-size: 13.5px;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .act-msg b { font-weight: 500; }
+  .act-msg .meta {
+    display: block;
+    color: var(--ink-3);
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     FILING WORKSHOP
+     ──────────────────────────────────────────────────────────── */
+  .screen-filing { height: 100%; overflow-y: auto; }
+  .screen-filing.active { display: block; }
+  .filing-side {
+    border-right: 1px solid var(--line);
+    background: var(--paper);
+    overflow-y: auto;
+    padding: 32px 0;
+  }
+  .fs-back {
+    padding: 0 24px 18px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .fs-back:hover { color: var(--ink); }
+  .fs-h {
+    padding: 0 24px 8px;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .fs-item {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    gap: 12px;
+    padding: 10px 24px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    align-items: center;
+  }
+  .fs-item:hover { background: var(--accent-soft); }
+  .fs-item.active { background: var(--accent-soft); border-left-color: var(--accent); }
+  .fs-letter {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 18px;
+    color: var(--ink-3);
+    text-align: center;
+  }
+  .fs-item.active .fs-letter { color: var(--accent); }
+  .fs-name {
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  .fs-name .sub {
+    display: block;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-top: 2px;
+  }
+  .fs-tally {
+    font-size: 11px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .fs-tally .bad { color: var(--bad); }
+
+  .filing-main {
+    padding: 28px 40px 56px;
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+  .filing-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    margin-bottom: 14px;
+    cursor: pointer;
+  }
+  .filing-back:hover { color: var(--ink); }
+
+  /* Section summary cards (Option B — compact + Details popup) */
+  .section-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .sc {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px 20px;
+    display: flex; flex-direction: column;
+    transition: border-color .12s ease;
+  }
+  .sc:hover { border-color: var(--line-2); }
+  .sc-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .sc-title {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .sc-headline {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .sc-headline em { font-style: italic; }
+  .sc-headline.bad em { color: var(--bad); }
+  .sc-headline.good em { color: var(--good); }
+  .sc-summary {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    flex: 1;
+    margin-bottom: 14px;
+  }
+  .sc-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .sc-cta {
+    background: none;
+    border: none;
+    color: var(--ink);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+  .sc-cta:hover { opacity: 0.65; }
+  .sc-secondary {
+    background: none;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    padding: 5px 11px;
+    font-size: 12px;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .sc-secondary:hover { color: var(--ink); border-color: var(--ink-3); }
+  .sc-secondary.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .sc-secondary.primary:hover { background: #000; }
+
+  /* Generic detail-panel (side popout) */
+  .detail-panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 720px; max-width: 95vw;
+    background: var(--surface);
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 40px rgba(0,0,0,0.14);
+    transform: translateX(100%);
+    transition: transform .25s ease;
+    z-index: 70;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .detail-panel.open { transform: translateX(0); }
+  .detail-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.22);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+    z-index: 69;
+  }
+  .detail-backdrop.open { opacity: 1; pointer-events: auto; }
+  .detail-header {
+    padding: 22px 28px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: flex-start;
+    flex-shrink: 0;
+  }
+  .detail-eyebrow {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .detail-title {
+    font-family: var(--f-serif);
+    font-size: 24px;
+    font-weight: 300;
+    line-height: 1.2;
+    letter-spacing: -0.018em;
+    color: var(--ink);
+  }
+  .detail-title em { font-style: italic; color: var(--accent); }
+  .detail-close {
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    border: 1px solid var(--line-2);
+    background: var(--surface);
+    border-radius: 4px;
+    font-size: 18px; line-height: 1;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .detail-close:hover { color: var(--ink); border-color: var(--ink-3); }
+  .detail-body {
+    padding: 22px 28px 32px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* Page-level tabs (top-of-content navigation) */
+  .page-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+    gap: 0;
+  }
+  .page-tab {
+    padding: 11px 20px 12px;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 13.5px;
+    color: var(--ink-3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .12s ease, border-color .12s ease;
+  }
+  .page-tab:hover { color: var(--ink); }
+  .page-tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+  .page-tab .ct {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 11px;
+    color: var(--ink-3);
+    background: var(--accent-soft);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .page-tab.active .ct { background: var(--ink); color: #fff; }
+  .page-tab .ct.bad { background: rgba(155,44,44,0.10); color: var(--bad); }
+  .page-tab.active .ct.bad { background: var(--bad); color: #fff; }
+  .tab-pane[hidden] { display: none; }
+
+  /* Glance-tab tiles */
+  .glance-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .glance-tile {
+    padding: 22px 24px;
+    background: var(--surface);
+  }
+  .glance-tile .lbl {
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .glance-tile .val {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: -0.022em;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .glance-tile .val em { font-style: italic; }
+  .glance-tile .val.bad em { color: var(--bad); }
+  .glance-tile .val.good em { color: var(--good); }
+  .glance-tile .sub {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  .glance-callout {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--bad);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 18px 22px;
+    margin-bottom: 14px;
+  }
+  .glance-callout .eyebrow { color: var(--bad); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .glance-callout h3 { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+  .glance-callout .desc { color: var(--ink-2); font-size: 13px; line-height: 1.55; margin-bottom: 14px; }
+  .glance-callout .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* Filter chips on the meta row */
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border-radius: 14px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all .12s ease;
+    font-size: 13px;
+    user-select: none;
+  }
+  .filter-chip:hover { background: var(--accent-soft); border-color: var(--line-2); }
+  .filter-chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .filter-chip.active .ct, .filter-chip.active b { color: #fff; }
+  .filter-chip .ct { color: var(--ink-3); margin-left: 2px; font-size: 12px; }
+
+  /* Two-column filing layout */
+  .filing-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .filing-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Violations list — every blocker visible */
+  .vio-list {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .vio-head {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(155,44,44,0.04);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .vio-head .lbl { font-weight: 500; font-size: 13.5px; color: var(--bad); }
+  .vio-row {
+    display: block;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    transition: background .1s ease;
+    font-size: 13px;
+  }
+  .vio-row > div:first-child { cursor: pointer; }
+  .vio-row:last-child { border-bottom: none; }
+  .vio-row:hover { background: var(--accent-soft); }
+  .vio-policy {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .vio-code {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    background: rgba(155,44,44,0.08);
+    color: var(--bad);
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-align: center;
+    border: 1px solid rgba(155,44,44,0.18);
+  }
+  .vio-text { color: var(--ink-2); font-size: 13px; line-height: 1.45; }
+  .vio-text b { color: var(--ink); font-weight: 500; }
+  .vio-action {
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    font-weight: 500;
+    background: var(--ink);
+    color: #fff;
+    border: 1px solid var(--ink);
+    white-space: nowrap;
+  }
+  .vio-action.unfixable {
+    background: var(--surface);
+    color: var(--ink-2);
+    border-color: var(--line-2);
+    cursor: pointer;
+  }
+  .vio-action.unfixable:hover { color: var(--ink); border-color: var(--ink-3); }
+
+  /* Inline manual-fix editor */
+  .fix-editor {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin: 8px 0 4px;
+  }
+  .fix-editor .fe-head {
+    font-size: 12px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  .fix-editor .fe-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .fix-editor .fe-row b { font-weight: 500; }
+  .fix-editor input.fe-input {
+    font-family: var(--f-mono);
+    font-size: 14px;
+    padding: 7px 12px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    width: 90px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    outline: none;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .fix-editor input.fe-input:focus { border-color: var(--ink); }
+  .fix-editor .fe-suggest {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .fix-editor .fe-sg {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    background: var(--surface);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--f-mono);
+    color: var(--ink);
+  }
+  .fix-editor .fe-sg:hover { border-color: var(--ink); }
+  .fix-editor .fe-sg .why { font-family: var(--f-sans); color: var(--ink-3); font-size: 11.5px; }
+  .fix-editor .fe-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .fix-editor .fe-msg {
+    margin-top: 8px;
+    font-size: 12px;
+    min-height: 14px;
+  }
+  .fix-editor .fe-msg.err { color: var(--bad); }
+  .fix-editor .fe-msg.ok { color: var(--good); }
+
+  /* Code-letter pill with tooltip */
+  .code-pill {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    background: var(--accent-soft);
+    color: var(--ink);
+    padding: 1px 6px;
+    border-radius: 3px;
+    cursor: help;
+    position: relative;
+    border: 1px solid var(--line);
+  }
+  .code-pill:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: var(--f-sans);
+    font-size: 11.5px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* Rules table — clickable, expandable rows */
+  .rules-row { cursor: pointer; transition: background .1s ease; }
+  .rules-row:hover:not(.head) { background: var(--accent-soft); }
+  .rules-row .caret {
+    display: inline-block;
+    width: 12px;
+    color: var(--ink-3);
+    font-size: 10px;
+    transition: transform .15s ease;
+    margin-right: 4px;
+  }
+  .rules-row.expanded .caret { transform: rotate(90deg); }
+  .rule-detail {
+    padding: 18px 22px 22px;
+    background: rgba(0,0,0,0.015);
+    border-bottom: 1px solid var(--line);
+    display: none;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .rule-detail.open { display: block; }
+  .rule-detail h5 {
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+    font-weight: 500;
+    margin-top: 14px;
+  }
+  .rule-detail h5:first-child { margin-top: 0; }
+  .rule-detail pre {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    background: var(--paper);
+    padding: 10px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    overflow-x: auto;
+    margin-top: 4px;
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .rule-detail .viol-chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 6px;
+  }
+  .rule-detail .viol-chips .chip {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    background: rgba(155,44,44,0.08);
+    color: var(--bad);
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid rgba(155,44,44,0.2);
+  }
+  .fm-head {
+    margin-bottom: 36px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .fm-eyebrow { margin-bottom: 12px; }
+  .fm-title {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 38px;
+    letter-spacing: -0.022em;
+    line-height: 1.1;
+  }
+  .fm-title em { font-style: italic; color: var(--accent); }
+  .fm-meta {
+    margin-top: 14px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+    display: flex; gap: 16px;
+  }
+  .fm-meta .dot { color: var(--ink-4); }
+
+  .pipeline {
+    display: flex;
+    margin: 0 0 36px;
+    padding: 18px 22px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .pp-step {
+    flex: 1;
+    display: flex; align-items: center; gap: 12px;
+    position: relative;
+  }
+  .pp-step:not(:last-child)::after {
+    content: ""; position: absolute; right: 0; top: 50%;
+    width: 14px; height: 1px;
+    background: var(--line-2);
+  }
+  .pp-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--line-2);
+    display: grid; place-items: center;
+    font-size: 11px;
+    color: var(--ink-3);
+    flex-shrink: 0;
+  }
+  .pp-step.done .pp-num { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pp-step.done .pp-num::before { content: "✓"; }
+  .pp-step.done .pp-num span { display: none; }
+  .pp-step.active .pp-num { border-color: var(--accent); color: var(--accent); }
+  .pp-info { line-height: 1.2; }
+  .pp-name {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .pp-step.active .pp-name { color: var(--ink); font-weight: 500; }
+  .pp-when {
+    font-size: 10.5px;
+    color: var(--ink-3);
+    margin-top: 2px;
+  }
+
+  .blocker-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--bad);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+  .blocker-card .eyebrow { color: var(--bad); margin-bottom: 10px; }
+  .blocker-card h3 {
+    font-family: var(--f-serif);
+    font-size: 20px;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    margin-bottom: 8px;
+  }
+  .blocker-card p {
+    color: var(--ink-2);
+    font-size: 13.5px;
+    line-height: 1.55;
+    max-width: 640px;
+    margin-bottom: 14px;
+  }
+  .blocker-card .actions { display: flex; gap: 10px; }
+
+  /* rules table */
+  .rules {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .rules-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 200px 110px;
+    gap: 18px;
+    padding: 16px 22px;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+  }
+  .rules-row:last-child { border-bottom: none; }
+  .rules-row.head {
+    background: var(--paper);
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 12px 22px;
+  }
+  .rules-row.fail { background: rgba(155,44,44,0.04); }
+  .rule-id { font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); }
+  .rules-row.fail .rule-id { color: var(--bad); }
+  .rule-name { color: var(--ink); }
+  .rule-name .sub { display: block; color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+  .rule-cite { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2); }
+  .rule-tally { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--ink-2); text-align: right; }
+  .rule-tally .bad { color: var(--bad); }
+
+  /* wire preview */
+  .wire-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 28px;
+  }
+  .wire-body {
+    padding: 18px 22px;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--ink);
+    overflow-x: auto;
+    white-space: pre;
+    background: #fcfbf8;
+  }
+  .wire-body .ruler { color: var(--ink-4); font-size: 10.5px; display: block; }
+  .wire-body .h { background: rgba(91,77,138,0.10); padding: 0 1px; }
+  .wire-body .err { background: rgba(155,44,44,0.12); color: var(--bad); padding: 0 2px; }
+  .wire-foot {
+    padding: 12px 22px;
+    border-top: 1px solid var(--line);
+    background: var(--paper);
+    display: flex; justify-content: space-between;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     REGULATIONS
+     ──────────────────────────────────────────────────────────── */
+  .screen-regulations {
+    grid-template-columns: 320px 1fr;
+    height: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  .screen-regulations.active { display: grid; }
+  .reg-side {
+    border-right: 1px solid var(--line);
+    background: var(--paper);
+    overflow-y: auto;
+    padding: 32px 0;
+  }
+  .reg-search {
+    margin: 0 24px 22px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px;
+    background: var(--surface);
+    border: 1px solid var(--line-2);
+    border-radius: 6px;
+  }
+  .reg-search input {
+    border: none; background: none; outline: none;
+    font: inherit; color: var(--ink); flex: 1;
+    font-size: 13px;
+  }
+  .reg-search .kbd {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+    padding: 2px 5px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+  }
+
+  .tree-group { margin-bottom: 18px; }
+  .tree-h {
+    padding: 0 24px 6px;
+    font-size: 10.5px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+  .tree-node {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 24px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .tree-node:hover { background: var(--accent-soft); color: var(--ink); }
+  .tree-node.section { color: var(--ink); font-weight: 500; }
+  .tree-node.section .chev { color: var(--ink-3); font-size: 10px; }
+  .tree-node.rule { padding-left: 44px; }
+  .tree-node.rule .code { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-3); margin-right: 4px; }
+  .tree-node.rule.active { background: var(--accent-soft); color: var(--ink); border-left: 2px solid var(--accent); padding-left: 42px; }
+  .tree-node.rule.active .code { color: var(--accent); }
+  .tree-node .ct { margin-left: auto; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .tree-node .ct.bad { color: var(--bad); }
+
+  .reg-main {
+    overflow-y: auto;
+    padding: 48px 64px 64px;
+    max-width: 920px;
+  }
+  .reg-crumb {
+    font-size: 12.5px;
+    color: var(--ink-3);
+    margin-bottom: 18px;
+  }
+  .reg-crumb .sep { color: var(--ink-4); margin: 0 6px; }
+  .reg-crumb .now { color: var(--ink); }
+
+  .reg-titlerow {
+    display: flex; align-items: baseline; gap: 16px;
+    margin-bottom: 12px;
+  }
+  .reg-code {
+    font-family: var(--f-mono);
+    font-size: 13px;
+    color: var(--ink-2);
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+  .reg-title {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 36px;
+    letter-spacing: -0.022em;
+    line-height: 1.1;
+  }
+  .reg-title em { font-style: italic; color: var(--accent); }
+  .reg-citation {
+    font-size: 13px;
+    color: var(--ink-2);
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .reg-citation b { color: var(--ink); font-weight: 500; }
+  .reg-citation .ref { font-family: var(--f-mono); font-size: 11.5px; }
+
+  /* Clickable elements throughout Regulations — affordance + hover */
+  .clk {
+    cursor: pointer;
+    border-bottom: 1px dotted var(--ink-3);
+    transition: color .12s ease, border-color .12s ease;
+  }
+  .clk:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .clk.solid { border-bottom-style: solid; border-bottom-color: var(--line-2); }
+  .clk.solid:hover { border-bottom-color: var(--accent); }
+  .clk-card {
+    cursor: pointer;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .clk-card:hover { background: var(--accent-soft); }
+  .clk-card:hover .br-arrow { color: var(--ink); }
+  .data-table tr.clk-row { cursor: pointer; }
+  .data-table tr.clk-row:hover td { background: var(--accent-soft); }
+  /* Section header in tree — make clickable */
+  .tree-node.section.clk { border-bottom: none; }
+  .tree-node.section:hover { background: var(--accent-soft); }
+
+  .reg-section { margin-bottom: 36px; }
+  .reg-h {
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .reg-quote {
+    border-left: 2px solid var(--accent);
+    padding: 6px 0 6px 22px;
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+  .reg-plain {
+    color: var(--ink-2);
+    font-size: 14px;
+    line-height: 1.65;
+    max-width: 680px;
+  }
+  .reg-plain mark { background: var(--accent-soft); color: var(--ink); padding: 1px 5px; border-radius: 3px; font-family: var(--f-mono); font-size: 12px; }
+
+  .bridge {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .br-cell { padding: 20px 22px; }
+  .br-cell.left { border-right: 1px solid var(--line); }
+  .br-arrow {
+    display: grid; place-items: center;
+    background: var(--paper);
+    color: var(--ink-3);
+    font-size: 14px;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  .br-key {
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .br-key.k { color: var(--kg); }
+  .br-key.s { color: var(--sf); }
+  .br-val {
+    font-family: var(--f-mono);
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .br-sub {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-top: 6px;
+  }
+
+  /* sql */
+  .sql {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .sql-head {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between;
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .sql-body {
+    padding: 18px 22px;
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--ink);
+    overflow-x: auto;
+    background: #fcfbf8;
+  }
+  .sql-body .kw { color: var(--accent); }
+  .sql-body .str { color: var(--good); }
+  .sql-body .cmt { color: var(--ink-3); font-style: italic; }
+
+  /* live data table */
+  .data-card { margin-top: 32px; }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .data-table th {
+    text-align: left;
+    padding: 12px 22px;
+    color: var(--ink-3);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--line);
+    font-weight: 500;
+    background: var(--paper);
+  }
+  .data-table td {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    color: var(--ink);
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr.fail td { background: rgba(155,44,44,0.04); color: var(--bad); }
+  .data-table tr.fail td:first-child { border-left: 2px solid var(--bad); }
+
+  /* ────────────────────────────────────────────────────────────
+     BULLETINS
+     ──────────────────────────────────────────────────────────── */
+  .screen-bulletins {
+    grid-template-columns: 360px 1fr;
+    height: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  .screen-bulletins.active { display: grid; }
+  .bul-side {
+    border-right: 1px solid var(--line);
+    background: var(--paper);
+    overflow-y: auto;
+  }
+  .bul-side-head {
+    padding: 32px 24px 20px;
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; background: var(--paper); z-index: 2;
+  }
+  .bul-side-head .eyebrow { margin-bottom: 8px; }
+  .bul-side-head h3 {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 24px;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+  .bul-side-head em { font-style: italic; color: var(--accent); }
+  .bul-tabs {
+    display: flex; gap: 4px; margin-top: 16px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: -1px;
+  }
+  .bul-tab {
+    padding: 8px 12px;
+    font-size: 12.5px;
+    color: var(--ink-3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .bul-tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+  .bul-tab .ct { color: var(--ink-4); margin-left: 4px; font-size: 11.5px; }
+  .bul-tab.active .ct { color: var(--ink-3); }
+
+  .bul-item {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+  }
+  .bul-item:hover { background: var(--accent-soft); }
+  .bul-item.active { background: var(--accent-soft); border-left-color: var(--accent); }
+  .bul-meta {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .bul-src {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .bul-date { margin-left: auto; }
+  .bul-title {
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+  .bul-snippet {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+
+  .bul-main {
+    overflow-y: auto;
+    padding: 56px 64px 64px;
+    max-width: 920px;
+  }
+  .bul-detail-head { margin-bottom: 36px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .bul-detail-eyebrow {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+  }
+  .bul-detail-title {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 44px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+  .bul-detail-title em { font-style: italic; color: var(--accent); }
+  .bul-detail-sub {
+    margin-top: 16px;
+    color: var(--ink-2);
+    font-size: 14px;
+    display: flex; gap: 16px;
+  }
+  .bul-detail-sub .dot { color: var(--ink-4); }
+  .bul-detail-actions { margin-top: 22px; display: flex; gap: 10px; }
+
+  .impact-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    margin-bottom: 40px;
+    overflow: hidden;
+  }
+  .impact-cell { padding: 24px 28px; }
+  .impact-cell.left { border-right: 1px solid var(--line); }
+  .impact-cell .eyebrow { margin-bottom: 12px; }
+  .impact-num {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: -0.022em;
+  }
+  .impact-num .unit { font-family: var(--f-sans); font-size: 15px; color: var(--ink-3); margin-left: 4px; }
+  .impact-num em { font-style: italic; color: var(--good); }
+  .impact-sub {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+
+  .flip {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    margin-bottom: 36px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .flip-cell { padding: 24px 28px; }
+  .flip-cell.before { border-right: 1px solid var(--line); }
+  .flip-cell .eyebrow { margin-bottom: 14px; }
+  .flip-verdict {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 24px;
+    letter-spacing: -0.015em;
+    margin-bottom: 10px;
+  }
+  .flip-verdict em { font-style: italic; }
+  .flip-cell.before em { color: var(--bad); }
+  .flip-cell.after em { color: var(--good); }
+  .flip-reason {
+    color: var(--ink-2);
+    font-size: 13.5px;
+    line-height: 1.55;
+    margin-bottom: 16px;
+  }
+  .flip-wire {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    padding: 12px 14px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .flip-wire .err { background: rgba(155,44,44,0.12); color: var(--bad); }
+  .flip-wire .ok { background: rgba(47,111,79,0.12); color: var(--good); }
+  .flip-arrow {
+    display: grid; place-items: center;
+    background: var(--paper);
+    color: var(--ink-3);
+    font-size: 22px;
+    font-family: var(--f-serif);
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     AUDIT
+     ──────────────────────────────────────────────────────────── */
+  .screen-audit { padding: 56px 64px 64px; max-width: 1080px; margin: 0 auto; }
+  .audit-head { margin-bottom: 48px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .audit-eyebrow { margin-bottom: 14px; }
+  .audit-title {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 44px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+  .audit-title em { font-style: italic; color: var(--accent); }
+  .audit-sub {
+    margin-top: 18px;
+    color: var(--ink-2);
+    font-size: 14.5px;
+    max-width: 620px;
+    line-height: 1.55;
+  }
+
+  .timeline {
+    position: relative;
+    padding-left: 32px;
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 7px; top: 8px; bottom: 8px;
+    width: 1px;
+    background: var(--line-2);
+  }
+  .tl {
+    position: relative;
+    padding: 0 0 36px 0;
+  }
+  .tl::before {
+    content: "";
+    position: absolute;
+    left: -32px; top: 4px;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--line-2);
+  }
+  .tl.done::before { border-color: var(--ink); background: var(--ink); }
+  .tl.now::before { border-color: var(--accent); background: #fff; }
+  .tl-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .tl-action {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+  .tl.now .tl-action { color: var(--accent); }
+  .tl-time {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .tl-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 22px 26px;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 28px;
+  }
+  .tl-actor { display: flex; align-items: center; gap: 12px; }
+  .tl-actor .avatar { width: 32px; height: 32px; font-size: 11.5px; }
+  .tl-actor .meta { line-height: 1.25; }
+  .tl-actor .nm { font-size: 13.5px; font-weight: 500; }
+  .tl-actor .rl { font-size: 11.5px; color: var(--ink-3); }
+  .tl-detail { color: var(--ink-2); font-size: 13px; line-height: 1.6; }
+  .tl-hash {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    color: var(--accent);
+    word-break: break-all;
+  }
+  .tl-foot {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    display: flex; gap: 22px; flex-wrap: wrap;
+  }
+  .tl-foot b { color: var(--ink); font-weight: 500; }
+
+  /* icon */
+  .ic { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  @media (max-width: 1100px) {
+    .screen-dashboard, .filing-main, .reg-main, .bul-main, .screen-audit { padding-left: 40px; padding-right: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── topbar ────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="brand">RegulAI</div>
+    <div class="filing-ctx">
+      <b>Lone Star Mutual</b>
+      <span class="dot">/</span>
+      <span>TSPR · Q4 2025</span>
+      <span class="dot">/</span>
+      <span style="color:var(--ink-3);" data-bind="ctx-bulletin">canon v1</span>
+    </div>
+    <div class="top-right">
+      <button class="icon-btn" title="Search">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      </button>
+      <button class="icon-btn" title="Notifications">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+      <div class="user">
+        <div class="avatar">DR</div>
+        <div class="user-meta">
+          <div class="user-name">Diana Reyes</div>
+          <div class="user-role">VP, Compliance</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── rail ──────────────────────────────────────── -->
+  <nav class="rail">
+    <div class="rail-group">
+      <div class="rail-link active" data-screen="dashboard">Overview</div>
+      <div class="rail-link" data-screen="filing">Filing<span class="count" data-bind="rail-filing-count">—</span></div>
+      <div class="rail-link" data-screen="regulations">Regulations<span class="count" data-bind="rail-regs-count">—</span></div>
+      <div class="rail-link" data-screen="bulletins">Bulletins<span class="count" data-bind="rail-bul-count">—</span></div>
+      <div class="rail-link" data-screen="audit">Audit log</div>
+    </div>
+    <div class="rail-group">
+      <div class="rail-label">Sources</div>
+      <a class="rail-link" data-source="kg" href="http://localhost:7474" target="_blank" rel="noopener">
+        Knowledge graph
+        <span class="count">↗</span>
+      </a>
+      <a class="rail-link" data-source="sf" href="https://app.snowflake.com/" target="_blank" rel="noopener">
+        Snowflake
+        <span class="count">↗</span>
+      </a>
+      <div class="rail-link" data-action="show-sharefile" style="cursor:pointer;">
+        ShareFile
+        <span class="count">preview</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── page header bar ───────────────────────────── -->
+  <div class="page-header">
+    <span class="ph-eyebrow" data-bind="ph-eyebrow">Overview</span>
+    <span class="ph-sep">/</span>
+    <span class="ph-title" data-bind="ph-title">Filing cycle Q4 2025</span>
+    <div class="ph-meta">
+      <span><span class="live-dot"></span>Snowflake <span data-bind="ph-sf-state">live</span></span>
+      <span><span class="live-dot"></span>Neo4j KG <span data-bind="ph-kg-state">live</span></span>
+      <button class="help-btn" data-action="toggle-help"><span class="qmark">?</span>What am I looking at</button>
+      <button class="refresh" data-action="refresh-all">⟲ Refresh</button>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- ╔═══════════════════════════════════════════════
+         OVERVIEW
+         ═══════════════════════════════════════════════╗ -->
+    <section class="screen screen-dashboard active" data-screen="dashboard">
+
+      <div class="dash-head">
+        <div class="dash-eyebrow">Q4 2025 · Filing cycle</div>
+        <h1 class="dash-title">
+          Three filings in flight.<br/>
+          <em>Forty-seven days</em> to file.
+        </h1>
+        <p class="dash-sub">
+          All in-progress submissions, the bulletins waiting to be acknowledged,
+          and the records that block submission — from one canon, in one place.
+        </p>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-label">Regulator readiness</div>
+          <div class="kpi-value num"><span data-bind="kpi-readiness">—</span><span class="unit">/ 100</span></div>
+          <div class="kpi-meta" data-bind="kpi-readiness-meta">loading…</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Fines avoided this cycle</div>
+          <div class="kpi-value num">$<span data-bind="kpi-fines">—</span><span class="unit">K</span></div>
+          <div class="kpi-meta" data-bind="kpi-fines-meta">loading…</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Blockers across filings</div>
+          <div class="kpi-value num" data-bind="kpi-blockers">—</div>
+          <div class="kpi-meta" data-bind="kpi-blockers-meta">loading…</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-h">
+          <h2>Active filings</h2>
+          <a class="link">View all</a>
+        </div>
+        <div class="filing-list">
+          <div class="filing-row" data-screen="filing">
+            <div class="fr-name">TSPR · Q4 2025<span class="sub">Texas Statistical Plan</span></div>
+            <div>
+              <div class="progress"><div data-bind="tspr-progress" style="width:55%"></div></div>
+              <div class="progress-meta"><b data-bind="tspr-stage">Resolving blockers</b><span data-bind="tspr-step">step 3 of 5</span></div>
+            </div>
+            <div data-bind="tspr-status"><span class="tag">loading…</span></div>
+            <div class="fr-due">due in<b>47 days</b></div>
+          </div>
+          <div data-bind="other-filings"></div>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div>
+          <div class="section-h">
+            <h2>Recent activity</h2>
+            <a class="link">View all</a>
+          </div>
+          <div class="activity" data-bind="activity-list">
+            <div class="act"><div class="act-time">loading</div><div class="act-msg" style="color:var(--ink-3);">connecting to RegulAI…</div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-h">
+            <h2>Wire preview</h2>
+            <span class="tag">section A · draft</span>
+          </div>
+          <div class="wire-card">
+            <div class="wire-body" data-bind="wire-body"><span class="ruler">loading sample…</span></div>
+            <div class="wire-foot">
+              <span data-bind="wire-count">— records</span>
+              <span data-bind="wire-flag" style="color:var(--bad);"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ╔═══════════════════════════════════════════════
+         FILING WORKSHOP
+         ═══════════════════════════════════════════════╗ -->
+    <section class="screen screen-filing" data-screen="filing">
+
+      <div class="filing-main">
+        <a class="filing-back fs-back">← Back to overview</a>
+        <div class="fm-head">
+          <h1 class="fm-title" style="margin-bottom:8px;">Reason-code <em>validation</em></h1>
+          <div class="fm-meta" data-bind="filing-meta" style="gap:14px;flex-wrap:wrap;font-size:13.5px;color:var(--ink-2);">
+            <span style="color:var(--ink-3);">loading rule summary…</span>
+          </div>
+        </div>
+
+        <div data-bind="filing-pipeline-card" style="margin-bottom:18px;">
+          <div class="pipeline" style="padding:12px 18px;">
+            <div class="pp-step"><div class="pp-num">…</div><div class="pp-info"><div class="pp-name">loading</div></div></div>
+          </div>
+        </div>
+
+        <div class="section-cards" data-bind="filing-section-cards">
+          <div class="sc"><div class="sc-summary" style="color:var(--ink-3);">loading…</div></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ╔═══════════════════════════════════════════════
+         REGULATIONS
+         ═══════════════════════════════════════════════╗ -->
+    <section class="screen screen-regulations" data-screen="regulations">
+
+      <aside class="reg-side">
+        <div class="reg-search">
+          <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input placeholder="Search rules, citations…" />
+          <span class="kbd">⌘K</span>
+        </div>
+
+        <div class="tree-group" data-bind="reg-tree">
+          <div class="tree-h">Texas statistical plan · 2026</div>
+          <div class="tree-node" style="color:var(--ink-3);padding:14px 24px;">loading rules…</div>
+        </div>
+      </aside>
+
+      <div class="reg-main" data-bind="reg-main">
+        <div class="reg-crumb" data-bind="reg-crumb">
+          Texas Statistical Plan <span class="sep">›</span>
+          <span class="now">loading…</span>
+        </div>
+
+        <div class="reg-titlerow">
+          <span class="reg-code" data-bind="reg-code">—</span>
+          <h1 class="reg-title" data-bind="reg-title">Select a rule from the tree</h1>
+        </div>
+        <div class="reg-citation" data-bind="reg-citation">
+          <b>Authority:</b> <span class="ref">loading…</span>
+        </div>
+
+        <div class="reg-section">
+          <div class="reg-h">Plain-language explanation</div>
+          <div class="reg-plain" data-bind="reg-rationale">
+            Pick a rule on the left to see its constraint rationale and how it deploys to Snowflake.
+          </div>
+        </div>
+
+        <div class="reg-section">
+          <div class="reg-h">Deploys to</div>
+          <div class="bridge" data-bind="reg-bridge">
+            <div class="br-cell left">
+              <div class="br-key k">Knowledge graph</div>
+              <div class="br-val">—</div>
+            </div>
+            <div class="br-arrow">→</div>
+            <div class="br-cell">
+              <div class="br-key s">Snowflake</div>
+              <div class="br-val">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reg-section">
+          <div class="reg-h">Executable check</div>
+          <div class="sql">
+            <div class="sql-head">
+              <span data-bind="reg-sql-target">generated from KG</span>
+              <button class="btn" style="font-size:11.5px;padding:4px 10px;" data-action="run-rule">Run</button>
+            </div>
+            <div class="sql-body" data-bind="reg-sql-body"><span class="cmt">-- select a rule to see its SQL</span></div>
+          </div>
+        </div>
+
+        <div class="reg-section data-card">
+          <div class="reg-h">Live records · <span data-bind="reg-data-table">BRONZE.GW_PC_JOB</span></div>
+          <div class="card" style="overflow:hidden;">
+            <table class="data-table">
+              <thead>
+                <tr><th>Policy</th><th>Action</th><th>Reason code</th><th>Notice date</th></tr>
+              </thead>
+              <tbody data-bind="reg-data-tbody">
+                <tr><td colspan="4" style="text-align:center;color:var(--ink-3);">loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ╔═══════════════════════════════════════════════
+         BULLETINS
+         ═══════════════════════════════════════════════╗ -->
+    <section class="screen screen-bulletins" data-screen="bulletins">
+
+      <aside class="bul-side">
+        <div class="bul-side-head">
+          <div class="eyebrow">Bulletin inbox</div>
+          <h3 data-bind="bul-side-heading"><em>—</em></h3>
+        </div>
+        <div data-bind="bul-list">
+          <div class="bul-item" style="color:var(--ink-3);font-size:12.5px;">loading bulletins…</div>
+        </div>
+      </aside>
+
+      <div class="bul-main">
+        <div class="bul-detail-head">
+          <div class="bul-detail-eyebrow" data-bind="bul-eyebrow">loading…</div>
+          <h1 class="bul-detail-title" data-bind="bul-title">…</h1>
+          <div class="bul-detail-sub" data-bind="bul-subline">
+            <span style="color:var(--ink-3);">loading bulletin metadata…</span>
+          </div>
+          <div class="bul-detail-actions">
+            <button class="btn ghost" data-action="open-bulletin">View bulletin text</button>
+            <button class="btn primary" data-action="bulletin-toggle" data-bind="bulletin-btn">loading…</button>
+          </div>
+          <div data-bind="bulletin-status" style="margin-top:14px;font-size:13px;color:var(--ink-3);"></div>
+        </div>
+
+        <div class="impact-row">
+          <div class="impact-cell left">
+            <div class="eyebrow">Records re-evaluated</div>
+            <div class="impact-num num" data-bind="impact-total">— <span class="unit">policies</span></div>
+            <div class="impact-sub" data-bind="impact-total-sub">loading…</div>
+          </div>
+          <div class="impact-cell">
+            <div class="eyebrow">Net validation</div>
+            <div class="impact-num" data-bind="impact-net"><em>—</em></div>
+            <div class="impact-sub" data-bind="impact-net-sub">loading…</div>
+          </div>
+        </div>
+
+        <div class="flip" data-bind="flip-block">
+          <div class="flip-cell before">
+            <div class="eyebrow">Canon v1 (baseline)</div>
+            <div class="flip-verdict">Verdict <em data-bind="flip-before-verdict">—</em></div>
+            <div class="flip-reason" data-bind="flip-before-reason">loading…</div>
+          </div>
+          <div class="flip-arrow">→</div>
+          <div class="flip-cell after">
+            <div class="eyebrow">After bulletin · canon v2</div>
+            <div class="flip-verdict">Verdict <em data-bind="flip-after-verdict">—</em></div>
+            <div class="flip-reason" data-bind="flip-after-reason">loading…</div>
+          </div>
+        </div>
+
+        <div data-bind="bulletin-text-section" style="margin-bottom:24px;">
+          <div class="reg-h">Bulletin source text · markdown from regulator</div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:12px 20px;border-bottom:1px solid var(--line);background:var(--paper);display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-family:var(--f-mono);font-size:11px;color:var(--ink-3);">synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md</span>
+              <button class="btn" data-action="copy-bulletin" style="font-size:11.5px;padding:4px 10px;">Copy</button>
+            </div>
+            <pre data-bind="bulletin-text" style="margin:0;padding:18px 20px;font-family:var(--f-mono);font-size:12.5px;line-height:1.65;color:var(--ink);white-space:pre-wrap;max-height:340px;overflow-y:auto;background:var(--surface);">loading bulletin text…</pre>
+          </div>
+        </div>
+
+        <div>
+          <div class="reg-h">What will change in the canon</div>
+          <div class="card" style="padding:22px 26px;">
+            <div style="font-size:13.5px;line-height:1.6;color:var(--ink-2);margin-bottom:14px;">
+              The bulletin amends a single CodeValue in the KG: reason code <code>L</code>
+              (credit-score declination) has its <code>companion_required</code> flag set to
+              <code>FALSE</code> for catastrophe periods, with a version bump and a citation
+              back to <code>B-2026-Q4-118</code>.
+            </div>
+            <div style="font-family:var(--f-mono);font-size:12.5px;line-height:1.85;color:var(--ink-2);">
+              <div><span style="color:var(--accent);">MATCH</span> <span style="color:var(--ink);">(cv:CodeValue { code: 'L' })</span></div>
+              <div><span style="color:var(--accent);">SET</span>   <span style="color:var(--ink);">cv.companion_required = false,</span></div>
+              <div><span style="margin-left:42px;color:var(--ink);">cv.bulletin_ref = 'B-2026-Q4-118',</span></div>
+              <div><span style="margin-left:42px;color:var(--ink);">cv.version = cv.version + 1,</span></div>
+              <div><span style="margin-left:42px;color:var(--ink);">cv.effective_from = date('2026-03-01')</span></div>
+            </div>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);color:var(--ink-3);font-size:12.5px;">
+              Then: <code>REFERENCE.TSPR_REASON_CODE_MAP</code> is rebuilt from the KG and
+              reloaded into Snowflake. The L-companion validation rule now passes for any
+              policy whose reason field is just <code>'L'</code>.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ╔═══════════════════════════════════════════════
+         AUDIT
+         ═══════════════════════════════════════════════╗ -->
+    <section class="screen screen-audit" data-screen="audit">
+
+      <div class="audit-head">
+        <div class="audit-eyebrow eyebrow">TSPR · Q4 2025</div>
+        <h1 class="audit-title">Every byte<br/>has a <em>trail</em>.</h1>
+        <p class="audit-sub" data-bind="audit-sub">
+          Loading event timeline…
+        </p>
+      </div>
+
+      <div class="timeline" data-bind="audit-timeline">
+        <div style="padding:32px;text-align:center;color:var(--ink-3);font-size:13.5px;">Loading audit events…</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Side-popout detail panel (Option B: each section's deep view) -->
+<div class="detail-backdrop" data-bind="detail-backdrop" data-action="close-detail"></div>
+<aside class="detail-panel" data-bind="detail-panel" aria-hidden="true">
+  <div class="detail-header">
+    <div>
+      <div class="detail-eyebrow" data-bind="detail-eyebrow">Section</div>
+      <h2 class="detail-title" data-bind="detail-title">Details</h2>
+    </div>
+    <button class="detail-close" data-action="close-detail" aria-label="Close">×</button>
+  </div>
+  <div class="detail-body" data-bind="detail-body">loading…</div>
+</aside>
+
+<!-- Side-pop help panel -->
+<div class="help-backdrop" data-bind="help-backdrop" data-action="close-help"></div>
+<aside class="help-panel" data-bind="help-panel" aria-hidden="true">
+  <div class="help-header">
+    <div>
+      <div class="help-eyebrow" data-bind="help-eyebrow">Overview</div>
+      <h2 class="help-title" data-bind="help-title">What you're <em>looking at</em></h2>
+    </div>
+    <button class="help-close" data-action="close-help" aria-label="Close">×</button>
+  </div>
+  <div class="help-tabs" data-bind="help-tabs">
+    <div class="help-tab active" data-help-tab="what">What is this</div>
+    <div class="help-tab" data-help-tab="actions">What you can do</div>
+    <div class="help-tab" data-help-tab="data">Where data comes from</div>
+  </div>
+  <div class="help-body" data-bind="help-body">loading…</div>
+</aside>
+
+<!-- ShareFile preview modal -->
+<div data-bind="sharefile-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:8px;max-width:780px;width:90%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.25);">
+    <div style="padding:18px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;">ShareFile destination · preview</div>
+        <div style="font-family:var(--f-serif);font-size:22px;font-weight:300;letter-spacing:-0.015em;">TSPR_19876_25Q4.txt</div>
+      </div>
+      <button class="btn ghost" data-action="close-sharefile" style="font-size:18px;padding:4px 12px;line-height:1;">×</button>
+    </div>
+    <div style="padding:18px 24px;flex:1;overflow-y:auto;">
+      <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-bottom:14px;">
+        This is the fixed-width ASCII file that would be uploaded to
+        <code style="font-family:var(--f-mono);color:var(--accent);">sharefile.tico.org/inbox/19876/q4-2025/</code>
+        once the filing is sealed. Generated from <code>GOLD.TSPR_PREMIUM_RECORDS</code> + the Section 29 aggregates.
+      </div>
+      <pre data-bind="sharefile-content" style="font-family:var(--f-mono);font-size:11.5px;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:14px;line-height:1.7;overflow:auto;color:var(--ink);white-space:pre;">loading…</pre>
+      <div style="margin-top:14px;font-size:12px;color:var(--ink-3);">
+        Carrier private-key signature + SHA-256 hash chain seals are computed at submission time. Currently shown as a preview only.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ────────────────────────────────────────────────────────────────
+  // RegulAI Workstation · live wiring
+  // ────────────────────────────────────────────────────────────────
+  const API = '/api/rhs';
+  const $  = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const bind = (key) => $(`[data-bind="${key}"]`);
+  const setText = (key, val) => { const el = bind(key); if (el) el.textContent = val; };
+  const setHTML = (key, val) => { const el = bind(key); if (el) el.innerHTML = val; };
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  async function get(path) {
+    try {
+      const r = await fetch(API + path);
+      if (!r.ok) throw new Error(`${path} → ${r.status}`);
+      return await r.json();
+    } catch (e) { console.warn('GET fail', path, e.message); return null; }
+  }
+  async function post(path) {
+    try {
+      const r = await fetch(API + path, { method: 'POST' });
+      return await r.json();
+    } catch (e) { console.warn('POST fail', path, e.message); return null; }
+  }
+
+  // ─── App state ──────────────────────────────────────────────────
+  const app = { data: {}, selectedRule: null, busy: false, helpOpen: false, helpTab: 'what' };
+
+  // ─── Help-panel content per screen ──────────────────────────────
+  const HELP = {
+    dashboard: {
+      eyebrow: 'Overview',
+      title: 'The <em>filing cycle</em> at a glance',
+      what: `
+        <p>This is the home dashboard for the current filing cycle (Q4 2025).
+        It rolls up everything — KPIs, in-flight filings, live activity, and a
+        preview of the bytes that would ship to the regulator.</p>
+        <h4>The three KPIs</h4>
+        <div class="kv">
+          <div class="k">Regulator readiness</div>
+          <div class="v">% of executable rules currently passing</div>
+          <div class="k">Fines avoided</div>
+          <div class="v"><b>violations × $25K</b> — industry estimate for fines caught before submission</div>
+          <div class="k">Blockers</div>
+          <div class="v">Records that today would fail at least one rule and block the filing</div>
+        </div>
+        <h4>Active filings list</h4>
+        <p>One row per statistical plan in flight. The progress bar shows where the filing
+        is in the draft → validate → resolve → approve → submit flow.</p>
+        <h4>Wire preview</h4>
+        <p>A live sample of the actual fixed-width TSPR ASCII output built from current Bronze records.
+        Violating records are flagged with <code>·</code> in the reason column.</p>`,
+      actions: `
+        <p>Things you can do from this page:</p>
+        <ul>
+          <li><b>Click any KPI card</b> — no-op today; coming: drills into the metric</li>
+          <li><b>Click the active filing row</b> → opens the Filing Workshop for TSPR Q4 2025</li>
+          <li><b>Click ⟲ Refresh</b> in the page header to re-fetch all live data</li>
+          <li><b>Use the side rail</b> to jump to Regulations / Bulletins / Audit</li>
+        </ul>`,
+      data: `
+        <p>All numbers on this page are live:</p>
+        <ul>
+          <li><b>Readiness, blockers, violations</b> ← <code>GET /api/rhs/validate/cancellations</code> (runs every rule from Snowflake's <code>REFERENCE.TSPR_VALIDATION_RULES</code> against the Bronze Guidewire feed)</li>
+          <li><b>Filing pipeline state</b> ← <code>/api/rhs/state</code> + violations count</li>
+          <li><b>Wire preview rows</b> ← <code>/api/rhs/bronze/cancellations</code> (joined back to violations)</li>
+          <li><b>Recent activity</b> — synthesized from current canon + validation state (no event store yet)</li>
+        </ul>
+        <div class="tip"><b>Note:</b> "Fines avoided" uses a $25K-per-record estimate. Replace with your carrier's actual per-citation penalty for a real number.</div>`,
+    },
+    filing: {
+      eyebrow: 'Filing Workshop',
+      title: 'One filing, <em>every check</em>',
+      what: `
+        <p>The working surface for a single filing (TSPR Q4 2025). Shows every rule's
+        pass/fail result and every record-level blocker.</p>
+        <h4>Filter chips at top</h4>
+        <p>Click <code>passing</code> / <code>failing</code> to slice the rules table.
+        The numbers in the chips are live counts.</p>
+        <h4>Blockers panel (red)</h4>
+        <p>Every record that's failing a rule, with the reason code in a pill — hover any
+        letter to see what it means in the regulation. "Apply bulletin" buttons appear
+        only on records the pending bulletin can actually fix; the rest say
+        <code>manual fix</code>.</p>
+        <h4>Rules table</h4>
+        <p>Every executable rule, with its pass/fail tally. <b>Click any row</b> to expand
+        inline with the rule's citation, plain-language summary, list of violating policies,
+        and the actual SQL predicate run against Snowflake.</p>
+        <h4>Wire preview (right side)</h4>
+        <p>Sample of the fixed-width ASCII output for the rule selected in the violation
+        list, with the offending columns highlighted.</p>`,
+      actions: `
+        <ul>
+          <li><b>Click a blocker row</b> → expands the matching rule below with its predicate + all violators</li>
+          <li><b>Click a rule row</b> → expands inline (SQL, citation, violators)</li>
+          <li><b>Click "Apply bulletin"</b> on a blocker or in the header → runs the real <code>apply_credit_score_bulletin</code> pipeline (~30s)</li>
+          <li><b>Click "Open in Regulations →"</b> from an expanded rule → jumps to that rule in the Regulation Explorer</li>
+          <li><b>Hover a reason-code letter</b> → tooltip with the regulator's definition</li>
+        </ul>
+        <div class="tip"><b>"manual fix" chip</b> means the bulletin doesn't amend the rule this record fails — the carrier has to fix the underlying data (e.g. POL-0019's invalid <code>IO</code> codes).</div>`,
+      data: `
+        <ul>
+          <li><b>Rules</b> ← <code>REFERENCE.TSPR_VALIDATION_RULES</code> in Snowflake (generated from the KG)</li>
+          <li><b>Violations</b> ← each rule's <code>violation_sql</code> run against <code>BRONZE.GW_PC_JOB</code> ⋈ <code>BRONZE.GW_PC_POLICYPERIOD</code></li>
+          <li><b>Bronze records</b> ← live Guidewire CDC data via <code>/api/rhs/bronze/cancellations</code></li>
+        </ul>`,
+    },
+    regulations: {
+      eyebrow: 'Regulation Explorer',
+      title: 'The full <em>canon</em>',
+      what: `
+        <p>Every rule the system knows about. The header says <b>"88 rules · 4 executable · 84 descriptive"</b>:</p>
+        <h4>Executable (4)</h4>
+        <p>These rules have a SQL predicate attached, can be run against Bronze data,
+        and produce real pass/fail counts. Bold rows in the tree.</p>
+        <h4>Descriptive (84)</h4>
+        <p>The regulation text + citations are in the KG, but no one has written the SQL yet to
+        check them against data. They show dimmed in the tree. Bridging more rules = roadmap work.</p>
+        <h4>Rule detail (right side)</h4>
+        <p>For an executable rule: regulator's plain text, the KG ⟶ Snowflake bridge,
+        the actual SQL, and the live Bronze records flagged as violators (red rows).</p>`,
+      actions: `
+        <ul>
+          <li><b>Click an executable rule</b> → opens its detail on the right</li>
+          <li><b>Click a descriptive rule</b> → does nothing yet (no SQL to run)</li>
+          <li><b>Click "Run"</b> in the executable check card → re-runs validation</li>
+          <li><b>Hover a violating row</b> in the live records table → flagged with red left border</li>
+        </ul>
+        <div class="tip"><b>Bridging a descriptive rule</b> means writing its <code>target_table</code> + <code>violation_sql</code> in the KG. Once attached, the next <code>make build-validation-rules</code> + <code>load-validation-rules</code> publishes it to Snowflake.</div>`,
+      data: `
+        <ul>
+          <li><b>All rules (tree)</b> ← <code>GET /api/rhs/kg/rules</code> reads every <code>(:Rule)</code> node from the Neo4j canon</li>
+          <li><b>Executable subset</b> ← merged with <code>/api/rhs/validate/cancellations</code> matched by rule name</li>
+          <li><b>Live records</b> ← <code>/api/rhs/bronze/cancellations</code></li>
+          <li><b>SQL predicate</b> ← <code>r.violation_sql</code> property on the KG Rule node</li>
+        </ul>`,
+    },
+    bulletins: {
+      eyebrow: 'Bulletin Inbox',
+      title: 'Regulatory updates &amp; <em>impact</em>',
+      what: `
+        <p>Bulletins issued by the regulator (TDI, NAIC) that amend the canon. Each one can be
+        applied to the KG, which then propagates to Snowflake's reference tables, which then
+        flips affected records' validation status.</p>
+        <h4>Impact row</h4>
+        <p><b>Records re-evaluated</b> = how many policies the bulletin's amended rule looks at.
+        <b>Net validation</b> = how many violations would flip if you apply (or have flipped if already applied).</p>
+        <h4>Before / After flip</h4>
+        <p>A representative record showing the verdict on canon v1 (baseline) vs canon v2
+        (after bulletin). Picks a record the bulletin actually affects.</p>
+        <h4>Bulletin source text</h4>
+        <p>The full markdown from the regulator, served inline. Copyable.</p>
+        <h4>What will change</h4>
+        <p>The actual Cypher diff that runs against the KG — usually a property update on a
+        <code>(:CodeValue)</code> with a version bump and a citation back to the bulletin.</p>`,
+      actions: `
+        <ul>
+          <li><b>Apply to canon</b> → runs the full pipeline: KG update → reference rebuild → Snowflake reload (~30s)</li>
+          <li><b>Reset to baseline</b> → rolls back (only visible when applied)</li>
+          <li><b>View bulletin text</b> → scrolls to the inline markdown panel</li>
+          <li><b>Copy</b> → copies the markdown to your clipboard</li>
+        </ul>
+        <div class="tip"><b>Applying is reversible</b> in the demo — Reset restores the baseline canon and re-validates everything.</div>`,
+      data: `
+        <ul>
+          <li><b>Applied state</b> ← <code>GET /api/rhs/state</code> (reads the canonical flag in <code>TSPR_REASON_CODE_MAP</code>)</li>
+          <li><b>Apply pipeline</b> ← <code>POST /api/rhs/bulletin/apply</code> → <code>scripts/apply_credit_score_bulletin</code> → <code>build_reference_reason_codes</code> → <code>snow sql -f .../tspr_reason_code_map.sql</code></li>
+          <li><b>Bulletin markdown</b> ← <code>synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md</code> via <code>/api/rhs/bulletin</code></li>
+        </ul>`,
+    },
+    audit: {
+      eyebrow: 'Audit Log',
+      title: 'Chain of <em>custody</em>',
+      what: `
+        <p>A timeline of everything that happened to the filing. Each event has an actor, a
+        timestamp, and (eventually) a SHA-256 hash that chains forward to the next event.</p>
+        <h4>What's there today</h4>
+        <p>Four events synthesized from current state: validation run, bulletin pending/applied,
+        Bronze ingest, KG → Reference materialization.</p>
+        <h4>What's missing</h4>
+        <p>No persistent event store yet — these events are derived from "what does the state look
+        like right now?" rather than logged at the moment they happened. The submitted-bytes
+        + regulator-ack chain comes online once submission is wired.</p>`,
+      actions: `
+        <ul>
+          <li>No interactive elements yet — events render based on current canon + validation state</li>
+          <li>Page refreshes automatically every 30s</li>
+        </ul>`,
+      data: `
+        <ul>
+          <li><b>Validation event</b> ← <code>/api/rhs/validate/cancellations</code> summary</li>
+          <li><b>Bulletin event</b> ← <code>/api/rhs/state</code> applied flag</li>
+          <li><b>Bronze ingest</b> ← <code>/api/rhs/bronze/cancellations</code> count</li>
+          <li><b>Reference materialized</b> ← derived</li>
+        </ul>
+        <div class="tip"><b>Roadmap:</b> a real event-log table in Snowflake, with SHA-256 chain, signed by actor private keys at sign-off.</div>`,
+    },
+  };
+
+  function renderHelp() {
+    const screen = app.currentScreen || 'dashboard';
+    const h = HELP[screen] || HELP.dashboard;
+    setText('help-eyebrow', h.eyebrow);
+    setHTML('help-title', h.title);
+    setHTML('help-body', h[app.helpTab] || h.what);
+    $$('.help-tab').forEach(t => t.classList.toggle('active', t.dataset.helpTab === app.helpTab));
+  }
+
+  function setHelpOpen(open) {
+    app.helpOpen = open;
+    const panel = bind('help-panel');
+    const back  = bind('help-backdrop');
+    if (panel) panel.classList.toggle('open', open);
+    if (back)  back.classList.toggle('open', open);
+    if (open) renderHelp();
+  }
+
+  // ─── Screen routing ─────────────────────────────────────────────
+  const screens = $$('.screen');
+  const PAGE_HEADERS = {
+    dashboard:   { eyebrow: 'Overview',            title: 'Filing cycle · Q4 2025' },
+    filing:      { eyebrow: 'Filing Workshop',     title: 'TSPR · Q4 2025 · Section A · reason-code validation' },
+    regulations: { eyebrow: 'Regulation Explorer', title: 'Texas Statistical Plan · 2026 edition' },
+    bulletins:   { eyebrow: 'Bulletin Inbox',      title: 'Pending regulatory updates' },
+    audit:       { eyebrow: 'Audit Log',           title: 'Chain of custody · TSPR Q4 2025' },
+  };
+  function setScreen(target) {
+    $$('.rail-link[data-screen]').forEach(l => l.classList.toggle('active', l.dataset.screen === target));
+    screens.forEach(s => s.classList.toggle('active', s.dataset.screen === target));
+    const scr = $(`.screen[data-screen="${target}"]`);
+    if (scr) scr.scrollTop = 0;
+    const h = PAGE_HEADERS[target];
+    if (h) { setText('ph-eyebrow', h.eyebrow); setText('ph-title', h.title); }
+    app.currentScreen = target;
+  }
+  $$('.rail-link[data-screen]').forEach(l => l.addEventListener('click', () => setScreen(l.dataset.screen)));
+  $$('.filing-row[data-screen]').forEach(r => r.addEventListener('click', () => setScreen('filing')));
+  $$('.fs-back').forEach(b => b.addEventListener('click', () => setScreen('dashboard')));
+  $$('.bul-tab').forEach(t => t.addEventListener('click', () => {
+    $$('.bul-tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+  }));
+
+  // ─── Refresh: pull all live data ────────────────────────────────
+  async function refresh() {
+    if (app.busy) return;
+    app.busy = true;
+    const [st, val, valFlat, bronze, pl, kgRules, bulletinTxt] = await Promise.all([
+      get('/state'),
+      get('/validate/cancellations'),
+      get('/validation'),
+      get('/bronze/cancellations'),
+      get('/pipeline/state'),
+      get('/kg/rules'),
+      // The bulletin endpoint returns plain text, not JSON
+      fetch('/api/rhs/bulletin').then(r => r.ok ? r.text() : null).catch(() => null),
+    ]);
+    app.data = { st, val, valFlat, bronze, pl, kgRules, bulletinTxt };
+    // Populate the inline bulletin-text panel
+    const pre = bind('bulletin-text');
+    if (pre) pre.textContent = bulletinTxt || 'Bulletin text not available.';
+    if (!app.selectedRule && val?.rules?.length) {
+      // pick a failing rule as default if any, else first
+      app.selectedRule = val.rules.find(r => r.status === 'fail') || val.rules[0];
+    }
+    render();
+    app.busy = false;
+  }
+
+  function render() {
+    renderTopbar();
+    renderRail();
+    renderOverview();
+    renderFiling();
+    renderRegulations();
+    renderBulletins();
+    renderAudit();
+  }
+
+  // ─── Rail badges ────────────────────────────────────────────────
+  function renderRail() {
+    const v = app.data.val;
+    const st = app.data.st;
+    const filingCt = v ? (v.summary.total_violations > 0 ? v.summary.total_violations : '✓') : '—';
+    setText('rail-filing-count', filingCt);
+    setText('rail-regs-count', v ? v.summary.rules_run : '—');
+    setText('rail-bul-count', st ? (st.bulletin_applied ? '✓' : 'new') : '—');
+  }
+
+  // ─── Topbar + page header live indicators ──────────────────────
+  function renderTopbar() {
+    const st = app.data.st;
+    const el = bind('ctx-bulletin');
+    if (el) {
+      if (!st || !st.reference_loaded) { el.textContent = '⚠ Snowflake unreachable'; el.style.color = 'var(--warn)'; }
+      else if (st.bulletin_applied) { el.textContent = '✓ bulletin B-2026-Q4-118 applied'; el.style.color = 'var(--good)'; }
+      else { el.textContent = '◯ canon v1 (baseline)'; el.style.color = 'var(--ink-3)'; }
+    }
+    // Live indicators in page header
+    const sfState = bind('ph-sf-state');
+    const kgState = bind('ph-kg-state');
+    if (sfState) {
+      if (st && st.reference_loaded) { sfState.textContent = 'live'; sfState.style.color = 'var(--good)'; }
+      else { sfState.textContent = 'offline'; sfState.style.color = 'var(--warn)'; }
+    }
+    if (kgState) {
+      // Assume KG is live if backend responded (RHS bulletin endpoint uses Neo4j)
+      if (st) { kgState.textContent = 'live'; kgState.style.color = 'var(--good)'; }
+      else { kgState.textContent = 'offline'; kgState.style.color = 'var(--warn)'; }
+    }
+  }
+
+  // ─── Overview ───────────────────────────────────────────────────
+  function renderOverview() {
+    const v = app.data.val;
+    const vf = app.data.valFlat;
+
+    if (!v) {
+      setText('kpi-readiness', '—');
+      setText('kpi-readiness-meta', backendError());
+      setText('kpi-blockers', '—');
+      setText('kpi-blockers-meta', backendError());
+    } else {
+      const total = v.summary.rules_run;
+      const pass = v.summary.rules_passing;
+      const fail = v.summary.rules_failing;
+      const violations = v.summary.total_violations;
+      const score = total ? Math.round((pass / total) * 100) : 100;
+      setText('kpi-readiness', score);
+      setText('kpi-readiness-meta', `${pass} of ${total} rules passing · ${fail} failing`);
+      setText('kpi-blockers', violations);
+      if (violations > 0 && v.violations.length) {
+        const v0 = v.violations[0];
+        setText('kpi-blockers-meta', `${v0.rule_name} · ${v0.policy_number}`);
+      } else {
+        setText('kpi-blockers-meta', 'All rules pass — filing clear');
+      }
+      // Fines avoided: $25K per record caught before submission (industry estimate)
+      const fineEstimate = violations * 25;
+      setText('kpi-fines', fineEstimate);
+      setText('kpi-fines-meta', violations > 0
+        ? `${violations} record${violations > 1 ? 's' : ''} caught before submission · $25K/record est.`
+        : 'No violations to catch · estimate based on caught-before-submission');
+    }
+
+    // Active TSPR filing row
+    if (v) {
+      const blockers = v.summary.total_violations;
+      const stepEl = bind('tspr-stage');
+      const progEl = bind('tspr-progress');
+      const stEl   = bind('tspr-step');
+      const tagEl  = bind('tspr-status');
+      if (blockers === 0) {
+        if (stepEl) stepEl.textContent = 'Awaiting approval';
+        if (progEl) progEl.style.width = '80%';
+        if (stEl)   stEl.textContent = 'step 4 of 5';
+        if (tagEl)  tagEl.innerHTML = '<span class="tag ok">ready</span>';
+      } else {
+        if (stepEl) stepEl.textContent = 'Resolving blockers';
+        if (progEl) progEl.style.width = '55%';
+        if (stEl)   stEl.textContent = 'step 3 of 5';
+        if (tagEl)  tagEl.innerHTML = `<span class="tag bad">${blockers} blocker${blockers > 1 ? 's' : ''}</span>`;
+      }
+    }
+
+    // Activity feed — derive from live data
+    renderActivity();
+
+    // Wire preview — derive from validation data
+    renderWirePreview();
+  }
+
+  function renderActivity() {
+    const v = app.data.val, st = app.data.st, vf = app.data.valFlat;
+    const items = [];
+    if (st && st.reference_loaded) {
+      if (st.bulletin_applied) {
+        items.push({ t: 'just now', body: `Bulletin <b>${st.bulletin_id}</b> currently applied to the canon.`, meta: 'Reason-code rules updated · catastrophe-period exception in force' });
+      } else {
+        items.push({ t: 'baseline', body: 'Canon at <b>baseline v1</b>. No bulletins applied.', meta: 'Apply bulletin from the Bulletins tab to flip blocked records' });
+      }
+    }
+    if (v) {
+      items.push({ t: 'live', body: `Validation engine ran <b>${v.summary.rules_run} rules</b>. <b>${v.summary.rules_passing} passing</b>, <b>${v.summary.rules_failing} failing</b>.`, meta: `${v.summary.total_violations} record violations across REFERENCE.TSPR_VALIDATION_RULES` });
+      if (v.violations.length) {
+        const v0 = v.violations[0];
+        items.push({ t: 'live', body: `${v0.policy_number} flagged by <b>${v0.rule_name}</b>.`, meta: `${v0.citation || 'TSPR'} · ${v0.violation_reason || 'see rule'}` });
+      }
+    }
+    if (vf) {
+      items.push({ t: 'bronze', body: `Bronze ⋈ Reference join: <b>${vf.count} records</b>, <b>${vf.invalid_count}</b> currently INVALID.`, meta: 'BRONZE.GW_PC_JOB × REFERENCE.TSPR_REASON_CODE_MAP' });
+    }
+    if (!items.length) {
+      items.push({ t: 'offline', body: 'Cannot reach Snowflake — check network policy.', meta: 'IP allowlist or PAT expiry' });
+    }
+    setHTML('activity-list', items.map(i => `
+      <div class="act">
+        <div class="act-time">${esc(i.t)}</div>
+        <div class="act-msg">${i.body}<span class="meta">${esc(i.meta)}</span></div>
+      </div>`).join(''));
+  }
+
+  function renderWirePreview() {
+    const v = app.data.val;
+    const body = bind('wire-body');
+    if (!body) return;
+    if (!v) {
+      body.innerHTML = '<span class="ruler" style="color:var(--ink-3);">Snowflake unreachable</span>';
+      setText('wire-count', '—');
+      return;
+    }
+    // Build a tiny ASCII preview from violations + bronze data
+    const bronze = app.data.bronze;
+    const violations = new Set((v.violations || []).map(x => x.policy_number));
+    const rows = bronze?.rows || [];
+    const lines = [];
+    rows.slice(0, 6).forEach(r => {
+      const code = (r.reason_code || '  ').padEnd(2, ' ');
+      const fail = violations.has(r.policy);
+      const codeHtml = fail
+        ? `<span class="h">${esc(code[0])}</span><span class="err">·</span>`
+        : `<span class="h">${esc(code[0])}</span><span class="h">${esc(code[1])}</span>`;
+      lines.push(`19876C2025Q4${esc((r.policy || '').padEnd(8, ' '))}TX${esc((r.action || '').padEnd(10, ' ').slice(0,10))}${codeHtml}${esc((r.effectivedate || '').replace(/-/g,'').slice(2,6))}`);
+    });
+    body.innerHTML = `<span class="ruler">         1         2         3         4         5</span>\n<span class="ruler">12345678901234567890123456789012345678901234567890</span>\n${lines.join('\n')}`;
+    setText('wire-count', `${rows.length} of ${rows.length} records`);
+    const flagEl = bind('wire-flag');
+    if (flagEl) {
+      if (v.violations.length) flagEl.textContent = `● ${v.violations[0].policy_number} fails ${v.violations[0].rule_name}`;
+      else { flagEl.textContent = '● all clear'; flagEl.style.color = 'var(--good)'; }
+    }
+  }
+
+  // ─── Filing Workshop ────────────────────────────────────────────
+  // UI state: which rules are expanded, which filter chip is active
+  if (!app.filingState) app.filingState = { expanded: new Set(), filter: 'all' };
+
+  // Tooltip text for reason codes (for the <span class="code-pill" data-tip>)
+  const CODE_TIPS = {
+    'A': 'Failure to pay premiums',
+    'B': 'Increase in hazard',
+    'C': 'Inspection report not accepted',
+    'D': 'Claims history',
+    'E': 'Exposure to loss — liability',
+    'F': 'Exposure to loss — wildfire',
+    'G': 'Exposure to loss — wind/hail/hurricane',
+    'H': "Insurer's concentration of risk",
+    'J': 'Insurer withdrawing from market (must appear alone)',
+    'K': 'Location of risk',
+    'L': 'Credit or insurance score (needs companion code)',
+    'M': 'Condition of property — roof',
+    'N': 'Condition of property — tree overhang',
+    'P': 'Condition of property — defensible space',
+    'Q': 'Condition of property — maintenance',
+    'R': 'Condition of property — other',
+    'S': 'Value of home',
+    'T': 'Agent no longer appointed',
+    'X': 'Assumption reinsurance (TWIA only)',
+    'Y': "At insured's request",
+    'Z': "Other, insurer's action",
+  };
+
+  function codePill(code) {
+    // Render each character as a hover-tooltip pill
+    return [...code].map(c => {
+      const tip = CODE_TIPS[c] || (c.match(/[0-9]/) ? 'Digit — not a valid TSPR code' : 'Not a valid TSPR code');
+      return `<span class="code-pill" data-tip="${esc(c)} — ${esc(tip)}">${esc(c)}</span>`;
+    }).join('');
+  }
+
+  function reasonCodeFor(policy) {
+    const r = (app.data.bronze?.rows || []).find(x => x.policy === policy);
+    return r ? r.reason_code : null;
+  }
+
+  if (!app.filingState) app.filingState = { expanded: new Set(), filter: 'all' };
+  app.openSection = null;
+
+  // ─── Detail-panel (side popout) plumbing ───────────────────────
+  function openDetail(eyebrow, title, html) {
+    setText('detail-eyebrow', eyebrow);
+    setHTML('detail-title', title);
+    setHTML('detail-body', html);
+    bind('detail-panel')?.classList.add('open');
+    bind('detail-backdrop')?.classList.add('open');
+  }
+  function closeDetail() {
+    bind('detail-panel')?.classList.remove('open');
+    bind('detail-backdrop')?.classList.remove('open');
+  }
+
+  // ─── Detail panel content builders (Regulations clickables) ────
+  function openDetail_policy(policy) {
+    const bronze = (app.data.bronze?.rows || []).find(r => r.policy === policy);
+    const violations = (app.data.val?.violations || []).filter(x => x.policy_number === policy);
+    const allRules = app.data.val?.rules || [];
+    if (!bronze) {
+      openDetail('Policy', `<em>${esc(policy)}</em>`, '<div style="color:var(--ink-3);">No record found.</div>');
+      return;
+    }
+    const ruleResults = allRules.map(r => {
+      const v0 = violations.find(x => x.rule_id === r.rule_id);
+      return { rule: r, fail: !!v0, reason: v0?.violation_reason };
+    });
+    const code = bronze.reason_code || '—';
+    const isLOnly = code === 'L';
+    openDetail('Bronze Record', `<em>${esc(policy)}</em>`, `
+      <div style="display:grid;grid-template-columns:130px 1fr;gap:8px 16px;font-size:13.5px;margin-bottom:20px;">
+        <div style="color:var(--ink-3);">Reason code</div>
+        <div style="font-family:var(--f-mono);"><b>${esc(code)}</b></div>
+        <div style="color:var(--ink-3);">Action</div>
+        <div>${esc(bronze.action || '—')}</div>
+        <div style="color:var(--ink-3);">Notice date</div>
+        <div style="font-family:var(--f-mono);">${esc(bronze.noticedate || '—')}</div>
+        <div style="color:var(--ink-3);">Effective date</div>
+        <div style="font-family:var(--f-mono);">${esc(bronze.effectivedate || '—')}</div>
+        <div style="color:var(--ink-3);">Source</div>
+        <div><code>BRONZE.GW_PC_JOB</code> ⋈ <code>GW_PC_POLICY</code></div>
+      </div>
+
+      <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 10px;font-weight:500;">Validation results · ${ruleResults.filter(r => r.fail).length} fail / ${ruleResults.filter(r => !r.fail).length} pass</h4>
+      <div style="border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:18px;">
+        ${ruleResults.map(rr => `
+          <div style="display:grid;grid-template-columns:80px 1fr auto;gap:14px;padding:11px 14px;border-bottom:1px solid var(--line);${rr.fail ? 'background:rgba(155,44,44,0.04);' : ''}">
+            <span style="font-family:var(--f-mono);font-size:12px;${rr.fail ? 'color:var(--bad);' : 'color:var(--ink-2);'}">${esc(rr.rule.rule_number)}</span>
+            <span style="font-size:13px;">${esc(rr.rule.rule_name)}<br/><span style="font-size:11.5px;color:var(--ink-3);">${esc(rr.reason || '')}</span></span>
+            <span style="font-family:var(--f-mono);font-size:11.5px;${rr.fail ? 'color:var(--bad);' : 'color:var(--good);'}">${rr.fail ? '✗ fail' : '✓ pass'}</span>
+          </div>`).join('')}
+      </div>
+
+      ${violations.length ? `
+        <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 10px;font-weight:500;">Actions</h4>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          ${isLOnly ? `<button class="btn primary" data-action="apply-bulletin-now">Apply bulletin B-2026-Q4-118</button>` : ''}
+          <button class="btn" data-action="open-fix" data-policy="${esc(policy)}" data-code="${esc(code)}" data-rulenum="${esc(violations[0].rule_number)}">Manually fix this record</button>
+        </div>
+        <div class="fix-editor-slot" style="margin-top:14px;"></div>
+      ` : `<div style="font-size:13px;color:var(--good);">✓ Policy passes all executable rules.</div>`}
+    `);
+  }
+
+  function openDetail_citation(rule) {
+    if (!rule) return;
+    openDetail('Regulatory Citation', `<em>${esc(rule.rule_number || '')}</em>`, `
+      <div style="margin-bottom:18px;">
+        <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 8px;font-weight:500;">Cited authority</h4>
+        <div style="font-family:var(--f-mono);font-size:14px;color:var(--accent);padding:12px 16px;background:var(--accent-soft);border-radius:4px;">${esc(rule.citation || '—')}</div>
+      </div>
+      <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:14px 0 8px;font-weight:500;">What this means</h4>
+      <p style="font-size:13.5px;line-height:1.55;color:var(--ink-2);">
+        The citation points to the section of regulatory text that this rule encodes. When a regulator
+        challenges a filing, the carrier can produce this citation as the source of truth for why the
+        check was applied.
+      </p>
+      <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 8px;font-weight:500;">Where it lives in RegulAI</h4>
+      <ul style="font-size:13px;line-height:1.65;color:var(--ink-2);padding-left:20px;">
+        <li>Stored as a <code>(:Citation)</code> node in the Neo4j canon</li>
+        <li>Linked to the rule via <code>(:Rule)-[:CITES]→(:Citation)</code></li>
+        <li>Materialized into Snowflake column <code>REFERENCE.TSPR_VALIDATION_RULES.citation</code></li>
+      </ul>
+      <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 8px;font-weight:500;">Audit trail</h4>
+      <p style="font-size:13px;color:var(--ink-2);line-height:1.55;">
+        This citation was extracted by <b>Sentinel</b> from the source regulation PDF and
+        approved into the KG. Every executable rule retains its citation so the engine
+        can answer "why did you fail this record?" with an exact regulatory anchor.
+      </p>
+    `);
+  }
+
+  function openDetail_severity(severity) {
+    const sev = (severity || 'ERROR').toUpperCase();
+    openDetail('Rule Severity', `<em>${esc(sev)}</em>`, `
+      <p style="font-size:13.5px;color:var(--ink-2);margin-bottom:18px;line-height:1.55;">
+        Severity controls how a rule's violations are treated in the filing workflow.
+      </p>
+      <div style="border:1px solid var(--line);border-radius:6px;overflow:hidden;">
+        ${[
+          ['ERROR',   'Blocks submission', 'Filing cannot be approved or submitted until all ERROR-severity violations are cleared. The carrier must fix the data, apply a bulletin, or escalate for an exemption.'],
+          ['WARNING', 'Requires review',   'Filing can proceed, but each violation appears in the audit log and the approving officer must acknowledge it. Common for soft-data-quality rules.'],
+          ['INFO',    'Informational',     'No blocking effect. Used for advisory rules — "this is unusual, you might want to double-check" — surfaced in the actuary review queue.'],
+        ].map(([s, t, d]) => `
+          <div style="padding:14px 18px;border-bottom:1px solid var(--line);${s === sev ? 'background:var(--accent-soft);' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+              <span style="font-family:var(--f-mono);font-size:13px;font-weight:500;color:${s === 'ERROR' ? 'var(--bad)' : s === 'WARNING' ? 'var(--warn)' : 'var(--ink-2)'};">${esc(s)}</span>
+              <span style="font-size:12px;color:var(--ink-3);">${esc(t)}</span>
+            </div>
+            <div style="font-size:13px;color:var(--ink-2);line-height:1.5;">${esc(d)}</div>
+          </div>`).join('')}
+      </div>
+    `);
+  }
+
+  function openDetail_table(tableName) {
+    if (!tableName) return;
+    const schema = app.data.catalog?.schemas?.find(s => tableName.startsWith(s.schema + '.'));
+    const tableShort = tableName.split('.').slice(-1)[0];
+    const tableInfo = schema?.tables?.find(t => t.table_name === tableShort);
+    openDetail('Snowflake Table', `<em>${esc(tableName)}</em>`, `
+      <div style="display:grid;grid-template-columns:150px 1fr;gap:8px 16px;font-size:13.5px;margin-bottom:20px;">
+        <div style="color:var(--ink-3);">Schema</div>
+        <div><code>${esc(schema?.schema || '—')}</code></div>
+        <div style="color:var(--ink-3);">Schema purpose</div>
+        <div>${esc(schema?.description || '—')}</div>
+        <div style="color:var(--ink-3);">Row count</div>
+        <div style="font-family:var(--f-mono);">${tableInfo ? tableInfo.row_count : '—'}</div>
+        <div style="color:var(--ink-3);">Size</div>
+        <div style="font-family:var(--f-mono);">${tableInfo ? `${Math.round((tableInfo.bytes || 0)/1024)} KB` : '—'}</div>
+        <div style="color:var(--ink-3);">Last altered</div>
+        <div style="font-family:var(--f-mono);font-size:12px;">${esc(tableInfo?.last_altered || '—')}</div>
+      </div>
+      <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:14px 0 8px;font-weight:500;">Source</h4>
+      <p style="font-size:13.5px;line-height:1.55;color:var(--ink-2);">
+        ${tableName.startsWith('BRONZE') ? 'Raw Guidewire CDC events — append-only mirror of the carrier&rsquo;s PolicyCenter / ClaimCenter / BillingCenter exports.' : ''}
+        ${tableName.startsWith('SILVER') ? 'TSPR-coded staging — every Guidewire field translated to TSPR semantics with field-mapping rules from the KG.' : ''}
+        ${tableName.startsWith('GOLD') ? 'Submission-ready records — one row per record in the filing, validated and approved.' : ''}
+        ${tableName.startsWith('REFERENCE') ? 'Generated from the Neo4j canon — not hand-authored. Rebuilt every time a bulletin is applied.' : ''}
+      </p>
+      <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 8px;font-weight:500;">In the medallion pipeline</h4>
+      <pre style="font-family:var(--f-mono);font-size:12px;background:var(--paper);padding:12px 14px;border:1px solid var(--line);border-radius:4px;overflow-x:auto;">Bronze (raw CDC)
+  ↓ SILVER transform
+Silver (TSPR-coded)
+  ↓ GOLD aggregation
+Gold (submission)
+  ↓ SDF render
+TSPR file → ShareFile</pre>
+    `);
+  }
+
+  function openDetail_kgNode(rule) {
+    if (!rule) return;
+    openDetail('Knowledge Graph Node', `<em>(:Rule)</em>`, `
+      <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 10px;font-weight:500;">Cypher · what the KG stores</h4>
+      <pre style="font-family:var(--f-mono);font-size:12px;background:var(--paper);padding:14px 16px;border:1px solid var(--line);border-radius:4px;overflow-x:auto;color:var(--ink);line-height:1.65;">(:Rule {
+  id:           "${esc(rule.rule_id)}",
+  name:         "${esc(rule.rule_name || '')}",
+  rule_number:  "${esc(rule.rule_number || '')}",
+  target_table: "${esc(rule.target_table || '')}",
+  target_id_expr: "${esc(rule.target_id_expr || '')}",
+  severity:     "${esc(rule.severity || 'ERROR')}",
+  violation_reason: "${esc(rule.violation_reason || '')}",
+  violation_sql: …
+})-[:CITES]→(:Citation {
+  text: "${esc(rule.citation || '')}"
+})</pre>
+      <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 8px;font-weight:500;">How to inspect live</h4>
+      <p style="font-size:13.5px;line-height:1.55;color:var(--ink-2);">
+        Open the Neo4j Browser (Sources rail → Knowledge graph ↗) and run:
+      </p>
+      <pre style="font-family:var(--f-mono);font-size:12px;background:var(--paper);padding:12px 14px;border:1px solid var(--line);border-radius:4px;overflow-x:auto;color:var(--ink);">MATCH (r:Rule { id: "${esc(rule.rule_id)}" })
+OPTIONAL MATCH (r)-[rel]-(n)
+RETURN r, rel, n</pre>
+      <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 8px;font-weight:500;">Why this matters</h4>
+      <p style="font-size:13.5px;line-height:1.55;color:var(--ink-2);">
+        The KG is the <b>canon</b>. Snowflake's reference table is generated from it.
+        When the regulator amends a rule via bulletin, the KG node is updated → the
+        reference table is rebuilt → all downstream validation re-evaluates automatically.
+      </p>
+    `);
+  }
+
+  function openDetail_section(sectionLetter) {
+    const allKgRules = app.data.kgRules?.rules || [];
+    const execRules  = app.data.val?.rules || [];
+    const inSection = allKgRules.filter(r => r.section === sectionLetter);
+    const execNames = new Set(execRules.map(r => r.rule_name?.trim()));
+    const execInSection = inSection.filter(r => execNames.has((r.name || '').trim()));
+    const sectMeta = {
+      A: ['Premium / Reason Codes', 'Premium exposure, tenure discounts, and reason codes for cancellations, nonrenewals, and declinations.'],
+      B: ['Loss Detail',            'Per-claim loss reporting — type of loss, cause of loss, deductible, ZIP, ISO protection class.'],
+      C: ['Cancellations',          'Cancellation events with reason codes (subset of A).'],
+      D: ['Catastrophe Loss',       'CAT-attributed claims, wind/hail attribution methodology.'],
+      E: ['Reinsurance',            'Reinsurance ceded, assumed, and recoverables.'],
+      F: ['Expenses',               'Inspection reports, exposure-to-loss factors, agent appointment changes.'],
+      G: ['Aggregates',             'Section 29 transmittal totals — rolls up all premium / loss / cancellation counts.'],
+      Other: ['Insurance Code §551', 'Sections from the underlying Texas Insurance Code that govern reporting requirements.'],
+    };
+    const [name, desc] = sectMeta[sectionLetter] || [`Section ${sectionLetter}`, 'TSPR section.'];
+    openDetail('TSPR Section', `Section <em>${esc(sectionLetter)}</em> · ${esc(name)}`, `
+      <p style="font-size:13.5px;line-height:1.6;color:var(--ink-2);margin-bottom:20px;">${esc(desc)}</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:22px;">
+        <div style="padding:16px 18px;background:var(--surface);">
+          <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Rules in canon</div>
+          <div style="font-family:var(--f-serif);font-size:28px;font-weight:300;">${inSection.length}</div>
+        </div>
+        <div style="padding:16px 18px;background:var(--surface);">
+          <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Executable</div>
+          <div style="font-family:var(--f-serif);font-size:28px;font-weight:300;color:${execInSection.length > 0 ? 'var(--good)' : 'var(--ink-3)'};">${execInSection.length}</div>
+        </div>
+        <div style="padding:16px 18px;background:var(--surface);">
+          <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Descriptive only</div>
+          <div style="font-family:var(--f-serif);font-size:28px;font-weight:300;color:var(--ink-3);">${inSection.length - execInSection.length}</div>
+        </div>
+      </div>
+
+      <h4 style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 10px;font-weight:500;">All ${inSection.length} rules in Section ${esc(sectionLetter)}</h4>
+      <div style="border:1px solid var(--line);border-radius:6px;overflow:hidden;max-height:400px;overflow-y:auto;">
+        ${inSection.map(r => {
+          const isExec = execNames.has((r.name || '').trim());
+          return `<div style="padding:10px 16px;border-bottom:1px solid var(--line);${isExec ? '' : 'opacity:0.55;'};font-size:13px;">
+            ${esc(r.name || '')}
+            ${isExec ? '<span style="float:right;font-size:11px;color:var(--good);">● executable</span>' : '<span style="float:right;font-size:11px;color:var(--ink-3);">descriptive</span>'}
+          </div>`;
+        }).join('')}
+      </div>
+    `);
+  }
+
+  function reasonCodeFor(policy) {
+    const r = (app.data.bronze?.rows || []).find(x => x.policy === policy);
+    return r ? r.reason_code : null;
+  }
+
+  // Suggest 2–3 valid fixes for a violation based on its current code
+  function suggestFixes(currentCode) {
+    const VALID = ['A','B','C','D','E','F','G','H','J','K','L','M','N','P','Q','R','S','T','X','Y','Z'];
+    const c = (currentCode || '').toUpperCase();
+    const sg = [];
+    // J combined → strip to just J, or strip J and keep the other char
+    if (c.includes('J') && c.length > 1) {
+      sg.push({ code: 'J',  why: 'just J alone (market withdrawal)' });
+      const others = c.replace(/J/g, '');
+      if (others) sg.push({ code: others, why: `keep '${others}' (drop J)` });
+    }
+    // L alone → suggest valid companions
+    if (c === 'L') {
+      sg.push({ code: 'LD', why: 'L + claims history' });
+      sg.push({ code: 'LK', why: 'L + location of risk' });
+      sg.push({ code: 'LM', why: 'L + roof condition' });
+    }
+    // Invalid chars (e.g. I, O, U, V, W, digits)
+    const invalid = [...c].filter(ch => !VALID.includes(ch));
+    if (invalid.length) {
+      sg.push({ code: 'D',  why: 'claims history' });
+      sg.push({ code: 'Y',  why: "at insured's request" });
+      sg.push({ code: 'A',  why: 'failure to pay' });
+    }
+    if (sg.length < 3) sg.push({ code: '', why: 'clear (no reason code)' });
+    return sg.slice(0, 4);
+  }
+
+  function renderFixEditor(policy, currentCode, ruleNum) {
+    const sg = suggestFixes(currentCode);
+    return `
+      <div class="fix-editor" data-policy="${esc(policy)}">
+        <div class="fe-head">Manually fix · ${esc(policy)} · violates rule ${esc(ruleNum || '')}</div>
+        <div class="fe-row">
+          <span style="color:var(--ink-2);">Current:</span>
+          <span style="font-family:var(--f-mono);background:rgba(155,44,44,0.10);color:var(--bad);padding:2px 8px;border-radius:3px;">${esc(currentCode)}</span>
+          <span style="color:var(--ink-3);">→</span>
+          <input type="text" class="fe-input" maxlength="3" placeholder="new" value="" />
+        </div>
+        <div class="fe-row" style="margin-bottom:6px;color:var(--ink-3);font-size:12px;">Suggested corrections (click to fill):</div>
+        <div class="fe-suggest">
+          ${sg.map(s => `<span class="fe-sg" data-action="fe-suggest" data-code="${esc(s.code)}">${esc(s.code || '∅')}<span class="why">${esc(s.why)}</span></span>`).join('')}
+        </div>
+        <div class="fe-actions">
+          <button class="btn primary" data-action="apply-fix" style="padding:6px 14px;font-size:12px;">Save fix</button>
+          <button class="btn ghost" data-action="cancel-fix" style="padding:6px 14px;font-size:12px;">Cancel</button>
+        </div>
+        <div class="fe-msg"></div>
+      </div>`;
+  }
+
+  // ─── Filing Workshop · compact summary + detail popups ─────────
+  function renderFiling() {
+    const v = app.data.val;
+    const meta = bind('filing-meta');
+
+    if (!v) {
+      if (meta) meta.innerHTML = `<span style="color:var(--warn);">${esc(backendError())}</span>`;
+      setHTML('filing-section-cards', `<div class="sc"><div class="sc-summary" style="color:var(--warn);">${esc(backendError())}</div></div>`);
+      return;
+    }
+
+    const total = v.summary.rules_run;
+    const pass  = v.summary.rules_passing;
+    const fail  = v.summary.rules_failing;
+    const vios  = v.summary.total_violations;
+    const fixable = (v.violations || []).filter(x => reasonCodeFor(x.policy_number) === 'L').length;
+    const manual  = (v.violations || []).length - fixable;
+    const readiness = total ? Math.round((pass / total) * 100) : 0;
+
+    // Status line
+    if (meta) {
+      const dot = (color) => `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
+      meta.innerHTML = `
+        <span>${dot(readiness === 100 ? 'var(--good)' : 'var(--amber)')}<b>${readiness}/100</b> readiness</span>
+        <span style="color:var(--ink-4);">·</span>
+        <span style="color:${vios > 0 ? 'var(--bad)' : 'var(--good)'};">${vios} violation${vios !== 1 ? 's' : ''}</span>
+        <span style="color:var(--ink-4);">·</span>
+        <span>Edition <code style="font-family:var(--f-mono);font-size:12px;color:var(--accent);">${app.data.st?.bulletin_applied ? 'v2 · bulletin applied' : 'v1 · baseline'}</code></span>`;
+    }
+
+    // ── Pipeline (compact, always visible) ──
+    const pipe = bind('filing-pipeline-card');
+    if (pipe) {
+      const steps = [
+        { name: 'Drafted', state: 'done' },
+        { name: 'Validated', state: 'done' },
+        vios > 0 ? { name: 'Resolving', state: 'active', when: `${vios} open` } : { name: 'Resolved', state: 'done' },
+        vios > 0 ? { name: 'Approval', state: '', when: '2 signers' } : { name: 'Approval', state: 'active' },
+        { name: 'Submit', state: '', when: 'by Mar 31' },
+      ];
+      pipe.innerHTML = `<div class="pipeline" style="padding:12px 18px;">${steps.map((s, i) => `
+        <div class="pp-step ${s.state}">
+          <div class="pp-num">${s.state === 'done' ? '' : `<span>${i+1}</span>`}</div>
+          <div class="pp-info"><div class="pp-name">${esc(s.name)}</div>${s.when ? `<div class="pp-when">${esc(s.when)}</div>` : ''}</div>
+        </div>
+      `).join('')}</div>`;
+    }
+
+    // ── Section summary cards ──
+    const cards = bind('filing-section-cards');
+    if (cards) {
+      const blockerCard = `
+        <div class="sc">
+          <div class="sc-head"><span class="sc-title">Blockers</span></div>
+          <div class="sc-headline ${vios > 0 ? 'bad' : 'good'}"><em>${vios}</em></div>
+          <div class="sc-summary">
+            ${vios === 0
+              ? 'No record violations. Filing is ready for approval.'
+              : `<b>${fixable}</b> fixable by bulletin · <b>${manual}</b> need manual review${vios > 0 ? '<br/><span style="color:var(--ink-3);font-size:11.5px;">' + (v.violations.slice(0,3).map(x => x.policy_number).join(' · ')) + (vios > 3 ? ' · …' : '') + '</span>' : ''}`}
+          </div>
+          <div class="sc-footer">
+            <button class="sc-cta" data-detail="blockers">See all blockers →</button>
+            ${fixable > 0 ? '<button class="sc-secondary primary" data-action="apply-bulletin-now">Apply bulletin</button>' : ''}
+          </div>
+        </div>`;
+
+      const rulesCard = `
+        <div class="sc">
+          <div class="sc-head"><span class="sc-title">Rules</span></div>
+          <div class="sc-headline ${fail === 0 ? 'good' : ''}"><em>${pass}</em>/${total}</div>
+          <div class="sc-summary">
+            ${pass} passing · <span style="color:${fail > 0 ? 'var(--bad)' : 'var(--ink-3)'};">${fail} failing</span><br/>
+            <span style="color:var(--ink-3);font-size:11.5px;">From <code>REFERENCE.TSPR_VALIDATION_RULES</code></span>
+          </div>
+          <div class="sc-footer">
+            <button class="sc-cta" data-detail="rules">See all rules →</button>
+            <button class="sc-secondary" data-detail="rules-failing">Failing only</button>
+          </div>
+        </div>`;
+
+      const bronzeCount = (app.data.bronze?.rows || []).length;
+      const wireCard = `
+        <div class="sc">
+          <div class="sc-head"><span class="sc-title">Wire output</span></div>
+          <div class="sc-headline">${bronzeCount}</div>
+          <div class="sc-summary">
+            Records evaluated · ${vios} flagged for review<br/>
+            <span style="color:var(--ink-3);font-size:11.5px;">Generated from <code>BRONZE.GW_PC_JOB</code></span>
+          </div>
+          <div class="sc-footer">
+            <button class="sc-cta" data-detail="wire">Preview ASCII →</button>
+            <button class="sc-secondary" data-action="show-sharefile">ShareFile preview</button>
+          </div>
+        </div>`;
+
+      cards.innerHTML = blockerCard + rulesCard + wireCard;
+      $$('[data-detail]', cards).forEach(b =>
+        b.addEventListener('click', (e) => { e.stopPropagation(); openDetail_filing(b.dataset.detail); })
+      );
+    }
+  }
+
+  function openDetail_filing(section) {
+    const v = app.data.val;
+    if (!v) return;
+    const total = v.summary.rules_run;
+    const pass = v.summary.rules_passing;
+    const fail = v.summary.rules_failing;
+    const state = app.filingState;
+    const fixable = v.violations.filter(x => reasonCodeFor(x.policy_number) === 'L').length;
+    const manual = v.violations.length - fixable;
+
+    if (section === 'blockers') {
+      const rows = v.violations.map(vio => {
+        const code = reasonCodeFor(vio.policy_number) || '—';
+        const isFix = code === 'L';
+        const action = isFix
+          ? `<button class="vio-action" data-action="apply-bulletin-now">Apply bulletin</button>`
+          : `<button class="vio-action unfixable" data-action="open-fix" data-policy="${esc(vio.policy_number)}" data-code="${esc(code)}" data-rulenum="${esc(vio.rule_number)}">Fix manually →</button>`;
+        return `
+          <div class="vio-row" data-rule="${esc(vio.rule_id)}" data-vio-policy="${esc(vio.policy_number)}">
+            <div style="display:grid;grid-template-columns:110px 90px 1fr auto;gap:18px;align-items:center;">
+              <span class="vio-policy">${esc(vio.policy_number)}</span>
+              <span class="vio-code">${codePill(code)}</span>
+              <span class="vio-text"><b>${esc(vio.rule_number)}</b> — ${esc(vio.rule_name.replace(/^Rule\s+/, ''))}.<br/>${esc(vio.violation_reason || '')}</span>
+              ${action}
+            </div>
+            <div class="fix-editor-slot"></div>
+          </div>`;
+      }).join('');
+      openDetail('Filing Workshop', `<em>${v.violations.length}</em> blocker${v.violations.length !== 1 ? 's' : ''}`,
+        `<div class="vio-list">
+          <div class="vio-head">
+            <span class="lbl">${fixable} fixable by bulletin · ${manual} need manual review</span>
+            ${fixable > 0 ? `<button class="vio-action" data-action="apply-bulletin-now">Apply bulletin (clears ${fixable})</button>` : ''}
+          </div>
+          ${rows || '<div style="padding:20px;color:var(--ink-3);">No violations.</div>'}
+        </div>
+        <div style="margin-top:14px;font-size:12.5px;color:var(--ink-3);line-height:1.55;">
+          <b>manual fix</b> means the pending bulletin doesn't amend the rule this record fails. The carrier must correct the underlying data.
+        </div>`);
+    }
+
+    if (section === 'rules' || section === 'rules-failing') {
+      let shown = v.rules;
+      if (section === 'rules-failing') shown = v.rules.filter(r => r.violation_count > 0);
+      const rows = shown.map(r => {
+        const isFail = r.violation_count > 0;
+        const isExp = state.expanded.has(r.rule_id);
+        const violators = v.violations.filter(x => x.rule_id === r.rule_id);
+        const chips = violators.map(x => `<span class="chip">${esc(x.policy_number)} · ${esc(reasonCodeFor(x.policy_number) || '—')}</span>`).join('');
+        return `
+          <div class="rules-row ${isFail ? 'fail' : ''} ${isExp ? 'expanded' : ''}" data-rule="${esc(r.rule_id)}">
+            <div class="rule-id"><span class="caret">▸</span>${esc(r.rule_number || r.rule_id)}</div>
+            <div class="rule-name">${esc(r.rule_name || '')}<span class="sub">${esc((r.target_table || '').toLowerCase())}</span></div>
+            <div class="rule-cite">${esc(r.citation || '—')}</div>
+            <div class="rule-tally">${isFail ? `<span class="bad">${r.violation_count} fail</span>` : `<span style="color:var(--good);">✓ pass</span>`}</div>
+          </div>
+          <div class="rule-detail ${isExp ? 'open' : ''}">
+            <h5>Plain language</h5><div>${esc(r.violation_reason || '—')}</div>
+            <h5>Citation</h5><div><span style="font-family:var(--f-mono);color:var(--accent);">${esc(r.citation || '—')}</span> · ${esc(r.severity || 'ERROR')}</div>
+            ${violators.length ? `<h5>Records that violate (${violators.length})</h5><div class="viol-chips">${chips}</div>` : ''}
+            <h5>SQL predicate</h5><pre>SELECT ${esc(r.target_id_expr || '*')} AS record_id\nFROM   ${esc(r.target_table || '—')}\nWHERE  ${esc(r.violation_sql || '/* see KG */')};</pre>
+          </div>`;
+      }).join('');
+      openDetail('Filing Workshop',
+        section === 'rules-failing'
+          ? `<em>${shown.length}</em> failing rule${shown.length !== 1 ? 's' : ''}`
+          : `All <em>${total}</em> rule${total !== 1 ? 's' : ''}`,
+        `<div class="rules">
+          <div class="rules-row head" style="cursor:default;"><div>Rule</div><div>Name</div><div>Citation</div><div>Result</div></div>
+          ${rows}
+        </div>`);
+      $$('.rules-row[data-rule]', bind('detail-body')).forEach(row => {
+        row.addEventListener('click', () => {
+          const id = row.dataset.rule;
+          if (state.expanded.has(id)) state.expanded.delete(id); else state.expanded.add(id);
+          openDetail_filing(section);
+        });
+      });
+    }
+
+    if (section === 'wire') {
+      const bronze = app.data.bronze?.rows || [];
+      const violSet = new Set((v.violations || []).map(x => x.policy_number));
+      const wireRows = bronze.map(r => {
+        const flagged = violSet.has(r.policy);
+        const code = (r.reason_code || '  ').padEnd(2, ' ');
+        const disp = flagged ? `<span class="err">${esc(code)}</span>` : `<span class="h">${esc(code)}</span>`;
+        return `${flagged ? '!' : ' '} ${esc((r.policy || '').padEnd(10))} ${esc((r.action || '').padEnd(14))} ${disp}  ${esc(r.noticedate || '')}`;
+      }).join('\n');
+      openDetail('Filing Workshop', `Wire <em>output</em>`,
+        `<div style="font-size:13px;color:var(--ink-2);margin-bottom:14px;line-height:1.55;">
+          Live preview of the records as they'd appear in the fixed-width TSPR ASCII filing.
+          <b>!</b> prefix = record fails at least one executable rule and would block the filing.
+        </div>
+        <div class="wire-card" style="margin:0;">
+          <div class="card-head" style="padding:12px 16px;">
+            <div class="card-title">Wire preview <span class="sub">${bronze.length} records · ${violSet.size} flagged</span></div>
+            <button class="btn ghost" data-action="show-sharefile" style="font-size:11.5px;padding:4px 10px;">Full ShareFile output →</button>
+          </div>
+          <div class="wire-body"><span class="ruler">  policy     action         code  notice\n  ${'─'.repeat(50)}</span>\n${wireRows}</div>
+        </div>`);
+    }
+  }
+
+  function renderRegulations() {
+    const v = app.data.val;
+    const bronze = app.data.bronze;
+    const tree = bind('reg-tree');
+
+    if (!v) {
+      if (tree) tree.innerHTML = `<div class="tree-h">Rules</div><div style="padding:14px 24px;color:var(--warn);">${esc(backendError())}</div>`;
+      setText('reg-title', 'Backend unreachable');
+      setText('reg-code', '—');
+      setHTML('reg-data-tbody', `<tr><td colspan="4" style="text-align:center;color:var(--ink-3);">${esc(backendError())}</td></tr>`);
+      return;
+    }
+
+    // Tree — merge full canon from /kg/rules with executable rules from /validate
+    if (tree) {
+      const execRules = v.rules || [];
+      const kgRules = app.data.kgRules?.rules || [];
+      // Build name → executable rule map (KG and Snowflake use different IDs;
+      // names are the stable join key).
+      const execByName = new Map();
+      execRules.forEach(r => {
+        if (r.rule_name) execByName.set(r.rule_name.trim(), r);
+      });
+
+      // If KG endpoint failed, fall back to just executable rules
+      if (kgRules.length === 0) {
+        const fails = execRules.filter(r => r.violation_count > 0).length;
+        const ruleNodes = execRules.map(r => {
+          const active = app.selectedRule && r.rule_id === app.selectedRule.rule_id;
+          const ct = r.violation_count > 0 ? `<span class="ct bad">${r.violation_count}</span>` : `<span class="ct">0</span>`;
+          return `<div class="tree-node rule${active ? ' active' : ''}" data-rule-id="${esc(r.rule_id)}"><span class="code">${esc(r.rule_number || '')}</span> ${esc(r.rule_name || '')}${ct}</div>`;
+        }).join('');
+        tree.innerHTML = `
+          <div class="tree-h">REFERENCE.TSPR_VALIDATION_RULES</div>
+          <div class="tree-node section clk" data-action="show-section" data-section="A"><span class="chev">▾</span> Section A · Reason Codes<span class="ct${fails ? ' bad' : ''}">${execRules.length}</span></div>
+          ${ruleNodes}
+          <div class="tree-node" style="opacity:0.5;font-size:11.5px;color:var(--ink-3);padding:14px 24px 6px;cursor:default;">KG endpoint unreachable — only Snowflake-executable rules shown</div>`;
+      } else {
+        // Full canon rendering
+        const totals = app.data.kgRules.counts;
+        const grouped = {};
+        kgRules.forEach(kr => {
+          (grouped[kr.section] ||= []).push(kr);
+        });
+        const sectOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'Other'];
+        const sectName = { A: 'Premium', B: 'Loss', C: 'Cancellations', D: 'Catastrophe', E: 'Reinsurance', F: 'Expenses', G: 'Aggregates', Other: 'Insurance Code §551' };
+        const sectionsHtml = sectOrder.filter(s => grouped[s]).map(s => {
+          const rules = grouped[s];
+          const execHere = rules.filter(r => execByName.has((r.name || '').trim())).length;
+          const ruleNodes = rules.map(kr => {
+            const exec = execByName.get((kr.name || '').trim());
+            const isActive = (exec && app.selectedRule && app.selectedRule.rule_id === exec.rule_id)
+                          || (!exec && app.selectedKgRule && app.selectedKgRule.id === kr.id);
+            let ct, dim, dataAttr;
+            if (exec) {
+              dim = '';
+              ct = exec.violation_count > 0
+                ? `<span class="ct bad">${exec.violation_count}</span>`
+                : `<span class="ct" style="color:var(--good);">✓</span>`;
+              dataAttr = `data-rule-id="${esc(exec.rule_id)}"`;
+            } else {
+              dim = 'opacity:0.62;';
+              ct = '<span class="ct" style="color:var(--ink-4);">—</span>';
+              dataAttr = `data-kg-rule-id="${esc(kr.id)}"`;
+            }
+            const ruleNumMatch = (kr.name || '').match(/Rule\s+([A-Z]\.[0-9A-Z\-]+)/);
+            const ruleCode = ruleNumMatch ? ruleNumMatch[1] : (kr.section + '.•');
+            const ruleLabel = (kr.name || '').replace(/^Rule\s+[A-Z]\.[0-9A-Z\-]+\s*—\s*/, '').slice(0, 55);
+            return `<div class="tree-node rule${isActive ? ' active' : ''}" style="${dim}cursor:pointer;" ${dataAttr} title="${esc(kr.name)}"><span class="code">${esc(ruleCode)}</span> ${esc(ruleLabel)}${ct}</div>`;
+          }).join('');
+          const fails = rules.reduce((n, r) => {
+            const ex = execByName.get((r.name || '').trim());
+            return n + (ex ? ex.violation_count : 0);
+          }, 0);
+          return `
+            <div class="tree-node section clk" data-action="show-section" data-section="${esc(s)}"><span class="chev">▾</span> Section ${esc(s)} · ${esc(sectName[s] || '')}<span class="ct${fails ? ' bad' : ''}">${rules.length}</span></div>
+            ${ruleNodes}`;
+        }).join('');
+        tree.innerHTML = `
+          <div class="tree-h">Canon · ${totals.total} rules <span style="color:var(--good);">${totals.executable} executable</span> · <span style="color:var(--ink-3);">${totals.descriptive} descriptive</span></div>
+          ${sectionsHtml}`;
+      }
+      $$('.tree-node.rule', tree).forEach(n => n.addEventListener('click', () => {
+        const execId = n.dataset.ruleId;
+        const kgId = n.dataset.kgRuleId;
+        if (execId) {
+          app.selectedRule = v.rules.find(r => r.rule_id === execId);
+          app.selectedKgRule = null;
+        } else if (kgId) {
+          app.selectedRule = null;
+          app.selectedKgRule = (app.data.kgRules?.rules || []).find(r => r.id === kgId);
+        }
+        renderRegulationsDetail();
+      }));
+    }
+
+    renderRegulationsDetail();
+
+    // Live data — each row clickable to open policy detail panel
+    const tbody = bind('reg-data-tbody');
+    if (tbody && bronze) {
+      const violSet = new Set((v.violations || []).map(x => x.policy_number));
+      tbody.innerHTML = bronze.rows.map(r => `
+        <tr class="clk-row ${violSet.has(r.policy) ? 'fail' : ''}" data-action="show-policy" data-policy="${esc(r.policy)}">
+          <td>${esc(r.policy)}</td>
+          <td>${esc(r.action || '—')}</td>
+          <td>${esc(r.reason_code || '—')}</td>
+          <td>${esc(r.noticedate || '—')}</td>
+        </tr>`).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--ink-3);">no rows</td></tr>`;
+    }
+  }
+
+  function renderRegulationsDetail() {
+    const r = app.selectedRule;
+    const kg = app.selectedKgRule;
+
+    // Path 1: executable rule selected — full detail (SQL, bridge, live records)
+    if (r) {
+      const sect = (r.rule_number || '').split('.')[0];
+      setText('reg-code', r.rule_number || '—');
+      setHTML('reg-title', esc(r.rule_name || '—'));
+      setHTML('reg-crumb', `Texas Statistical Plan <span class="sep">›</span> <span class="clk" data-action="show-section" data-section="${esc(sect)}">Section ${esc(sect)}</span> <span class="sep">›</span> <span class="now">${esc(r.rule_number)} ${esc(r.rule_name || '')}</span>`);
+      setHTML('reg-citation', `
+        <b>Authority:</b> <span class="ref clk" data-action="show-citation" data-rule="${esc(r.rule_id)}">${esc(r.citation || '—')}</span> &nbsp;·&nbsp;
+        <b>Severity:</b> <span class="ref clk" data-action="show-severity" data-severity="${esc(r.severity || 'ERROR')}">${esc(r.severity || '—')}</span> &nbsp;·&nbsp;
+        <b>Target:</b> <span class="ref clk" data-action="show-table" data-table="${esc(r.target_table || '')}">${esc(r.target_table || '—')}</span>
+        &nbsp;·&nbsp; <span style="color:var(--good);font-weight:500;">● executable</span>`);
+      setText('reg-rationale', r.violation_reason || 'See rule predicate below.');
+      const bridge = bind('reg-bridge');
+      if (bridge) {
+        bridge.style.display = '';
+        bridge.innerHTML = `
+          <div class="br-cell left clk-card" data-action="show-kg-node" data-rule="${esc(r.rule_id)}">
+            <div class="br-key k">Knowledge graph <span style="font-size:10px;color:var(--ink-3);float:right;">click to inspect →</span></div>
+            <div class="br-val">(:Rule { id: "${esc(r.rule_id).slice(0,8)}…" })</div>
+            <div class="br-sub">number ${esc(r.rule_number || '')} · ${esc(r.severity || '')}</div>
+          </div>
+          <div class="br-arrow">→</div>
+          <div class="br-cell clk-card" data-action="show-table" data-table="${esc(r.target_table || '')}">
+            <div class="br-key s">Snowflake <span style="font-size:10px;color:var(--ink-3);float:right;">click to inspect →</span></div>
+            <div class="br-val">${esc(r.target_table || '—')}</div>
+            <div class="br-sub">id expression · ${esc(r.target_id_expr || '—')}</div>
+          </div>`;
+      }
+      setText('reg-sql-target', `generated from KG · runs against ${r.target_table || '—'}`);
+      const sqlBody = bind('reg-sql-body');
+      if (sqlBody) {
+        const sql = (r.violation_sql || '').trim();
+        sqlBody.innerHTML = `<span class="cmt">-- ${esc(r.rule_number)} · ${esc(r.rule_name || '')}</span>\n<span class="kw">select</span> ${esc(r.target_id_expr || '*')} <span class="kw">as</span> record_id\n<span class="kw">from</span>   ${esc(r.target_table || '—').toLowerCase()}\n<span class="kw">where</span>  ${esc(sql)};`;
+      }
+      // Re-show data-card if it was hidden
+      const dataCard = bind('reg-data-tbody')?.closest('.reg-section');
+      if (dataCard) dataCard.style.display = '';
+      // Re-show SQL section
+      const sqlSection = bind('reg-sql-body')?.closest('.reg-section');
+      if (sqlSection) sqlSection.style.display = '';
+      setText('reg-data-table', r.target_table || 'BRONZE.GW_PC_JOB');
+      return;
+    }
+
+    // Path 2: descriptive (KG-only) rule selected — show what we know, hide SQL/data sections
+    if (kg) {
+      const sect = kg.section || 'Other';
+      const m = (kg.name || '').match(/Rule\s+([A-Z]\.[0-9A-Z\-]+)/);
+      const code = m ? m[1] : (sect + '.•');
+      const ruleLabel = (kg.name || '').replace(/^Rule\s+[A-Z]\.[0-9A-Z\-]+\s*—\s*/, '');
+      setText('reg-code', code);
+      setHTML('reg-title', esc(ruleLabel || kg.name || '—'));
+      setHTML('reg-crumb', `Texas Statistical Plan <span class="sep">›</span> <span class="clk" data-action="show-section" data-section="${esc(sect)}">Section ${esc(sect)}</span> <span class="sep">›</span> <span class="now">${esc(code)} ${esc(ruleLabel)}</span>`);
+      setHTML('reg-citation', `
+        <b>Authority:</b> <span class="ref">${esc(kg.citation || '—')}</span> &nbsp;·&nbsp;
+        <b>Severity:</b> <span class="ref">${esc(kg.severity || '—')}</span> &nbsp;·&nbsp;
+        <span style="color:var(--ink-3);font-weight:500;">○ descriptive only · not yet executable</span>`);
+      setHTML('reg-rationale', `
+        <div style="padding:14px 18px;background:var(--accent-soft);border-left:2px solid var(--ink-3);border-radius:0 4px 4px 0;margin-bottom:14px;">
+          <b style="color:var(--ink);">This rule is in the canon but has no SQL predicate yet.</b><br/>
+          <span style="color:var(--ink-2);font-size:13px;">The regulation text + citation are stored in the Knowledge Graph, but no one has written the executable check that runs against Bronze data. It does not contribute to validation results today.</span>
+        </div>
+        <p style="font-size:13.5px;color:var(--ink-2);line-height:1.6;">
+          <b style="color:var(--ink);">Full canon name:</b><br/>
+          ${esc(kg.name || '')}
+        </p>
+        <p style="font-size:13.5px;color:var(--ink-2);line-height:1.6;">
+          To make this rule executable, an analyst attaches two properties in the KG:
+          <code>target_table</code> (which Bronze/Silver table it checks) and
+          <code>violation_sql</code> (the SQL predicate). Once attached, the next pipeline run
+          materializes it into <code>REFERENCE.TSPR_VALIDATION_RULES</code> and it starts producing results.
+        </p>
+      `);
+      const bridge = bind('reg-bridge');
+      if (bridge) {
+        bridge.innerHTML = `
+          <div class="br-cell left clk-card" data-action="show-kg-node-descriptive" data-kg-rule="${esc(kg.id)}">
+            <div class="br-key k">Knowledge graph <span style="font-size:10px;color:var(--ink-3);float:right;">click to inspect →</span></div>
+            <div class="br-val">(:Rule { id: "${esc((kg.id || '').slice(0,8))}…" })</div>
+            <div class="br-sub">in canon · no SQL attached</div>
+          </div>
+          <div class="br-arrow" style="opacity:0.4;">→</div>
+          <div class="br-cell" style="opacity:0.45;">
+            <div class="br-key s">Snowflake</div>
+            <div class="br-val">— not bridged —</div>
+            <div class="br-sub">no target table · roadmap</div>
+          </div>`;
+      }
+      // Hide the SQL and data-table sections for descriptive rules
+      const sqlSection = bind('reg-sql-body')?.closest('.reg-section');
+      if (sqlSection) sqlSection.style.display = 'none';
+      const dataCard = bind('reg-data-tbody')?.closest('.reg-section');
+      if (dataCard) dataCard.style.display = 'none';
+      return;
+    }
+
+    // Default: no rule selected
+    setText('reg-code', '—');
+    setHTML('reg-title', 'Select a rule from the tree');
+    setHTML('reg-crumb', 'Texas Statistical Plan');
+    setHTML('reg-citation', '<span style="color:var(--ink-3);">Pick a rule on the left to see its detail.</span>');
+    setHTML('reg-rationale', 'Click any rule node — executable rules (bold) show full detail including SQL and live records; descriptive rules show their canon entry.');
+  }
+
+  // ─── Bulletins ──────────────────────────────────────────────────
+  function renderBulletins() {
+    const st = app.data.st;
+    const v  = app.data.val;
+    const btn = bind('bulletin-btn');
+    const statusEl = bind('bulletin-status');
+
+    // Sidebar list — currently only one real bulletin (B-2026-Q4-118)
+    const sideHeading = bind('bul-side-heading');
+    const sideList = bind('bul-list');
+    if (sideHeading) {
+      if (!st) sideHeading.innerHTML = '<em style="color:var(--warn);">backend offline</em>';
+      else if (st.bulletin_applied) sideHeading.innerHTML = '<em style="color:var(--good);">applied</em> · 1 bulletin in canon';
+      else sideHeading.innerHTML = '<em style="color:var(--amber);">1 new</em> awaiting acknowledgment';
+    }
+    if (sideList && st) {
+      const status = st.bulletin_applied
+        ? '<span class="tag ok" style="font-size:10.5px;padding:2px 7px;">applied</span>'
+        : '<span class="tag warn" style="font-size:10.5px;padding:2px 7px;">new</span>';
+      sideList.innerHTML = `
+        <div class="bul-item active">
+          <div class="bul-meta">
+            <span class="bul-src">TDI</span>
+            ${status}
+            <span class="bul-date">${esc(st.bulletin_id || '')}</span>
+          </div>
+          <div class="bul-title">${esc((st.bulletin_title || '').replace(/^Commissioner.s Bulletin [^—]+— /, ''))}</div>
+          <div class="bul-snippet">
+            Permits credit-score-only declinations during named CAT periods. Affects
+            REFERENCE.TSPR_REASON_CODE_MAP companion logic.
+          </div>
+        </div>`;
+    }
+
+    // Detail head
+    if (st) {
+      setText('bul-eyebrow', `Texas Department of Insurance · ${st.bulletin_id || '—'}`);
+      const title = (st.bulletin_title || '').replace(/^Commissioner.s Bulletin [^—]+— /, '');
+      setHTML('bul-title', esc(title) || 'Bulletin');
+      setHTML('bul-subline', `
+        <span>Source · TDI</span><span class="dot">·</span>
+        <span>${esc(st.bulletin_id || '')}</span><span class="dot">·</span>
+        <span>${st.bulletin_applied ? 'currently applied' : 'not yet applied'}</span>`);
+    }
+
+    if (!st) {
+      if (btn) { btn.textContent = 'Backend unreachable'; btn.disabled = true; }
+      if (statusEl) statusEl.textContent = backendError();
+      return;
+    }
+
+    if (st.bulletin_applied) {
+      if (btn) {
+        btn.textContent = 'Reset to baseline';
+        btn.classList.remove('primary');
+        btn.disabled = false;
+      }
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="color:var(--good);">✓ applied to canon</span> · ${esc(st.bulletin_title || st.bulletin_id)}`;
+      }
+    } else {
+      if (btn) {
+        btn.textContent = 'Apply to canon';
+        btn.classList.add('primary');
+        btn.disabled = false;
+      }
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="color:var(--ink-3);">◯ not yet applied · canon at v1 baseline</span>`;
+      }
+    }
+
+    // Impact stats — only count violations the bulletin actually amends.
+    // Bulletin B-2026-Q4-118 amends CodeValue 'L' (companion no longer required
+    // during CAT periods), so it affects violations whose reason code is exactly 'L'.
+    if (v) {
+      const bronze = app.data.bronze;
+      const total = (bronze?.rows || []).length;
+      const violations = v.violations || [];
+      const flips = violations.filter(vio => {
+        const r = (bronze?.rows || []).find(x => x.policy === vio.policy_number);
+        return r && r.reason_code === 'L';
+      }).length;
+      const unaffected = violations.length - flips;
+
+      setHTML('impact-total', `${total} <span class="unit">policies</span>`);
+      setText('impact-total-sub', `${violations.length} flagged · ${total - violations.length} pass`);
+
+      if (st.bulletin_applied) {
+        if (flips > 0) {
+          setHTML('impact-net', `<em style="color:var(--good);">+${flips} cleared</em>`);
+          setText('impact-net-sub',
+            unaffected === 0
+              ? 'All affected violations cleared · bulletin in force'
+              : `${flips} cleared by bulletin · ${unaffected} unrelated violation${unaffected > 1 ? 's' : ''} remain`);
+        } else {
+          setHTML('impact-net', `<em style="color:var(--ink-3);">no effect</em>`);
+          setText('impact-net-sub', 'Bulletin applied · no L-code violations existed');
+        }
+      } else {
+        if (flips > 0) {
+          setHTML('impact-net', `<em style="color:var(--good);">+${flips} would flip valid</em>`);
+          setText('impact-net-sub',
+            unaffected === 0
+              ? 'Applying the bulletin clears all current violations'
+              : `${flips} of ${violations.length} would flip · ${unaffected} unrelated to this bulletin`);
+        } else {
+          setHTML('impact-net', `<em style="color:var(--ink-3);">no effect</em>`);
+          setText('impact-net-sub', 'No L-code violations · this bulletin has no records to flip');
+        }
+      }
+    }
+
+    // Flip card — show real violator
+    renderFlipBlock();
+  }
+
+  function renderFlipBlock() {
+    const v = app.data.val;
+    const st = app.data.st;
+    const bronze = app.data.bronze;
+
+    if (!v || !v.violations.length) {
+      setHTML('flip-before-verdict', 'no blockers');
+      setText('flip-before-reason', 'Canon currently has no record violations.');
+      setHTML('flip-after-verdict', '—');
+      setText('flip-after-reason', 'Nothing to flip.');
+      return;
+    }
+
+    // The bulletin removes the companion-required flag from code L only.
+    // So only violations on policies whose reason code is exactly 'L' will flip.
+    const reasonCodeFor = (policy) => {
+      const r = (bronze?.rows || []).find(x => x.policy === policy);
+      return r ? r.reason_code : null;
+    };
+    const wouldFlip = (vio) => reasonCodeFor(vio.policy_number) === 'L';
+
+    // Prefer to showcase a violation that the bulletin actually affects.
+    const v0 = v.violations.find(wouldFlip) || v.violations[0];
+    const flips = wouldFlip(v0);
+    const code = reasonCodeFor(v0.policy_number) || '—';
+
+    setHTML('flip-before-verdict', '<span style="color:var(--bad);">invalid</span>');
+    setText('flip-before-reason',
+      `${v0.policy_number} (reason code '${code}'): ${v0.violation_reason || v0.rule_name}. ` +
+      `Cited at ${v0.citation || 'TSPR'}.`);
+
+    if (st && st.bulletin_applied) {
+      if (flips) {
+        setHTML('flip-after-verdict', '<span style="color:var(--good);">valid</span>');
+        setText('flip-after-reason',
+          `Bulletin in force. CodeValue 'L' no longer requires a companion during ` +
+          `catastrophe periods. ${v0.policy_number} now passes.`);
+      } else {
+        setHTML('flip-after-verdict', '<span style="color:var(--bad);">still invalid</span>');
+        setText('flip-after-reason',
+          `This violation is not affected by the bulletin (it's a different rule). ` +
+          `Carrier still has to fix the underlying record.`);
+      }
+    } else {
+      if (flips) {
+        setHTML('flip-after-verdict', '<span style="color:var(--good);">would flip valid</span>');
+        setText('flip-after-reason',
+          `Applying B-2026-Q4-118 clears CodeValue 'L's companion-required flag during ` +
+          `catastrophe periods. ${v0.policy_number} would pass.`);
+      } else {
+        setHTML('flip-after-verdict', '<span style="color:var(--ink-3);">no effect</span>');
+        setText('flip-after-reason',
+          `This violation is on a different rule (not the L-companion rule the bulletin amends). ` +
+          `Applying B-2026-Q4-118 won't change it — the carrier has to fix the record.`);
+      }
+    }
+  }
+
+  // ─── Audit log (synthesized from current state) ─────────────────
+  function renderAudit() {
+    const v = app.data.val;
+    const st = app.data.st;
+    const sub = bind('audit-sub');
+    const tl = bind('audit-timeline');
+    if (!tl) return;
+
+    if (!st || !v) {
+      if (sub) sub.innerHTML = `<span style="color:var(--warn);">${esc(backendError())}</span>`;
+      tl.innerHTML = `<div style="padding:32px;text-align:center;color:var(--ink-3);">${esc(backendError())}</div>`;
+      return;
+    }
+
+    // Build a real event stream from observed state
+    // (Event log endpoint not yet implemented — events derived from current canon + validation state)
+    const events = [];
+
+    const nowLabel = 'now';
+    const violations = v.summary.total_violations;
+    const totalRules = v.summary.rules_run;
+    const totalPolicies = (app.data.bronze?.rows || []).length;
+
+    // 1. Validation run (most recent)
+    events.push({
+      kind: violations === 0 ? 'done' : 'now',
+      action: violations === 0 ? 'Validation · pass' : 'Validation · open blockers',
+      time: nowLabel,
+      actor: { id: 'SY', nm: 'RegulAI Validator', rl: 'automated · live' },
+      detail: `Ran ${totalRules} rule${totalRules > 1 ? 's' : ''} across <span class="field">REFERENCE.TSPR_VALIDATION_RULES</span> against <span class="field">BRONZE.GW_PC_JOB</span>. ${v.summary.rules_passing} passing, ${v.summary.rules_failing} failing.`,
+      foot: [
+        `rules <b>${totalRules}</b>`,
+        violations === 0 ? `<span style="color:var(--good);">● clean</span>` : `<span style="color:var(--bad);">fail <b>${v.summary.rules_failing}</b></span>`,
+        `violations <b>${violations}</b>`,
+      ],
+    });
+
+    // 2. Bulletin applied or pending
+    if (st.bulletin_applied) {
+      events.push({
+        kind: 'done',
+        action: 'Bulletin applied',
+        time: 'earlier',
+        actor: { id: 'DR', nm: 'Diana Reyes', rl: 'VP, Compliance' },
+        detail: `Applied <span class="field">${esc(st.bulletin_id)}</span> to canon — ${esc(st.bulletin_title || '')}. Reference table <span class="field">TSPR_REASON_CODE_MAP</span> regenerated and reloaded into Snowflake.`,
+        foot: ['rule versions <b>bumped</b>', `<span style="color:var(--good);">● ${violations === 0 ? 'all violations cleared' : 'some violations remain'}</span>`],
+      });
+    } else {
+      events.push({
+        kind: '',
+        action: 'Bulletin awaiting acknowledgment',
+        time: 'pending',
+        actor: { id: 'TD', nm: 'TDI', rl: 'Regulator' },
+        detail: `<span class="field">${esc(st.bulletin_id)}</span> received but not yet applied. Applying it would flip ${violations} record${violations !== 1 ? 's' : ''} from invalid → valid.`,
+        foot: [`bulletin <b>${esc(st.bulletin_id)}</b>`, `<span style="color:var(--amber);">○ unacknowledged</span>`],
+      });
+    }
+
+    // 3. Bronze ingest (Guidewire CDC)
+    events.push({
+      kind: 'done',
+      action: 'Bronze ingest',
+      time: 'pipeline',
+      actor: { id: 'GW', nm: 'Guidewire CDC', rl: 'PolicyCenter' },
+      detail: `Bronze layer hydrated with ${totalPolicies} cancellation/nonrenewal/declination notice${totalPolicies !== 1 ? 's' : ''} from <span class="field">GW_PC_JOB ⋈ GW_PC_POLICY</span>.`,
+      foot: [`policies <b>${totalPolicies}</b>`, `tables <b>15 Bronze · 4 Silver · 4 Gold</b>`],
+    });
+
+    // 4. Reference generation from KG
+    events.push({
+      kind: 'done',
+      action: 'Reference materialized',
+      time: 'pipeline',
+      actor: { id: 'KG', nm: 'Knowledge Graph', rl: 'Neo4j canon' },
+      detail: `KG rule nodes serialized to <span class="field">REFERENCE.TSPR_REASON_CODE_MAP</span> and <span class="field">REFERENCE.TSPR_VALIDATION_RULES</span>. Snowflake reference layer is generated, not authored.`,
+      foot: [`rules materialized <b>${totalRules}</b>`, `canon <span class="tl-hash">v${st.bulletin_applied ? '2' : '1'}</span>`],
+    });
+
+    if (sub) {
+      sub.innerHTML = `${events.length} events derived from current canon + validation state. SHA-256 chain pending submission. <span style="color:var(--ink-3);font-style:italic;">(Event log persistence is on the roadmap — these events are synthesized from live state.)</span>`;
+    }
+
+    tl.innerHTML = events.map(e => `
+      <div class="tl ${e.kind}">
+        <div class="tl-head">
+          <span class="tl-action">${esc(e.action)}</span>
+          <span class="tl-time">${esc(e.time)}</span>
+        </div>
+        <div class="tl-card">
+          <div class="tl-actor">
+            <div class="avatar">${esc(e.actor.id)}</div>
+            <div class="meta"><div class="nm">${esc(e.actor.nm)}</div><div class="rl">${esc(e.actor.rl)}</div></div>
+          </div>
+          <div class="tl-detail">
+            ${e.detail}
+            <div class="tl-foot">${e.foot.map(f => `<span>${f}</span>`).join('')}</div>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function backendError() {
+    return 'Snowflake unreachable (check IP allowlist)';
+  }
+
+  // ─── Button wiring ──────────────────────────────────────────────
+  document.addEventListener('click', async (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.dataset.action;
+
+    if (action === 'bulletin-toggle') {
+      const st = app.data.st;
+      if (!st) return;
+      el.disabled = true;
+      const orig = el.textContent;
+      el.textContent = st.bulletin_applied ? 'Resetting…' : 'Applying… (~30s)';
+      const result = await post(st.bulletin_applied ? '/bulletin/reset' : '/bulletin/apply');
+      el.disabled = false;
+      el.textContent = orig;
+      if (result && result.ok) {
+        await refresh();
+      } else {
+        alert('Bulletin step failed — check server logs.');
+      }
+    }
+
+    if (action === 'open-bulletin') {
+      setScreen('bulletins');
+      setTimeout(() => {
+        const sec = bind('bulletin-text-section');
+        if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+
+    if (action === 'copy-bulletin') {
+      const pre = bind('bulletin-text');
+      if (pre && navigator.clipboard) {
+        await navigator.clipboard.writeText(pre.textContent);
+        const orig = el.textContent; el.textContent = '✓ copied';
+        setTimeout(() => { el.textContent = orig; }, 1400);
+      }
+    }
+
+    if (action === 'show-sharefile') {
+      const modal = bind('sharefile-modal');
+      const content = bind('sharefile-content');
+      if (content && app.data.val) {
+        // Build a tiny TSPR ASCII sample from current state
+        const bronze = app.data.bronze?.rows || [];
+        const violSet = new Set((app.data.val.violations || []).map(x => x.policy_number));
+        const header = '19876A2025Q4' + 'LSMUTUAL'.padEnd(20) + 'TX';
+        const lines = bronze.slice(0, 8).map(r => {
+          const flag = violSet.has(r.policy) ? '!' : ' ';
+          return `${flag} ${(r.policy || '').padEnd(10)} ${(r.action || '').padEnd(14)} ${(r.reason_code || '').padEnd(4)} ${r.noticedate || ''}`;
+        }).join('\n');
+        content.textContent = `${header}\n  policy     action         code  notice\n  ${'─'.repeat(45)}\n${lines}\n\n[${bronze.length} records · ${violSet.size} flagged · pending submission]`;
+      }
+      if (modal) modal.style.display = 'flex';
+    }
+
+    if (action === 'close-sharefile') {
+      const modal = bind('sharefile-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    if (action === 'toggle-help') setHelpOpen(!app.helpOpen);
+    if (action === 'close-help')  setHelpOpen(false);
+
+    if (action === 'close-detail') closeDetail();
+
+    // ── Regulations: clickable elements ──
+    if (action === 'show-policy') {
+      const policy = el.dataset.policy;
+      openDetail_policy(policy);
+    }
+    if (action === 'show-citation') {
+      const rule = (app.data.val?.rules || []).find(x => x.rule_id === el.dataset.rule) || app.selectedRule;
+      openDetail_citation(rule);
+    }
+    if (action === 'show-severity') {
+      openDetail_severity(el.dataset.severity);
+    }
+    if (action === 'show-table') {
+      openDetail_table(el.dataset.table);
+    }
+    if (action === 'show-kg-node') {
+      const rule = (app.data.val?.rules || []).find(x => x.rule_id === el.dataset.rule) || app.selectedRule;
+      openDetail_kgNode(rule);
+    }
+    if (action === 'show-section') {
+      openDetail_section(el.dataset.section);
+    }
+
+    if (action === 'open-fix') {
+      const row = el.closest('.vio-row');
+      const slot = row?.querySelector('.fix-editor-slot');
+      if (!slot) return;
+      if (slot.firstChild) { slot.innerHTML = ''; return; } // toggle off
+      const policy = el.dataset.policy;
+      const code = el.dataset.code;
+      const ruleNum = el.dataset.rulenum;
+      slot.innerHTML = renderFixEditor(policy, code, ruleNum);
+    }
+
+    if (action === 'apply-fix') {
+      const ed = el.closest('.fix-editor');
+      const policy = ed?.dataset.policy;
+      const input = ed?.querySelector('.fe-input');
+      const newCode = (input?.value || '').trim().toUpperCase();
+      const msg = ed?.querySelector('.fe-msg');
+      if (!/^[A-Z]{1,3}$/.test(newCode)) {
+        if (msg) { msg.className = 'fe-msg err'; msg.textContent = 'Enter 1–3 letters (A–Z).'; }
+        return;
+      }
+      el.disabled = true;
+      const orig = el.textContent;
+      el.textContent = 'Saving…';
+      try {
+        const r = await fetch('/api/rhs/bronze/fix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ policy_number: policy, new_code: newCode }),
+        });
+        if (!r.ok) throw new Error('save failed');
+        const result = await r.json();
+        if (msg) { msg.className = 'fe-msg ok'; msg.textContent = `✓ ${result.field}: ${result.old_value} → ${result.new_value}`; }
+        // Re-fetch everything; refresh closes editor and re-renders blockers
+        await refresh();
+        if (app.openSection || bind('detail-panel')?.classList.contains('open')) {
+          openDetail_filing('blockers');
+        }
+      } catch (e) {
+        if (msg) { msg.className = 'fe-msg err'; msg.textContent = 'Save failed — check server.'; }
+      } finally {
+        el.disabled = false;
+        el.textContent = orig;
+      }
+    }
+
+    if (action === 'cancel-fix') {
+      const ed = el.closest('.fix-editor');
+      const slot = ed?.parentElement;
+      if (slot) slot.innerHTML = '';
+    }
+
+    if (action === 'fe-suggest') {
+      const ed = el.closest('.fix-editor');
+      const input = ed?.querySelector('.fe-input');
+      if (input) input.value = el.dataset.code;
+    }
+
+    if (action === 'run-rule') {
+      el.disabled = true;
+      const orig = el.textContent;
+      el.textContent = 'Running…';
+      await refresh();
+      el.disabled = false;
+      el.textContent = orig;
+    }
+
+    if (action === 'goto-bulletin') setScreen('bulletins');
+
+    if (action === 'refresh-all') {
+      el.disabled = true;
+      const t = el.textContent; el.textContent = '⟲ refreshing…';
+      await refresh();
+      el.textContent = t; el.disabled = false;
+    }
+
+    if (action === 'apply-bulletin-now') {
+      el.disabled = true;
+      const t = el.textContent; el.textContent = 'Applying… (~30s)';
+      const res = await post('/bulletin/apply');
+      if (res && res.ok) { await refresh(); el.disabled = false; el.textContent = t; }
+      else { el.disabled = false; el.textContent = t; alert('Apply failed — check server logs'); }
+    }
+  });
+
+  // Help tab clicks
+  $$('.help-tab').forEach(t => t.addEventListener('click', () => {
+    app.helpTab = t.dataset.helpTab;
+    renderHelp();
+  }));
+
+  // Re-render help content when user navigates between screens
+  (function patchSetScreen() {
+    const original = setScreen;
+    window.setScreen = setScreen = function(target) {
+      original(target);
+      if (app.helpOpen) renderHelp();
+    };
+  })();
+
+  // Escape closes any open side panel
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (app.helpOpen) setHelpOpen(false);
+      if (bind('detail-panel')?.classList.contains('open')) closeDetail();
+    }
+  });
+
+  // ─── Initial load ───────────────────────────────────────────────
+  refresh();
+
+  // Auto-refresh every 30s
+  setInterval(refresh, 30000);
+</script>
+
+</body>
+</html>
