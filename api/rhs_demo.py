@@ -45,6 +45,84 @@ BULLETIN_OVERRIDE_NAME = "Credit Score Declination Reporting Override"
 BULLETIN_PATH = Path("synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md")
 
 
+# ── Filings registry ──────────────────────────────────────────────
+# Each filing scopes by the underlying GW_PC_POLICY.id range, not by
+# policy-number prefix (POL-0050 would otherwise look like a TPA filing
+# because it shares the "POL-00" prefix with POL-0019). The id ranges
+# match the synthetic data in scripts/generate_bronze_data.py.
+FILINGS = [
+    {
+        "id":           "TPA-Q4-2025",
+        "plan_name":    "Texas Private Passenger Auto / Homeowners",
+        "plan_code":    "TPA",
+        "policy_id_min": 2001, "policy_id_max": 2019,
+        "cadence":      "Quarterly",
+        "period_start": "2025-10-01",
+        "period_end":   "2025-12-31",
+        "due_date":     "2026-03-31",
+        "channel":      "TICO ShareFile",
+        "is_active":    True,
+    },
+    {
+        "id":           "RES-M03-2026",
+        "plan_name":    "Residential Property — March 2026",
+        "plan_code":    "RES",
+        "policy_id_min": 2030, "policy_id_max": 2034,
+        "cadence":      "Monthly",
+        "period_start": "2026-03-01",
+        "period_end":   "2026-03-31",
+        "due_date":     "2026-04-15",
+        "channel":      "TICO ShareFile",
+        "is_active":    True,
+    },
+    {
+        "id":           "CL-Q4-2025",
+        "plan_name":    "Commercial Lines",
+        "plan_code":    "CL",
+        "policy_id_min": 2050, "policy_id_max": 2053,
+        "cadence":      "Quarterly",
+        "period_start": "2025-10-01",
+        "period_end":   "2025-12-31",
+        "due_date":     "2026-05-15",
+        "channel":      "TICO ShareFile",
+        "is_active":    True,
+    },
+]
+
+
+def _filing(filing_id: str | None) -> dict | None:
+    if not filing_id:
+        return None
+    for f in FILINGS:
+        if f["id"] == filing_id:
+            return f
+    return None
+
+
+def _filing_policy_numbers(filing_id: str | None) -> set[str] | None:
+    """For a filing, return the set of policy numbers in its id range.
+    Returns None when no filing scope is applied."""
+    f = _filing(filing_id)
+    if not f:
+        return None
+    # POL-0001 through POL-0019 etc. — synthetic IDs use pid=2000+N pattern
+    return {f"POL-{(pid - 2000):04d}" for pid in range(f["policy_id_min"], f["policy_id_max"] + 1)}
+
+
+def _scope_clause(filing_id: str | None, policy_id_col: str = "p.id") -> str:
+    """SQL fragment that constrains a policy.id column to the filing's id range."""
+    f = _filing(filing_id)
+    if not f:
+        return ""
+    return f" AND {policy_id_col} BETWEEN {f['policy_id_min']} AND {f['policy_id_max']} "
+
+
+@router.get("/filings")
+def filings_list() -> JSONResponse:
+    """List all known filings + which one is currently the default context."""
+    return JSONResponse({"filings": FILINGS, "default": FILINGS[0]["id"]})
+
+
 @router.post("/pipeline/silver")
 def pipeline_silver() -> JSONResponse:
     """Run Bronze → Silver and return per-table row counts."""
@@ -180,12 +258,14 @@ def reference_table(table_name: str) -> JSONResponse:
 
 
 @router.get("/validate/cancellations")
-def validate_cancellations() -> JSONResponse:
+def validate_cancellations(filing: str | None = None) -> JSONResponse:
     """Run every rule from REFERENCE.TSPR_VALIDATION_RULES against BRONZE.
 
     For each rule we read its `violation_sql` (TRUE → row violates the rule)
     and execute a SELECT against the rule's `target_table`, returning the
     record id and the rule's citation so the UI can show provenance.
+
+    If `filing` is provided, results are scoped to that filing's policy-prefix.
     """
     rules = query(
         "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
@@ -193,6 +273,7 @@ def validate_cancellations() -> JSONResponse:
         "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
         "ORDER BY rule_number"
     )
+    scope_set = _filing_policy_numbers(filing)  # None = no scope filter
     # Map Bronze record's publicid → friendly policy number.
     # Single round trip; tiny synthetic dataset.
     pubid_to_policy: dict[str, str] = {}
@@ -231,6 +312,12 @@ def validate_cancellations() -> JSONResponse:
                 "violation_count": 0,
             })
             continue
+        # If a filing scope is set, drop violations whose policy isn't in this filing
+        if scope_set is not None:
+            rows = [
+                r for r in rows
+                if pubid_to_policy.get(r["record_id"], r["record_id"]) in scope_set
+            ]
         rule_results.append({
             **rule,
             "status": "pass" if not rows else "fail",
@@ -529,8 +616,12 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
 
 
 @router.get("/bronze/cancellations")
-def bronze_cancellations() -> JSONResponse:
-    """Read BRONZE.GW_PC_JOB joined to GW_PC_POLICY — what Guidewire sent."""
+def bronze_cancellations(filing: str | None = None) -> JSONResponse:
+    """Read BRONZE.GW_PC_JOB joined to GW_PC_POLICY — what Guidewire sent.
+
+    If `filing` is provided, scope to that filing's policy prefix.
+    """
+    where = "WHERE 1=1" + _scope_clause(filing)
     rows = query(
         "SELECT p.policynumber AS policy, "
         "       j.subtype AS action, "
@@ -539,9 +630,10 @@ def bronze_cancellations() -> JSONResponse:
         "       TO_VARCHAR(j.effectivedate, 'YYYY-MM-DD') AS effectivedate "
         "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j "
         "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+        f"{where} "
         "ORDER BY p.policynumber"
     )
-    return JSONResponse({"rows": _jsonify(rows), "count": len(rows)})
+    return JSONResponse({"rows": _jsonify(rows), "count": len(rows), "filing": filing})
 
 
 @router.get("/validation")

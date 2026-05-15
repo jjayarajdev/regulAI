@@ -331,6 +331,13 @@
   }
   .rail-link:hover { background: var(--accent-soft); color: var(--ink); }
   .rail-link.active { background: var(--accent-soft); color: var(--ink); font-weight: 500; }
+  .rail-link.active-filing {
+    background: var(--accent); color: #fff; font-weight: 600;
+    border-radius: 6px;
+    margin: 2px 8px;
+    padding-left: 12px;
+  }
+  .rail-link.active-filing .count { color: rgba(255,255,255,0.85) !important; }
   .rail-link .count {
     margin-left: auto;
     font-size: 11px;
@@ -2069,7 +2076,7 @@
     <div class="filing-ctx">
       <b>Lone Star Mutual</b>
       <span class="dot">/</span>
-      <span>TSPR · Q4 2025</span>
+      <span data-bind="topbar-filing-id">TSPR · Q4 2025</span>
       <span class="dot">/</span>
       <span style="color:var(--ink-3);" data-bind="ctx-bulletin">canon v1</span>
     </div>
@@ -2102,14 +2109,8 @@
 
     <div class="rail-group">
       <div class="rail-label">My filings</div>
-      <div class="rail-link" data-screen="filing" style="cursor:pointer;">
-        TPA-Q4-2025<span class="count" data-bind="rail-tpa-count">—</span>
-      </div>
-      <div class="rail-link" style="opacity:0.6;cursor:default;">
-        RES-M03-2026<span class="count" style="color:var(--ink-3);">draft</span>
-      </div>
-      <div class="rail-link" style="opacity:0.6;cursor:default;">
-        CL-Q4-2025<span class="count" style="color:var(--good);">ack ✓</span>
+      <div data-bind="rail-filings">
+        <div class="rail-link" style="opacity:0.5;">loading filings…</div>
       </div>
     </div>
     <div class="rail-group">
@@ -2758,20 +2759,24 @@
   }));
 
   // ─── Refresh: pull all live data ────────────────────────────────
+  // Active filing context — set via the side rail. Default to TPA-Q4-2025.
+  if (!app.currentFilingId) app.currentFilingId = 'TPA-Q4-2025';
+
   async function refresh() {
     if (app.busy) return;
     app.busy = true;
-    const [st, val, valFlat, bronze, pl, kgRules, bulletinTxt] = await Promise.all([
+    const fq = `?filing=${encodeURIComponent(app.currentFilingId)}`;
+    const [filings, st, val, valFlat, bronze, pl, kgRules, bulletinTxt] = await Promise.all([
+      get('/filings'),
       get('/state'),
-      get('/validate/cancellations'),
+      get('/validate/cancellations' + fq),
       get('/validation'),
-      get('/bronze/cancellations'),
+      get('/bronze/cancellations' + fq),
       get('/pipeline/state'),
       get('/kg/rules'),
-      // The bulletin endpoint returns plain text, not JSON
       fetch('/api/rhs/bulletin').then(r => r.ok ? r.text() : null).catch(() => null),
     ]);
-    app.data = { st, val, valFlat, bronze, pl, kgRules, bulletinTxt };
+    app.data = { filings, st, val, valFlat, bronze, pl, kgRules, bulletinTxt };
     // Populate the inline bulletin-text panel
     const pre = bind('bulletin-text');
     if (pre) pre.textContent = bulletinTxt || 'Bulletin text not available.';
@@ -2801,23 +2806,51 @@
     setText('rail-filing-count', filingCt);
     setText('rail-regs-count', v ? v.summary.rules_run : '—');
     setText('rail-bul-count', st ? (st.bulletin_applied ? '✓' : 'new') : '—');
-    // "My filings" section — the active TPA filing's open-blocker count
-    const tpaEl = bind('rail-tpa-count');
-    if (tpaEl) {
-      if (!v) { tpaEl.textContent = '—'; tpaEl.style.color = 'var(--ink-3)'; }
-      else if (v.summary.total_violations > 0) {
-        tpaEl.textContent = v.summary.total_violations;
-        tpaEl.style.color = 'var(--bad)';
-      } else {
-        tpaEl.textContent = '✓';
-        tpaEl.style.color = 'var(--good)';
-      }
+
+    // "My filings" — render dynamically from /api/rhs/filings
+    const railFilings = bind('rail-filings');
+    if (railFilings && app.data.filings) {
+      const items = app.data.filings.filings || [];
+      railFilings.innerHTML = items.map(f => {
+        const isActive = f.id === app.currentFilingId;
+        // For the active filing, show its live blocker count; others are dimmed
+        let badge = '<span class="count" style="color:var(--ink-3);">—</span>';
+        if (isActive && v) {
+          const n = v.summary.total_violations;
+          badge = n > 0
+            ? `<span class="count" style="color:var(--bad);font-family:var(--f-mono);">${n}</span>`
+            : `<span class="count" style="color:var(--good);">✓</span>`;
+        }
+        return `
+          <div class="rail-link ${isActive ? 'active-filing' : ''}" data-filing="${esc(f.id)}" title="${esc(f.plan_name)} · ${esc(f.cadence)} · due ${esc(f.due_date)}">
+            ${esc(f.id)}${badge}
+          </div>`;
+      }).join('');
+      // Wire click → switch filing
+      $$('[data-filing]', railFilings).forEach(el => {
+        if (!el._bound) {
+          el._bound = true;
+          el.addEventListener('click', async () => {
+            const newId = el.dataset.filing;
+            if (newId === app.currentFilingId) return;
+            app.currentFilingId = newId;
+            app.selectedRule = null;
+            await refresh();
+            setScreen('filing');
+          });
+        }
+      });
     }
   }
 
   // ─── Topbar + page header live indicators ──────────────────────
   function renderTopbar() {
     const st = app.data.st;
+
+    // Update the top-bar filing-id label to match the active filing
+    const f = (app.data.filings?.filings || []).find(x => x.id === app.currentFilingId);
+    if (f) setText('topbar-filing-id', `${f.plan_code} · ${f.id.split('-').slice(1).join('-')}`);
+
     const el = bind('ctx-bulletin');
     if (el) {
       if (!st || !st.reference_loaded) { el.textContent = '⚠ Snowflake unreachable'; el.style.color = 'var(--warn)'; }

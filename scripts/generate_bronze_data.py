@@ -54,7 +54,12 @@ INGEST_TS = dt.datetime(2026, 4, 1, 6, 0, 0)
 CDC_TS = dt.datetime(2026, 3, 31, 23, 59, 59)
 
 # Policy → (territory, ZIP, construction, year_built, form, coverageA)
+# Three filings:
+#   POL-0001..0019  TPA (Texas Private Auto / homeowners — existing)
+#   POL-0030..0034  RES (Residential Monthly)
+#   POL-0050..0053  CL  (Commercial Lines Quarterly)
 POLICY_DETAILS = {
+    # ── TPA filing (existing) ──
     2001: {"pol": "POL-0001", "territory": "30", "zip": "78701", "construction": "1", "year_built": 2010, "form": "A", "cov_a": 250000, "tenure_years": 5},
     2007: {"pol": "POL-0007", "territory": "20", "zip": "75001", "construction": "1", "year_built": 1995, "form": "A", "cov_a": 220000, "tenure_years": 3},
     2010: {"pol": "POL-0010", "territory": "10", "zip": "76001", "construction": "1", "year_built": 2005, "form": "B", "cov_a": 320000, "tenure_years": 7},
@@ -67,6 +72,24 @@ POLICY_DETAILS = {
     2017: {"pol": "POL-0017", "territory": "40", "zip": "79101", "construction": "2", "year_built": 1998, "form": "B", "cov_a": 210000, "tenure_years": 6},
     2018: {"pol": "POL-0018", "territory": "20", "zip": "78216", "construction": "1", "year_built": 2012, "form": "A", "cov_a": 305000, "tenure_years": 9},
     2019: {"pol": "POL-0019", "territory": "60", "zip": "76710", "construction": "1", "year_built": 2019, "form": "A", "cov_a": 245000, "tenure_years": 2},
+    # ── RES filing (residential monthly) ──
+    2030: {"pol": "POL-0030", "territory": "10", "zip": "75205", "construction": "1", "year_built": 2014, "form": "3", "cov_a": 410000, "tenure_years": 6},
+    2031: {"pol": "POL-0031", "territory": "10", "zip": "78704", "construction": "1", "year_built": 2007, "form": "3", "cov_a": 295000, "tenure_years": 11},
+    2032: {"pol": "POL-0032", "territory": "30", "zip": "77024", "construction": "1", "year_built": 2019, "form": "3", "cov_a": 525000, "tenure_years": 2},
+    2033: {"pol": "POL-0033", "territory": "20", "zip": "76012", "construction": "1", "year_built": 2002, "form": "5", "cov_a": 215000, "tenure_years": 14},
+    2034: {"pol": "POL-0034", "territory": "10", "zip": "78712", "construction": "1", "year_built": 2022, "form": "3", "cov_a": 365000, "tenure_years": 1},
+    # ── CL filing (commercial lines quarterly) ──
+    2050: {"pol": "POL-0050", "territory": "10", "zip": "78701", "construction": "1", "year_built": 1998, "form": "6", "cov_a": 1250000, "tenure_years": 15},
+    2051: {"pol": "POL-0051", "territory": "30", "zip": "77002", "construction": "2", "year_built": 2010, "form": "6", "cov_a": 850000, "tenure_years": 8},
+    2052: {"pol": "POL-0052", "territory": "20", "zip": "75201", "construction": "1", "year_built": 2016, "form": "6", "cov_a": 2100000, "tenure_years": 5},
+    2053: {"pol": "POL-0053", "territory": "10", "zip": "78216", "construction": "1", "year_built": 2003, "form": "6", "cov_a": 680000, "tenure_years": 22},
+}
+
+# Filing membership — used to scope queries by current filing context
+POLICY_FILING = {
+    **{pid: "TPA" for pid in range(2001, 2020)},
+    **{pid: "RES" for pid in range(2030, 2035)},
+    **{pid: "CL"  for pid in range(2050, 2054)},
 }
 
 
@@ -123,7 +146,8 @@ def policy() -> pa.Table:
 def policyperiod() -> pa.Table:
     # Map each policy_id to its period status. Period id = policy id + 3000.
     POLICY_STATUS = {
-        2001: "Bound",        # renewal, no cancellation
+        # TPA
+        2001: "Bound",
         2007: "Cancelled",
         2010: "NonRenewing",
         2011: "Declined",
@@ -135,14 +159,28 @@ def policyperiod() -> pa.Table:
         2017: "NonRenewing",
         2018: "Cancelled",
         2019: "Declined",
+        # RES (residential monthly)
+        2030: "Cancelled",
+        2031: "NonRenewing",
+        2032: "Declined",
+        2033: "NonRenewing",
+        2034: "Bound",
+        # CL (commercial lines quarterly)
+        2050: "Cancelled",
+        2051: "Cancelled",
+        2052: "Cancelled",
+        2053: "Bound",
     }
     rows = [
         {
             "id": 3000 + pid,
             "policy_id": pid,
             "status": POLICY_STATUS[pid],
-            # POL-0015 (id 2015) gets a non-standard termtype → triggers A.40
-            "termtype": "Custom" if pid == 2015 else "Annual",
+            # POL-0015 (TPA) gets non-standard termtype → A.40. RES uses Monthly cadence.
+            "termtype":
+                "Custom"    if pid == 2015
+                else "Monthly" if pid in (2030, 2031, 2032, 2033, 2034)
+                else "Annual",
         }
         for pid in POLICY_DETAILS
     ]
@@ -180,14 +218,19 @@ def policyperiod() -> pa.Table:
         "nonrenewalcode": [None] * n,
         "writtendate": [_ts(2025, 12, 1)] * n,
         "totalpremium": [1500.00] * n,
-        # POL-0014 (id 2014) gets a tiny premium → triggers A.30 range rule
+        # POL-0014 (TPA) gets a tiny premium → A.30 violation
         "writtenpremium": [50.00 if r["policy_id"] == 2014 else 1500.00 for r in rows],
         "totalcost": [1500.00] * n,
         "fulltermamount": [1500.00] * n,
         "earnedpremium": [375.00] * n,
         "uwcompanycode": ["REGULAI_INS"] * n,
-        # POL-0017 (id 2017) gets a non-numeric NAIC → triggers A.22 regex rule
-        "naic_number": ["ABC45" if r["policy_id"] == 2017 else NAIC for r in rows],
+        # NAIC quirks: POL-0017 (TPA) → bad alphanumeric. POL-0052 (CL) → 4-digit
+        "naic_number": [
+            "ABC45" if r["policy_id"] == 2017 else
+            "9876"  if r["policy_id"] == 2052 else
+            NAIC
+            for r in rows
+        ],
         "tico_company_number": [TICO] * n,
         "createtime": [_ts(2025, 12, 1)] * n,
         "updatetime": [_ts(2026, 3, 31)] * n,
@@ -311,6 +354,84 @@ def job() -> pa.Table:
             "cancellationdate": None,
             "within60days": False,
         },
+
+        # ─── RES filing (residential monthly · POL-0030..0034) ───
+        # POL-0030: cancellation, reason A — pass
+        {
+            "id": 7030, "policy_id": 2030, "subtype": "Cancellation",
+            "status": "Bound", "cancellationreason": "A",
+            "nonrenewalreason": None, "declinereason": None,
+            "noticedate": _ts(2026, 2, 12),
+            "effectivedate": _ts(2026, 3, 12),
+            "cancellationdate": _ts(2026, 3, 12),
+            "within60days": False,
+        },
+        # POL-0031: nonrenewal, reason M (roof condition) — pass
+        {
+            "id": 7031, "policy_id": 2031, "subtype": "Renewal",
+            "status": "NonRenewed", "cancellationreason": None,
+            "nonrenewalreason": "M", "declinereason": None,
+            "noticedate": _ts(2026, 2, 28),
+            "effectivedate": _ts(2026, 3, 28),
+            "cancellationdate": None,
+            "within60days": False,
+        },
+        # POL-0032: declination, reason L alone — FAILS A.34 L-companion
+        {
+            "id": 7032, "policy_id": 2032, "subtype": "Submission",
+            "status": "Declined", "cancellationreason": None,
+            "nonrenewalreason": None, "declinereason": "L",
+            "noticedate": _ts(2026, 3, 4),
+            "effectivedate": _ts(2026, 3, 4),
+            "cancellationdate": None,
+            "within60days": False,
+        },
+        # POL-0033: nonrenewal, reason LD — pass (L has D companion)
+        {
+            "id": 7033, "policy_id": 2033, "subtype": "Renewal",
+            "status": "NonRenewed", "cancellationreason": None,
+            "nonrenewalreason": "LD", "declinereason": None,
+            "noticedate": _ts(2026, 3, 6),
+            "effectivedate": _ts(2026, 4, 6),
+            "cancellationdate": None,
+            "within60days": False,
+        },
+        # POL-0034: in-force, no cancellation — passive
+        # (no job row; policy is just active during reporting period)
+
+        # ─── CL filing (commercial lines quarterly · POL-0050..0053) ───
+        # POL-0050: cancellation, reason A (failure to pay) — pass
+        {
+            "id": 7050, "policy_id": 2050, "subtype": "Cancellation",
+            "status": "Bound", "cancellationreason": "A",
+            "nonrenewalreason": None, "declinereason": None,
+            "noticedate": _ts(2026, 1, 22),
+            "effectivedate": _ts(2026, 2, 22),
+            "cancellationdate": _ts(2026, 2, 22),
+            "within60days": False,
+        },
+        # POL-0051: cancellation, reason DG (claims + wind/hail) — pass
+        {
+            "id": 7051, "policy_id": 2051, "subtype": "Cancellation",
+            "status": "Bound", "cancellationreason": "DG",
+            "nonrenewalreason": None, "declinereason": None,
+            "noticedate": _ts(2026, 2, 8),
+            "effectivedate": _ts(2026, 3, 8),
+            "cancellationdate": _ts(2026, 3, 8),
+            "within60days": False,
+        },
+        # POL-0052: cancellation, reason H (concentration of risk) — passes A.34
+        # but policyperiod has bad NAIC '9876' → fails A.22
+        {
+            "id": 7052, "policy_id": 2052, "subtype": "Cancellation",
+            "status": "Bound", "cancellationreason": "H",
+            "nonrenewalreason": None, "declinereason": None,
+            "noticedate": _ts(2026, 1, 30),
+            "effectivedate": _ts(2026, 2, 28),
+            "cancellationdate": _ts(2026, 2, 28),
+            "within60days": False,
+        },
+        # POL-0053: in-force, no cancellation — passive
     ]
     n = len(rows)
     return pa.table({
@@ -366,16 +487,20 @@ def address() -> pa.Table:
     """Risk-location addresses (one per policy)."""
     n = len(POLICY_DETAILS)
     cities = {
-        "78701": "Austin",   "75001": "Addison",  "76001": "Arlington",
-        "77001": "Houston",  "77002": "Houston",  "75201": "Dallas",
-        "75070": "McKinney", "78415": "Corpus Christi", "76301": "Wichita Falls",
-        "79101": "Amarillo", "78216": "San Antonio",    "76710": "Waco",
+        "78701": "Austin",   "75001": "Addison",      "76001": "Arlington",
+        "77001": "Houston",  "77002": "Houston",      "75201": "Dallas",
+        "75070": "McKinney", "78415": "Corpus Christi","76301": "Wichita Falls",
+        "79101": "Amarillo", "78216": "San Antonio",  "76710": "Waco",
+        "75205": "Dallas",   "78704": "Austin",       "77024": "Houston",
+        "76012": "Arlington","78712": "Austin",
     }
     counties = {
-        "78701": "Travis",   "75001": "Dallas",   "76001": "Tarrant",
-        "77001": "Harris",   "77002": "Harris",   "75201": "Dallas",
-        "75070": "Collin",   "78415": "Nueces",   "76301": "Wichita",
-        "79101": "Potter",   "78216": "Bexar",    "76710": "McLennan",
+        "78701": "Travis",   "75001": "Dallas",       "76001": "Tarrant",
+        "77001": "Harris",   "77002": "Harris",       "75201": "Dallas",
+        "75070": "Collin",   "78415": "Nueces",       "76301": "Wichita",
+        "79101": "Potter",   "78216": "Bexar",        "76710": "McLennan",
+        "75205": "Dallas",   "78704": "Travis",       "77024": "Harris",
+        "76012": "Tarrant",  "78712": "Travis",
     }
     rows = []
     for i, (pid, d) in enumerate(POLICY_DETAILS.items()):
