@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Design 01 · Jira for Filings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0f1014;
+    --bg-1: #161820;
+    --bg-2: #1c1f29;
+    --bg-3: #232735;
+    --line: #2a2e3c;
+    --line-2: #3a3f4f;
+    --line-bright: #565b6e;
+    --ink: #e5e7ee;
+    --ink-2: #a4a9b8;
+    --ink-3: #6b6f7e;
+    --ink-4: #444856;
+    --accent: #7c9cf5;
+    --accent-2: #4f6df2;
+    --good: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --bad-bg: rgba(248,113,113,0.08);
+    --warn-bg: rgba(251,191,36,0.10);
+    --good-bg: rgba(74,222,128,0.08);
+    --kg: #a78bfa;
+    --sf: #5eead4;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", -apple-system, system-ui, sans-serif;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+    overflow: hidden;
+  }
+  .mono { font-family: "JetBrains Mono", monospace; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--line-bright); }
+
+  /* ── App shell ── */
+  .app {
+    display: grid;
+    grid-template-rows: 48px 1fr;
+    grid-template-columns: 240px 1fr;
+    grid-template-areas:
+      "top top"
+      "rail main";
+    height: 100vh;
+  }
+
+  /* Top bar */
+  .top {
+    grid-area: top;
+    display: flex; align-items: center;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-1);
+    gap: 16px;
+  }
+  .top .home {
+    color: var(--ink-3); font-size: 12px;
+    border-right: 1px solid var(--line);
+    padding-right: 14px;
+  }
+  .top .home:hover { color: var(--ink); }
+  .top .brand {
+    font-weight: 600; letter-spacing: -0.01em; font-size: 14.5px;
+  }
+  .top .brand .small {
+    color: var(--ink-3); font-weight: 400; font-size: 11px; margin-left: 6px;
+    font-family: "JetBrains Mono", monospace;
+  }
+  .top .crumb {
+    color: var(--ink-2); font-size: 13px; flex: 1;
+    font-family: "JetBrains Mono", monospace; font-size: 11.5px;
+  }
+  .top .crumb b { color: var(--ink); font-weight: 600; }
+  .top .right { display: flex; align-items: center; gap: 8px; }
+  .top .ic {
+    width: 30px; height: 30px;
+    display: grid; place-items: center;
+    color: var(--ink-3); border-radius: 5px;
+  }
+  .top .ic:hover { background: var(--bg-2); color: var(--ink); }
+  .top .avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff; font-size: 11px; font-weight: 600;
+    display: grid; place-items: center;
+    margin-left: 6px;
+  }
+
+  /* Side rail */
+  .rail {
+    grid-area: rail;
+    border-right: 1px solid var(--line);
+    background: var(--bg-1);
+    overflow-y: auto;
+    padding: 14px 0;
+  }
+  .rail-h {
+    padding: 0 16px 6px;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
+    font-weight: 600;
+    margin-top: 16px;
+  }
+  .rail-h:first-child { margin-top: 0; }
+  .rail-link {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 16px;
+    color: var(--ink-2);
+    font-size: 13px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+  }
+  .rail-link:hover { background: var(--bg-2); color: var(--ink); }
+  .rail-link.active {
+    background: var(--bg-2); color: var(--ink);
+    border-left-color: var(--accent);
+    font-weight: 500;
+  }
+  .rail-link .ct {
+    font-size: 11px;
+    color: var(--ink-3);
+    font-family: "JetBrains Mono", monospace;
+  }
+  .rail-link .ct.bad { color: var(--bad); }
+  .rail-link .ct.warn { color: var(--warn); }
+
+  /* Main */
+  main {
+    grid-area: main;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+  }
+
+  /* Filing header */
+  .filing-head {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-1);
+  }
+  .fh-top {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 6px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .fh-id {
+    color: var(--ink); font-weight: 600; letter-spacing: 0.02em;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 11px;
+    border: 1px solid var(--line-2);
+    background: var(--bg-2);
+    color: var(--ink-2);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+  .pill::before {
+    content: ''; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--ink-3);
+  }
+  .pill.bad { color: var(--bad); background: var(--bad-bg); border-color: rgba(248,113,113,0.25); }
+  .pill.bad::before { background: var(--bad); }
+  .pill.warn { color: var(--warn); background: var(--warn-bg); border-color: rgba(251,191,36,0.25); }
+  .pill.warn::before { background: var(--warn); }
+  .pill.good { color: var(--good); background: var(--good-bg); border-color: rgba(74,222,128,0.25); }
+  .pill.good::before { background: var(--good); }
+  .pill.accent { color: var(--accent); background: rgba(124,156,245,0.08); border-color: rgba(124,156,245,0.25); }
+  .pill.accent::before { background: var(--accent); }
+
+  .fh-title {
+    font-size: 19px; font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .fh-meta {
+    display: flex; gap: 18px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .fh-meta b { color: var(--ink); font-weight: 500; }
+  .fh-meta .sep { color: var(--ink-4); }
+  .fh-meta .assignees { display: flex; align-items: center; gap: 4px; }
+  .av {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-size: 9.5px; font-weight: 600;
+    display: grid; place-items: center;
+    border: 2px solid var(--bg-1);
+    margin-left: -6px;
+  }
+  .av:first-child { margin-left: 0; }
+  .av.mo { background: #f97316; }
+  .av.dr { background: #7c9cf5; }
+  .av.jp { background: #a78bfa; }
+  .fh-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn {
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    padding: 6px 12px;
+    border-radius: 5px;
+    color: var(--ink);
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .btn:hover { background: var(--bg-3); border-color: var(--line-bright); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+  .btn.danger { background: var(--bad-bg); border-color: rgba(248,113,113,0.3); color: var(--bad); }
+
+  /* Status pipeline */
+  .pipe {
+    display: flex; align-items: center;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-1);
+    gap: 8px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11.5px;
+  }
+  .ps {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: var(--ink-3);
+    flex: 1;
+    border: 1px solid transparent;
+  }
+  .ps .dot {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--line-bright);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: grid; place-items: center;
+    font-size: 9px;
+  }
+  .ps.done { color: var(--ink-2); }
+  .ps.done .dot { background: var(--good); border-color: var(--good); color: var(--bg-1); }
+  .ps.done .dot::before { content: '✓'; }
+  .ps.active {
+    color: var(--ink); font-weight: 500;
+    background: rgba(124,156,245,0.08);
+    border-color: rgba(124,156,245,0.2);
+  }
+  .ps.active .dot { background: var(--accent); border-color: var(--accent); color: var(--bg-1); font-weight: 600; }
+  .ps-arrow { color: var(--line-bright); }
+
+  /* Body — 2-col workspace */
+  .body {
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+  }
+  .center {
+    overflow-y: auto;
+    padding: 20px 24px 40px;
+  }
+  .right {
+    border-left: 1px solid var(--line);
+    background: var(--bg-1);
+    overflow-y: auto;
+  }
+
+  /* Section tabs */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 18px;
+    gap: 0;
+  }
+  .tab {
+    padding: 8px 14px 9px;
+    font-size: 12.5px;
+    color: var(--ink-3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tab:hover { color: var(--ink-2); }
+  .tab.active { color: var(--ink); border-bottom-color: var(--accent); font-weight: 500; }
+  .tab .ct {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10.5px;
+    padding: 1px 6px;
+    border-radius: 9px;
+    background: var(--bg-2);
+    color: var(--ink-3);
+  }
+  .tab .ct.bad { background: var(--bad-bg); color: var(--bad); }
+  .tab .ct.warn { background: var(--warn-bg); color: var(--warn); }
+
+  /* Exceptions board */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .col {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .col-h {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .col-h.high { color: var(--bad); border-top: 2px solid var(--bad); }
+  .col-h.med  { color: var(--warn); border-top: 2px solid var(--warn); }
+  .col-h.low  { color: var(--ink-2); border-top: 2px solid var(--line-bright); }
+  .col-body { padding: 8px; min-height: 200px; }
+  .ticket {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 11px 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color .12s ease;
+  }
+  .ticket:hover { border-color: var(--line-bright); }
+  .ticket-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10.5px;
+    color: var(--ink-3);
+  }
+  .ticket-id { color: var(--accent); font-weight: 500; }
+  .ticket-title {
+    font-size: 13px; color: var(--ink);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .ticket-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--ink-3);
+  }
+  .ticket-pills {
+    display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap;
+  }
+  .ticket-pill {
+    font-size: 10px;
+    font-family: "JetBrains Mono", monospace;
+    padding: 2px 7px;
+    border-radius: 9px;
+    background: var(--bg-3);
+    color: var(--ink-2);
+  }
+  .ticket-pill.policy { color: var(--accent); }
+  .ticket-pill.code { color: var(--bad); }
+
+  /* Right panel — activity */
+  .rp-section { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .rp-h {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .props {
+    display: grid; grid-template-columns: 100px 1fr;
+    gap: 7px 12px;
+    font-size: 12.5px;
+  }
+  .props .k { color: var(--ink-3); }
+  .props .v { color: var(--ink); }
+  .props .v code { font-family: "JetBrains Mono", monospace; font-size: 11.5px; color: var(--accent); }
+  .activity-row {
+    display: flex; gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .activity-row:last-child { border-bottom: none; }
+  .activity-row .av { width: 24px; height: 24px; font-size: 10px; flex-shrink: 0; }
+  .activity-row .who { color: var(--ink); font-weight: 500; }
+  .activity-row .what { color: var(--ink-2); }
+  .activity-row .when { color: var(--ink-3); font-size: 11px; }
+
+  /* Stat row at top of center */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .stat {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .stat-lbl {
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .stat-val {
+    font-size: 24px; font-weight: 600;
+    color: var(--ink); letter-spacing: -0.015em;
+    font-family: "JetBrains Mono", monospace;
+  }
+  .stat-val.bad { color: var(--bad); }
+  .stat-val.warn { color: var(--warn); }
+  .stat-val.good { color: var(--good); }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top -->
+  <header class="top">
+    <a class="home mono" href="/designs/">← designs</a>
+    <div class="brand">RegulAI <span class="small">design/01-jira</span></div>
+    <div class="crumb">
+      lone-star-mutual <span style="color:var(--ink-4);">/</span>
+      filings <span style="color:var(--ink-4);">/</span>
+      <b>TPA-Q4-2025</b>
+    </div>
+    <div class="right">
+      <button class="ic" title="Search">⌕</button>
+      <button class="ic" title="Notifications">◔</button>
+      <div class="avatar">DR</div>
+    </div>
+  </header>
+
+  <!-- Side rail -->
+  <nav class="rail">
+    <div class="rail-h">My Filings</div>
+    <div class="rail-link active">
+      <span>TPA-Q4-2025</span>
+      <span class="ct bad">4</span>
+    </div>
+    <div class="rail-link">
+      <span>RES-Q1-2026</span>
+      <span class="ct">draft</span>
+    </div>
+    <div class="rail-link">
+      <span>CL-Q4-2025</span>
+      <span class="ct">ack ✓</span>
+    </div>
+    <div class="rail-link">
+      <span>WC-Q4-2025</span>
+      <span class="ct warn">2</span>
+    </div>
+
+    <div class="rail-h">Sections · TPA-Q4-2025</div>
+    <div class="rail-link active">
+      <span>A · Premium &amp; reasons</span>
+      <span class="ct bad">3</span>
+    </div>
+    <div class="rail-link">
+      <span>B · Loss detail</span>
+      <span class="ct">—</span>
+    </div>
+    <div class="rail-link">
+      <span>C · Cancellations</span>
+      <span class="ct">—</span>
+    </div>
+    <div class="rail-link">
+      <span>D · Catastrophe</span>
+      <span class="ct warn">1</span>
+    </div>
+    <div class="rail-link">
+      <span>E · Reinsurance</span>
+      <span class="ct">✓</span>
+    </div>
+    <div class="rail-link">
+      <span>G · Aggregates</span>
+      <span class="ct">—</span>
+    </div>
+
+    <div class="rail-h">Views</div>
+    <div class="rail-link"><span>Exceptions board</span></div>
+    <div class="rail-link"><span>Activity timeline</span></div>
+    <div class="rail-link"><span>Audit trail</span></div>
+    <div class="rail-link"><span>Submission package</span></div>
+
+    <div class="rail-h">Sources</div>
+    <div class="rail-link"><span>Knowledge graph ↗</span></div>
+    <div class="rail-link"><span>Snowflake ↗</span></div>
+    <div class="rail-link"><span>TICO ShareFile ↗</span></div>
+  </nav>
+
+  <main>
+
+    <!-- Filing header -->
+    <div class="filing-head">
+      <div class="fh-top">
+        <span class="fh-id">TPA-Q4-2025</span>
+        <span class="pill bad">4 blockers</span>
+        <span class="pill warn">3 warnings</span>
+        <span class="pill accent">Resolving</span>
+        <span style="color:var(--ink-4);margin-left:8px;">priority</span>
+        <span style="color:var(--bad);font-weight:500;">P1</span>
+      </div>
+      <div class="fh-title">Texas Private Passenger Auto · Q4 2025 statistical filing</div>
+      <div class="fh-meta">
+        <span><b>Lone Star Mutual</b> · NAIC 19876</span>
+        <span class="sep">·</span>
+        <span>Reporting period <b>2025-10-01 → 2025-12-31</b></span>
+        <span class="sep">·</span>
+        <span>Due <b style="color:var(--warn);">2026-03-31 (47d)</b></span>
+        <span class="sep">·</span>
+        <span>Quarterly cadence</span>
+        <span class="sep">·</span>
+        <div class="assignees">
+          <span style="color:var(--ink-3);margin-right:4px;">Assigned:</span>
+          <div class="av mo">MO</div>
+          <div class="av dr">DR</div>
+          <div class="av jp">JP</div>
+        </div>
+      </div>
+      <div class="fh-actions">
+        <button class="btn">▶ Re-run validation</button>
+        <button class="btn">＋ New exception</button>
+        <button class="btn">⎘ Generate transmittal</button>
+        <button class="btn primary">Send for approval →</button>
+      </div>
+    </div>
+
+    <!-- Status pipeline -->
+    <div class="pipe">
+      <div class="ps done"><span class="dot"></span><span>Drafted</span></div>
+      <span class="ps-arrow">→</span>
+      <div class="ps done"><span class="dot"></span><span>Validated</span></div>
+      <span class="ps-arrow">→</span>
+      <div class="ps active"><span class="dot">3</span><span>Resolving exceptions · 4 open</span></div>
+      <span class="ps-arrow">→</span>
+      <div class="ps"><span class="dot">4</span><span>Approval · M.Okonkwo, D.Reyes</span></div>
+      <span class="ps-arrow">→</span>
+      <div class="ps"><span class="dot">5</span><span>Submit to TICO · by Mar 31</span></div>
+      <span class="ps-arrow">→</span>
+      <div class="ps"><span class="dot">6</span><span>Regulator ack</span></div>
+    </div>
+
+    <!-- 2-col body -->
+    <div class="body">
+      <div class="center">
+
+        <!-- KPI strip -->
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-lbl">Readiness</div>
+            <div class="stat-val warn">25/100</div>
+            <div class="stat-sub">1 of 4 rule-sets passing</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl">Open blockers</div>
+            <div class="stat-val bad">4</div>
+            <div class="stat-sub">3 critical · 1 high</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl">Records evaluated</div>
+            <div class="stat-val">11</div>
+            <div class="stat-sub">8 flagged · 3 clean</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl">$ Fines avoided</div>
+            <div class="stat-val good">$200K</div>
+            <div class="stat-sub">8 × $25K est.</div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <div class="tab active">Exceptions board <span class="ct bad">4</span></div>
+          <div class="tab">Rule results <span class="ct">7</span></div>
+          <div class="tab">Wire output</div>
+          <div class="tab">Comments <span class="ct">6</span></div>
+        </div>
+
+        <!-- Kanban board -->
+        <div class="board">
+          <!-- HIGH -->
+          <div class="col">
+            <div class="col-h high">
+              <span>● High · blocks submission</span>
+              <span class="mono" style="font-size:10.5px;color:var(--ink-3);">3</span>
+            </div>
+            <div class="col-body">
+
+              <div class="ticket">
+                <div class="ticket-head">
+                  <span class="ticket-id">FILE-1142</span>
+                  <span>POL-0011</span>
+                </div>
+                <div class="ticket-title">Reason code 'L' requires companion</div>
+                <div class="ticket-meta">
+                  <span>Rule A.34 · ERROR</span>
+                  <div class="av mo">MO</div>
+                </div>
+                <div class="ticket-pills">
+                  <span class="ticket-pill code">L</span>
+                  <span class="ticket-pill">credit-score</span>
+                  <span class="ticket-pill" style="color:var(--good);">fix: bulletin</span>
+                </div>
+              </div>
+
+              <div class="ticket">
+                <div class="ticket-head">
+                  <span class="ticket-id">FILE-1143</span>
+                  <span>POL-0012</span>
+                </div>
+                <div class="ticket-title">J must appear alone — combined with D</div>
+                <div class="ticket-meta">
+                  <span>Rule A.34 · ERROR</span>
+                  <div class="av jp">JP</div>
+                </div>
+                <div class="ticket-pills">
+                  <span class="ticket-pill code">JD</span>
+                  <span class="ticket-pill">market-withdrawal</span>
+                </div>
+              </div>
+
+              <div class="ticket">
+                <div class="ticket-head">
+                  <span class="ticket-id">FILE-1144</span>
+                  <span>POL-0019</span>
+                </div>
+                <div class="ticket-title">Invalid codes 'I', 'O' not in plan</div>
+                <div class="ticket-meta">
+                  <span>Rule A.34-valid · ERROR</span>
+                  <span style="color:var(--ink-4);">unassigned</span>
+                </div>
+                <div class="ticket-pills">
+                  <span class="ticket-pill code">IO</span>
+                  <span class="ticket-pill">codelist</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MED -->
+          <div class="col">
+            <div class="col-h med">
+              <span>● Medium · needs review</span>
+              <span class="mono" style="font-size:10.5px;color:var(--ink-3);">2</span>
+            </div>
+            <div class="col-body">
+
+              <div class="ticket">
+                <div class="ticket-head">
+                  <span class="ticket-id">FILE-1145</span>
+                  <span>POL-0017</span>
+                </div>
+                <div class="ticket-title">NAIC code is not 5 digits ('ABC45')</div>
+                <div class="ticket-meta">
+                  <span>Rule A.22 · ERROR</span>
+                  <div class="av dr">DR</div>
+                </div>
+                <div class="ticket-pills">
+                  <span class="ticket-pill code">ABC45</span>
+                  <span class="ticket-pill">naic-validation</span>
+                </div>
+              </div>
+
+              <div class="ticket">
+                <div class="ticket-head">
+                  <span class="ticket-id">FILE-1146</span>
+                  <span>POL-0015</span>
+                </div>
+                <div class="ticket-title">Term type 'Custom' not in standard set</div>
+                <div class="ticket-meta">
+                  <span>Rule A.40 · WARN</span>
+                  <div class="av mo">MO</div>
+                </div>
+                <div class="ticket-pills">
+                  <span class="ticket-pill">termtype:Custom</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LOW -->
+          <div class="col">
+            <div class="col-h low">
+              <span>● Low · informational</span>
+              <span class="mono" style="font-size:10.5px;color:var(--ink-3);">2</span>
+            </div>
+            <div class="col-body">
+
+              <div class="ticket" style="opacity:0.85;">
+                <div class="ticket-head">
+                  <span class="ticket-id">FILE-1147</span>
+                  <span>POL-0010</span>
+                </div>
+                <div class="ticket-title">Notice date is NULL</div>
+                <div class="ticket-meta">
+                  <span>Rule A.42 · ERROR</span>
+                  <div class="av jp">JP</div>
+                </div>
+                <div class="ticket-pills">
+                  <span class="ticket-pill">noticedate:∅</span>
+                </div>
+              </div>
+
+              <div class="ticket" style="opacity:0.85;">
+                <div class="ticket-head">
+                  <span class="ticket-id">FILE-1148</span>
+                  <span>POL-0014</span>
+                </div>
+                <div class="ticket-title">Premium $50 below $100 threshold</div>
+                <div class="ticket-meta">
+                  <span>Rule A.30 · ERROR</span>
+                  <span style="color:var(--ink-4);">unassigned</span>
+                </div>
+                <div class="ticket-pills">
+                  <span class="ticket-pill">premium:50</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right panel -->
+      <aside class="right">
+
+        <div class="rp-section">
+          <div class="rp-h">Filing properties</div>
+          <div class="props">
+            <div class="k">Plan</div>
+            <div class="v">TPA · Texas Private Passenger Auto</div>
+            <div class="k">Cadence</div>
+            <div class="v">Quarterly</div>
+            <div class="k">Channel</div>
+            <div class="v">TICO ShareFile</div>
+            <div class="k">Format</div>
+            <div class="v"><code>fixed-width ASCII</code></div>
+            <div class="k">Edition</div>
+            <div class="v"><code>v1 baseline</code></div>
+            <div class="k">Rules version</div>
+            <div class="v"><code>2026.03.14</code></div>
+            <div class="k">Last validation</div>
+            <div class="v">14:32 CST · today</div>
+            <div class="k">Bulletin pending</div>
+            <div class="v"><span style="color:var(--warn);">B-2026-Q4-118</span></div>
+          </div>
+        </div>
+
+        <div class="rp-section">
+          <div class="rp-h">Watchers (4)</div>
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:8px;">
+            <div class="av mo">MO</div>
+            <div class="av dr">DR</div>
+            <div class="av jp">JP</div>
+            <div class="av" style="background:#fb7185;">RK</div>
+          </div>
+          <div style="font-size:12px;color:var(--ink-3);">
+            M.Okonkwo (Actuary) · D.Reyes (VP Compliance) · J.Park (Officer) · R.Khanna (Audit)
+          </div>
+        </div>
+
+        <div class="rp-section">
+          <div class="rp-h">Activity · last 24h</div>
+
+          <div class="activity-row">
+            <div class="av mo">MO</div>
+            <div>
+              <span class="who">M. Okonkwo</span>
+              <span class="what">assigned FILE-1143 (JD violation) to themselves.</span>
+              <div class="when mono">2h ago</div>
+            </div>
+          </div>
+
+          <div class="activity-row">
+            <div class="av" style="background:#5f7d7d;">SY</div>
+            <div>
+              <span class="who">System</span>
+              <span class="what">validation re-run · 4 blockers · 3 warnings.</span>
+              <div class="when mono">2h ago</div>
+            </div>
+          </div>
+
+          <div class="activity-row">
+            <div class="av dr">DR</div>
+            <div>
+              <span class="who">D. Reyes</span>
+              <span class="what">marked FILE-1145 (NAIC) for follow-up with carrier ops.</span>
+              <div class="when mono">5h ago</div>
+            </div>
+          </div>
+
+          <div class="activity-row">
+            <div class="av" style="background:#a78bfa;">KG</div>
+            <div>
+              <span class="who">KG canon</span>
+              <span class="what">bulletin <code style="font-family:'JetBrains Mono',mono;color:var(--accent);">B-2026-Q4-118</code> received — affects A.34.</span>
+              <div class="when mono">yesterday</div>
+            </div>
+          </div>
+
+          <div class="activity-row">
+            <div class="av jp">JP</div>
+            <div>
+              <span class="who">J. Park</span>
+              <span class="what">drafted TPA-Q4-2025 from Q4 close.</span>
+              <div class="when mono">Feb 8</div>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+  // Allow the tabs to switch visual state (cosmetic only — this is a static design)
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+  }));
+  document.querySelectorAll('.rail-link').forEach(l => l.addEventListener('click', () => {
+    document.querySelectorAll('.rail-link').forEach(x => x.classList.remove('active'));
+    l.classList.add('active');
+  }));
+</script>
+</body>
+</html>

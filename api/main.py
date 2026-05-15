@@ -109,6 +109,32 @@ def workstation_page() -> FileResponse:
     return FileResponse(UI_DIR / "workstation.html")
 
 
+# -- Design explorations (feature/ui-designs) ----------------------------------
+# Three takes on the regulatory-compliance UX: Jira-style workspace, TurboTax
+# wizard, Stripe-style portfolio cockpit. Static mockups, no backend wiring.
+
+
+@app.get("/designs", response_class=HTMLResponse)
+@app.get("/designs/", response_class=HTMLResponse)
+def designs_index() -> FileResponse:
+    return FileResponse(UI_DIR / "designs" / "index.html")
+
+
+@app.get("/designs/01-workspace-jira", response_class=HTMLResponse)
+def design_01() -> FileResponse:
+    return FileResponse(UI_DIR / "designs" / "01-workspace-jira.html")
+
+
+@app.get("/designs/02-wizard-turbotax", response_class=HTMLResponse)
+def design_02() -> FileResponse:
+    return FileResponse(UI_DIR / "designs" / "02-wizard-turbotax.html")
+
+
+@app.get("/designs/03-cockpit-stripe", response_class=HTMLResponse)
+def design_03() -> FileResponse:
+    return FileResponse(UI_DIR / "designs" / "03-cockpit-stripe.html")
+
+
 app.include_router(rhs_router)
 
 
