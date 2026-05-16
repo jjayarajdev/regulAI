@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RegulAI · Compliance Validation</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --paper: #ffffff;
+    --ink: #1a202c;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --good: #16a34a;
+    --good-soft: #dcfce7;
+    --bad: #dc2626;
+    --bad-soft: #fee2e2;
+    --warn: #d97706;
+    --warn-soft: #fef3c7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    background: var(--bg); color: var(--ink);
+  }
+  header.top {
+    background: var(--paper); border-bottom: 1px solid var(--line);
+    padding: 16px 32px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  header.top h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  header.top h1 small {
+    display: block; color: var(--muted); font-size: 12px; font-weight: 400; margin-top: 2px;
+  }
+  header.top nav { display: flex; gap: 18px; font-size: 13px; }
+  header.top nav a { color: var(--accent); text-decoration: none; }
+  header.top nav a:hover { text-decoration: underline; }
+  header.top nav a.active { color: var(--ink); font-weight: 600; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 32px 80px; }
+
+  .intro h2 { margin: 0 0 8px; font-size: 26px; font-weight: 600; line-height: 1.2; }
+  .intro p { margin: 0 0 24px; color: var(--muted); font-size: 15px; max-width: 820px; }
+
+  .control-bar {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px 24px; margin-bottom: 18px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px;
+  }
+  .control-bar .desc {
+    font-size: 14px; color: var(--ink); flex: 1;
+  }
+  .control-bar .desc small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  button.primary {
+    background: var(--accent); color: white; border: 0; padding: 10px 22px; border-radius: 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button.primary:hover { background: #1d4ed8; }
+  button.primary:disabled { background: var(--muted); cursor: wait; }
+
+  .summary {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin-bottom: 24px;
+  }
+  .summary .stat {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .summary .stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; }
+  .summary .stat .value { font-size: 26px; font-weight: 700; margin-top: 4px; line-height: 1; }
+  .summary .stat.pass .value { color: var(--good); }
+  .summary .stat.fail .value { color: var(--bad); }
+  .summary .stat.error .value { color: var(--warn); }
+
+  .section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent); margin: 24px 0 10px;
+  }
+
+  /* Violation list */
+  .violation {
+    background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--bad);
+    border-radius: 8px; padding: 16px 20px; margin-bottom: 12px;
+  }
+  .violation .head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 16px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .violation .policy {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 14px; font-weight: 600; color: var(--bad);
+  }
+  .violation .rule-tag {
+    background: var(--bad-soft); color: var(--bad);
+    padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  }
+  .violation .reason { font-size: 14.5px; line-height: 1.5; margin: 6px 0; }
+  .violation .citation {
+    font-size: 12.5px; color: var(--muted); font-style: italic; margin-top: 6px;
+    padding-top: 8px; border-top: 1px dashed var(--line);
+  }
+  .violation .citation strong { color: var(--ink); font-style: normal; }
+
+  /* Rules list */
+  .rule-list {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
+    overflow: hidden;
+  }
+  .rule {
+    padding: 14px 20px; border-bottom: 1px solid var(--line);
+    display: grid; grid-template-columns: 90px 1fr 100px;
+    gap: 14px; align-items: center;
+  }
+  .rule:last-child { border-bottom: 0; }
+  .rule .badge {
+    padding: 4px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 600;
+    text-align: center;
+  }
+  .rule .badge.pass { background: var(--good-soft); color: var(--good); }
+  .rule .badge.fail { background: var(--bad-soft); color: var(--bad); }
+  .rule .badge.error { background: var(--warn-soft); color: var(--warn); }
+  .rule .meta { color: var(--muted); font-size: 12.5px; }
+  .rule .meta code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    background: rgba(0,0,0,0.04); padding: 1px 5px; border-radius: 3px; font-size: 11.5px;
+  }
+  .rule .body { min-width: 0; }
+  .rule .name { font-weight: 600; font-size: 14px; }
+  .rule .count { text-align: right; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .rule.fail .count { color: var(--bad); font-weight: 600; }
+
+  details.rule-detail {
+    margin-top: 8px;
+  }
+  details.rule-detail summary {
+    cursor: pointer; font-size: 12px; color: var(--accent);
+    list-style: none; padding: 4px 0;
+  }
+  details.rule-detail summary::before { content: '▸ '; }
+  details.rule-detail[open] summary::before { content: '▾ '; }
+  details.rule-detail pre {
+    background: #1f2937; color: #e5e7eb;
+    padding: 12px 14px; border-radius: 6px; margin: 8px 0 4px;
+    font-size: 11.5px; line-height: 1.5; overflow-x: auto;
+    white-space: pre-wrap; word-break: break-word;
+  }
+
+  .empty { color: var(--muted); padding: 40px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>
+    RegulAI · Compliance Validation
+    <small>Every rule executable. Every violation cites its source.</small>
+  </h1>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/explore">Browse Regulations</a>
+    <a href="/demo">Bulletin Flow</a>
+    <a href="/validate" class="active">Validation</a>
+  </nav>
+</header>
+
+<main>
+
+<div class="intro">
+  <h2>What's actually rejecting your filings?</h2>
+  <p>
+    Every plan rule from TICO Section A is stored as a <strong>queryable row</strong> in
+    <code>REFERENCE.TSPR_VALIDATION_RULES</code> — generated from RegulAI's KG, with
+    the executable SQL inline. Click <em>Run validation</em> to evaluate every rule
+    against the current Bronze data. Each violation cites its rule, the regulatory
+    section, and the original statute.
+  </p>
+</div>
+
+<div class="control-bar">
+  <div class="desc">
+    Validation runs against <code>BRONZE.GW_PC_JOB</code> and
+    <code>BRONZE.GW_PC_POLICYPERIOD</code> — the synthetic Guidewire feed.
+    <small>Each rule's SQL is read from REFERENCE at runtime. Adding a rule = inserting a row.</small>
+  </div>
+  <button id="run-btn" class="primary" onclick="runValidation()">▶ Run validation</button>
+</div>
+
+<div class="summary" id="summary" style="display:none">
+  <div class="stat"><div class="label">Rules executed</div><div class="value" id="s-run">—</div></div>
+  <div class="stat pass"><div class="label">Passing</div><div class="value" id="s-pass">—</div></div>
+  <div class="stat fail"><div class="label">Failing</div><div class="value" id="s-fail">—</div></div>
+  <div class="stat fail"><div class="label">Total violations</div><div class="value" id="s-violations">—</div></div>
+</div>
+
+<div id="violations-section" style="display:none">
+  <div class="section-title">Violations · ranked by severity</div>
+  <div id="violations"></div>
+</div>
+
+<div id="rules-section" style="display:none">
+  <div class="section-title">All rules executed</div>
+  <div class="rule-list" id="rules"></div>
+</div>
+
+<div id="empty-state" class="empty" style="display:none">No data yet. Click <em>Run validation</em> above.</div>
+
+</main>
+
+<script>
+async function runValidation() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = 'Running…';
+  document.getElementById('empty-state').style.display = 'none';
+  try {
+    const r = await fetch('/api/rhs/validate/cancellations').then(r => r.json());
+    renderSummary(r.summary);
+    renderRules(r.rules);
+    renderViolations(r.violations);
+  } catch (e) {
+    alert('Failed: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '▶ Run validation';
+  }
+}
+
+function renderSummary(s) {
+  document.getElementById('summary').style.display = 'grid';
+  document.getElementById('s-run').textContent = s.rules_run;
+  document.getElementById('s-pass').textContent = s.rules_passing;
+  document.getElementById('s-fail').textContent = s.rules_failing + (s.rules_errored ? ` (+${s.rules_errored} err)` : '');
+  document.getElementById('s-violations').textContent = s.total_violations;
+}
+
+function renderViolations(violations) {
+  const sec = document.getElementById('violations-section');
+  const wrap = document.getElementById('violations');
+  if (!violations.length) {
+    sec.style.display = 'block';
+    wrap.innerHTML = `<div class="violation" style="border-left-color:var(--good);"><div class="head"><span style="color:var(--good);font-weight:600">All filings clean.</span></div><div class="reason">No rule violations detected against the current Bronze data.</div></div>`;
+    return;
+  }
+  sec.style.display = 'block';
+  wrap.innerHTML = '';
+  for (const v of violations) {
+    const div = document.createElement('div');
+    div.className = 'violation';
+    div.innerHTML = `
+      <div class="head">
+        <span class="policy">${v.policy_number}</span>
+        <span class="rule-tag">${v.severity} · Rule ${v.rule_number}</span>
+      </div>
+      <div class="reason">${v.violation_reason}</div>
+      <div class="citation"><strong>${v.rule_name}</strong> · ${v.citation}</div>
+    `;
+    wrap.appendChild(div);
+  }
+}
+
+function renderRules(rules) {
+  const sec = document.getElementById('rules-section');
+  const wrap = document.getElementById('rules');
+  sec.style.display = 'block';
+  wrap.innerHTML = '';
+  for (const r of rules) {
+    const div = document.createElement('div');
+    div.className = 'rule ' + r.status;
+    div.innerHTML = `
+      <span class="badge ${r.status}">${r.status === 'pass' ? '✓ pass' : r.status === 'fail' ? '✗ fail' : '⚠ error'}</span>
+      <div class="body">
+        <div class="name">${r.rule_name}</div>
+        <div class="meta">Rule <code>${r.rule_number}</code> · target <code>${r.target_table}</code> · ${r.citation}</div>
+        <details class="rule-detail">
+          <summary>Show executable SQL</summary>
+          <pre>${escape(r.violation_sql)}</pre>
+          ${r.error ? `<pre style="background:#7f1d1d">Error: ${escape(r.error)}</pre>` : ''}
+        </details>
+      </div>
+      <div class="count">${r.violation_count} ${r.violation_count === 1 ? 'row' : 'rows'}</div>
+    `;
+    wrap.appendChild(div);
+  }
+}
+
+function escape(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Auto-run on first visit
+runValidation();
+</script>
+
+</body>
+</html>

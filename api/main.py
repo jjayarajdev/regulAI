@@ -31,6 +31,7 @@ from api.registry import (
     rects_path_for,
     wire_layouts_for,
 )
+from api.rhs_demo import router as rhs_router
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 from packages.adapters.shared.llm.openai_adapter import OpenAIAdapter
 from packages.config.settings import settings
@@ -82,6 +83,59 @@ def root() -> FileResponse:
 def explore() -> FileResponse:
     """Side-by-side regulation review UI (the working tool)."""
     return FileResponse(UI_DIR / "regulations.html")
+
+
+@app.get("/demo")
+def demo() -> FileResponse:
+    """End-to-end RHS demo: KG → reference → Snowflake → validation flip."""
+    return FileResponse(UI_DIR / "demo.html")
+
+
+@app.get("/validate")
+def validate_page() -> FileResponse:
+    """Validation engine: live evaluation of REFERENCE.TSPR_VALIDATION_RULES."""
+    return FileResponse(UI_DIR / "validate.html")
+
+
+@app.get("/pipeline")
+def pipeline_page() -> FileResponse:
+    """Medallion pipeline runner: Bronze → Silver → Gold."""
+    return FileResponse(UI_DIR / "pipeline.html")
+
+
+@app.get("/workstation")
+def workstation_page() -> FileResponse:
+    """Unified regulatory workstation — single UI binding all RHS endpoints."""
+    return FileResponse(UI_DIR / "workstation.html")
+
+
+# -- Design explorations (feature/ui-designs) ----------------------------------
+# Three takes on the regulatory-compliance UX: Jira-style workspace, TurboTax
+# wizard, Stripe-style portfolio cockpit. Static mockups, no backend wiring.
+
+
+@app.get("/designs", response_class=HTMLResponse)
+@app.get("/designs/", response_class=HTMLResponse)
+def designs_index() -> FileResponse:
+    return FileResponse(UI_DIR / "designs" / "index.html")
+
+
+@app.get("/designs/01-workspace-jira", response_class=HTMLResponse)
+def design_01() -> FileResponse:
+    return FileResponse(UI_DIR / "designs" / "01-workspace-jira.html")
+
+
+@app.get("/designs/02-wizard-turbotax", response_class=HTMLResponse)
+def design_02() -> FileResponse:
+    return FileResponse(UI_DIR / "designs" / "02-wizard-turbotax.html")
+
+
+@app.get("/designs/03-cockpit-stripe", response_class=HTMLResponse)
+def design_03() -> FileResponse:
+    return FileResponse(UI_DIR / "designs" / "03-cockpit-stripe.html")
+
+
+app.include_router(rhs_router)
 
 
 # -- Regulations API ----------------------------------------------------------

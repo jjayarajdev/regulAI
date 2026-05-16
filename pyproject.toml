@@ -12,6 +12,8 @@ dependencies = [
     "pymupdf>=1.24",
     "fastapi>=0.110",
     "uvicorn>=0.27",
+    "pyarrow>=24.0.0",
+    "snowflake-connector-python>=4.4.0",
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RegulAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..500;1,9..144,300..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ── tokens ───────────────────────────────────────────────── */
+  :root {
+    --paper: #faf9f6;
+    --surface: #ffffff;
+
+    --ink: #18181b;
+    --ink-2: #52525b;
+    --ink-3: #8a8a90;
+    --ink-4: #c6c6c9;
+
+    --line: #ebeae5;
+    --line-2: #dcdbd5;
+
+    --accent: #1e293b;
+    --accent-soft: #f1f3f6;
+
+    --good: #2f6f4f;
+    --warn: #8a5a16;
+    --bad:  #9b2c2c;
+
+    --kg: #5b4d8a;   /* restrained violet */
+    --sf: #2c6b6b;   /* restrained teal   */
+
+    --f-serif: "Fraunces", Georgia, serif;
+    --f-sans:  "Inter", -apple-system, system-ui, sans-serif;
+    --f-mono:  "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  /* ── reset ────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--f-sans);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.005em;
+    overflow: hidden;
+  }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border: 2px solid var(--paper); border-radius: 6px; }
+
+  /* ── chrome ───────────────────────────────────────────────── */
+  .app {
+    display: grid;
+    grid-template-rows: 60px 1fr;
+    grid-template-columns: 240px 1fr;
+    grid-template-areas:
+      "top  top"
+      "rail main";
+    height: 100vh;
+  }
+
+  .topbar {
+    grid-area: top;
+    display: flex; align-items: center;
+    padding: 0 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+    gap: 40px;
+  }
+  .brand {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .filing-ctx {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ink-2);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .filing-ctx b { color: var(--ink); font-weight: 500; }
+  .filing-ctx .dot { color: var(--ink-4); }
+  .top-right { display: flex; align-items: center; gap: 18px; }
+  .icon-btn {
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    color: var(--ink-2);
+    border-radius: 4px;
+  }
+  .icon-btn:hover { background: var(--accent-soft); color: var(--ink); }
+  .user {
+    display: flex; align-items: center; gap: 10px;
+    padding-left: 18px;
+    border-left: 1px solid var(--line);
+  }
+  .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: grid; place-items: center;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .user-meta { line-height: 1.2; }
+  .user-name { font-size: 13px; font-weight: 500; }
+  .user-role { font-size: 11.5px; color: var(--ink-3); }
+
+  /* side rail */
+  .rail {
+    grid-area: rail;
+    border-right: 1px solid var(--line);
+    background: var(--paper);
+    padding: 24px 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .rail-group { padding: 0 16px; margin-bottom: 28px; }
+  .rail-label {
+    padding: 0 12px 10px;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .rail-link {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background .12s ease, color .12s ease;
+  }
+  .rail-link:hover { background: var(--accent-soft); color: var(--ink); }
+  .rail-link.active { background: var(--accent-soft); color: var(--ink); font-weight: 500; }
+  .rail-link .count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .rail-link.active .count { color: var(--ink-2); }
+
+  /* main */
+  main {
+    grid-area: main;
+    overflow: hidden;
+    background: var(--paper);
+  }
+  .screen { display: none; height: 100%; overflow-y: auto; }
+  .screen.active { display: block; }
+
+  /* ── shared atoms ─────────────────────────────────────────── */
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .display {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1.05;
+  }
+  .display em { font-style: italic; font-weight: 400; }
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  .mono { font-family: var(--f-mono); }
+  .btn {
+    padding: 8px 16px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--surface);
+    transition: all .12s ease;
+  }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .btn.primary:hover { background: #000; border-color: #000; }
+  .btn.ghost { border-color: transparent; background: transparent; }
+  .btn.ghost:hover { background: var(--accent-soft); }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    padding: 3px 9px;
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    background: var(--surface);
+  }
+  .tag::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3);
+  }
+  .tag.ok::before  { background: var(--good); }
+  .tag.warn::before{ background: var(--warn); }
+  .tag.bad::before { background: var(--bad);  }
+  .tag.ok  { color: var(--good); border-color: rgba(47,111,79,0.25); }
+  .tag.warn{ color: var(--warn); border-color: rgba(138,90,22,0.25); }
+  .tag.bad { color: var(--bad);  border-color: rgba(155,44,44,0.25); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .card-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-title { font-size: 13.5px; font-weight: 500; }
+  .card-title .sub { color: var(--ink-3); font-weight: 400; margin-left: 8px; font-size: 12.5px; }
+
+  /* ────────────────────────────────────────────────────────────
+     DASHBOARD
+     ──────────────────────────────────────────────────────────── */
+  .screen-dashboard { padding: 56px 64px; max-width: 1180px; }
+
+  .dash-head { margin-bottom: 56px; }
+  .dash-eyebrow {
+    font-size: 12px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 18px;
+  }
+  .dash-title {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    max-width: 800px;
+  }
+  .dash-title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .dash-sub {
+    margin-top: 18px;
+    color: var(--ink-2);
+    font-size: 15px;
+    max-width: 560px;
+    line-height: 1.55;
+  }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 56px;
+  }
+  .kpi {
+    padding: 32px 36px 32px 0;
+    border-right: 1px solid var(--line);
+  }
+  .kpi:last-child { border-right: none; padding-right: 0; }
+  .kpi:not(:first-child) { padding-left: 36px; }
+  .kpi-label {
+    font-size: 12px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+  .kpi-value {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+  .kpi-value .unit { font-family: var(--f-sans); font-size: 18px; color: var(--ink-3); margin-left: 4px; font-weight: 400; letter-spacing: 0; }
+  .kpi-meta {
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  .section-h {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .section-h h2 {
+    font-family: var(--f-serif);
+    font-weight: 400;
+    font-size: 22px;
+    letter-spacing: -0.015em;
+  }
+  .section-h .link {
+    color: var(--ink-2);
+    font-size: 13px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .section-h .link:hover { color: var(--ink); border-color: var(--ink-2); }
+
+  .filing-list {
+    border-top: 1px solid var(--line);
+  }
+  .filing-row {
+    display: grid;
+    grid-template-columns: 1.4fr 2fr 1fr auto;
+    gap: 24px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: center;
+    cursor: pointer;
+  }
+  .filing-row:hover { background: var(--accent-soft); margin: 0 -16px; padding: 22px 16px; border-radius: 4px; }
+  .fr-name {
+    font-size: 14.5px;
+    font-weight: 500;
+  }
+  .fr-name .sub {
+    display: block;
+    font-weight: 400;
+    color: var(--ink-3);
+    font-size: 12.5px;
+    margin-top: 3px;
+  }
+  .progress {
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress > div { height: 100%; background: var(--ink); border-radius: 2px; }
+  .progress-meta {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    display: flex; gap: 14px;
+  }
+  .progress-meta b { color: var(--ink-2); font-weight: 500; }
+  .fr-due {
+    text-align: right;
+    font-size: 12.5px;
+    color: var(--ink-3);
+  }
+  .fr-due b {
+    display: block;
+    font-size: 14.5px;
+    color: var(--ink);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .grid-2col {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 56px;
+    margin-top: 64px;
+  }
+
+  .activity { padding: 8px 0; }
+  .act {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  .act:last-child { border-bottom: none; }
+  .act-time {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    padding-top: 2px;
+  }
+  .act-msg {
+    font-size: 13.5px;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .act-msg b { font-weight: 500; }
+  .act-msg .meta {
+    display: block;
+    color: var(--ink-3);
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     FILING WORKSHOP
+     ──────────────────────────────────────────────────────────── */
+  .screen-filing {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    height: 100%;
+  }
+  .filing-side {
+    border-right: 1px solid var(--line);
+    background: var(--paper);
+    overflow-y: auto;
+    padding: 32px 0;
+  }
+  .fs-back {
+    padding: 0 24px 18px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .fs-back:hover { color: var(--ink); }
+  .fs-h {
+    padding: 0 24px 8px;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .fs-item {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    gap: 12px;
+    padding: 10px 24px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    align-items: center;
+  }
+  .fs-item:hover { background: var(--accent-soft); }
+  .fs-item.active { background: var(--accent-soft); border-left-color: var(--accent); }
+  .fs-letter {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 18px;
+    color: var(--ink-3);
+    text-align: center;
+  }
+  .fs-item.active .fs-letter { color: var(--accent); }
+  .fs-name {
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  .fs-name .sub {
+    display: block;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-top: 2px;
+  }
+  .fs-tally {
+    font-size: 11px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .fs-tally .bad { color: var(--bad); }
+
+  .filing-main {
+    overflow-y: auto;
+    padding: 48px 64px 64px;
+    max-width: 920px;
+  }
+  .fm-head {
+    margin-bottom: 36px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .fm-eyebrow { margin-bottom: 12px; }
+  .fm-title {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 38px;
+    letter-spacing: -0.022em;
+    line-height: 1.1;
+  }
+  .fm-title em { font-style: italic; color: var(--accent); }
+  .fm-meta {
+    margin-top: 14px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+    display: flex; gap: 16px;
+  }
+  .fm-meta .dot { color: var(--ink-4); }
+
+  .pipeline {
+    display: flex;
+    margin: 0 0 36px;
+    padding: 18px 22px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .pp-step {
+    flex: 1;
+    display: flex; align-items: center; gap: 12px;
+    position: relative;
+  }
+  .pp-step:not(:last-child)::after {
+    content: ""; position: absolute; right: 0; top: 50%;
+    width: 14px; height: 1px;
+    background: var(--line-2);
+  }
+  .pp-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--line-2);
+    display: grid; place-items: center;
+    font-size: 11px;
+    color: var(--ink-3);
+    flex-shrink: 0;
+  }
+  .pp-step.done .pp-num { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pp-step.done .pp-num::before { content: "✓"; }
+  .pp-step.done .pp-num span { display: none; }
+  .pp-step.active .pp-num { border-color: var(--accent); color: var(--accent); }
+  .pp-info { line-height: 1.2; }
+  .pp-name {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .pp-step.active .pp-name { color: var(--ink); font-weight: 500; }
+  .pp-when {
+    font-size: 10.5px;
+    color: var(--ink-3);
+    margin-top: 2px;
+  }
+
+  .blocker-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--bad);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+  .blocker-card .eyebrow { color: var(--bad); margin-bottom: 10px; }
+  .blocker-card h3 {
+    font-family: var(--f-serif);
+    font-size: 20px;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    margin-bottom: 8px;
+  }
+  .blocker-card p {
+    color: var(--ink-2);
+    font-size: 13.5px;
+    line-height: 1.55;
+    max-width: 640px;
+    margin-bottom: 14px;
+  }
+  .blocker-card .actions { display: flex; gap: 10px; }
+
+  /* rules table */
+  .rules {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .rules-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 200px 110px;
+    gap: 18px;
+    padding: 16px 22px;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+  }
+  .rules-row:last-child { border-bottom: none; }
+  .rules-row.head {
+    background: var(--paper);
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 12px 22px;
+  }
+  .rules-row.fail { background: rgba(155,44,44,0.04); }
+  .rule-id { font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); }
+  .rules-row.fail .rule-id { color: var(--bad); }
+  .rule-name { color: var(--ink); }
+  .rule-name .sub { display: block; color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+  .rule-cite { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2); }
+  .rule-tally { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--ink-2); text-align: right; }
+  .rule-tally .bad { color: var(--bad); }
+
+  /* wire preview */
+  .wire-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 28px;
+  }
+  .wire-body {
+    padding: 18px 22px;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--ink);
+    overflow-x: auto;
+    white-space: pre;
+    background: #fcfbf8;
+  }
+  .wire-body .ruler { color: var(--ink-4); font-size: 10.5px; display: block; }
+  .wire-body .h { background: rgba(91,77,138,0.10); padding: 0 1px; }
+  .wire-body .err { background: rgba(155,44,44,0.12); color: var(--bad); padding: 0 2px; }
+  .wire-foot {
+    padding: 12px 22px;
+    border-top: 1px solid var(--line);
+    background: var(--paper);
+    display: flex; justify-content: space-between;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     REGULATIONS
+     ──────────────────────────────────────────────────────────── */
+  .screen-regulations {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: 100%;
+  }
+  .reg-side {
+    border-right: 1px solid var(--line);
+    background: var(--paper);
+    overflow-y: auto;
+    padding: 32px 0;
+  }
+  .reg-search {
+    margin: 0 24px 22px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px;
+    background: var(--surface);
+    border: 1px solid var(--line-2);
+    border-radius: 6px;
+  }
+  .reg-search input {
+    border: none; background: none; outline: none;
+    font: inherit; color: var(--ink); flex: 1;
+    font-size: 13px;
+  }
+  .reg-search .kbd {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+    padding: 2px 5px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+  }
+
+  .tree-group { margin-bottom: 18px; }
+  .tree-h {
+    padding: 0 24px 6px;
+    font-size: 10.5px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+  .tree-node {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 24px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .tree-node:hover { background: var(--accent-soft); color: var(--ink); }
+  .tree-node.section { color: var(--ink); font-weight: 500; }
+  .tree-node.section .chev { color: var(--ink-3); font-size: 10px; }
+  .tree-node.rule { padding-left: 44px; }
+  .tree-node.rule .code { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-3); margin-right: 4px; }
+  .tree-node.rule.active { background: var(--accent-soft); color: var(--ink); border-left: 2px solid var(--accent); padding-left: 42px; }
+  .tree-node.rule.active .code { color: var(--accent); }
+  .tree-node .ct { margin-left: auto; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .tree-node .ct.bad { color: var(--bad); }
+
+  .reg-main {
+    overflow-y: auto;
+    padding: 48px 64px 64px;
+    max-width: 920px;
+  }
+  .reg-crumb {
+    font-size: 12.5px;
+    color: var(--ink-3);
+    margin-bottom: 18px;
+  }
+  .reg-crumb .sep { color: var(--ink-4); margin: 0 6px; }
+  .reg-crumb .now { color: var(--ink); }
+
+  .reg-titlerow {
+    display: flex; align-items: baseline; gap: 16px;
+    margin-bottom: 12px;
+  }
+  .reg-code {
+    font-family: var(--f-mono);
+    font-size: 13px;
+    color: var(--ink-2);
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+  .reg-title {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 36px;
+    letter-spacing: -0.022em;
+    line-height: 1.1;
+  }
+  .reg-title em { font-style: italic; color: var(--accent); }
+  .reg-citation {
+    font-size: 13px;
+    color: var(--ink-2);
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .reg-citation b { color: var(--ink); font-weight: 500; }
+  .reg-citation .ref { font-family: var(--f-mono); font-size: 11.5px; }
+
+  .reg-section { margin-bottom: 36px; }
+  .reg-h {
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .reg-quote {
+    border-left: 2px solid var(--accent);
+    padding: 6px 0 6px 22px;
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+  .reg-plain {
+    color: var(--ink-2);
+    font-size: 14px;
+    line-height: 1.65;
+    max-width: 680px;
+  }
+  .reg-plain mark { background: var(--accent-soft); color: var(--ink); padding: 1px 5px; border-radius: 3px; font-family: var(--f-mono); font-size: 12px; }
+
+  .bridge {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .br-cell { padding: 20px 22px; }
+  .br-cell.left { border-right: 1px solid var(--line); }
+  .br-arrow {
+    display: grid; place-items: center;
+    background: var(--paper);
+    color: var(--ink-3);
+    font-size: 14px;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  .br-key {
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .br-key.k { color: var(--kg); }
+  .br-key.s { color: var(--sf); }
+  .br-val {
+    font-family: var(--f-mono);
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .br-sub {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-top: 6px;
+  }
+
+  /* sql */
+  .sql {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .sql-head {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between;
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .sql-body {
+    padding: 18px 22px;
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--ink);
+    overflow-x: auto;
+    background: #fcfbf8;
+  }
+  .sql-body .kw { color: var(--accent); }
+  .sql-body .str { color: var(--good); }
+  .sql-body .cmt { color: var(--ink-3); font-style: italic; }
+
+  /* live data table */
+  .data-card { margin-top: 32px; }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .data-table th {
+    text-align: left;
+    padding: 12px 22px;
+    color: var(--ink-3);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--line);
+    font-weight: 500;
+    background: var(--paper);
+  }
+  .data-table td {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    color: var(--ink);
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr.fail td { background: rgba(155,44,44,0.04); color: var(--bad); }
+  .data-table tr.fail td:first-child { border-left: 2px solid var(--bad); }
+
+  /* ────────────────────────────────────────────────────────────
+     BULLETINS
+     ──────────────────────────────────────────────────────────── */
+  .screen-bulletins {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    height: 100%;
+  }
+  .bul-side {
+    border-right: 1px solid var(--line);
+    background: var(--paper);
+    overflow-y: auto;
+  }
+  .bul-side-head {
+    padding: 32px 24px 20px;
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; background: var(--paper); z-index: 2;
+  }
+  .bul-side-head .eyebrow { margin-bottom: 8px; }
+  .bul-side-head h3 {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 24px;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+  .bul-side-head em { font-style: italic; color: var(--accent); }
+  .bul-tabs {
+    display: flex; gap: 4px; margin-top: 16px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: -1px;
+  }
+  .bul-tab {
+    padding: 8px 12px;
+    font-size: 12.5px;
+    color: var(--ink-3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .bul-tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+  .bul-tab .ct { color: var(--ink-4); margin-left: 4px; font-size: 11.5px; }
+  .bul-tab.active .ct { color: var(--ink-3); }
+
+  .bul-item {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+  }
+  .bul-item:hover { background: var(--accent-soft); }
+  .bul-item.active { background: var(--accent-soft); border-left-color: var(--accent); }
+  .bul-meta {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .bul-src {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .bul-date { margin-left: auto; }
+  .bul-title {
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+  .bul-snippet {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+
+  .bul-main {
+    overflow-y: auto;
+    padding: 56px 64px 64px;
+    max-width: 920px;
+  }
+  .bul-detail-head { margin-bottom: 36px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .bul-detail-eyebrow {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+  }
+  .bul-detail-title {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 44px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+  .bul-detail-title em { font-style: italic; color: var(--accent); }
+  .bul-detail-sub {
+    margin-top: 16px;
+    color: var(--ink-2);
+    font-size: 14px;
+    display: flex; gap: 16px;
+  }
+  .bul-detail-sub .dot { color: var(--ink-4); }
+  .bul-detail-actions { margin-top: 22px; display: flex; gap: 10px; }
+
+  .impact-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    margin-bottom: 40px;
+    overflow: hidden;
+  }
+  .impact-cell { padding: 24px 28px; }
+  .impact-cell.left { border-right: 1px solid var(--line); }
+  .impact-cell .eyebrow { margin-bottom: 12px; }
+  .impact-num {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: -0.022em;
+  }
+  .impact-num .unit { font-family: var(--f-sans); font-size: 15px; color: var(--ink-3); margin-left: 4px; }
+  .impact-num em { font-style: italic; color: var(--good); }
+  .impact-sub {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+
+  .flip {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    margin-bottom: 36px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .flip-cell { padding: 24px 28px; }
+  .flip-cell.before { border-right: 1px solid var(--line); }
+  .flip-cell .eyebrow { margin-bottom: 14px; }
+  .flip-verdict {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 24px;
+    letter-spacing: -0.015em;
+    margin-bottom: 10px;
+  }
+  .flip-verdict em { font-style: italic; }
+  .flip-cell.before em { color: var(--bad); }
+  .flip-cell.after em { color: var(--good); }
+  .flip-reason {
+    color: var(--ink-2);
+    font-size: 13.5px;
+    line-height: 1.55;
+    margin-bottom: 16px;
+  }
+  .flip-wire {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    padding: 12px 14px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .flip-wire .err { background: rgba(155,44,44,0.12); color: var(--bad); }
+  .flip-wire .ok { background: rgba(47,111,79,0.12); color: var(--good); }
+  .flip-arrow {
+    display: grid; place-items: center;
+    background: var(--paper);
+    color: var(--ink-3);
+    font-size: 22px;
+    font-family: var(--f-serif);
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     AUDIT
+     ──────────────────────────────────────────────────────────── */
+  .screen-audit { padding: 56px 64px 64px; max-width: 1080px; }
+  .audit-head { margin-bottom: 48px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .audit-eyebrow { margin-bottom: 14px; }
+  .audit-title {
+    font-family: var(--f-serif);
+    font-weight: 300;
+    font-size: 44px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+  .audit-title em { font-style: italic; color: var(--accent); }
+  .audit-sub {
+    margin-top: 18px;
+    color: var(--ink-2);
+    font-size: 14.5px;
+    max-width: 620px;
+    line-height: 1.55;
+  }
+
+  .timeline {
+    position: relative;
+    padding-left: 32px;
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 7px; top: 8px; bottom: 8px;
+    width: 1px;
+    background: var(--line-2);
+  }
+  .tl {
+    position: relative;
+    padding: 0 0 36px 0;
+  }
+  .tl::before {
+    content: "";
+    position: absolute;
+    left: -32px; top: 4px;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--line-2);
+  }
+  .tl.done::before { border-color: var(--ink); background: var(--ink); }
+  .tl.now::before { border-color: var(--accent); background: #fff; }
+  .tl-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .tl-action {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+  .tl.now .tl-action { color: var(--accent); }
+  .tl-time {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .tl-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 22px 26px;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 28px;
+  }
+  .tl-actor { display: flex; align-items: center; gap: 12px; }
+  .tl-actor .avatar { width: 32px; height: 32px; font-size: 11.5px; }
+  .tl-actor .meta { line-height: 1.25; }
+  .tl-actor .nm { font-size: 13.5px; font-weight: 500; }
+  .tl-actor .rl { font-size: 11.5px; color: var(--ink-3); }
+  .tl-detail { color: var(--ink-2); font-size: 13px; line-height: 1.6; }
+  .tl-hash {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    color: var(--accent);
+    word-break: break-all;
+  }
+  .tl-foot {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    display: flex; gap: 22px; flex-wrap: wrap;
+  }
+  .tl-foot b { color: var(--ink); font-weight: 500; }
+
+  /* icon */
+  .ic { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  @media (max-width: 1100px) {
+    .screen-dashboard, .filing-main, .reg-main, .bul-main, .screen-audit { padding-left: 40px; padding-right: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── topbar ────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="brand">RegulAI</div>
+    <div class="filing-ctx">
+      <b>Lone Star Mutual</b>
+      <span class="dot">/</span>
+      <span>TSPR · Q4 2025</span>
+      <span class="dot">/</span>
+      <span style="color:var(--ink-3);">due Mar 31, 2026</span>
+    </div>
+    <div class="top-right">
+      <button class="icon-btn" title="Search">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      </button>
+      <button class="icon-btn" title="Notifications">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+      <div class="user">
+        <div class="avatar">DR</div>
+        <div class="user-meta">
+          <div class="user-name">Diana Reyes</div>
+          <div class="user-role">VP, Compliance</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── rail ──────────────────────────────────────── -->
+  <nav class="rail">
+    <div class="rail-group">
+      <div class="rail-link active" data-screen="dashboard">Overview</div>
+      <div class="rail-link" data-screen="filing">Filing<span class="count">3</span></div>
+      <div class="rail-link" data-screen="regulations">Regulations</div>
+      <div class="rail-link" data-screen="bulletins">Bulletins<span class="count">2</span></div>
+      <div class="rail-link" data-screen="audit">Audit log</div>
+    </div>
+    <div class="rail-group">
+      <div class="rail-label">Sources</div>
+      <div class="rail-link">Knowledge graph</div>
+      <div class="rail-link">Snowflake</div>
+      <div class="rail-link">ShareFile</div>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ╔═══════════════════════════════════════════════
+         OVERVIEW
+         ═══════════════════════════════════════════════╗ -->
+    <section class="screen screen-dashboard active" data-screen="dashboard">
+
+      <div class="dash-head">
+        <div class="dash-eyebrow">Q4 2025 · Filing cycle</div>
+        <h1 class="dash-title">
+          Three filings in flight.<br/>
+          <em>Forty-seven days</em> to file.
+        </h1>
+        <p class="dash-sub">
+          All in-progress submissions, the bulletins waiting to be acknowledged,
+          and the records that block submission — from one canon, in one place.
+        </p>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-label">Regulator readiness</div>
+          <div class="kpi-value num">94<span class="unit">/ 100</span></div>
+          <div class="kpi-meta">Sections A · 100% &nbsp;·&nbsp; D · 83%</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Fines avoided, YTD</div>
+          <div class="kpi-value num">$4.2<span class="unit">M</span></div>
+          <div class="kpi-meta">Across 5 statistical plans</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Blockers across filings</div>
+          <div class="kpi-value num">1</div>
+          <div class="kpi-meta">Tenure-discount companion · POL-0011</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-h">
+          <h2>Active filings</h2>
+          <a class="link">View all</a>
+        </div>
+        <div class="filing-list">
+          <div class="filing-row" data-screen="filing">
+            <div class="fr-name">TSPR · Q4 2025<span class="sub">Texas Statistical Plan</span></div>
+            <div>
+              <div class="progress"><div style="width:55%"></div></div>
+              <div class="progress-meta"><b>Resolving blockers</b><span>step 3 of 5</span></div>
+            </div>
+            <div><span class="tag bad">1 blocker</span></div>
+            <div class="fr-due">due in<b>47 days</b></div>
+          </div>
+          <div class="filing-row">
+            <div class="fr-name">MCAS · Q4 2025<span class="sub">Market Conduct Annual Statement</span></div>
+            <div>
+              <div class="progress"><div style="width:80%"></div></div>
+              <div class="progress-meta"><b>Awaiting approval</b><span>step 4 of 5</span></div>
+            </div>
+            <div><span class="tag ok">ready</span></div>
+            <div class="fr-due">due in<b>92 days</b></div>
+          </div>
+          <div class="filing-row">
+            <div class="fr-name">NCCI · Q4 2025<span class="sub">Workers' Comp Statistical Plan</span></div>
+            <div>
+              <div class="progress"><div style="width:15%"></div></div>
+              <div class="progress-meta"><b>Drafting</b><span>step 1 of 5</span></div>
+            </div>
+            <div><span class="tag">in progress</span></div>
+            <div class="fr-due">due in<b>77 days</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div>
+          <div class="section-h">
+            <h2>Recent activity</h2>
+            <a class="link">View all</a>
+          </div>
+          <div class="activity">
+            <div class="act">
+              <div class="act-time">14:32 today</div>
+              <div class="act-msg">
+                <b>POL-0011</b> moved from invalid to valid after bulletin B-2026-Q4-118 was applied.
+                <span class="meta">Validation engine · automatic re-run</span>
+              </div>
+            </div>
+            <div class="act">
+              <div class="act-time">11:08 today</div>
+              <div class="act-msg">
+                Section A validation ran. <b>45 of 47 rules</b> passing.
+                <span class="meta">Last failure: A.34 tenure-companion</span>
+              </div>
+            </div>
+            <div class="act">
+              <div class="act-time">Yesterday</div>
+              <div class="act-msg">
+                TDI bulletin received: <b>"Catastrophe Period Underwriting Latitude"</b>.
+                <span class="meta">Parsed · 2 rules affected · awaiting review</span>
+              </div>
+            </div>
+            <div class="act">
+              <div class="act-time">Feb 18</div>
+              <div class="act-msg">
+                Anomaly detector flagged a premium spike on <b>POL-0006</b>: +47% vs. prior period.
+                <span class="meta">Awaiting actuary review · M. Okonkwo</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-h">
+            <h2>Wire preview</h2>
+            <span class="tag">section A · draft</span>
+          </div>
+          <div class="wire-card">
+            <div class="wire-body"><span class="ruler">         1         2         3         4         5         6         7         8</span>
+<span class="ruler">123456789012345678901234567890123456789012345678901234567890123456789012345678901</span>
+19876A2025Q4198676TXHO375201CA00385000384200000284<span class="h">L</span><span class="err">·</span>198703
+19876A2025Q4198676TXHO375204CA00425000424300000312<span class="h">L</span><span class="h">J</span>199207
+19876A2025Q4198676TXHO377019CA00510000509100000389<span class="h">L</span><span class="h">K</span>198811
+19876A2025Q4198676TXHO376101CB00295000293800000241  200109
+19876A2025Q4198676TXHO378745CA00370000369200000287<span class="h">L</span><span class="h">M</span>197812
+19876A2025Q4198676TXHO379401CC00205000204400000198  201506</div>
+            <div class="wire-foot">
+              <span>6 of 6 records</span>
+              <span style="color:var(--bad);">● POL-0011 missing companion</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ╔═══════════════════════════════════════════════
+         FILING WORKSHOP
+         ═══════════════════════════════════════════════╗ -->
+    <section class="screen screen-filing" data-screen="filing">
+
+      <aside class="filing-side">
+        <div class="fs-back">← Back to overview</div>
+        <div class="fs-h">TSPR sections</div>
+        <div class="fs-item">
+          <div class="fs-letter">A</div>
+          <div><div class="fs-name">Premium exposure<div class="sub">47 rules</div></div></div>
+          <div class="fs-tally">45 / <span class="bad">2</span></div>
+        </div>
+        <div class="fs-item active">
+          <div class="fs-letter">B</div>
+          <div><div class="fs-name">Loss detail<div class="sub">38 rules</div></div></div>
+          <div class="fs-tally">38 / 0</div>
+        </div>
+        <div class="fs-item">
+          <div class="fs-letter">C</div>
+          <div><div class="fs-name">Cancellations<div class="sub">22 rules</div></div></div>
+          <div class="fs-tally">22 / 0</div>
+        </div>
+        <div class="fs-item">
+          <div class="fs-letter">D</div>
+          <div><div class="fs-name">Catastrophe loss<div class="sub">18 rules</div></div></div>
+          <div class="fs-tally">15 / <span class="bad">3</span></div>
+        </div>
+        <div class="fs-item">
+          <div class="fs-letter">E</div>
+          <div><div class="fs-name">Reinsurance<div class="sub">14 rules</div></div></div>
+          <div class="fs-tally">14 / 0</div>
+        </div>
+        <div class="fs-item">
+          <div class="fs-letter">F</div>
+          <div><div class="fs-name">Expenses<div class="sub">12 rules</div></div></div>
+          <div class="fs-tally">12 / 0</div>
+        </div>
+        <div class="fs-item">
+          <div class="fs-letter">G</div>
+          <div><div class="fs-name">Aggregates<div class="sub">8 rules</div></div></div>
+          <div class="fs-tally">8 / 0</div>
+        </div>
+      </aside>
+
+      <div class="filing-main">
+        <div class="fm-head">
+          <div class="fm-eyebrow eyebrow">TSPR · Q4 2025 · Section A</div>
+          <h1 class="fm-title">Premium <em>exposure</em></h1>
+          <div class="fm-meta">
+            <span>47 rules</span>
+            <span class="dot">·</span>
+            <span>45 passing</span>
+            <span class="dot">·</span>
+            <span style="color:var(--bad);">2 failing</span>
+            <span class="dot">·</span>
+            <span>last run 14:32</span>
+          </div>
+        </div>
+
+        <div class="pipeline">
+          <div class="pp-step done">
+            <div class="pp-num"><span>1</span></div>
+            <div class="pp-info"><div class="pp-name">Drafted</div><div class="pp-when">Feb 8</div></div>
+          </div>
+          <div class="pp-step done">
+            <div class="pp-num"><span>2</span></div>
+            <div class="pp-info"><div class="pp-name">Validated</div><div class="pp-when">today</div></div>
+          </div>
+          <div class="pp-step active">
+            <div class="pp-num">3</div>
+            <div class="pp-info"><div class="pp-name">Resolving</div><div class="pp-when">1 open</div></div>
+          </div>
+          <div class="pp-step">
+            <div class="pp-num">4</div>
+            <div class="pp-info"><div class="pp-name">Approval</div><div class="pp-when">2 signers</div></div>
+          </div>
+          <div class="pp-step">
+            <div class="pp-num">5</div>
+            <div class="pp-info"><div class="pp-name">Submit</div><div class="pp-when">by Mar 31</div></div>
+          </div>
+        </div>
+
+        <div class="blocker-card">
+          <div class="eyebrow">Blocking submission</div>
+          <h3>POL-0011 is missing a tenure-discount companion code</h3>
+          <p>
+            Rule A.34 requires that when code <code>L</code> appears in column 78, a companion
+            from the set <code>{J, K, M}</code> must appear in column 79 within five characters.
+            POL-0011 has the L but no companion — so the discount can't be tied to a tier.
+          </p>
+          <div class="actions">
+            <button class="btn ghost">Inspect record</button>
+            <button class="btn">Apply bulletin B-2026-Q4-118</button>
+          </div>
+        </div>
+
+        <div class="rules">
+          <div class="rules-row head">
+            <div>Rule</div><div>Name</div><div>Citation</div><div>Pass / Fail</div>
+          </div>
+          <div class="rules-row">
+            <div class="rule-id">A.22</div>
+            <div class="rule-name">NAIC code validation<span class="sub">5-digit registered carrier</span></div>
+            <div class="rule-cite">28 TAC §5.9970(a)</div>
+            <div class="rule-tally">6 / 0</div>
+          </div>
+          <div class="rules-row">
+            <div class="rule-id">A.33</div>
+            <div class="rule-name">Roof-coverage type code<span class="sub">1-char from {A,B,C,D,E}</span></div>
+            <div class="rule-cite">28 TAC §5.9970(c)(1)</div>
+            <div class="rule-tally">6 / 0</div>
+          </div>
+          <div class="rules-row fail">
+            <div class="rule-id">A.34</div>
+            <div class="rule-name">Tenure-discount companion<span class="sub">L requires {J,K,M} within 5 chars</span></div>
+            <div class="rule-cite">28 TAC §5.9970(c)(2)</div>
+            <div class="rule-tally">5 / <span class="bad">1</span></div>
+          </div>
+          <div class="rules-row">
+            <div class="rule-id">A.35</div>
+            <div class="rule-name">Cause-of-loss code<span class="sub">2-char from REFERENCE table</span></div>
+            <div class="rule-cite">28 TAC §5.9970(c)(3)</div>
+            <div class="rule-tally">6 / 0</div>
+          </div>
+          <div class="rules-row">
+            <div class="rule-id">A.36</div>
+            <div class="rule-name">Form code<span class="sub">HO3, HO5, HO6, DP1, DP3</span></div>
+            <div class="rule-cite">28 TAC §5.9970(c)(4)</div>
+            <div class="rule-tally">6 / 0</div>
+          </div>
+        </div>
+
+        <div class="wire-card">
+          <div class="card-head">
+            <div class="card-title">Wire preview <span class="sub">POL-0011 · columns 74–82</span></div>
+            <span class="tag bad">A.34 fail</span>
+          </div>
+          <div class="wire-body"><span class="ruler">       74        82
+       │         │</span>
+…87CA00385<span class="h">L</span><span class="err">·</span>198703…
+       col 78─┘└─col 79 companion missing</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ╔═══════════════════════════════════════════════
+         REGULATIONS
+         ═══════════════════════════════════════════════╗ -->
+    <section class="screen screen-regulations" data-screen="regulations">
+
+      <aside class="reg-side">
+        <div class="reg-search">
+          <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input placeholder="Search rules, citations…" />
+          <span class="kbd">⌘K</span>
+        </div>
+
+        <div class="tree-group">
+          <div class="tree-h">Texas statistical plan · 2026</div>
+          <div class="tree-node section"><span class="chev">▾</span> Section A · Premium<span class="ct">47</span></div>
+          <div class="tree-node rule"><span class="code">A.22</span> NAIC code validation<span class="ct">0</span></div>
+          <div class="tree-node rule"><span class="code">A.33</span> Roof-coverage type<span class="ct">0</span></div>
+          <div class="tree-node rule active"><span class="code">A.34</span> Tenure-discount companion<span class="ct bad">1</span></div>
+          <div class="tree-node rule"><span class="code">A.35</span> Cause of loss code<span class="ct">0</span></div>
+          <div class="tree-node rule"><span class="code">A.36</span> Form code<span class="ct">0</span></div>
+          <div class="tree-node section" style="color:var(--ink-2);"><span class="chev">▸</span> Section B · Loss<span class="ct">38</span></div>
+          <div class="tree-node section" style="color:var(--ink-2);"><span class="chev">▸</span> Section C · Cancellations<span class="ct">22</span></div>
+          <div class="tree-node section"><span class="chev">▾</span> Section D · CAT loss<span class="ct bad">3</span></div>
+          <div class="tree-node rule"><span class="code">D.12</span> CAT code verified<span class="ct bad">3</span></div>
+          <div class="tree-node rule"><span class="code">D.13</span> Wind/hail attribution<span class="ct">0</span></div>
+          <div class="tree-node section" style="color:var(--ink-2);"><span class="chev">▸</span> Section 29 · totals<span class="ct">8</span></div>
+        </div>
+      </aside>
+
+      <div class="reg-main">
+        <div class="reg-crumb">
+          Texas Statistical Plan <span class="sep">›</span>
+          Section A <span class="sep">›</span>
+          <span class="now">A.34 Tenure-Discount Companion</span>
+        </div>
+
+        <div class="reg-titlerow">
+          <span class="reg-code">A.34</span>
+          <h1 class="reg-title">Tenure-discount <em>companion</em></h1>
+        </div>
+        <div class="reg-citation">
+          <b>Authority:</b> <span class="ref">28 TAC §5.9970(c)(2)</span>
+          &nbsp;·&nbsp;
+          <b>Bulletin:</b> <span class="ref">B-2026-Q3-094</span>
+          &nbsp;·&nbsp;
+          <b>Effective:</b> <span class="ref">Jan 1, 2026</span>
+        </div>
+
+        <div class="reg-section">
+          <div class="reg-h">Regulator's text</div>
+          <div class="reg-quote">
+            "When code <strong>L</strong> appears in column 78 of the premium exposure record,
+            the carrier shall place a companion code from the set <strong>{J, K, M}</strong>
+            in column 79, within five characters of the L, identifying the qualifying tenure tier."
+          </div>
+          <div class="reg-plain">
+            In plain language: <mark>L</mark> on its own isn't enough. It must always pair with
+            <mark>J</mark> (3–5 yr), <mark>K</mark> (6–9 yr), or <mark>M</mark> (10+ yr). A missing
+            companion means the regulator can't tell which tier of discount was applied — the
+            filing fails this rule and the carrier risks a per-record penalty.
+          </div>
+        </div>
+
+        <div class="reg-section">
+          <div class="reg-h">Deploys to</div>
+          <div class="bridge">
+            <div class="br-cell left">
+              <div class="br-key k">Knowledge graph</div>
+              <div class="br-val">(:Rule { id: "A.34" })</div>
+              <div class="br-sub">linked to 4 codes · 1 citation · 2 bulletins</div>
+            </div>
+            <div class="br-arrow">→</div>
+            <div class="br-cell">
+              <div class="br-key s">Snowflake</div>
+              <div class="br-val">SILVER.PREMIUM</div>
+              <div class="br-sub">column tenure_companion · 6 rows</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reg-section">
+          <div class="reg-h">Executable check</div>
+          <div class="sql">
+            <div class="sql-head">
+              <span>generated from KG · runs against SILVER.PREMIUM</span>
+              <button class="btn" style="font-size:11.5px;padding:4px 10px;">Run</button>
+            </div>
+            <div class="sql-body"><span class="cmt">-- Rule A.34 companion check</span>
+<span class="kw">select</span> policy_id, tenure_discount, tenure_companion
+<span class="kw">from</span>   silver.premium
+<span class="kw">where</span>  tenure_discount = <span class="str">'L'</span>
+  <span class="kw">and</span>  (tenure_companion <span class="kw">is null</span>
+        <span class="kw">or</span> tenure_companion <span class="kw">not in</span> (<span class="str">'J'</span>, <span class="str">'K'</span>, <span class="str">'M'</span>));</div>
+          </div>
+        </div>
+
+        <div class="reg-section data-card">
+          <div class="reg-h">Live records · SILVER.PREMIUM</div>
+          <div class="card" style="overflow:hidden;">
+            <table class="data-table">
+              <thead>
+                <tr><th>Policy</th><th>Discount</th><th>Companion</th><th>Period</th></tr>
+              </thead>
+              <tbody>
+                <tr class="fail">
+                  <td>POL-0011</td><td>L</td><td>—</td><td>2025-Q4</td>
+                </tr>
+                <tr><td>POL-0006</td><td>L</td><td>J</td><td>2025-Q4</td></tr>
+                <tr><td>POL-0008</td><td>L</td><td>K</td><td>2025-Q4</td></tr>
+                <tr><td>POL-0009</td><td>L</td><td>M</td><td>2025-Q4</td></tr>
+                <tr><td>POL-0007</td><td>—</td><td>—</td><td>2025-Q4</td></tr>
+                <tr><td>POL-0010</td><td>—</td><td>—</td><td>2025-Q4</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ╔═══════════════════════════════════════════════
+         BULLETINS
+         ═══════════════════════════════════════════════╗ -->
+    <section class="screen screen-bulletins" data-screen="bulletins">
+
+      <aside class="bul-side">
+        <div class="bul-side-head">
+          <div class="eyebrow">Bulletin inbox</div>
+          <h3><em>2 new</em> awaiting acknowledgment</h3>
+          <div class="bul-tabs">
+            <div class="bul-tab active">All<span class="ct">14</span></div>
+            <div class="bul-tab">TDI<span class="ct">8</span></div>
+            <div class="bul-tab">NAIC<span class="ct">4</span></div>
+            <div class="bul-tab">Internal<span class="ct">2</span></div>
+          </div>
+        </div>
+
+        <div class="bul-item active">
+          <div class="bul-meta">
+            <span class="bul-src">TDI</span>
+            <span class="tag warn" style="font-size:10.5px;padding:2px 7px;">new</span>
+            <span class="bul-date">2 weeks ago</span>
+          </div>
+          <div class="bul-title">Catastrophe-period underwriting latitude</div>
+          <div class="bul-snippet">
+            Permits credit-score-only declinations during named CAT periods.
+            Affects rule A.34 companion logic.
+          </div>
+        </div>
+
+        <div class="bul-item">
+          <div class="bul-meta">
+            <span class="bul-src">NAIC</span>
+            <span class="tag warn" style="font-size:10.5px;padding:2px 7px;">new</span>
+            <span class="bul-date">3 weeks ago</span>
+          </div>
+          <div class="bul-title">MCAS Q4 — updated cause-of-loss taxonomy</div>
+          <div class="bul-snippet">
+            Adds 4 new cause-of-loss codes (CL-58 through CL-61) and deprecates CL-23.
+          </div>
+        </div>
+
+        <div class="bul-item">
+          <div class="bul-meta">
+            <span class="bul-src">TDI</span>
+            <span class="bul-date">2 months ago</span>
+          </div>
+          <div class="bul-title">Roof coverage clarification — composition vs. metal</div>
+          <div class="bul-snippet">
+            Reclassifies steel-coated composition shingles under code B rather than A.
+          </div>
+        </div>
+
+        <div class="bul-item">
+          <div class="bul-meta">
+            <span class="bul-src">NAIC</span>
+            <span class="bul-date">3 months ago</span>
+          </div>
+          <div class="bul-title">Schedule F — new reinsurer disclosure block</div>
+          <div class="bul-snippet">
+            Adds reinsurer authorization status to Schedule F header. L&amp;A only.
+          </div>
+        </div>
+
+        <div class="bul-item">
+          <div class="bul-meta">
+            <span class="bul-src">Internal</span>
+            <span class="bul-date">4 months ago</span>
+          </div>
+          <div class="bul-title">Wind/hail attribution methodology v3</div>
+          <div class="bul-snippet">
+            Adopts NWS storm-cell radius for CAT attribution. Replaces 25-mi rule.
+          </div>
+        </div>
+      </aside>
+
+      <div class="bul-main">
+        <div class="bul-detail-head">
+          <div class="bul-detail-eyebrow">Texas Department of Insurance · B-2026-Q4-118</div>
+          <h1 class="bul-detail-title">Catastrophe-period<br/>underwriting <em>latitude</em></h1>
+          <div class="bul-detail-sub">
+            <span>Received Feb 21, 2026</span>
+            <span class="dot">·</span>
+            <span>Effective Mar 1, 2026</span>
+            <span class="dot">·</span>
+            <span>28 TAC §5.9970(c)</span>
+          </div>
+          <div class="bul-detail-actions">
+            <button class="btn ghost">Open PDF</button>
+            <button class="btn">Simulate impact</button>
+            <button class="btn primary">Apply to canon</button>
+          </div>
+        </div>
+
+        <div class="impact-row">
+          <div class="impact-cell left">
+            <div class="eyebrow">Records re-evaluated</div>
+            <div class="impact-num num">6 <span class="unit">policies</span></div>
+            <div class="impact-sub">2 changes · 4 unaffected</div>
+          </div>
+          <div class="impact-cell">
+            <div class="eyebrow">Net validation</div>
+            <div class="impact-num"><em>+1 valid</em></div>
+            <div class="impact-sub">POL-0011 moves from invalid → valid</div>
+          </div>
+        </div>
+
+        <div class="flip">
+          <div class="flip-cell before">
+            <div class="eyebrow">Today · canon v1</div>
+            <div class="flip-verdict">Verdict <em>invalid</em></div>
+            <div class="flip-reason">
+              POL-0011 has <code>tenure_discount = L</code> but no companion in column 79.
+              Under v1, the companion must be in {J, K, M}.
+            </div>
+            <div class="flip-wire">…87CA00385<span class="err">L·</span>198703…</div>
+          </div>
+          <div class="flip-arrow">→</div>
+          <div class="flip-cell after">
+            <div class="eyebrow">After bulletin · canon v2</div>
+            <div class="flip-verdict">Verdict <em>valid</em></div>
+            <div class="flip-reason">
+              The CAT-period exception applies. Q4 2025 was declared a catastrophe period
+              by TDI on Nov 4. Code <code>N</code> is auto-assigned. A.34 v2 passes.
+            </div>
+            <div class="flip-wire">…87CA00385<span class="ok">LN</span>198703…</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="reg-h">What will change in the canon</div>
+          <div class="card" style="padding:22px 26px;">
+            <div style="font-family:var(--f-mono);font-size:12.5px;line-height:1.85;color:var(--ink-2);">
+              <div><span style="color:var(--accent);">create</span> <span style="color:var(--ink);">(:Bulletin { id: "B-2026-Q4-118", source: "TDI" })</span></div>
+              <div><span style="color:var(--accent);">set</span>    <span style="color:var(--ink);">r1.status = 'superseded', r1.effective_to = '2026-02-29'</span></div>
+              <div><span style="color:var(--accent);">create</span> <span style="color:var(--ink);">(rv2:Rule { id: "A.34", version: 2 })</span></div>
+              <div><span style="color:var(--accent);">create</span> <span style="color:var(--ink);">(rv2)-[:CITES]→(:Bulletin { id: "B-2026-Q4-118" })</span></div>
+            </div>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);color:var(--ink-3);font-size:12.5px;">
+              Edition advances · current 0x7f4a2c91 → next 0x83f1d7e0
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ╔═══════════════════════════════════════════════
+         AUDIT
+         ═══════════════════════════════════════════════╗ -->
+    <section class="screen screen-audit" data-screen="audit">
+
+      <div class="audit-head">
+        <div class="audit-eyebrow eyebrow">TSPR · Q4 2025</div>
+        <h1 class="audit-title">Every byte<br/>has a <em>trail</em>.</h1>
+        <p class="audit-sub">
+          Eight events, four signers, one regulator acknowledgment.
+          SHA-256 hashes chain forward; the regulator's receipt closes the chain.
+        </p>
+      </div>
+
+      <div class="timeline">
+
+        <div class="tl done">
+          <div class="tl-head">
+            <span class="tl-action">Regulator acknowledgment</span>
+            <span class="tl-time">Feb 22 · 09:14 CST</span>
+          </div>
+          <div class="tl-card">
+            <div class="tl-actor">
+              <div class="avatar" style="background:#9a8746;">TI</div>
+              <div class="meta">
+                <div class="nm">TICO ShareFile</div>
+                <div class="rl">Regulator system</div>
+              </div>
+            </div>
+            <div class="tl-detail">
+              Filing accepted into the Q4 2025 cycle. Acknowledgment hash
+              <span class="tl-hash">ack:c9d1f2…b48e</span> received via the ShareFile webhook.
+              <div class="tl-foot">
+                <span>filing <b>TSPR_19876_25Q4.txt</b></span>
+                <span style="color:var(--good);">● accepted</span>
+                <span>warnings <b>0</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl done">
+          <div class="tl-head">
+            <span class="tl-action">Submission sealed</span>
+            <span class="tl-time">Feb 22 · 08:58 CST</span>
+          </div>
+          <div class="tl-card">
+            <div class="tl-actor">
+              <div class="avatar">DR</div>
+              <div class="meta">
+                <div class="nm">Diana Reyes</div>
+                <div class="rl">VP, Compliance · officer</div>
+              </div>
+            </div>
+            <div class="tl-detail">
+              Final fixed-width ASCII packaged and pushed to TICO ShareFile.
+              File hash <span class="tl-hash">sha256:a4e2f8b1c7d9e3a6f5b8c1d4e7a2b9c6f3e1d8a5b2c9e6f3a1b4c7d0e3f6a9b2</span>
+              sealed with carrier private key.
+              <div class="tl-foot">
+                <span>bytes <b>4,212</b></span>
+                <span>records <b>47</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl done">
+          <div class="tl-head">
+            <span class="tl-action">Officer sign-off</span>
+            <span class="tl-time">Feb 21 · 16:42 CST</span>
+          </div>
+          <div class="tl-card">
+            <div class="tl-actor">
+              <div class="avatar">DR</div>
+              <div class="meta">
+                <div class="nm">Diana Reyes</div>
+                <div class="rl">VP, Compliance · officer</div>
+              </div>
+            </div>
+            <div class="tl-detail">
+              Reviewed Section A–G summaries and the actuary's anomaly notes. All blockers
+              cleared. Signed against canon edition <span class="tl-hash">0x83f1d7e0</span>.
+              <div class="tl-foot">
+                <span>signature <span class="tl-hash">sig:7b3a…e92c</span></span>
+                <span style="color:var(--good);">● no exceptions</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl done">
+          <div class="tl-head">
+            <span class="tl-action">Actuary sign-off</span>
+            <span class="tl-time">Feb 21 · 14:08 CST</span>
+          </div>
+          <div class="tl-card">
+            <div class="tl-actor">
+              <div class="avatar">MO</div>
+              <div class="meta">
+                <div class="nm">Marcus Okonkwo</div>
+                <div class="rl">Sr. Actuary</div>
+              </div>
+            </div>
+            <div class="tl-detail">
+              Reviewed 7 anomaly flags. POL-0011 flip from invalid → valid verified
+              against the text of bulletin B-2026-Q4-118.
+              <div class="tl-foot">
+                <span>anomalies <b>3 ack · 4 dismiss</b></span>
+                <span>note <b>q4-actuary-memo.md</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl now">
+          <div class="tl-head">
+            <span class="tl-action">Bulletin applied</span>
+            <span class="tl-time">Feb 21 · 10:14 CST</span>
+          </div>
+          <div class="tl-card">
+            <div class="tl-actor">
+              <div class="avatar">DR</div>
+              <div class="meta">
+                <div class="nm">Diana Reyes</div>
+                <div class="rl">VP, Compliance</div>
+              </div>
+            </div>
+            <div class="tl-detail">
+              Applied bulletin B-2026-Q4-118 to canon. Rule A.34 v1 superseded by v2.
+              Reference table REASON_CODES updated to include code N.
+              Canon advanced <span class="tl-hash">0x7f4a2c91 → 0x83f1d7e0</span>.
+              <div class="tl-foot">
+                <span>rules updated <b>2</b></span>
+                <span>records re-evaluated <b>6</b></span>
+                <span style="color:var(--good);">● POL-0011 flipped valid</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl">
+          <div class="tl-head">
+            <span class="tl-action">Validation · failed</span>
+            <span class="tl-time">Feb 20 · 14:32 CST</span>
+          </div>
+          <div class="tl-card">
+            <div class="tl-actor">
+              <div class="avatar" style="background:#5f7d7d;">SY</div>
+              <div class="meta">
+                <div class="nm">Validator</div>
+                <div class="rl">automated · run #4127</div>
+              </div>
+            </div>
+            <div class="tl-detail">
+              First pass against draft. 217 of 219 rules pass. A.34 blocked POL-0011;
+              D.12 flagged 3 unverified CAT codes. Edition <span class="tl-hash">0x7f4a2c91</span>.
+              <div class="tl-foot">
+                <span>rules <b>219</b></span>
+                <span style="color:var(--bad);">fail <b>2</b></span>
+                <span>blockers <b>1</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl">
+          <div class="tl-head">
+            <span class="tl-action">Draft created</span>
+            <span class="tl-time">Feb 8 · 09:21 CST</span>
+          </div>
+          <div class="tl-card">
+            <div class="tl-actor">
+              <div class="avatar">MO</div>
+              <div class="meta">
+                <div class="nm">Marcus Okonkwo</div>
+                <div class="rl">Sr. Actuary</div>
+              </div>
+            </div>
+            <div class="tl-detail">
+              Drafted TSPR-25Q4 from the Q4 2025 close. Pulled Bronze → Silver → Gold
+              pipeline against canon edition <span class="tl-hash">0x7e1a3c91</span>.
+              <div class="tl-foot">
+                <span>policies <b>6</b></span>
+                <span>claims <b>4</b></span>
+                <span>cancellations <b>3</b></span>
+                <span>premium <b>$1.93M</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  const links = document.querySelectorAll('.rail-link[data-screen]');
+  const screens = document.querySelectorAll('.screen');
+
+  function setScreen(target) {
+    document.querySelectorAll('.rail-link').forEach(l => l.classList.remove('active'));
+    const link = document.querySelector(`.rail-link[data-screen="${target}"]`);
+    if (link) link.classList.add('active');
+    screens.forEach(s => s.classList.remove('active'));
+    const scr = document.querySelector(`.screen[data-screen="${target}"]`);
+    if (scr) { scr.classList.add('active'); scr.scrollTop = 0; }
+  }
+
+  links.forEach(l => l.addEventListener('click', () => setScreen(l.dataset.screen)));
+
+  // dashboard filing row → filing
+  document.querySelectorAll('.filing-row[data-screen]').forEach(r =>
+    r.addEventListener('click', () => setScreen('filing'))
+  );
+
+  // back link
+  document.querySelectorAll('.fs-back').forEach(b =>
+    b.addEventListener('click', () => setScreen('dashboard'))
+  );
+
+  // cosmetic: tabs / bulletin items / tree rule selection
+  document.querySelectorAll('.bul-tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.bul-tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+  }));
+  document.querySelectorAll('.bul-item').forEach(it => it.addEventListener('click', () => {
+    document.querySelectorAll('.bul-item').forEach(x => x.classList.remove('active'));
+    it.classList.add('active');
+  }));
+  document.querySelectorAll('.tree-node.rule').forEach(n => n.addEventListener('click', () => {
+    document.querySelectorAll('.tree-node.rule').forEach(x => x.classList.remove('active'));
+    n.classList.add('active');
+  }));
+  document.querySelectorAll('.fs-item').forEach(n => n.addEventListener('click', () => {
+    document.querySelectorAll('.fs-item').forEach(x => x.classList.remove('active'));
+    n.classList.add('active');
+  }));
+</script>
+
+</body>
+</html>

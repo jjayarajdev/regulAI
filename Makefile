@@ -133,5 +133,115 @@ test:
 e2e:
 	uv run python -m scripts.regression_test
 
+# ── RHS (Snowflake) ─────────────────────────────────────────────────────
+snowflake-test:
+	@snow connection test --connection regulai
+
+snowflake-setup:
+	@snow sql -c regulai -q "\
+		CREATE DATABASE IF NOT EXISTS INSURANCE_REGULATORY; \
+		USE DATABASE INSURANCE_REGULATORY; \
+		CREATE SCHEMA IF NOT EXISTS BRONZE; \
+		CREATE SCHEMA IF NOT EXISTS SILVER; \
+		CREATE SCHEMA IF NOT EXISTS GOLD; \
+		CREATE SCHEMA IF NOT EXISTS REFERENCE; \
+		CREATE SCHEMA IF NOT EXISTS STAGING;"
+
+build-reference:
+	uv run python -m scripts.build_reference_reason_codes
+
+load-reference: build-reference
+	@snow sql -c regulai -f materialized/reference/tspr_reason_code_map.sql
+
+build-reference-all: build-reference
+	uv run python -m scripts.build_all_reference_tables
+
+load-reference-all: build-reference-all
+	@for f in materialized/reference/*.sql; do \
+	  echo "→ Loading $$f"; \
+	  snow sql -c regulai --enable-templating standard -f "$$f" > /dev/null && echo "  ✓ done" || echo "  ✗ failed"; \
+	done
+
+migrate-validation-rules:
+	uv run python -m scripts.migrate_kg_validation_rules
+
+build-validation-rules: migrate-validation-rules
+	uv run python -m scripts.build_validation_rules_reference
+
+load-validation-rules: build-validation-rules
+	@snow sql -c regulai --enable-templating standard -f materialized/reference/tspr_validation_rules.sql
+
+run-silver:
+	uv run python -m scripts.run_silver
+
+run-gold:
+	uv run python -m scripts.run_gold
+
+run-pipeline: load-bronze load-reference-all load-validation-rules run-silver run-gold
+	@echo ""
+	@echo "Full pipeline complete: Bronze → Silver → Gold."
+
+reference: load-reference
+	@echo ""
+	@echo "Verification — querying Snowflake:"
+	@snow sql -c regulai -q "SELECT tspr_reason_code, description, must_appear_alone, credit_score_companion_required FROM INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP ORDER BY tspr_reason_code;"
+
+bronze-ddl:
+	@echo "Loading IBM Bronze DDLs (PolicyCenter + ClaimCenter)..."
+	@snow sql -c regulai --enable-templating standard -f "references/files -Snowflake/01_bronze_policycenter.sql" 2>&1 | tail -3
+	@snow sql -c regulai --enable-templating standard -f "references/files -Snowflake/02_bronze_claimcenter.sql" 2>&1 | tail -3
+
+build-bronze:
+	uv run python -m scripts.generate_bronze_data
+
+load-bronze: build-bronze
+	uv run python -m scripts.load_bronze_to_snowflake
+
+## Bulletin demo flow — show the flip
+demo-bulletin-baseline:
+	@echo "═══ BASELINE (no bulletin) ═══"
+	@echo ""
+	@$(MAKE) -s demo-join
+
+demo-bulletin-apply:
+	@echo "═══ APPLYING BULLETIN B-2026-Q4-118 ═══"
+	@echo "  → Materializing bulletin into KG..."
+	@uv run python -m scripts.apply_credit_score_bulletin 2>&1 | grep -v "Received notification" | tail -10
+	@echo ""
+	@echo "  → Bumping versions (supersede old Code L)..."
+	@uv run python -m scripts.apply_bulletin --bulletin "Credit Score Declination Reporting Override" 2>&1 | tail -5
+	@echo ""
+	@echo "  → Regenerating reference table from KG..."
+	@$(MAKE) -s load-reference > /dev/null
+	@echo "  ✓ Snowflake reference table updated"
+	@echo ""
+	@echo "═══ AFTER BULLETIN — POL-0011 should now be VALID ═══"
+	@$(MAKE) -s demo-join
+
+demo-bulletin-reset:
+	@echo "═══ RESETTING bulletin (back to baseline) ═══"
+	@uv run python -m scripts.reset_credit_score_bulletin 2>&1 | grep -v "Received notification"
+	@echo ""
+	@echo "  → Regenerating reference table from KG..."
+	@$(MAKE) -s load-reference > /dev/null
+	@echo '  ✓ Reset complete. Run "make demo-bulletin-baseline" to see baseline.'
+
+demo-join:
+	@snow sql -c regulai -q "USE DATABASE INSURANCE_REGULATORY; \
+		SELECT \
+			p.policynumber AS policy, \
+			j.subtype AS action, \
+			COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason) AS reason_code, \
+			r.description AS regulation_describes, \
+			CASE \
+				WHEN r.must_appear_alone AND LENGTH(COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason)) > 1 THEN 'INVALID — must_appear_alone' \
+				WHEN r.credit_score_companion_required AND LENGTH(COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason)) = 1 THEN 'INVALID — credit_score needs companion' \
+				ELSE 'VALID' \
+			END AS validation_status \
+		FROM BRONZE.GW_PC_JOB j \
+		JOIN BRONZE.GW_PC_POLICY p ON p.id = j.policy_id \
+		LEFT JOIN REFERENCE.TSPR_REASON_CODE_MAP r ON r.tspr_reason_code = SUBSTR(COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason), 1, 1) \
+		ORDER BY p.policynumber;"
+
 clean:
 	docker compose down

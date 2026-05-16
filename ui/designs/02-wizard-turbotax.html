@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Design 02 · TurboTax for Rule Guidance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper:    #fbf9f4;
+    --paper-2:  #f5f1e8;
+    --surface:  #ffffff;
+    --line:     #e9e3d4;
+    --line-2:   #d4ccb6;
+    --ink:      #1a1a1a;
+    --ink-2:    #4a4a4a;
+    --ink-3:    #7a7672;
+    --ink-4:    #a8a39b;
+    --teal:     #0a7a6e;
+    --teal-2:   #075e54;
+    --teal-bg:  #e0f1ee;
+    --amber:    #b87333;
+    --good:     #1a7f3d;
+    --good-bg:  #e3f1e7;
+    --warn:     #a85d12;
+    --warn-bg:  #fdf0d8;
+    --bad:      #a83232;
+    --bad-bg:   #fce5e5;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", -apple-system, system-ui, sans-serif;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+  .serif { font-family: "Fraunces", Georgia, serif; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+
+  /* Header */
+  .top {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 32px;
+    display: flex; align-items: center;
+    gap: 24px;
+  }
+  .back {
+    color: var(--ink-3); font-size: 13px;
+    border: 1px solid var(--line-2);
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-family: "JetBrains Mono", monospace;
+  }
+  .back:hover { color: var(--ink); border-color: var(--ink-3); }
+  .brand {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 22px;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--teal);
+    letter-spacing: -0.015em;
+  }
+  .top .ctx {
+    flex: 1;
+    color: var(--ink-3); font-size: 13px;
+  }
+  .top .ctx b { color: var(--ink); font-weight: 500; }
+  .top .save {
+    color: var(--ink-3); font-size: 12.5px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .top .save::before { content: '●'; color: var(--good); font-size: 9px; }
+
+  /* Progress stepper */
+  .stepper {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 18px 32px;
+  }
+  .stepper-bar {
+    max-width: 920px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+  }
+  .step {
+    text-align: center;
+    position: relative;
+  }
+  .step-pill {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    height: 32px; width: 100%;
+    background: var(--paper-2);
+    color: var(--ink-3);
+    border-radius: 16px;
+    font-size: 13px;
+    transition: all .2s ease;
+  }
+  .step-pill .n {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1.5px solid var(--line-2);
+    display: grid; place-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-3);
+  }
+  .step.done .step-pill { background: var(--teal-bg); color: var(--teal-2); }
+  .step.done .step-pill .n { background: var(--teal); border-color: var(--teal); color: #fff; }
+  .step.done .step-pill .n::before { content: '✓'; }
+  .step.done .step-pill .n .num { display: none; }
+  .step.active .step-pill {
+    background: var(--teal); color: #fff;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(10,122,110,0.18);
+  }
+  .step.active .step-pill .n { background: #fff; border-color: #fff; color: var(--teal); }
+  .step-lbl {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .step.active .step-lbl { color: var(--ink); font-weight: 500; }
+
+  /* Main body */
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 56px 32px 80px;
+  }
+  .eyebrow {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--teal);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  h1.q {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 44px;
+    line-height: 1.1;
+    letter-spacing: -0.022em;
+    font-weight: 300;
+    margin-bottom: 12px;
+    max-width: 760px;
+  }
+  h1.q em { font-style: italic; color: var(--teal); }
+  .helper {
+    font-size: 16px;
+    color: var(--ink-2);
+    max-width: 660px;
+    margin-bottom: 36px;
+  }
+
+  /* Choice cards */
+  .choices {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+  .choice {
+    background: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 22px;
+    cursor: pointer;
+    transition: all .15s ease;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .choice:hover { border-color: var(--ink-3); transform: translateY(-2px); }
+  .choice.selected {
+    border-color: var(--teal);
+    background: var(--teal-bg);
+  }
+  .choice.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 24px; height: 24px;
+    background: var(--teal);
+    color: #fff;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .choice-icon {
+    width: 44px; height: 44px;
+    background: var(--paper-2);
+    border-radius: 10px;
+    display: grid; place-items: center;
+    margin-bottom: 16px;
+    font-size: 20px;
+  }
+  .choice.selected .choice-icon { background: #fff; }
+  .choice-title {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 21px;
+    font-weight: 400;
+    letter-spacing: -0.012em;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .choice-meta {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-family: "JetBrains Mono", monospace;
+    margin-bottom: 12px;
+  }
+  .choice-desc {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .choice-stats {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    display: flex; gap: 14px;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .choice-stats b { color: var(--ink); font-weight: 500; font-family: "JetBrains Mono", monospace; }
+
+  /* Why card */
+  .why {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--teal);
+    border-radius: 8px;
+    padding: 22px 26px;
+    margin-bottom: 36px;
+  }
+  .why-h {
+    font-size: 12.5px;
+    color: var(--teal);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .why-h::before { content: 'ⓘ'; font-size: 16px; }
+  .why-body {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .why-body strong { color: var(--ink); font-weight: 500; }
+  .why-body code {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12.5px;
+    background: var(--paper-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--teal-2);
+  }
+  .why-cite {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-size: 12.5px;
+    color: var(--ink-3);
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  /* Whatchanged */
+  .changed {
+    background: var(--warn-bg);
+    border: 1px solid #f0d9aa;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 36px;
+    display: flex; gap: 14px;
+    font-size: 13.5px;
+    color: var(--warn);
+  }
+  .changed-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .changed-body {
+    color: #6b4108;
+    line-height: 1.5;
+  }
+  .changed-body b { color: var(--warn); font-weight: 600; }
+
+  /* Footer bar */
+  .foot {
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    padding: 18px 32px;
+    display: flex; justify-content: space-between; align-items: center;
+    position: sticky;
+    bottom: 0;
+  }
+  .foot-left {
+    display: flex; align-items: center; gap: 14px;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .foot-left b { color: var(--ink); font-weight: 500; }
+  .btn-prev {
+    border: 1px solid var(--line-2);
+    background: var(--surface);
+    color: var(--ink-2);
+    padding: 10px 18px;
+    border-radius: 24px;
+    font-size: 14px;
+    margin-right: 12px;
+  }
+  .btn-prev:hover { border-color: var(--ink-3); color: var(--ink); }
+  .btn-next {
+    background: var(--teal);
+    color: #fff;
+    padding: 11px 28px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 12px rgba(10,122,110,0.22);
+  }
+  .btn-next:hover { background: var(--teal-2); }
+  .btn-next::after { content: '→'; font-size: 16px; }
+
+  /* Section preview of step 4 (validation) — small preview at bottom */
+  .preview-card {
+    margin-top: 28px;
+    padding: 24px 28px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .preview-h {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 18px;
+  }
+  .preview-h h3 {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+  .preview-h h3 em { font-style: italic; color: var(--teal); }
+  .preview-h .sub { font-size: 12px; color: var(--ink-3); font-family: "JetBrains Mono", monospace; }
+  .preview-list { font-size: 13.5px; }
+  .pl-row {
+    display: grid; grid-template-columns: 32px 1fr auto;
+    gap: 14px; align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .pl-row:last-child { border-bottom: none; }
+  .pl-row .ico {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: 600;
+  }
+  .pl-row.good .ico { background: var(--good-bg); color: var(--good); }
+  .pl-row.bad  .ico { background: var(--bad-bg);  color: var(--bad); }
+  .pl-row.warn .ico { background: var(--warn-bg); color: var(--warn); }
+  .pl-row .label b { color: var(--ink); font-weight: 500; }
+  .pl-row .label .hint { color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+  .pl-row .right {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .pl-row.bad .right { color: var(--bad); }
+  .pl-row.warn .right { color: var(--warn); }
+  .pl-row.good .right { color: var(--good); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="back" href="/designs/">← designs</a>
+  <div class="brand">RegulAI</div>
+  <div class="ctx"><b>Lone Star Mutual</b> &nbsp;·&nbsp; new filing &nbsp;·&nbsp; <span class="mono">draft-7f4a</span></div>
+  <div class="save">Saved · 14:32</div>
+</header>
+
+<div class="stepper">
+  <div class="stepper-bar">
+    <div class="step done">
+      <div class="step-pill"><span class="n">1</span><span>Plan</span></div>
+      <div class="step-lbl">Statistical plan</div>
+    </div>
+    <div class="step done">
+      <div class="step-pill"><span class="n">2</span><span>Period</span></div>
+      <div class="step-lbl">Reporting period</div>
+    </div>
+    <div class="step active">
+      <div class="step-pill"><span class="n">3</span><span>Setup</span></div>
+      <div class="step-lbl">Entity &amp; channel</div>
+    </div>
+    <div class="step">
+      <div class="step-pill"><span class="n">4</span><span>Validate</span></div>
+      <div class="step-lbl">Pre-submit check</div>
+    </div>
+    <div class="step">
+      <div class="step-pill"><span class="n">5</span><span>Approve</span></div>
+      <div class="step-lbl">Internal sign-off</div>
+    </div>
+    <div class="step">
+      <div class="step-pill"><span class="n">6</span><span>Submit</span></div>
+      <div class="step-lbl">To TICO</div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="eyebrow">Step 3 of 6 · Filing entity &amp; submission channel</div>
+  <h1 class="q">Which entity are you filing for, and <em>where does it go?</em></h1>
+  <p class="helper">
+    Texas's 2026 statistical plan rules direct insurers to file with TDI's designated
+    statistical agent — that's TICO. We'll fill in everything we can from your carrier
+    record; tell us which entity is the filer and pick a destination.
+  </p>
+
+  <div class="changed">
+    <div class="changed-icon">⚠</div>
+    <div class="changed-body">
+      <b>What changed in 2026:</b> Direct submission to TDI's portal was discontinued.
+      All residential, private passenger auto, and commercial lines statistical plans
+      must now route through <b>TICO</b> per 28 TAC §5.7008. The cadence for TPA is
+      <b>quarterly</b>; residential moved to <b>monthly</b> effective April 1.
+    </div>
+  </div>
+
+  <div style="font-size:13px;font-weight:500;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;">
+    Filing entity
+  </div>
+
+  <div class="choices">
+    <div class="choice selected">
+      <div class="choice-icon">🏢</div>
+      <div class="choice-title">Lone Star Mutual</div>
+      <div class="choice-meta">NAIC 19876 · primary</div>
+      <div class="choice-desc">
+        Your main writing company. Used for 12 of last year's 14 filings.
+      </div>
+      <div class="choice-stats">
+        <span>writings <b>$1.93M</b></span>
+        <span>policies <b>4,218</b></span>
+      </div>
+    </div>
+
+    <div class="choice">
+      <div class="choice-icon">🏢</div>
+      <div class="choice-title">Lone Star Specialty</div>
+      <div class="choice-meta">NAIC 14702 · subsidiary</div>
+      <div class="choice-desc">
+        Excess &amp; surplus lines subsidiary. Only used for catastrophe-heavy CL filings.
+      </div>
+      <div class="choice-stats">
+        <span>writings <b>$340K</b></span>
+        <span>policies <b>187</b></span>
+      </div>
+    </div>
+
+    <div class="choice">
+      <div class="choice-icon">＋</div>
+      <div class="choice-title">Add new entity</div>
+      <div class="choice-meta">setup ~5 min</div>
+      <div class="choice-desc">
+        Register another writing entity. You'll need its NAIC code and TICO company number.
+      </div>
+      <div class="choice-stats">
+        <span>requires <b>NAIC + TICO #</b></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="font-size:13px;font-weight:500;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;margin-top:14px;">
+    Submission channel
+  </div>
+
+  <div class="choices">
+    <div class="choice selected">
+      <div class="choice-icon">↗</div>
+      <div class="choice-title">TICO ShareFile</div>
+      <div class="choice-meta">required for TPA · production</div>
+      <div class="choice-desc">
+        Fixed-width ASCII files uploaded to TDI's designated statistical agent. Last
+        acknowledgment <span class="mono" style="color:var(--good);">2026-02-22 09:14 CST</span>.
+      </div>
+      <div class="choice-stats">
+        <span>status <b style="color:var(--good);">✓ active</b></span>
+        <span>this cycle <b>0 files</b></span>
+      </div>
+    </div>
+
+    <div class="choice">
+      <div class="choice-icon">⊕</div>
+      <div class="choice-title">TICO sandbox</div>
+      <div class="choice-meta">test only · no audit</div>
+      <div class="choice-desc">
+        Dry-run upload for validation against TICO's parser. Useful before sealing the
+        production filing.
+      </div>
+      <div class="choice-stats">
+        <span>last test <b>Jan 14</b></span>
+      </div>
+    </div>
+
+    <div class="choice" style="opacity:0.6;">
+      <div class="choice-icon">⊖</div>
+      <div class="choice-title">SERFF</div>
+      <div class="choice-meta">discontinued for stat plans</div>
+      <div class="choice-desc">
+        Was the channel pre-2026. Still available for rate &amp; form filings but
+        not statistical plans. Disabled.
+      </div>
+      <div class="choice-stats">
+        <span style="color:var(--ink-4);">unavailable</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="why">
+    <div class="why-h">Why we're asking this</div>
+    <div class="why-body">
+      The <strong>filing entity</strong> determines which carrier signatures and authorized
+      filers are valid downstream — TDI rejects filings where the entity's <code>tico_company_number</code>
+      doesn't match the registered statistical agent record. The <strong>channel</strong> tells
+      us where to send the final fixed-width file and what ack to wait for.
+      <div class="why-cite">
+        Authority · 28 TAC §5.7008(b) · TICO bulletin TICO-2025-12 · last verified 2026-03-14
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview of step 4: validation -->
+  <div class="preview-card">
+    <div class="preview-h">
+      <h3>Next: <em>pre-submit validation</em></h3>
+      <span class="sub">step 4 of 6 · preview</span>
+    </div>
+    <p style="font-size:13.5px;color:var(--ink-2);margin-bottom:18px;line-height:1.55;">
+      Once you confirm entity + channel, we'll dry-run all rules in this plan against your data.
+      Here's what it looks like — you'll see this same screen in detail after you continue.
+    </p>
+    <div class="preview-list">
+      <div class="pl-row good">
+        <div class="ico">✓</div>
+        <div class="label">
+          <b>NAIC code present and well-formed</b>
+          <div class="hint">Rule A.22 · TICO Stat Plan</div>
+        </div>
+        <div class="right">11 of 12 pass</div>
+      </div>
+      <div class="pl-row bad">
+        <div class="ico">✗</div>
+        <div class="label">
+          <b>Reason code combinations valid</b>
+          <div class="hint">Rule A.34 · L needs companion · J must be alone</div>
+        </div>
+        <div class="right">3 blockers</div>
+      </div>
+      <div class="pl-row warn">
+        <div class="ico">!</div>
+        <div class="label">
+          <b>Term type within standard set</b>
+          <div class="hint">Rule A.40 · WARN — POL-0015 uses "Custom"</div>
+        </div>
+        <div class="right">1 warning</div>
+      </div>
+      <div class="pl-row good">
+        <div class="ico">✓</div>
+        <div class="label">
+          <b>Premium amounts in plausible range</b>
+          <div class="hint">Rule A.30 · $100–$50,000</div>
+        </div>
+        <div class="right">10 of 11 pass</div>
+      </div>
+      <div class="pl-row good">
+        <div class="ico">✓</div>
+        <div class="label">
+          <b>Cancellation notice dates present</b>
+          <div class="hint">Rule A.42 · 28 TAC §5.7008(c)</div>
+        </div>
+        <div class="right">10 of 11 pass</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="foot-left">
+    <button class="btn-prev">← Back</button>
+    <span><b>Lone Star Mutual</b> · <b>TICO ShareFile</b> · ready to validate</span>
+  </div>
+  <button class="btn-next">Continue · Validate filing</button>
+</footer>
+
+<script>
+  document.querySelectorAll('.choice').forEach(c => c.addEventListener('click', () => {
+    // Group toggle: only one selected per "choices" container
+    const container = c.parentElement;
+    container.querySelectorAll('.choice').forEach(x => x.classList.remove('selected'));
+    c.classList.add('selected');
+  }));
+</script>
+</body>
+</html>

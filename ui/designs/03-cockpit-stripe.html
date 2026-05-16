@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Design 03 · Stripe-Style Control Tower</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --line: #e8eaee;
+    --line-2: #d6dae0;
+    --ink: #0a1130;
+    --ink-2: #4a5063;
+    --ink-3: #7a8194;
+    --ink-4: #aab1c0;
+    --brand: #635bff;       /* Stripe-ish purple */
+    --brand-2: #4f46e5;
+    --brand-bg: #f0eeff;
+    --good: #0a8c4a;
+    --good-bg: #e0f5e8;
+    --warn: #b45309;
+    --warn-bg: #fff4e3;
+    --bad: #c91b1b;
+    --bad-bg: #fdeaea;
+    --teal: #0891b2;
+    --teal-bg: #e0f3f7;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+  .mono { font-family: "JetBrains Mono", monospace; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 5px; }
+
+  /* Top bar */
+  .top {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 0 24px;
+    height: 60px;
+    display: flex; align-items: center;
+    gap: 24px;
+    position: sticky; top: 0;
+    z-index: 10;
+  }
+  .back {
+    color: var(--ink-3); font-size: 13px;
+    border: 1px solid var(--line-2);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-family: "JetBrains Mono", monospace;
+  }
+  .back:hover { color: var(--ink); border-color: var(--ink-3); }
+  .brand {
+    font-weight: 700; font-size: 17px;
+    letter-spacing: -0.018em;
+    color: var(--ink);
+  }
+  .brand .by { color: var(--brand); }
+  .ctx {
+    color: var(--ink-2); font-size: 13.5px;
+    border-left: 1px solid var(--line);
+    padding-left: 24px;
+  }
+  .ctx b { color: var(--ink); font-weight: 600; }
+  .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .live-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--good-bg);
+    color: var(--good);
+    font-weight: 500;
+  }
+  .live-pill::before {
+    content: ''; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 0 3px rgba(10,140,74,0.18);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.2);} }
+  .icon-btn {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    color: var(--ink-3);
+    display: grid; place-items: center;
+  }
+  .icon-btn:hover { background: var(--bg); color: var(--ink); }
+  .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--brand);
+    color: #fff; font-size: 12px; font-weight: 600;
+    display: grid; place-items: center;
+  }
+
+  /* Layout */
+  .wrap { padding: 32px 40px 60px; max-width: 1400px; margin: 0 auto; }
+
+  /* Page head */
+  .page-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 32px;
+  }
+  .ph-left h1 {
+    font-size: 32px; font-weight: 600;
+    letter-spacing: -0.025em;
+    margin-bottom: 8px;
+  }
+  .ph-left p {
+    color: var(--ink-2); font-size: 14.5px;
+    max-width: 580px;
+    line-height: 1.55;
+  }
+  .ph-right {
+    display: flex; gap: 8px;
+  }
+  .btn {
+    background: var(--surface);
+    border: 1px solid var(--line-2);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13.5px;
+    color: var(--ink);
+    transition: all .12s ease;
+  }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); font-weight: 500; }
+  .btn.primary:hover { background: var(--brand-2); border-color: var(--brand-2); }
+
+  /* KPI grid */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+    transition: border-color .12s ease, box-shadow .12s ease;
+  }
+  .kpi:hover { border-color: var(--ink-3); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .kpi-h {
+    font-size: 12px;
+    color: var(--ink-2);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .kpi-v {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .kpi-v .unit { font-size: 14px; color: var(--ink-3); font-weight: 400; margin-left: 4px; }
+  .kpi-v.bad { color: var(--bad); }
+  .kpi-v.warn { color: var(--warn); }
+  .kpi-v.good { color: var(--good); }
+  .kpi-sub {
+    font-size: 12.5px;
+    color: var(--ink-3);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .delta {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-weight: 500; font-size: 12px;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .delta.up { color: var(--good); background: var(--good-bg); }
+  .delta.down { color: var(--bad); background: var(--bad-bg); }
+
+  /* Filing table */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .section-h {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .section-h h3 {
+    font-size: 15.5px; font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .section-h .filters {
+    display: flex; gap: 6px;
+    font-size: 12.5px;
+  }
+  .chip {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 4px 11px;
+    color: var(--ink-2);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .chip:hover { border-color: var(--ink-3); }
+  .chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .chip .ct {
+    margin-left: 4px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+  .chip.active .ct { color: rgba(255,255,255,0.7); }
+
+  .table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .table thead th {
+    text-align: left;
+    padding: 12px 24px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .table tbody tr { transition: background .1s ease; cursor: pointer; }
+  .table tbody tr:hover { background: var(--bg); }
+  .table tbody td {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .table tbody tr:last-child td { border-bottom: none; }
+  .filing-id {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12.5px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .filing-id .sub {
+    display: block;
+    color: var(--ink-3);
+    font-size: 11.5px;
+    margin-top: 2px;
+    font-weight: 400;
+  }
+
+  /* Status pill (Stripe style) */
+  .status {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .status.draft     { background: var(--bg); color: var(--ink-3); }
+  .status.validate  { background: var(--teal-bg); color: var(--teal); }
+  .status.resolving { background: var(--warn-bg); color: var(--warn); }
+  .status.approval  { background: var(--brand-bg); color: var(--brand); }
+  .status.submitted { background: var(--good-bg); color: var(--good); }
+  .status.acked     { background: var(--good-bg); color: var(--good); font-weight: 600; }
+  .status::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* Timeline rail in the row */
+  .rail {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 3px;
+    height: 6px;
+    min-width: 180px;
+  }
+  .rail-step {
+    background: var(--bg);
+    border-radius: 2px;
+  }
+  .rail-step.done    { background: var(--good); }
+  .rail-step.active  { background: var(--warn); }
+  .rail-step.blocked { background: var(--bad); }
+
+  .due {
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .due b {
+    color: var(--ink); font-weight: 600;
+    font-family: "JetBrains Mono", monospace;
+  }
+  .due.tight b { color: var(--warn); }
+  .due.critical b { color: var(--bad); }
+  .due .small { color: var(--ink-3); font-size: 11.5px; }
+
+  .defects {
+    font-size: 12.5px;
+    font-family: "JetBrains Mono", monospace;
+    color: var(--ink-3);
+  }
+  .defects .b { color: var(--bad); font-weight: 600; }
+  .defects .w { color: var(--warn); font-weight: 600; }
+
+  /* Two-col bottom */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+  }
+
+  /* Calendar / due-date rail */
+  .cal-month {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--line);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    color: var(--ink-3);
+  }
+  .cal-row {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--line);
+    display: grid; grid-template-columns: 80px 1fr auto;
+    gap: 16px; align-items: center;
+    font-size: 13.5px;
+  }
+  .cal-row:last-child { border-bottom: none; }
+  .cal-date {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .cal-date .sub {
+    color: var(--ink-3); font-size: 11px; display: block;
+    font-weight: 400; margin-top: 2px;
+  }
+  .cal-what b { color: var(--ink); font-weight: 500; }
+  .cal-what .sub { color: var(--ink-3); font-size: 12px; display: block; margin-top: 2px; }
+  .cal-pill {
+    font-size: 11px;
+    color: var(--ink-3);
+    background: var(--bg);
+    padding: 3px 9px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .cal-pill.urgent { background: var(--warn-bg); color: var(--warn); }
+  .cal-pill.critical { background: var(--bad-bg); color: var(--bad); }
+
+  /* Activity */
+  .act {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--line);
+    display: grid; grid-template-columns: 36px 1fr;
+    gap: 12px; align-items: start;
+    font-size: 13px;
+  }
+  .act:last-child { border-bottom: none; }
+  .act .icon {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 600;
+    color: #fff;
+  }
+  .act .icon.s { background: var(--good); }
+  .act .icon.b { background: var(--bad); }
+  .act .icon.k { background: var(--brand); }
+  .act .icon.r { background: var(--teal); }
+  .act .who { font-weight: 500; color: var(--ink); }
+  .act .what { color: var(--ink-2); line-height: 1.5; }
+  .act .when { color: var(--ink-3); font-size: 11.5px; margin-top: 3px; font-family: "JetBrains Mono", monospace; }
+
+  /* Tiny utility */
+  .num { font-family: "JetBrains Mono", monospace; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="back" href="/designs/">← designs</a>
+  <div class="brand">RegulAI <span class="by">control tower</span></div>
+  <div class="ctx"><b>Lone Star Mutual</b> &nbsp;·&nbsp; 12 filings across <b>4 plans</b> · <b>3 jurisdictions</b></div>
+  <div class="right">
+    <span class="live-pill">live</span>
+    <button class="icon-btn" title="Search">⌕</button>
+    <button class="icon-btn" title="Notifications">◔</button>
+    <div class="avatar">DR</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Page head -->
+  <div class="page-head">
+    <div class="ph-left">
+      <h1>Filing portfolio · Q4 2025 cycle</h1>
+      <p>
+        Every filing in flight across Texas plans plus the next-quarter pipeline.
+        Status rolls up from validation engine + TICO acknowledgements.
+      </p>
+    </div>
+    <div class="ph-right">
+      <button class="btn">Export CSV</button>
+      <button class="btn">Settings</button>
+      <button class="btn primary">＋ New filing</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-h">Filings in flight</div>
+      <div class="kpi-v">12</div>
+      <div class="kpi-sub"><span class="delta up">+2</span> vs last cycle</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-h">Avg readiness</div>
+      <div class="kpi-v good">87<span class="unit">/100</span></div>
+      <div class="kpi-sub"><span class="delta up">+12</span> vs Q3 close</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-h">Open blockers</div>
+      <div class="kpi-v bad">8</div>
+      <div class="kpi-sub">across 4 filings · <span style="color:var(--warn);">3 critical</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-h">On-time submission</div>
+      <div class="kpi-v good">97<span class="unit">%</span></div>
+      <div class="kpi-sub">trailing 12 months · 28 of 29</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-h">$ Fines avoided</div>
+      <div class="kpi-v good">$4.2<span class="unit">M</span></div>
+      <div class="kpi-sub">YTD · TICO + NAIC + MCAS</div>
+    </div>
+  </div>
+
+  <!-- Filings table -->
+  <div class="section">
+    <div class="section-h">
+      <h3>Active filings</h3>
+      <div class="filters">
+        <span class="chip active">All <span class="ct">12</span></span>
+        <span class="chip">Critical <span class="ct">3</span></span>
+        <span class="chip">Due in 30d <span class="ct">5</span></span>
+        <span class="chip">Ready <span class="ct">2</span></span>
+        <span class="chip">Submitted <span class="ct">2</span></span>
+      </div>
+    </div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:200px;">Filing</th>
+          <th style="width:140px;">Status</th>
+          <th style="width:220px;">Pipeline</th>
+          <th style="width:140px;">Defects</th>
+          <th style="width:140px;">Due</th>
+          <th>Assigned</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <span class="filing-id">TPA-Q4-2025</span>
+            <span class="sub">Texas Private Passenger Auto · Q4</span>
+          </td>
+          <td><span class="status resolving">Resolving</span></td>
+          <td>
+            <div class="rail">
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step active"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+            </div>
+          </td>
+          <td class="defects"><span class="b">4 blockers</span> · <span class="w">3 warn</span></td>
+          <td class="due tight">
+            <b>Mar 31</b>
+            <span class="small">47 days · quarterly</span>
+          </td>
+          <td>
+            <span style="font-size:12.5px;color:var(--ink-2);">M.Okonkwo, D.Reyes, +1</span>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <span class="filing-id">RES-M03-2026</span>
+            <span class="sub">Residential · March 2026</span>
+          </td>
+          <td><span class="status draft">Draft</span></td>
+          <td>
+            <div class="rail">
+              <div class="rail-step active"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+            </div>
+          </td>
+          <td class="defects">—</td>
+          <td class="due">
+            <b>Apr 15</b>
+            <span class="small">62 days · monthly</span>
+          </td>
+          <td>
+            <span style="font-size:12.5px;color:var(--ink-2);">J.Park</span>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <span class="filing-id">CL-Q4-2025</span>
+            <span class="sub">Commercial Lines · Q4</span>
+          </td>
+          <td><span class="status approval">Approval</span></td>
+          <td>
+            <div class="rail">
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step active"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+            </div>
+          </td>
+          <td class="defects" style="color:var(--good);">✓ clean</td>
+          <td class="due">
+            <b>May 15</b>
+            <span class="small">92 days · quarterly</span>
+          </td>
+          <td>
+            <span style="font-size:12.5px;color:var(--ink-2);">D.Reyes (officer)</span>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <span class="filing-id">MCAS-2025</span>
+            <span class="sub">Market Conduct Annual Statement</span>
+          </td>
+          <td><span class="status submitted">Submitted</span></td>
+          <td>
+            <div class="rail">
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step active"></div>
+            </div>
+          </td>
+          <td class="defects" style="color:var(--ink-3);">waiting ack</td>
+          <td class="due">
+            <b>Submitted</b>
+            <span class="small">Mar 12 · 2d ago</span>
+          </td>
+          <td>
+            <span style="font-size:12.5px;color:var(--ink-2);">D.Reyes</span>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <span class="filing-id">WC-Q4-2025</span>
+            <span class="sub">Workers' Comp · NCCI</span>
+          </td>
+          <td><span class="status resolving">Resolving</span></td>
+          <td>
+            <div class="rail">
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step active"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+            </div>
+          </td>
+          <td class="defects"><span class="w">2 warn</span></td>
+          <td class="due critical">
+            <b>Mar 1</b>
+            <span class="small">18 days · monthly</span>
+          </td>
+          <td>
+            <span style="font-size:12.5px;color:var(--ink-2);">M.Okonkwo</span>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <span class="filing-id">TPA-Q3-2025</span>
+            <span class="sub">Texas Private Passenger Auto · Q3</span>
+          </td>
+          <td><span class="status acked">Acked ✓</span></td>
+          <td>
+            <div class="rail">
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+              <div class="rail-step done"></div>
+            </div>
+          </td>
+          <td class="defects" style="color:var(--good);">✓ closed</td>
+          <td class="due">
+            <b>Closed</b>
+            <span class="small">Jan 15</span>
+          </td>
+          <td>
+            <span style="font-size:12.5px;color:var(--ink-2);">—</span>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <span class="filing-id">RES-M02-2026</span>
+            <span class="sub">Residential · February 2026</span>
+          </td>
+          <td><span class="status validate">Validating</span></td>
+          <td>
+            <div class="rail">
+              <div class="rail-step done"></div>
+              <div class="rail-step active"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+              <div class="rail-step"></div>
+            </div>
+          </td>
+          <td class="defects" style="color:var(--ink-3);">running…</td>
+          <td class="due tight">
+            <b>Mar 15</b>
+            <span class="small">29 days · monthly</span>
+          </td>
+          <td>
+            <span style="font-size:12.5px;color:var(--ink-2);">J.Park</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Two-col bottom: due dates + activity -->
+  <div class="grid-2">
+
+    <div class="section">
+      <div class="section-h">
+        <h3>Upcoming deadlines · 60 days</h3>
+        <a class="chip" href="#">View all</a>
+      </div>
+      <div class="cal-month">March 2026</div>
+
+      <div class="cal-row">
+        <div class="cal-date">Mar 1
+          <span class="sub">Sat · 18 days</span>
+        </div>
+        <div class="cal-what">
+          <b>WC-Q4-2025</b> · NCCI quarterly
+          <span class="sub">Monthly cadence · Texas state</span>
+        </div>
+        <span class="cal-pill critical">critical · 18d</span>
+      </div>
+
+      <div class="cal-row">
+        <div class="cal-date">Mar 15
+          <span class="sub">Sat · 29 days</span>
+        </div>
+        <div class="cal-what">
+          <b>RES-M02-2026</b> · Residential February
+          <span class="sub">Monthly · TICO ShareFile</span>
+        </div>
+        <span class="cal-pill urgent">urgent · 29d</span>
+      </div>
+
+      <div class="cal-row">
+        <div class="cal-date">Mar 31
+          <span class="sub">Mon · 47 days</span>
+        </div>
+        <div class="cal-what">
+          <b>TPA-Q4-2025</b> · Texas Private Auto
+          <span class="sub">Quarterly · TICO · 4 open blockers</span>
+        </div>
+        <span class="cal-pill urgent">urgent · 47d</span>
+      </div>
+
+      <div class="cal-month">April 2026</div>
+
+      <div class="cal-row">
+        <div class="cal-date">Apr 15
+          <span class="sub">Wed · 62 days</span>
+        </div>
+        <div class="cal-what">
+          <b>RES-M03-2026</b> · Residential March
+          <span class="sub">Monthly · TICO · 28 TAC §5.7008 effective</span>
+        </div>
+        <span class="cal-pill">on track · 62d</span>
+      </div>
+
+      <div class="cal-row">
+        <div class="cal-date">Apr 30
+          <span class="sub">Thu · 77 days</span>
+        </div>
+        <div class="cal-what">
+          <b>Q1 close</b> · all-plan cutover preview
+          <span class="sub">Internal preview · trigger rule freeze</span>
+        </div>
+        <span class="cal-pill">scheduled</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-h">
+        <h3>Recent activity</h3>
+        <a class="chip" href="#">View all</a>
+      </div>
+
+      <div class="act">
+        <div class="icon b">!</div>
+        <div>
+          <div><span class="who">TPA-Q4-2025</span> <span class="what">picked up <b>2 new violations</b> after re-validation (POL-0017, POL-0010).</span></div>
+          <div class="when">14:32 CST · today</div>
+        </div>
+      </div>
+
+      <div class="act">
+        <div class="icon k">K</div>
+        <div>
+          <div><span class="who">KG canon</span> <span class="what">absorbed bulletin <b>B-2026-Q4-118</b> · 2 rules updated, 1 record now flips valid.</span></div>
+          <div class="when">10:14 CST · today</div>
+        </div>
+      </div>
+
+      <div class="act">
+        <div class="icon r">T</div>
+        <div>
+          <div><span class="who">TICO ShareFile</span> <span class="what">acknowledged <b>MCAS-2025</b> submission · 0 warnings.</span></div>
+          <div class="when">09:14 CST · today</div>
+        </div>
+      </div>
+
+      <div class="act">
+        <div class="icon s">✓</div>
+        <div>
+          <div><span class="who">D. Reyes</span> <span class="what">approved <b>CL-Q4-2025</b> for submission · signed against canon v2.</span></div>
+          <div class="when">yesterday · 16:42 CST</div>
+        </div>
+      </div>
+
+      <div class="act">
+        <div class="icon b">!</div>
+        <div>
+          <div><span class="who">WC-Q4-2025</span> <span class="what">flagged a hail-cluster anomaly — <b>4 claims</b> within 12-mile radius.</span></div>
+          <div class="when">yesterday · 11:08 CST</div>
+        </div>
+      </div>
+
+      <div class="act">
+        <div class="icon r">T</div>
+        <div>
+          <div><span class="who">TDI</span> <span class="what">issued bulletin <b>B-2026-Q4-118</b> — credit-score declination during CAT periods.</span></div>
+          <div class="when">2 days ago · Feb 13</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    const siblings = c.parentElement.querySelectorAll('.chip');
+    siblings.forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+  }));
+</script>
+</body>
+</html>

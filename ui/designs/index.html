@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RegulAI · Design Explorations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..500;1,9..144,300..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #18181b;
+    background: #faf9f6;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 80px 48px 96px;
+  }
+  .eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #8a8a90;
+    font-weight: 500;
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    font-weight: 300;
+    color: #18181b;
+    margin-bottom: 22px;
+    max-width: 760px;
+  }
+  h1 em { font-style: italic; font-weight: 400; color: #1e293b; }
+  .sub {
+    font-size: 16.5px;
+    color: #52525b;
+    max-width: 660px;
+    line-height: 1.6;
+    margin-bottom: 56px;
+  }
+
+  .designs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 980px) { .designs { grid-template-columns: 1fr; } }
+
+  .card {
+    background: #fff;
+    border: 1px solid #ebeae5;
+    border-radius: 12px;
+    padding: 28px 24px;
+    transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: flex; flex-direction: column;
+    min-height: 380px;
+  }
+  .card:hover {
+    border-color: #1e293b;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(30,41,59,0.06);
+  }
+  .num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: #8a8a90;
+    margin-bottom: 14px;
+    letter-spacing: 0.06em;
+  }
+  .pre {
+    background: #faf9f6;
+    border: 1px solid #ebeae5;
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10.5px;
+    color: #52525b;
+    line-height: 1.6;
+    margin-bottom: 18px;
+    white-space: pre;
+    overflow: hidden;
+    flex: 1;
+  }
+  .card h2 {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .card h2 em { font-style: italic; color: #1e293b; }
+  .meta {
+    font-size: 12px;
+    color: #8a8a90;
+    margin-bottom: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .desc {
+    font-size: 13.5px;
+    color: #52525b;
+    line-height: 1.55;
+    margin-bottom: 16px;
+  }
+  .open {
+    margin-top: auto;
+    font-size: 13px;
+    color: #18181b;
+    font-weight: 500;
+    border-bottom: 1px solid #18181b;
+    align-self: flex-start;
+    padding-bottom: 1px;
+  }
+  .card:hover .open { color: #1e293b; border-bottom-color: #1e293b; }
+
+  .context {
+    margin-top: 64px;
+    padding-top: 36px;
+    border-top: 1px solid #ebeae5;
+    color: #52525b;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .context strong { color: #18181b; }
+  .context ul { margin-left: 22px; margin-top: 12px; }
+  .context li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">RegulAI · Design Explorations · feature/ui-designs</div>
+  <h1>Three takes on a <em>regulatory compliance workspace</em>.</h1>
+  <p class="sub">
+    The same Texas Statistical Plan 2026 use case, rendered through three different
+    metaphors. Pick the direction (or hybrid the pieces) and we'll wire it for real.
+  </p>
+
+  <div class="designs">
+
+    <a class="card" href="/designs/01-workspace-jira">
+      <div class="num">01</div>
+      <div class="pre">┌────────────────┐
+│ TPA-Q4-2025    │
+│ ━━━━━━━━━━●━━  │
+│ Section A   ✗3 │
+│ Section B   ✓  │
+│ Section C   —  │
+│ Exceptions  4  │
+│ Activity   ⋯  │
+└────────────────┘</div>
+      <h2><em>Jira</em> for filings</h2>
+      <div class="meta">Workspace · ticket-deep</div>
+      <p class="desc">
+        One filing, one workspace. Sections as tabs, exceptions as a board,
+        comments and activity inline. Compliance analyst spends their day
+        inside this view.
+      </p>
+      <span class="open">View design →</span>
+    </a>
+
+    <a class="card" href="/designs/02-wizard-turbotax">
+      <div class="num">02</div>
+      <div class="pre">  ●━━━●━━━●━━━○━━━○
+  1   2   3   4   5
+  Plan  Period  Map
+
+  Which Texas
+  statistical plan
+  are you filing?
+
+  ◯ Residential
+  ● Private Auto
+  ◯ Commercial
+   [ Continue → ]</div>
+      <h2><em>TurboTax</em> for rule guidance</h2>
+      <div class="meta">Wizard · step-by-step</div>
+      <p class="desc">
+        Friendly stepper that walks the user from plan selection through
+        validation to submission. Each step has inline "why this is required"
+        + "what changed since 2025."
+      </p>
+      <span class="open">View design →</span>
+    </a>
+
+    <a class="card" href="/designs/03-cockpit-stripe">
+      <div class="num">03</div>
+      <div class="pre">┌──────┬──────┬──────┐
+│  12  │  4   │ 92%  │
+│filings│block│ avg  │
+└──────┴──────┴──────┘
+TPA-Q4    ●━━━●━○  47d
+RES-Q1    ━●━━━━━  92d
+CL-Q4     ●━●━━━━ ack
+WC-Q4     ━━○━━━━  18d</div>
+      <h2><em>Stripe</em> for filing status</h2>
+      <div class="meta">Control tower · portfolio</div>
+      <p class="desc">
+        Portfolio view across all filings, plans, jurisdictions. Status
+        pills, due-date rail, defect counts. VP-of-Compliance opens this,
+        sees the quarter in 10 seconds.
+      </p>
+      <span class="open">View design →</span>
+    </a>
+
+  </div>
+
+  <div class="context">
+    <strong>Common test context across all three designs:</strong>
+    <ul>
+      <li><strong>Carrier:</strong> Lone Star Mutual (NAIC 19876)</li>
+      <li><strong>Plans:</strong> Texas Private Passenger Auto · Residential · Commercial Lines</li>
+      <li><strong>Effective date:</strong> April 1, 2026 · First report due June 15, 2026</li>
+      <li><strong>Statistical agent:</strong> TICO (TDI's designated statistical agent)</li>
+      <li><strong>Reason codes:</strong> HB 2067 standardized set (A, D, J, K, L, M, N, &hellip;)</li>
+      <li><strong>Reference data:</strong> 12 synthetic policies · 8 known violations across 7 rules</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
