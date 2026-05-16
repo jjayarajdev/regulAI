@@ -3597,15 +3597,25 @@ RETURN r, rel, n</pre>
     const manual  = (v.violations || []).length - fixable;
     const readiness = total ? Math.round((pass / total) * 100) : 0;
 
-    // Status line
+    // Status line + entry buttons (the only places that switch to "see all" popouts)
     if (meta) {
+      const bronzeCount = (app.data.bronze?.rows || []).length;
       const dot = (color) => `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
       meta.innerHTML = `
         <span>${dot(readiness === 100 ? 'var(--good)' : 'var(--amber)')}<b>${readiness}/100</b> readiness</span>
         <span style="color:var(--ink-4);">·</span>
         <span style="color:${vios > 0 ? 'var(--bad)' : 'var(--good)'};">${vios} violation${vios !== 1 ? 's' : ''}</span>
         <span style="color:var(--ink-4);">·</span>
-        <span>Edition <code style="font-family:var(--f-mono);font-size:12px;color:var(--accent);">${app.data.st?.bulletin_applied ? 'v2 · bulletin applied' : 'v1 · baseline'}</code></span>`;
+        <span>Edition <code style="font-family:var(--f-mono);font-size:12px;color:var(--accent);">${app.data.st?.bulletin_applied ? 'v2 · bulletin applied' : 'v1 · baseline'}</code></span>
+        <span style="margin-left:18px;display:inline-flex;gap:6px;">
+          <button class="sc-secondary" data-detail="all-records">All records · ${bronzeCount}</button>
+          <button class="sc-secondary" data-detail="rules">Rules · ${total}</button>
+          <button class="sc-secondary" data-detail="wire">Wire preview</button>
+        </span>`;
+      // Wire the buttons
+      $$('[data-detail]', meta).forEach(b =>
+        b.addEventListener('click', (e) => { e.stopPropagation(); openDetail_filing(b.dataset.detail); })
+      );
     }
 
     // ── Pipeline (compact, always visible) ──
@@ -3762,6 +3772,66 @@ RETURN r, rel, n</pre>
           openDetail_filing(section);
         });
       });
+    }
+
+    if (section === 'all-records') {
+      const bronze = app.data.bronze?.rows || [];
+      const violSet = new Set((v.violations || []).map(x => x.policy_number));
+      const violByPolicy = {};
+      (v.violations || []).forEach(vio => {
+        (violByPolicy[vio.policy_number] ||= []).push(vio);
+      });
+
+      // Sort: violators first (most failures first), then passing by policy number
+      const sorted = bronze.slice().sort((a, b) => {
+        const af = (violByPolicy[a.policy] || []).length;
+        const bf = (violByPolicy[b.policy] || []).length;
+        if (af !== bf) return bf - af;
+        return (a.policy || '').localeCompare(b.policy || '');
+      });
+
+      const passCount = sorted.length - violSet.size;
+      const tableRows = sorted.map(r => {
+        const fails = violByPolicy[r.policy] || [];
+        const fail = fails.length > 0;
+        const ruleNums = fails.map(f => f.rule_number).slice(0, 3).join(', ') + (fails.length > 3 ? `, +${fails.length - 3}` : '');
+        const code = r.reason_code || '—';
+        return `
+          <tr class="clk-row ${fail ? 'fail' : ''}" data-action="show-policy" data-policy="${esc(r.policy)}">
+            <td style="font-family:var(--f-mono);font-weight:500;">${esc(r.policy)}</td>
+            <td>${esc(r.action || '—')}</td>
+            <td style="font-family:var(--f-mono);">${esc(code)}</td>
+            <td style="font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);">${esc(r.noticedate || '—')}</td>
+            <td>${
+              fail
+                ? `<span style="color:var(--bad);font-weight:500;">✗ ${fails.length} fail</span> <span style="color:var(--ink-3);font-size:11px;">(${esc(ruleNums)})</span>`
+                : `<span style="color:var(--good);font-weight:500;">✓ pass</span>`
+            }</td>
+          </tr>`;
+      }).join('');
+
+      openDetail('Filing', `All <em>${sorted.length}</em> records`,
+        `<div style="display:flex;gap:14px;margin-bottom:16px;font-size:13px;">
+          <span><b style="color:var(--good);">${passCount}</b> passing</span>
+          <span style="color:var(--ink-4);">·</span>
+          <span><b style="color:var(--bad);">${violSet.size}</b> failing</span>
+          <span style="color:var(--ink-4);">·</span>
+          <span style="color:var(--ink-3);">sorted by violations · click any row to inspect</span>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:6px;overflow:hidden;max-height:560px;overflow-y:auto;">
+          <table class="data-table" style="width:100%;">
+            <thead style="position:sticky;top:0;background:var(--paper);z-index:1;">
+              <tr>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Policy</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Action</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Reason</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Notice</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Status</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink-3);">no records</td></tr>'}</tbody>
+          </table>
+        </div>`);
     }
 
     if (section === 'wire') {
