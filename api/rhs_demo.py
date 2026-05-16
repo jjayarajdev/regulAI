@@ -815,8 +815,9 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
         pid = pid_rows[0].get("id") or pid_rows[0].get("ID")
     filing_id = None
     if pid is not None:
+        pid_int = int(pid)
         for f in FILINGS:
-            if f["policy_id_min"] <= int(pid) <= f["policy_id_max"]:
+            if any(lo <= pid_int <= hi for lo, hi in _filing_ranges(f)):
                 filing_id = f["id"]
                 break
     if filing_id:
