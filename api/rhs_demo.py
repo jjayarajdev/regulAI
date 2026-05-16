@@ -477,6 +477,12 @@ def validate_cancellations(filing: str | None = None) -> JSONResponse:
             SELECT j.publicid AS pid, p.policynumber AS policy
             FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICYPERIOD j
             LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id
+            UNION
+            -- Claims target rules use j.claimnumber as the record_id; map back
+            -- to the parent policy so filing-scope filtering still applies.
+            SELECT j.claimnumber AS pid, p.policynumber AS policy
+            FROM INSURANCE_REGULATORY.BRONZE.GW_CC_CLAIM j
+            LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id
             """
         ):
             pubid_to_policy[r["pid"]] = r.get("policy") or r["pid"]
@@ -831,6 +837,33 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
         "old_value": _safe(old),
         "new_value": new_str,
     })
+
+
+@router.get("/bronze/claims")
+def bronze_claims(filing: str | None = None) -> JSONResponse:
+    """List GW_CC_CLAIM rows joined to GW_PC_POLICY, scoped to a filing.
+
+    Powers the workstation's Claims popout. Each row carries enough fields
+    to render a row in the table and to power per-claim drilldowns.
+    """
+    where = "WHERE 1=1" + _scope_clause(filing)
+    rows = query(
+        "SELECT c.claimnumber AS claim_number, "
+        "       p.policynumber AS policy, "
+        "       c.losscause AS loss_cause, "
+        "       c.losscausesubtype AS loss_subtype, "
+        "       TO_VARCHAR(c.lossdate, 'YYYY-MM-DD') AS loss_date, "
+        "       TO_VARCHAR(c.reporteddate, 'YYYY-MM-DD') AS reported_date, "
+        "       DATEDIFF(day, c.lossdate, c.reporteddate) AS reporting_lag_days, "
+        "       c.totalincurred AS total_incurred, "
+        "       c.isintwiazone AS in_twia_zone, "
+        "       c.state AS state "
+        "FROM INSURANCE_REGULATORY.BRONZE.GW_CC_CLAIM c "
+        "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = c.policy_id "
+        f"{where} "
+        "ORDER BY c.totalincurred DESC NULLS LAST"
+    )
+    return JSONResponse({"rows": _jsonify(rows), "count": len(rows), "filing": filing})
 
 
 @router.get("/bronze/cancellations")

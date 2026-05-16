@@ -2800,18 +2800,19 @@
     if (app.busy) return;
     app.busy = true;
     const fq = `?filing=${encodeURIComponent(app.currentFilingId)}`;
-    const [filings, st, val, valFlat, bronze, pl, kgRules, bulletinTxt, audit] = await Promise.all([
+    const [filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit] = await Promise.all([
       get('/filings'),
       get('/state'),
       get('/validate/cancellations' + fq),
       get('/validation'),
       get('/bronze/cancellations' + fq),
+      get('/bronze/claims' + fq),
       get('/pipeline/state'),
       get('/kg/rules'),
       fetch('/api/rhs/bulletin').then(r => r.ok ? r.text() : null).catch(() => null),
       get('/audit/' + encodeURIComponent(app.currentFilingId)),
     ]);
-    app.data = { filings, st, val, valFlat, bronze, pl, kgRules, bulletinTxt, audit };
+    app.data = { filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit };
     // Populate the inline bulletin-text panel
     const pre = bind('bulletin-text');
     if (pre) pre.textContent = bulletinTxt || 'Bulletin text not available.';
@@ -3609,6 +3610,7 @@ RETURN r, rel, n</pre>
         <span>Edition <code style="font-family:var(--f-mono);font-size:12px;color:var(--accent);">${app.data.st?.bulletin_applied ? 'v2 · bulletin applied' : 'v1 · baseline'}</code></span>
         <span style="margin-left:18px;display:inline-flex;gap:6px;">
           <button class="sc-secondary" data-detail="all-records">All records · ${bronzeCount}</button>
+          <button class="sc-secondary" data-detail="claims">Claims · ${(app.data.claims?.rows || []).length}</button>
           <button class="sc-secondary" data-detail="rules">Rules · ${total}</button>
           <button class="sc-secondary" data-detail="wire">Wire preview</button>
         </span>`;
@@ -3772,6 +3774,84 @@ RETURN r, rel, n</pre>
           openDetail_filing(section);
         });
       });
+    }
+
+    if (section === 'claims') {
+      const claims = app.data.claims?.rows || [];
+      // Claim violations are those whose record_id is a CLM-* number
+      const claimViols = (v.violations || []).filter(x => /^CLM-/.test(x.record_id || x.policy_number || ''));
+      const violByClaim = {};
+      claimViols.forEach(vio => {
+        const k = vio.record_id || vio.policy_number;
+        (violByClaim[k] ||= []).push(vio);
+      });
+
+      // Sort: violators first, then by incurred desc
+      const sorted = claims.slice().sort((a, b) => {
+        const af = (violByClaim[a.claim_number] || []).length;
+        const bf = (violByClaim[b.claim_number] || []).length;
+        if (af !== bf) return bf - af;
+        return (b.total_incurred || 0) - (a.total_incurred || 0);
+      });
+
+      const passCount = sorted.length - Object.keys(violByClaim).length;
+      const failCount = Object.keys(violByClaim).length;
+
+      // Rough $ summary
+      const totalIncurred = sorted.reduce((s, c) => s + (Number(c.total_incurred) || 0), 0);
+      const fmt$ = (n) => '$' + Math.round(n / 1000).toLocaleString() + 'K';
+
+      const rows = sorted.map(c => {
+        const fails = violByClaim[c.claim_number] || [];
+        const fail = fails.length > 0;
+        const ruleNums = fails.map(f => f.rule_number).slice(0, 3).join(', ');
+        const lag = c.reporting_lag_days;
+        const lagStr = lag == null ? '—' : `${lag}d`;
+        return `
+          <tr class="clk-row ${fail ? 'fail' : ''}">
+            <td style="font-family:var(--f-mono);font-weight:500;">${esc(c.claim_number || '')}</td>
+            <td style="font-family:var(--f-mono);">${esc(c.policy || '—')}</td>
+            <td>${esc(c.loss_cause || '—')}</td>
+            <td style="font-family:var(--f-mono);font-size:11.5px;">${esc(c.loss_date || '—')}</td>
+            <td style="font-family:var(--f-mono);font-size:11.5px;${lag > 90 ? 'color:var(--warn);font-weight:600;' : ''}">${esc(lagStr)}</td>
+            <td style="font-family:var(--f-mono);text-align:right;">${fmt$(Number(c.total_incurred) || 0)}</td>
+            <td>${
+              fail
+                ? `<span style="color:var(--bad);font-weight:500;">✗ ${fails.length} fail</span> <span style="color:var(--ink-3);font-size:11px;">(${esc(ruleNums)})</span>`
+                : `<span style="color:var(--good);font-weight:500;">✓ pass</span>`
+            }</td>
+          </tr>`;
+      }).join('');
+
+      openDetail('Filing', `<em>${sorted.length}</em> claims`,
+        `<div style="display:flex;gap:14px;margin-bottom:16px;font-size:13px;align-items:baseline;">
+          <span><b style="color:var(--good);">${passCount}</b> passing</span>
+          <span style="color:var(--ink-4);">·</span>
+          <span><b style="color:var(--bad);">${failCount}</b> failing</span>
+          <span style="color:var(--ink-4);">·</span>
+          <span>Total incurred: <b style="font-family:var(--f-mono);">${fmt$(totalIncurred)}</b></span>
+        </div>
+        <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px;">
+          Claims-side violations come from Section B (loss reporting) and Section D (catastrophe attribution) rules.
+          Examples: <b>B.11</b> loss-cause in TSPR set · <b>B.14</b> reported within 90 days of loss ·
+          <b>D.12</b> high-severity hail/freeze claims must carry CAT-attribution fields.
+        </div>
+        <div style="border:1px solid var(--line);border-radius:6px;overflow:hidden;max-height:560px;overflow-y:auto;">
+          <table class="data-table" style="width:100%;">
+            <thead style="position:sticky;top:0;background:var(--paper);z-index:1;">
+              <tr>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Claim</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Policy</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Cause</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Loss date</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;" title="Days from loss to report">Lag</th>
+                <th style="padding:10px 14px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Incurred</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-3);font-weight:600;">Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--ink-3);">no claims</td></tr>'}</tbody>
+          </table>
+        </div>`);
     }
 
     if (section === 'all-records') {

@@ -171,6 +171,139 @@ def _bulk_synth_policies() -> dict[int, dict]:
     return bulk
 
 
+# ── Bulk synthetic CLAIMS ─────────────────────────────────────────────────
+# Mirrors the pattern used for policies: layer realistic-distribution claims
+# on top of the 4 curated narrative claims (CLM-001, 002, 005, 009).
+
+# Loss-cause distribution weighted to match Texas HO historical patterns
+_LOSS_CAUSE_DIST = [
+    # (cause, subtype, weight, typical_indemnity_K, cat_pct)
+    ("Wind",        "Wind",         25, ( 3,  35),  3),
+    ("Hail",        "Hail",         15, ( 4,  45), 18),  # most CAT events
+    ("WaterDamage", "WaterDamage",  18, ( 4,  25),  0),
+    ("Theft",       "Theft",         6, ( 1,  12),  0),
+    ("Fire",        "FireExternal",  6, (12, 180),  0),
+    ("Liability",   "Liability",     4, ( 5,  50),  0),
+    ("Vandalism",   "Vandalism",     4, ( 1,   8),  0),
+    ("Lightning",   "Lightning",     3, ( 2,  20),  0),
+    ("Freeze",      "Freeze",        5, ( 4,  30),  8),  # winter storm Uri-style
+    ("Other",       "Other",        14, ( 1,  20),  0),
+]
+
+
+def _bulk_synth_claims() -> list[dict]:
+    """Generate ~150 synthetic claims, one per policy with a sampled-frequency
+    multiplier. Each claim's loss-cause + amount + dates are drawn from realistic
+    distributions; CAT-flagged claims cluster on Hail/Freeze.
+    """
+    rng = _rng_module.Random(BULK_RANDOM_SEED + 2)
+    bulk: list[dict] = []
+    next_id = 61000
+    next_claim_num = 100
+
+    causes  = [c[0] for c in _LOSS_CAUSE_DIST]
+    weights = [c[2] for c in _LOSS_CAUSE_DIST]
+
+    # Per-filing target count: ~80 TPA, ~50 RES, ~20 CL
+    target = {"TPA": 80, "RES": 50, "CL": 20}
+
+    for plan_code, count in target.items():
+        # Sample policies in this filing that get claims (some get >1)
+        eligible_pids = [pid for pid, pc in POLICY_FILING.items() if pc == plan_code]
+        rng.shuffle(eligible_pids)
+        # Pick claims-per-policy: weighted so some get 2, rare 3
+        produced = 0
+        for pid in eligible_pids:
+            if produced >= count:
+                break
+            # 65% 1 claim, 25% 2, 10% 3
+            n_claims = rng.choices([1, 2, 3], weights=[65, 25, 10], k=1)[0]
+            pd = POLICY_DETAILS.get(pid, {})
+            zipcode = pd.get("zip", "78701")
+            for _ in range(n_claims):
+                if produced >= count:
+                    break
+                idx = rng.choices(range(len(_LOSS_CAUSE_DIST)), weights=weights, k=1)[0]
+                cause, subtype, _, (lo_k, hi_k), cat_pct = _LOSS_CAUSE_DIST[idx]
+                # Loss amount: triangular log-shaped — mode at low end, long tail high
+                indemnity = int(rng.triangular(lo_k, hi_k, lo_k * 1.8) * 1000)
+                # Pattern: 40% pure reserve, 50% paid+reserve, 10% paid only
+                pattern = rng.choices(["reserve_only", "paid_and_reserve", "paid_only"], weights=[40, 50, 10], k=1)[0]
+                if pattern == "reserve_only":
+                    indemnity_paid, indemnity_reserve = 0, indemnity
+                elif pattern == "paid_only":
+                    indemnity_paid, indemnity_reserve = indemnity, 0
+                else:
+                    paid_frac = rng.uniform(0.3, 0.8)
+                    indemnity_paid = int(indemnity * paid_frac)
+                    indemnity_reserve = indemnity - indemnity_paid
+                lae_paid = int(indemnity_paid * rng.uniform(0.02, 0.10)) if indemnity_paid else 0
+                rc_estimate = int(indemnity * rng.uniform(1.1, 1.6)) if cause in ("Wind", "Hail") and rng.random() < 0.45 else 0
+                acv_paid = indemnity_paid if rc_estimate else 0
+                is_cat = rng.random() < (cat_pct / 100.0)
+                is_roof = cause in ("Wind", "Hail") and rng.random() < 0.55
+
+                # Dates within Q3-Q4 2025 / Q1 2026 (clustered seasonally)
+                month = rng.choices([3, 6, 7, 8, 9, 10, 11, 12, 1, 2],
+                                    weights=[5, 6, 8, 10, 12, 14, 10, 8, 9, 8], k=1)[0]
+                year = 2025 if month >= 6 else 2026
+                day = rng.randint(1, 28)
+                lossdate = dt.datetime(year, month, day)
+                # Reported 0-3 days later, occasionally up to 60
+                lag = rng.choices([0, 1, 2, 3, 7, 14, 30, 60], weights=[15, 25, 20, 10, 8, 5, 4, 2], k=1)[0]
+                reporteddate = lossdate + dt.timedelta(days=lag)
+
+                claim_id = next_id
+                claim_num = f"CLM-{next_claim_num:03d}"
+                next_id += 1
+                next_claim_num += 1
+
+                bulk.append({
+                    "id": claim_id,
+                    "publicid": f"clm:{claim_id}",
+                    "claimnumber": claim_num,
+                    "policy_id": pid,
+                    "policy_number": pd.get("pol", f"POL-{pid - 2000:04d}"),
+                    "lossdate": lossdate,
+                    "reporteddate": reporteddate,
+                    "losscause": cause,
+                    "subtype": subtype,
+                    "indemnity_paid": indemnity_paid,
+                    "lae_paid": lae_paid,
+                    "indemnity_reserve": indemnity_reserve,
+                    "salvage": 0,
+                    "subrogation": 0,
+                    "rc_estimate": rc_estimate,
+                    "acv_paid": acv_paid,
+                    "is_roof_loss": is_roof,
+                    "previously_closed": False,
+                    "claim_id_tspr": f"{(claim_id % 100):02d}",
+                    "city": "Houston",  # populated by address lookup post-merge
+                    "zip": zipcode,
+                    "is_cat": is_cat,
+                })
+                produced += 1
+
+    # ── Inject deliberate violations so the new Section B/D rules fire ──
+    # B.11: 2 claims with a loss cause NOT in the TSPR set
+    for c in bulk[:2]:
+        c["losscause"] = "Earthquake"  # not a valid TSPR cause
+    # B.14: 3 claims with extreme reporting lag (>100 days)
+    for c in bulk[2:5]:
+        c["reporteddate"] = c["lossdate"] + dt.timedelta(days=rng.randint(100, 180))
+    # D.12: pick 2 hail/freeze claims, ensure they're high-severity and mark
+    # them to receive NULL isintwiazone in cc_claim() below
+    hail_freeze = sorted(
+        [c for c in bulk if c["losscause"] in ("Hail", "Freeze")],
+        key=lambda c: -(c["indemnity_paid"] + c["indemnity_reserve"]),
+    )
+    for c in hail_freeze[:2]:
+        c["indemnity_paid"] = max(c["indemnity_paid"], 35000)
+        c["needs_cat_zone_null"] = True
+
+    return bulk
+
+
 def _bulk_jobs_for(policy_id: int, plan_code: str, rng: _rng_module.Random) -> list[dict] | None:
     """Sample 0 or 1 cancellation/nonrenewal/declination job for a bulk policy."""
     dist = _REASON_DIST[plan_code]
@@ -922,6 +1055,10 @@ CLAIMS = [
     },
 ]
 
+# Append bulk synthetic claims so all the cc_* table generators auto-extend.
+# Each bulk claim mirrors the curated dict shape so no downstream code changes.
+CLAIMS.extend(_bulk_synth_claims())
+
 
 def cc_claim() -> pa.Table:
     n = len(CLAIMS)
@@ -937,7 +1074,12 @@ def cc_claim() -> pa.Table:
         "claimnumber": [c["claimnumber"] for c in CLAIMS],
         "policy_id": [c["policy_id"] for c in CLAIMS],
         "policynumber": [c["policy_number"] for c in CLAIMS],
-        "policyperiod_id": [5001 if c["policy_id"] == 2001 else 5010 for c in CLAIMS],
+        # Policy period id uses our 3000+pid scheme; falls back to 5001 for legacy curated rows
+        "policyperiod_id": [
+            (5001 if c["policy_id"] == 2001 else 5010) if c["policy_id"] in (2001, 2010)
+            else 3000 + c["policy_id"]
+            for c in CLAIMS
+        ],
         "uwcompany_id": [1001] * n,
         "naic_number": [NAIC] * n,
         "lossdate": [c["lossdate"] for c in CLAIMS],
@@ -954,7 +1096,8 @@ def cc_claim() -> pa.Table:
         "totalincurred": [c["indemnity_paid"] + c["lae_paid"] + c["indemnity_reserve"] for c in CLAIMS],
         "subrogationamount": [c["subrogation"] for c in CLAIMS],
         "salvageamount": [c["salvage"] for c in CLAIMS],
-        "isintwiazone": [False] * n,
+        # Most claims explicitly False; bulk-flagged D.12 demo claims get NULL
+        "isintwiazone": [None if c.get("needs_cat_zone_null") else False for c in CLAIMS],
         "createtime": [c["reporteddate"] for c in CLAIMS],
         "updatetime": [_ts(2026, 3, 31)] * n,
         "retiredvalue": [0] * n,
