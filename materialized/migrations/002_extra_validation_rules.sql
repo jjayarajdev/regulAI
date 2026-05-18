@@ -88,3 +88,66 @@ SELECT
   'ERROR', '28 TAC §5.7008(c)',
   1, CURRENT_TIMESTAMP()
 WHERE NOT EXISTS (SELECT 1 FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES WHERE rule_id = 'a-42-notice-date');
+
+-- ── D.13 Wind/Hail attribution required ────────────────────────────────────
+-- CAT-period claims with cause Wind or Hail must carry an explicit subtype
+-- so Section D's CAT attribution methodology is auditable.
+INSERT INTO INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES
+  (rule_id, rule_number, rule_name, target_table, target_id_expr,
+   violation_sql, violation_reason, severity, citation,
+   validation_version, generated_at)
+SELECT
+  'd-13-wind-hail-attribution', 'D.13', 'Rule D.13 — Wind/Hail Attribution',
+  'BRONZE.GW_CC_CLAIM', 'j.claimnumber',
+  $$j.losscause IN ('Wind', 'Hail') AND (j.losscausesubtype IS NULL OR TRIM(j.losscausesubtype) = '')$$,
+  'Wind or Hail loss-cause claims must carry an explicit subtype (Wind / Hail) for Section D CAT attribution',
+  'ERROR', 'TICO Stat Plan Rule D.13',
+  1, CURRENT_TIMESTAMP()
+WHERE NOT EXISTS (SELECT 1 FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES WHERE rule_id = 'd-13-wind-hail-attribution');
+
+-- ── F.0 Reason source indicator required ──────────────────────────────────
+-- Cancellation/Nonrenewal/Submission must carry a notice source so Section F
+-- field 27 (insurer-initiated vs insured-requested) can be derived.
+INSERT INTO INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES
+  (rule_id, rule_number, rule_name, target_table, target_id_expr,
+   violation_sql, violation_reason, severity, citation,
+   validation_version, generated_at)
+SELECT
+  'f-0-reason-source-indicator', 'F.0', 'Rule F.0 — Reason Source Indicator',
+  'BRONZE.GW_PC_JOB', 'j.publicid',
+  $$j.subtype IN ('Cancellation','Nonrenewal','Submission')
+    AND (j.noticesource IS NULL OR j.noticesource NOT IN ('Insurer','Insured'))$$,
+  'Notice source must be present and one of (Insurer | Insured) — Section F field 27 cannot be derived without it',
+  'ERROR', 'TICO Stat Plan Rule F.0; 28 TAC §5.7008(d)',
+  1, CURRENT_TIMESTAMP()
+WHERE NOT EXISTS (SELECT 1 FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES WHERE rule_id = 'f-0-reason-source-indicator');
+
+-- ── B.6 Number of families (HO 1-4) ────────────────────────────────────────
+INSERT INTO INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES
+  (rule_id, rule_number, rule_name, target_table, target_id_expr,
+   violation_sql, violation_reason, severity, citation,
+   validation_version, generated_at)
+SELECT
+  'b-6-number-of-families', 'B.6', 'Rule B.6 — Number of Families',
+  'BRONZE.GW_PC_HODWELLING', 'j.publicid',
+  'j.numberoffamilies IS NULL OR j.numberoffamilies < 1 OR j.numberoffamilies > 4',
+  'Homeowners forms apply only to 1- to 4-family dwellings (B.6)',
+  'ERROR', 'TICO Stat Plan Rule B.6',
+  1, CURRENT_TIMESTAMP()
+WHERE NOT EXISTS (SELECT 1 FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES WHERE rule_id = 'b-6-number-of-families');
+
+-- ── B.18 Texas ZIP first-digit-7 ───────────────────────────────────────────
+-- Texas residential ZIP codes always start with 7. Catches mis-coded or
+-- out-of-state policies that slipped into the HO line.
+INSERT INTO INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES
+  (rule_id, rule_number, rule_name, target_table, target_id_expr,
+   violation_sql, violation_reason, severity, citation,
+   validation_version, generated_at)
+SELECT
+  'b-18-tx-zip', 'B.18', 'Rule B.18 — Texas ZIP (first digit = 7)',
+  'BRONZE.GW_PC_HODWELLING', 'j.publicid',
+  $$j.zip IS NULL OR LEFT(j.zip, 1) <> '7'$$,
+  'Texas residential ZIP codes must begin with 7 — non-7-prefix indicates out-of-state or mis-coded data',
+  'ERROR', 'TICO Stat Plan Rule B.18',
+  1, CURRENT_TIMESTAMP()
+WHERE NOT EXISTS (SELECT 1 FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES WHERE rule_id = 'b-18-tx-zip');

@@ -766,7 +766,9 @@ def job() -> pa.Table:
         "declinereason": [r["declinereason"] for r in rows],
         "within60days": [r["within60days"] for r in rows],
         "noticedate": [r["noticedate"] for r in rows],
-        "noticesource": ["Insurer"] * n,
+        # Most jobs report "Insurer"; a few have noticesource missing so rule
+        # F.0 (reason-source-indicator-required) has something to fire on.
+        "noticesource": [(None if r["policy_id"] in (2010, 2012) else "Insurer") for r in rows],
         "aerialimageused": [False] * n,
         "thirdpartydatauseed": [False] * n,
         "twiadepopulation": [False] * n,
@@ -964,12 +966,15 @@ def hodwelling() -> pa.Table:
         "territory": [POLICY_DETAILS[p]["territory"] for p in policy_ids],
         "countyfips": ["48201"] * n,
         "placecodetdi": ["999"] * n,
-        "zip": [POLICY_DETAILS[p]["zip"] for p in policy_ids],
+        # POL-0014 ZIP intentionally non-TX (out-of-state 90210) so rule B.18 fires.
+        "zip": [('90210' if p == 2014 else POLICY_DETAILS[p]["zip"]) for p in policy_ids],
         "ziplus4": ["1234"] * n,
         "state": ["TX"] * n,
         "constructiontype": [POLICY_DETAILS[p]["construction"] for p in policy_ids],
         "yearbuilt": [POLICY_DETAILS[p]["year_built"] for p in policy_ids],
-        "numberoffamilies": [1] * n,
+        # Deliberate B.6 violation: POL-0007 dwelling has 5 families (out of 1-4 HO range).
+        # Deliberate B.18 violation: POL-0014 dwelling overridden to a non-TX ZIP below.
+        "numberoffamilies": [(5 if p == 2007 else 1) for p in policy_ids],
         "ppccode": ["3"] * n,
         "ppccodesplit": ["3W"] * n,
         "buildingcodecredit": [None] * n,
@@ -1087,7 +1092,9 @@ def cc_claim() -> pa.Table:
         "losslocation_id": [70000 + i for i in range(n)],
         "reporteddate": [c["reporteddate"] for c in CLAIMS],
         "losscause": [c["losscause"] for c in CLAIMS],
-        "losscausesubtype": [c["subtype"] for c in CLAIMS],
+        # CLM-001 / CLM-002 deliberately miss their subtype so rule D.13
+        # (Wind/Hail attribution required) has demo violations to fire on.
+        "losscausesubtype": [(None if c["claimnumber"] in ("CLM-001", "CLM-002") else c["subtype"]) for c in CLAIMS],
         "lobtypecode": ["HO"] * n,
         "coveragecategory": ["Dwelling"] * n,
         "state": ["TX"] * n,

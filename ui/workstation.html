@@ -1499,13 +1499,14 @@
      REGULATIONS
      ──────────────────────────────────────────────────────────── */
   .screen-regulations {
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 300px 1fr 360px;
     height: 100%;
-    max-width: 1320px;
+    max-width: 1600px;
     margin: 0 auto;
     border-left: 1px solid var(--line);
     border-right: 1px solid var(--line);
   }
+  @media (max-width: 1280px) { .screen-regulations { grid-template-columns: 280px 1fr; } .reg-violations-pane { display: none !important; } }
   .screen-regulations.active { display: grid; }
   .reg-side {
     border-right: 1px solid var(--line);
@@ -1513,6 +1514,26 @@
     overflow-y: auto;
     padding: 32px 0;
   }
+  .reg-violations-pane {
+    border-left: 1px solid var(--line);
+    background: var(--paper);
+    overflow-y: auto;
+    padding: 24px 18px;
+  }
+  .reg-violations-pane h4 {
+    font-size: 11.5px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--ink-3); margin: 0 0 12px;
+  }
+  .rvp-row {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 10px 12px; margin-bottom: 6px;
+    background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;
+    font-size: 12px; cursor: pointer; transition: background 0.15s;
+  }
+  .rvp-row:hover { background: #fee2e2; }
+  .rvp-row.pass { background: #f0fdf4; border-color: #bbf7d0; }
+  .rvp-policy { font-family: var(--f-mono); font-weight: 600; color: var(--ink); }
+  .rvp-reason { font-size: 11px; color: var(--ink-2); line-height: 1.4; }
   .reg-search {
     margin: 0 24px 22px;
     display: flex; align-items: center; gap: 8px;
@@ -2065,6 +2086,8 @@
     .screen-dashboard, .filing-main, .reg-main, .bul-main, .screen-audit { padding-left: 40px; padding-right: 40px; }
   }
 </style>
+<!-- vis-network: lightweight force-directed graph for the rule-neighborhood viz -->
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js" defer></script>
 </head>
 <body>
 
@@ -2247,6 +2270,8 @@
           </div>
         </div>
 
+        <div data-bind="filing-section-badges" style="margin-bottom:14px;"></div>
+
         <div class="filing-kanban-layout">
           <div class="kanban-board" data-bind="filing-kanban">
             <div class="k-col"><div class="k-col-h"><span>loading…</span></div></div>
@@ -2327,20 +2352,26 @@
           </div>
         </div>
 
-        <div class="reg-section data-card">
-          <div class="reg-h">Live records · <span data-bind="reg-data-table">BRONZE.GW_PC_JOB</span></div>
-          <div class="card" style="overflow:hidden;">
-            <table class="data-table">
-              <thead>
-                <tr><th>Policy</th><th>Action</th><th>Reason code</th><th>Notice date</th></tr>
-              </thead>
-              <tbody data-bind="reg-data-tbody">
-                <tr><td colspan="4" style="text-align:center;color:var(--ink-3);">loading…</td></tr>
-              </tbody>
-            </table>
+        <div class="reg-section">
+          <div class="reg-h">KG neighborhood
+            <span style="font-size:11px;color:var(--ink-3);font-weight:400;margin-left:8px;">Live from Neo4j · 1-hop graph rendered with vis-network</span>
+          </div>
+          <div data-bind="reg-kg-graph" style="width:100%;height:340px;background:#fafbfc;border:1px solid var(--ink-5);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:12px;">
+            Pick a rule to render its KG neighborhood
           </div>
         </div>
+
       </div>
+
+      <aside class="reg-violations-pane" data-bind="reg-violations-pane">
+        <h4 data-bind="rvp-heading">Violators · pick a rule</h4>
+        <div data-bind="rvp-body" style="font-size:12px;color:var(--ink-3);">Pick a rule from the tree to see records that fail (or pass) it on the active filing.</div>
+
+        <h4 style="margin-top:24px;">Live records · <span data-bind="reg-data-table" style="text-transform:none;letter-spacing:0;font-family:var(--f-mono);color:var(--accent);">BRONZE.GW_PC_JOB</span></h4>
+        <div data-bind="reg-data-tbody-pane" style="font-size:12px;">
+          <div style="color:var(--ink-3);">loading…</div>
+        </div>
+      </aside>
 
     </section>
 
@@ -2584,7 +2615,7 @@
       data: `
         <p>All numbers on this page are live:</p>
         <ul>
-          <li><b>Readiness, blockers, violations</b> ← <code>GET /api/rhs/validate/cancellations</code> (runs every rule from Snowflake's <code>REFERENCE.TSPR_VALIDATION_RULES</code> against the Bronze Guidewire feed)</li>
+          <li><b>Readiness, blockers, violations</b> ← <code>GET /api/rhs/validate</code> (runs every rule from Snowflake's <code>REFERENCE.TSPR_VALIDATION_RULES</code> against the Bronze Guidewire feed)</li>
           <li><b>Filing pipeline state</b> ← <code>/api/rhs/state</code> + violations count</li>
           <li><b>Wire preview rows</b> ← <code>/api/rhs/bronze/cancellations</code> (joined back to violations)</li>
           <li><b>Recent activity</b> — synthesized from current canon + validation state (no event store yet)</li>
@@ -2654,7 +2685,7 @@
       data: `
         <ul>
           <li><b>All rules (tree)</b> ← <code>GET /api/rhs/kg/rules</code> reads every <code>(:Rule)</code> node from the Neo4j canon</li>
-          <li><b>Executable subset</b> ← merged with <code>/api/rhs/validate/cancellations</code> matched by rule name</li>
+          <li><b>Executable subset</b> ← merged with <code>/api/rhs/validate</code> matched by rule name</li>
           <li><b>Live records</b> ← <code>/api/rhs/bronze/cancellations</code></li>
           <li><b>SQL predicate</b> ← <code>r.violation_sql</code> property on the KG Rule node</li>
         </ul>`,
@@ -2712,7 +2743,7 @@
         </ul>`,
       data: `
         <ul>
-          <li><b>Validation event</b> ← <code>/api/rhs/validate/cancellations</code> summary</li>
+          <li><b>Validation event</b> ← <code>/api/rhs/validate</code> summary</li>
           <li><b>Bulletin event</b> ← <code>/api/rhs/state</code> applied flag</li>
           <li><b>Bronze ingest</b> ← <code>/api/rhs/bronze/cancellations</code> count</li>
           <li><b>Reference materialized</b> ← derived</li>
@@ -2809,7 +2840,7 @@
     const [filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit, approval, anomalies] = await Promise.all([
       get('/filings'),
       get('/state'),
-      get('/validate/cancellations' + fq),
+      get('/validate' + fq),
       get('/validation'),
       get('/bronze/cancellations' + fq),
       get('/bronze/claims' + fq),
@@ -2845,7 +2876,7 @@
     if (!others.length) return;
     await Promise.all(others.map(async f => {
       try {
-        const r = await get('/validate/cancellations?filing=' + encodeURIComponent(f.id));
+        const r = await get('/validate?filing=' + encodeURIComponent(f.id));
         app.filingCounts[f.id] = r?.summary?.total_violations ?? null;
       } catch (e) { /* leave as undefined; rail falls back to '—' */ }
     }));
@@ -3388,6 +3419,34 @@ RETURN r, rel, n</pre>
       validate: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) || 'Must be YYYY-MM-DD',
     },
     'A.34-valid-codes': null, // reason-code path
+    'B.6': {
+      field: 'numberoffamilies', table: 'BRONZE.GW_PC_HODWELLING',
+      label: 'Number of families', kind: 'number',
+      hint: 'HO forms apply only to 1- to 4-family dwellings',
+      suggestions: [{ value: '1', why: 'single family' }, { value: '2', why: 'duplex' }, { value: '4', why: 'fourplex' }],
+      validate: (v) => { const n = +v; return (n >= 1 && n <= 4) || 'Must be 1–4'; },
+    },
+    'B.18': {
+      field: 'zip', table: 'BRONZE.GW_PC_HODWELLING',
+      label: 'Texas ZIP code', kind: 'text',
+      hint: 'TX ZIPs always begin with 7 (e.g. 78701)',
+      suggestions: [{ value: '78701', why: 'Austin' }, { value: '75201', why: 'Dallas' }, { value: '77024', why: 'Houston' }],
+      validate: (v) => /^7\d{4}$/.test(v) || 'Must be a 5-digit ZIP starting with 7',
+    },
+    'D.13': {
+      field: 'losscausesubtype', table: 'BRONZE.GW_CC_CLAIM',
+      label: 'Wind/Hail attribution subtype', kind: 'select',
+      hint: 'CAT-period Wind/Hail claims need an explicit subtype',
+      suggestions: [{ value: 'Wind', why: 'wind-driven' }, { value: 'Hail', why: 'hailstorm' }],
+      validate: (v) => ['Wind','Hail'].includes(v) || 'Pick Wind or Hail',
+    },
+    'F.0': {
+      field: 'noticesource', table: 'BRONZE.GW_PC_JOB',
+      label: 'Notice source (Section F field 27)', kind: 'select',
+      hint: 'Was this insurer-initiated or insured-requested?',
+      suggestions: [{ value: 'Insurer', why: 'carrier-initiated (e.g. underwriting decision)' }, { value: 'Insured', why: "at insured's request" }],
+      validate: (v) => ['Insurer','Insured'].includes(v) || 'Pick Insurer or Insured',
+    },
   };
 
   // Suggest 2–3 valid fixes for a reason-code violation based on its current code
@@ -3497,12 +3556,155 @@ RETURN r, rel, n</pre>
     return ASSIGNEE_POOL[idx];
   }
 
+  // Show a toast/overlay celebrating policies that flipped INVALID → VALID
+  // after a bulletin was applied. Also briefly flashes those policy IDs in
+  // the kanban so a stakeholder can see the recovery happen.
+  function showBulletinFlipToast(flippedPolicies, delta) {
+    const n = flippedPolicies.length;
+    if (n === 0 && (!delta || delta.closed_count === 0)) {
+      // Still show *something* — the bulletin landed even if nothing flipped on this filing
+      _showToast('Bulletin applied · canon updated · no records on this filing changed status.', 'info');
+      return;
+    }
+    const previewList = flippedPolicies.slice(0, 4).join(' · ') + (flippedPolicies.length > 4 ? ' · …' : '');
+    const msg = `
+      <div style="font-weight:600;font-size:14px;color:var(--good);">
+        ✓ Bulletin applied · ${n || delta.closed_count} record${(n || delta.closed_count) !== 1 ? 's' : ''} flipped to VALID
+      </div>
+      <div style="margin-top:6px;font-size:12px;color:var(--ink-2);">
+        ${previewList || (delta.closed || []).slice(0, 4).map(c => esc(c.policy_number)).join(' · ')}
+      </div>
+      <div style="margin-top:6px;font-size:11.5px;color:var(--ink-3);">
+        FILING_EXCEPTION rows updated with <code style="font-family:var(--f-mono);">resolution_action='bulletin'</code>.
+      </div>`;
+    _showToast(msg, 'success', 6000);
+
+    // Flash the flipped policy tickets in the kanban — they're gone from the
+    // failures list, but a ghost row makes the recovery visible.
+    setTimeout(() => {
+      const board = bind('filing-kanban');
+      if (!board) return;
+      flippedPolicies.forEach(p => {
+        const el = [...board.querySelectorAll('.ticket')].find(t => t.textContent.includes(p));
+        if (el) {
+          el.style.transition = 'background 0.5s, transform 0.5s';
+          el.style.background = '#dcfce7';
+          el.style.transform = 'scale(1.02)';
+          setTimeout(() => { el.style.background = ''; el.style.transform = ''; }, 1800);
+        }
+      });
+    }, 250);
+  }
+
+  function _showToast(html, kind = 'info', durationMs = 4500) {
+    let host = document.getElementById('toast-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'toast-host';
+      host.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:380px;';
+      document.body.appendChild(host);
+    }
+    const t = document.createElement('div');
+    const bg = kind === 'success' ? '#f0fdf4' : kind === 'error' ? '#fef2f2' : '#fafbfc';
+    const brd = kind === 'success' ? '#bbf7d0' : kind === 'error' ? '#fecaca' : 'var(--ink-5)';
+    t.style.cssText = `background:${bg};border:1px solid ${brd};border-radius:8px;padding:14px 18px;
+                       box-shadow:0 4px 12px rgba(0,0,0,0.08);font-size:13px;line-height:1.5;color:var(--ink);
+                       transform:translateX(420px);transition:transform 0.3s;`;
+    t.innerHTML = html;
+    host.appendChild(t);
+    requestAnimationFrame(() => { t.style.transform = 'translateX(0)'; });
+    setTimeout(() => {
+      t.style.transform = 'translateX(420px)';
+      setTimeout(() => t.remove(), 400);
+    }, durationMs);
+  }
+
   // True when the rule that flagged this violation targets the claims table —
   // claim-side rules need a different ticket layout (claim id + Claims popout
   // action) since the per-policy manual-fix editor doesn't apply.
   function isClaimVio(vio, rules) {
     const r = (rules || []).find(x => x.rule_id === vio.rule_id);
     return !!(r && (r.target_table || '').toUpperCase().includes('GW_CC_CLAIM'));
+  }
+
+  // Derive the TSPR section (A-G) for a rule.
+  // - Rules numbered "A.34", "B.11", etc → take the letter prefix.
+  // - Plain numeric rules (22, 30, 34, 40, 42) live in Section A — these are
+  //   the auto-generated stat-plan rules that lost their section letter at
+  //   KG-extraction time.
+  // - "A.34-valid-codes" → 'A'.
+  // - Falls back via rule_name match.
+  function sectionForRule(rule) {
+    if (!rule) return null;
+    const num = String(rule.rule_number || '');
+    const m1 = num.match(/^([A-G])\.?\d/i);
+    if (m1) return m1[1].toUpperCase();
+    if (/^\d+$/.test(num)) return 'A';
+    const name = String(rule.rule_name || '');
+    const m2 = name.match(/\b(?:Rule|Section)\s+([A-G])\b/i);
+    if (m2) return m2[1].toUpperCase();
+    return 'A';   // sensible default for the stat plan's reason-code rules
+  }
+
+  // Section labels mirror the TSPR record layout.
+  const TSPR_SECTIONS = [
+    { id: 'A', label: 'A · General' },
+    { id: 'B', label: 'B · Premium' },
+    { id: 'C', label: 'C · Premium recs' },
+    { id: 'D', label: 'D · Loss recs' },
+    { id: 'E', label: 'E · Cancellation' },
+    { id: 'F', label: 'F · Add\'l cancel' },
+    { id: 'G', label: 'G · Actual counts' },
+  ];
+
+  function renderFilingSectionBadges(v) {
+    const host = bind('filing-section-badges');
+    if (!host) return;
+    if (!v?.rules?.length) { host.innerHTML = ''; return; }
+    // Tally rules + violations per section
+    const counts = {};
+    for (const r of v.rules) {
+      const sec = sectionForRule(r);
+      const c = counts[sec] || (counts[sec] = { rules: 0, fails: 0, vios: 0 });
+      c.rules += 1;
+      if (r.violation_count > 0) c.fails += 1;
+      c.vios += (r.violation_count || 0);
+    }
+    const sel = app.sectionFilter || null;
+    const cards = TSPR_SECTIONS.map(s => {
+      const c = counts[s.id];
+      const has = !!c;
+      const fail = has && c.fails > 0;
+      const active = sel === s.id;
+      // Coloring
+      let bg, fg, brd;
+      if (!has)        { bg = '#fafbfc'; fg = 'var(--ink-4)'; brd = 'var(--ink-5)'; }
+      else if (fail)   { bg = '#fef2f2'; fg = 'var(--bad)';   brd = '#fecaca'; }
+      else             { bg = '#f0fdf4'; fg = 'var(--good)';  brd = '#bbf7d0'; }
+      const ring = active ? 'box-shadow:0 0 0 2px var(--accent);' : '';
+      const click = has ? `data-action="toggle-section-filter" data-section="${esc(s.id)}"` : '';
+      const tally = has
+        ? (fail
+            ? `<span style="font-family:var(--f-mono);font-weight:600;">${c.fails}/${c.rules}</span><span style="font-size:10.5px;opacity:.7;margin-left:4px;">fail</span>`
+            : `<span style="font-family:var(--f-mono);">${c.rules}</span><span style="font-size:10.5px;opacity:.7;margin-left:4px;">pass</span>`)
+        : `<span style="font-size:10.5px;">—</span>`;
+      return `
+        <div ${click} style="flex:1;min-width:120px;border:1px solid ${brd};background:${bg};color:${fg};
+                    border-radius:8px;padding:10px 12px;${ring}
+                    ${has ? 'cursor:pointer;' : 'opacity:0.6;'}">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <div style="font-weight:600;font-size:12.5px;">${esc(s.label)}</div>
+            ${has ? `<div style="font-size:11px;font-family:var(--f-mono);opacity:.7;">${c.vios}v</div>` : ''}
+          </div>
+          <div style="margin-top:4px;font-size:13px;">${tally}</div>
+        </div>`;
+    }).join('');
+    const clearBtn = sel
+      ? `<button class="sc-secondary" data-action="clear-section-filter" style="font-size:11px;">Clear filter</button>`
+      : '';
+    host.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:stretch;">${cards}</div>
+      ${sel ? `<div style="margin-top:8px;font-size:12px;color:var(--ink-3);">Filtering kanban to Section ${esc(sel)}. ${clearBtn}</div>` : ''}`;
   }
 
   function renderTicket(vio, fixable, idx, rules) {
@@ -3551,8 +3753,13 @@ RETURN r, rel, n</pre>
   function renderFilingKanban(v, total, pass, fail, vios, fixable, manual) {
     const board = bind('filing-kanban');
     if (!board) return;
+    const sel = app.sectionFilter || null;
     const buckets = { high: [], med: [], low: [] };
     (v.violations || []).forEach((vio, i) => {
+      if (sel) {
+        const rule = (v.rules || []).find(r => r.rule_id === vio.rule_id);
+        if (sectionForRule(rule) !== sel) return;
+      }
       buckets[violationSeverity(vio, v.rules)].push({ vio, idx: i });
     });
     const col = (lbl, key, label) => {
@@ -3669,6 +3876,7 @@ RETURN r, rel, n</pre>
           <button class="sc-secondary" data-detail="claims">Claims · ${(app.data.claims?.rows || []).length}</button>
           <button class="sc-secondary" data-detail="rules">Rules · ${total}</button>
           <button class="sc-secondary" data-detail="anomalies">Anomalies · ${(app.data.anomalies?.anomalies || []).length}</button>
+          <button class="sc-secondary" data-detail="compare">Compare filings</button>
           <button class="sc-secondary" data-detail="wire">Wire preview</button>
         </span>`;
       // Wire the buttons
@@ -3692,7 +3900,8 @@ RETURN r, rel, n</pre>
         { id: 'analyst_signed',    label: 'Analyst signed',   role: 'actuary', when: 'actuary sign-off' },
         { id: 'actuary_approved',  label: 'Actuary approved', role: 'officer', when: 'officer sign-off' },
         { id: 'officer_approved',  label: 'Officer approved', role: null,      when: 'ready to seal' },
-        { id: 'submitted',         label: 'Submitted',        role: null,      when: ap.acked_at ? 'ACKed' : 'awaiting ACK' },
+        { id: 'submitted',         label: 'Submitted',        role: 'ack',     when: 'awaiting TICO ACK' },
+        { id: 'acked',             label: 'TICO ACKed',       role: null,      when: 'chain of custody complete' },
       ];
       // Status → index in STAGES. If status is 'resolving', current is index 1.
       // 'validated' is index 2 (and means analyst is the next signer).
@@ -3709,9 +3918,14 @@ RETURN r, rel, n</pre>
         // Show an approve button if this is the current stage AND user has a role to play
         const isCurrent = i === visIdx;
         const canAct = isCurrent && s.role && (ap.open_blockers === 0);
-        const action = canAct
-          ? `<button class="ticket-action" style="margin-top:6px;" data-action="approve-as" data-role="${esc(s.role)}">Approve as ${esc(s.role)} →</button>`
-          : '';
+        let action = '';
+        if (canAct) {
+          if (s.role === 'ack') {
+            action = `<button class="ticket-action" style="margin-top:6px;" data-action="receive-ack">Simulate TICO ACK →</button>`;
+          } else {
+            action = `<button class="ticket-action" style="margin-top:6px;" data-action="approve-as" data-role="${esc(s.role)}">Approve as ${esc(s.role)} →</button>`;
+          }
+        }
         return `
         <div class="pp-step ${stateClass}">
           <div class="pp-num">${stateClass === 'done' ? '' : `<span>${i+1}</span>`}</div>
@@ -3723,6 +3937,9 @@ RETURN r, rel, n</pre>
         </div>`;
       }).join('')}</div>`;
     }
+
+    // ── Per-section A-G badges (above the kanban) ──
+    renderFilingSectionBadges(v);
 
     // ── Filing kanban + activity (Phase 2 redesign) ──
     renderFilingKanban(v, total, pass, fail, vios, fixable, manual);
@@ -4017,6 +4234,96 @@ RETURN r, rel, n</pre>
         </div>`);
     }
 
+    if (section === 'compare') {
+      const filings = app.data.filings?.filings || [];
+      if (filings.length < 2) {
+        openDetail('Filing Workshop', 'Filing comparison',
+          '<div style="padding:20px;color:var(--ink-3);">Need at least 2 filings configured to compare.</div>');
+        return;
+      }
+      // Show a loading state first, then fetch in parallel
+      openDetail('Filing Workshop', `Comparing <em>${filings.length}</em> filings`,
+        '<div style="padding:20px;color:var(--ink-3);">Loading per-filing snapshots…</div>');
+      Promise.all(filings.map(f =>
+        Promise.all([
+          get('/validate?filing=' + encodeURIComponent(f.id)),
+          get('/anomalies?filing=' + encodeURIComponent(f.id)),
+          get('/filing/' + encodeURIComponent(f.id) + '/approval-state'),
+          fetch('/api/rhs/filing/' + encodeURIComponent(f.id) + '/file').then(r => r.ok ? r.json() : null).catch(() => null),
+        ]).then(([val, anomalies, approval, file]) => ({ filing: f, val, anomalies, approval, file }))
+      )).then(snaps => {
+        // Compute the "max" per row for delta highlighting
+        const maxOf = (key) => Math.max(...snaps.map(s => Number(s[key] || 0)));
+        const r = (s) => ({
+          recs:     (s.file?.record_count || 0),
+          bytes:    (s.file?.byte_count || 0),
+          rules:    (s.val?.summary?.rules_run || 0),
+          fails:    (s.val?.summary?.rules_failing || 0),
+          vios:     (s.val?.summary?.total_violations || 0),
+          anom:     (s.anomalies?.count || 0),
+          state:    (s.approval?.status || '—'),
+          ackedAt:  s.approval?.acked_at || '',
+        });
+        const stats = snaps.map(s => ({ filing: s.filing, ...r(s) }));
+        const rows = [
+          { key: 'recs',  label: 'Records (P+L+C)',     fmt: (n) => n.toString(), cmp: (a, b) => b - a },
+          { key: 'bytes', label: 'ASCII bytes',          fmt: (n) => n.toLocaleString(), cmp: (a, b) => b - a },
+          { key: 'rules', label: 'Rules run',             fmt: (n) => n.toString(), cmp: (a, b) => 0 },
+          { key: 'fails', label: 'Rules failing',          fmt: (n) => n.toString(), cmp: (a, b) => a - b, lower: true },
+          { key: 'vios',  label: 'Open violations',        fmt: (n) => n.toString(), cmp: (a, b) => a - b, lower: true },
+          { key: 'anom',  label: 'Anomalies',              fmt: (n) => n.toString(), cmp: (a, b) => a - b, lower: true },
+        ];
+        const headerCells = stats.map(s => `
+          <th style="padding:14px 12px;text-align:left;border-bottom:1px solid var(--ink-5);min-width:160px;">
+            <div style="font-weight:600;font-size:13px;">${esc(s.filing.id)}</div>
+            <div style="font-size:11px;color:var(--ink-3);margin-top:2px;">${esc(s.filing.plan_name)}</div>
+            <div style="font-size:10.5px;color:var(--ink-3);margin-top:2px;">${esc(s.filing.cadence)} · due ${esc(s.filing.due_date)}</div>
+            <div style="margin-top:6px;"><span class="ticket-pill" style="text-transform:capitalize;">${esc(s.state.replace(/_/g, ' '))}</span></div>
+          </th>`).join('');
+        const dataRows = rows.map(rd => {
+          const values = stats.map(s => s[rd.key]);
+          // Determine which value is "best" — for fails/vios/anom lower is better, otherwise higher
+          const best = rd.lower
+            ? Math.min(...values.filter(v => v !== undefined && v !== null))
+            : Math.max(...values.filter(v => v !== undefined && v !== null));
+          return `
+            <tr>
+              <td style="padding:10px 12px;color:var(--ink-3);font-size:12px;border-bottom:1px solid var(--ink-6,#f1f5f9);">${esc(rd.label)}</td>
+              ${stats.map(s => {
+                const v = s[rd.key];
+                const isBest = v === best && values.filter(x => x === best).length === 1;
+                return `<td style="padding:10px 12px;border-bottom:1px solid var(--ink-6,#f1f5f9);font-family:var(--f-mono);${isBest ? 'font-weight:600;color:var(--good);' : ''}">${esc(rd.fmt(v))}</td>`;
+              }).join('')}
+            </tr>`;
+        }).join('');
+        // Pass-rate cards across the top
+        const passCards = stats.map(s => {
+          const pct = s.rules ? Math.round(((s.rules - s.fails) / s.rules) * 100) : 0;
+          const color = pct === 100 ? 'var(--good)' : (pct >= 80 ? 'var(--amber)' : 'var(--bad)');
+          return `
+            <div style="flex:1;padding:14px;border:1px solid var(--ink-5);border-radius:8px;background:var(--paper);">
+              <div style="font-size:11px;color:var(--ink-3);">${esc(s.filing.id)} · pass rate</div>
+              <div style="font-size:26px;font-weight:600;color:${color};margin-top:4px;">${pct}<span style="font-size:14px;">/100</span></div>
+              <div style="font-size:11px;color:var(--ink-3);margin-top:2px;">${s.fails} fail · ${s.vios} viol · ${s.anom} anom</div>
+            </div>`;
+        }).join('');
+        openDetail('Filing Workshop', `Comparing <em>${stats.length}</em> filings`, `
+          <div style="display:flex;gap:12px;margin-bottom:18px;">${passCards}</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr><th style="padding:14px 12px;border-bottom:1px solid var(--ink-5);"></th>${headerCells}</tr></thead>
+            <tbody>${dataRows}</tbody>
+          </table>
+          <div style="margin-top:14px;font-size:11.5px;color:var(--ink-3);line-height:1.55;">
+            Green-bold = best value for that row (lowest fails/violations/anomalies, highest record-count).
+            Comparison is real-time — recomputes each open. For trend over time, persist FILING_BATCH snapshots and chart them.
+          </div>`);
+      }).catch(e => {
+        openDetail('Filing Workshop', 'Filing comparison',
+          `<div style="padding:20px;color:var(--bad);">Failed to load snapshots: ${esc(String(e))}</div>`);
+      });
+      return;
+    }
+
     if (section === 'anomalies') {
       const items = app.data.anomalies?.anomalies || [];
       const sev = (s) => (s || '').toUpperCase() === 'WARN'
@@ -4203,15 +4510,40 @@ RETURN r, rel, n</pre>
     renderRegulationsDataTable();
   }
 
-  // Re-renders just the live-records table; highlights driven by which
-  // rule is currently selected so the user can see *this rule's* violators.
+  // Re-renders the right-side pane: rule-specific violators (top) and the
+  // bronze record sample (bottom). Highlights driven by which rule is
+  // currently selected.
   function renderRegulationsDataTable() {
     const v = app.data.val;
     const bronze = app.data.bronze;
-    const tbody = bind('reg-data-tbody');
-    if (!tbody || !bronze || !v) return;
-
     const sel = app.selectedRule;
+    const tbodyPane = bind('reg-data-tbody-pane');
+    const rvpHead = bind('rvp-heading');
+    const rvpBody = bind('rvp-body');
+
+    if (!v || !bronze) return;
+
+    // ── Pane 3 top: per-rule violators ──
+    if (rvpHead && rvpBody) {
+      if (!sel) {
+        rvpHead.textContent = 'Violators · pick a rule';
+        rvpBody.innerHTML = '<div style="color:var(--ink-3);">Pick a rule on the left to see the records that fail it on the active filing.</div>';
+      } else {
+        const rows = (v.violations || []).filter(x => x.rule_id === sel.rule_id);
+        rvpHead.innerHTML = `Violators of <b style="color:var(--bad);font-weight:600;">${esc(sel.rule_number || '')}</b> · ${rows.length} on ${esc(app.currentFilingId)}`;
+        if (rows.length === 0) {
+          rvpBody.innerHTML = `<div class="rvp-row pass"><div style="color:var(--good);">✓ no records violate this rule</div></div>`;
+        } else {
+          rvpBody.innerHTML = rows.slice(0, 50).map(r => `
+            <div class="rvp-row" data-action="show-policy" data-policy="${esc(r.policy_number)}">
+              <div class="rvp-policy">${esc(r.policy_number)}${r.record_id && r.record_id !== r.policy_number ? ` · ${esc(r.record_id)}` : ''}</div>
+              <div class="rvp-reason">${esc(r.violation_reason || '')}</div>
+            </div>`).join('') + (rows.length > 50 ? `<div style="font-size:11px;color:var(--ink-3);text-align:center;padding:8px;">+ ${rows.length - 50} more</div>` : '');
+        }
+      }
+    }
+
+    // ── Pane 3 bottom: bronze sample (compact, not full table) ──
     // Build a map: policy_number → array of rule_numbers it violates
     const violationsByPolicy = {};
     (v.violations || []).forEach(vio => {
@@ -4227,12 +4559,15 @@ RETURN r, rel, n</pre>
     // Update the section header to reflect the dynamic state
     const dataTableLabel = bind('reg-data-table');
     if (dataTableLabel && sel) {
-      dataTableLabel.innerHTML = `${esc(sel.target_table || 'BRONZE.GW_PC_JOB')}  <span style="font-size:11px;color:var(--ink-3);margin-left:8px;">highlighting ${violSet.size} record${violSet.size !== 1 ? 's' : ''} that violate <b style="color:var(--bad);">${esc(sel.rule_number || sel.rule_name || '')}</b></span>`;
+      dataTableLabel.textContent = sel.target_table || 'BRONZE.GW_PC_JOB';
     } else if (dataTableLabel) {
       dataTableLabel.textContent = 'BRONZE.GW_PC_JOB';
     }
 
-    tbody.innerHTML = bronze.rows.map(r => {
+    // Compact row list (first 30) — keeps the pane scannable
+    if (tbodyPane) {
+      const items = (bronze.rows || []).slice(0, 30);
+      tbodyPane.innerHTML = items.map(r => {
       const isSelectedFail = violSet.has(r.policy);
       const allViolations = violationsByPolicy[r.policy] || [];
       // Show a small "+N more" hint if a row is highlighted for the selected rule
@@ -4244,13 +4579,73 @@ RETURN r, rel, n</pre>
           ? ` <span style="font-size:10.5px;color:var(--amber);font-family:var(--f-sans);" title="fails ${allViolations.map(x => x.rule_number).join(', ')}">⚠ fails other rule${allViolations.length > 1 ? 's' : ''}</span>`
           : '';
       return `
-        <tr class="clk-row ${isSelectedFail ? 'fail' : ''}" data-action="show-policy" data-policy="${esc(r.policy)}">
-          <td>${esc(r.policy)}${otherHint}</td>
-          <td>${esc(r.action || '—')}</td>
-          <td>${esc(r.reason_code || '—')}</td>
-          <td>${esc(r.noticedate || '—')}</td>
-        </tr>`;
-    }).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--ink-3);">no rows</td></tr>`;
+        <div class="rvp-row ${isSelectedFail ? '' : 'pass'}" data-action="show-policy" data-policy="${esc(r.policy)}">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+            <span class="rvp-policy" style="${isSelectedFail ? 'color:var(--bad);' : ''}">${esc(r.policy)}</span>
+            <span class="rvp-reason" style="font-family:var(--f-mono);">${esc(r.reason_code || '—')}</span>
+          </div>
+          <div class="rvp-reason">${esc(r.action || '—')} · ${esc(r.noticedate || '—')}${otherHint}</div>
+        </div>`;
+    }).join('') || `<div style="color:var(--ink-3);">no rows</div>`;
+    }   // close `if (tbodyPane)`
+  }
+
+  // Renders the rule's KG neighborhood graph using vis-network. Pulls the
+  // 1-hop neighborhood from `/api/rhs/kg/neighborhood/{rule_id}` and lays it
+  // out with the library's force-directed default. Re-running disposes the
+  // previous network so the canvas doesn't accumulate stale state.
+  let _kgNetwork = null;
+  async function renderKgGraph(ruleId) {
+    const host = bind('reg-kg-graph');
+    if (!host || !ruleId) return;
+    if (typeof vis === 'undefined') {
+      host.innerHTML = '<div style="color:var(--ink-3);">vis-network library not loaded yet — reload the page.</div>';
+      return;
+    }
+    host.innerHTML = '<div style="color:var(--ink-3);">Loading neighborhood…</div>';
+    try {
+      const r = await fetch('/api/rhs/kg/neighborhood/' + encodeURIComponent(ruleId));
+      const data = await r.json();
+      if (!data.nodes || !data.nodes.length) {
+        host.innerHTML = '<div style="color:var(--ink-3);">No KG neighborhood found for this rule.</div>';
+        return;
+      }
+      host.innerHTML = '';   // wipe loading state
+      if (_kgNetwork) { try { _kgNetwork.destroy(); } catch (e) {} _kgNetwork = null; }
+      const colorByGroup = {
+        root:     { background: '#6366f1', border: '#4338ca', font: '#fff' },
+        Rule:     { background: '#dbeafe', border: '#3b82f6', font: '#1e3a8a' },
+        Citation: { background: '#fef3c7', border: '#f59e0b', font: '#78350f' },
+        Section:  { background: '#f3e8ff', border: '#a855f7', font: '#581c87' },
+        CodeValue:{ background: '#f0fdf4', border: '#22c55e', font: '#14532d' },
+      };
+      const visNodes = data.nodes.map(n => {
+        const c = colorByGroup[n.group] || { background: '#f1f5f9', border: '#94a3b8', font: '#334155' };
+        return {
+          id: n.id, label: n.label, title: n.title || n.label,
+          shape: n.shape || 'dot',
+          color: c,
+          font: { color: c.font || '#0f172a', size: 12 },
+          borderWidth: n.group === 'root' ? 3 : 1,
+        };
+      });
+      const visEdges = data.edges.map((e, i) => ({
+        id: `e${i}`, from: e.from, to: e.to,
+        label: e.label.toLowerCase().replace(/_/g, ' '),
+        font: { size: 9, color: '#64748b', strokeWidth: 0 },
+        arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+        color: { color: '#cbd5e1' },
+        smooth: { type: 'continuous' },
+      }));
+      _kgNetwork = new vis.Network(host, { nodes: visNodes, edges: visEdges }, {
+        layout: { improvedLayout: true },
+        physics: { stabilization: { iterations: 80 }, barnesHut: { gravitationalConstant: -2400, springLength: 110 } },
+        interaction: { hover: true, tooltipDelay: 200 },
+        nodes: { font: { face: 'system-ui, -apple-system, sans-serif' } },
+      });
+    } catch (e) {
+      host.innerHTML = `<div style="color:var(--bad);">Failed to load neighborhood: ${esc(String(e))}</div>`;
+    }
   }
 
   function renderRegulationsDetail() {
@@ -4298,6 +4693,7 @@ RETURN r, rel, n</pre>
       const sqlSection = bind('reg-sql-body')?.closest('.reg-section');
       if (sqlSection) sqlSection.style.display = '';
       setText('reg-data-table', r.target_table || 'BRONZE.GW_PC_JOB');
+      renderKgGraph(r.rule_id);
       return;
     }
 
@@ -4350,6 +4746,7 @@ RETURN r, rel, n</pre>
       if (sqlSection) sqlSection.style.display = 'none';
       const dataCard = bind('reg-data-tbody')?.closest('.reg-section');
       if (dataCard) dataCard.style.display = 'none';
+      renderKgGraph(kg.id);
       return;
     }
 
@@ -4853,6 +5250,29 @@ ${f.warning ? '⚠ ' + f.warning + '\n\n' : ''}`;
       finally { el.disabled = false; el.textContent = orig; }
     }
 
+    if (action === 'toggle-section-filter') {
+      const s = el.dataset.section;
+      app.sectionFilter = (app.sectionFilter === s) ? null : s;
+      renderFiling();
+    }
+    if (action === 'clear-section-filter') {
+      app.sectionFilter = null;
+      renderFiling();
+    }
+
+    if (action === 'receive-ack') {
+      el.disabled = true;
+      const orig = el.textContent;
+      el.textContent = 'Waiting for TICO…';
+      try {
+        const r = await fetch(`/api/rhs/filing/${encodeURIComponent(app.currentFilingId)}/ack`, { method: 'POST' });
+        const f = await r.json();
+        if (!r.ok) alert(`ACK failed: ${f?.detail || 'HTTP ' + r.status}`);
+        await refresh();
+      } catch (e) { alert(`ACK failed: ${e}`); }
+      finally { el.disabled = false; el.textContent = orig; }
+    }
+
     if (action === 'approve-as') {
       const role = el.dataset.role;
       el.disabled = true;
@@ -5092,9 +5512,25 @@ ${f.warning ? '⚠ ' + f.warning + '\n\n' : ''}`;
     if (action === 'apply-bulletin-now') {
       el.disabled = true;
       const t = el.textContent; el.textContent = 'Applying… (~30s)';
+      // Snapshot pre-flip violating policies (for this filing) so we can highlight them
+      const preFailing = new Set(
+        (app.data.val?.violations || [])
+          .filter(v => /^L/.test(reasonCodeFor(v.policy_number) || ''))
+          .map(v => v.policy_number)
+      );
       const res = await post('/bulletin/apply');
-      if (res && res.ok) { await refresh(); el.disabled = false; el.textContent = t; }
-      else { el.disabled = false; el.textContent = t; alert('Apply failed — check server logs'); }
+      if (res && res.ok) {
+        await refresh();
+        el.disabled = false; el.textContent = t;
+        // Compute the flip set: policies that were L-failing and no longer appear in violations
+        const stillFailing = new Set((app.data.val?.violations || []).map(v => v.policy_number));
+        const flipped = [...preFailing].filter(p => !stillFailing.has(p));
+        const myFilingDelta = (res.deltas && res.deltas[app.currentFilingId]) || { closed_count: 0, closed: [] };
+        showBulletinFlipToast(flipped, myFilingDelta);
+      } else {
+        el.disabled = false; el.textContent = t;
+        alert('Apply failed — check server logs');
+      }
     }
   });
 

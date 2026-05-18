@@ -185,7 +185,7 @@ GET  /api/rhs/reference/table/{name}     generic table viewer
 GET  /api/rhs/kg/reason-code/{code}      KG-side view of a code
 GET  /api/rhs/bronze/cancellations       Bronze cancellation jobs
 GET  /api/rhs/validation                 BRONZE ⋈ REFERENCE join verdict
-GET  /api/rhs/validate/cancellations     full rule engine pass
+GET  /api/rhs/validate                   full rule engine pass (legacy alias: /validate/cancellations)
 GET  /api/rhs/bulletin                   bulletin markdown
 POST /api/rhs/bulletin/apply             materialize bulletin → KG → SF
 POST /api/rhs/bulletin/reset             roll back the bulletin

@@ -148,7 +148,8 @@ def _ensure_filing_batch(filing_id: str, status: str = "draft") -> str:
 
 
 @_audit_safe
-def _record_validation_run(filing_id: str, rule_results: list[dict], violations: list[dict]) -> str | None:
+def _record_validation_run(filing_id: str, rule_results: list[dict], violations: list[dict],
+                           resolution_action: str | None = None) -> str | None:
     """Persist a complete validation run to GOLD_AUDIT.RULE_MATCH_RESULT.
 
     Writes one row per rule × failing-record (pass-rows are summarized by absence).
@@ -224,9 +225,12 @@ def _record_validation_run(filing_id: str, rule_results: list[dict], violations:
         )
         if key not in current_keys:
             exc_id = row.get("exception_id") or row.get("EXCEPTION_ID")
+            extra = ""
+            if resolution_action:
+                extra = f", resolution_action = {_sql_quote(resolution_action)}"
             query(
                 f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
-                f"SET resolution_status = 'fixed', resolved_at = CURRENT_TIMESTAMP() "
+                f"SET resolution_status = 'fixed', resolved_at = CURRENT_TIMESTAMP() {extra} "
                 f"WHERE exception_id = {_sql_quote(exc_id)}"
             )
 
@@ -413,7 +417,8 @@ def reference_table(table_name: str) -> JSONResponse:
     return JSONResponse({"table": safe, "rows": _jsonify(rows), "count": len(rows)})
 
 
-@router.get("/validate/cancellations")
+@router.get("/validate")
+@router.get("/validate/cancellations")   # legacy alias — pre-dates the rule engine running everything
 def validate_cancellations(filing: str | None = None) -> JSONResponse:
     """Run every rule from REFERENCE.TSPR_VALIDATION_RULES against BRONZE.
 
@@ -1305,6 +1310,52 @@ def filing_approve(filing_id: str, body: dict = Body(...)) -> JSONResponse:
     return JSONResponse({"filing_id": filing_id, "role": role, "prev_state": current, "new_state": next_state, "actor": actor})
 
 
+@router.post("/filing/{filing_id}/ack")
+def filing_ack(filing_id: str) -> JSONResponse:
+    """Record a regulator (TICO) acknowledgment for the most recent submission.
+
+    In real life this would be an inbound webhook from TICO ShareFile carrying
+    the receipt id. For the demo we synthesize one. Requires the filing to be
+    in 'submitted' state.
+    """
+    rows = query(
+        f"SELECT status FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"no filing batch for {filing_id}")
+    current = (rows[0].get("status") or rows[0].get("STATUS") or "").lower()
+    if current != "submitted":
+        raise HTTPException(
+            status_code=409,
+            detail=f"cannot ACK in state '{current}' — filing must be 'submitted'",
+        )
+
+    receipt = "TICO-ACK-" + _uuid.uuid4().hex[:8].upper()
+    # Update the most recent FILING_SUBMISSION row (the seal we want to ACK)
+    query(
+        f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
+        f"SET acked_at = CURRENT_TIMESTAMP(), acknowledgment = {_sql_quote(receipt)}, status = 'acked' "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)} "
+        f"  AND submission_id = (SELECT submission_id FROM INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
+        f"                       WHERE filing_batch_id = {_sql_quote(filing_id)} "
+        f"                       ORDER BY submitted_at DESC LIMIT 1)"
+    )
+    query(
+        f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"SET status = 'acked', acked_at = CURRENT_TIMESTAMP() "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+    )
+    _record_action(
+        filing_id, "regulator_ack",
+        actor="TICO ShareFile",
+        target_record=receipt,
+        summary=f"Regulator acknowledged · receipt {receipt}",
+        details={"receipt_id": receipt, "prev_state": "submitted", "new_state": "acked"},
+    )
+    return JSONResponse({"filing_id": filing_id, "receipt_id": receipt, "new_state": "acked"})
+
+
 @router.get("/filing/{filing_id}/approval-state")
 def filing_approval_state(filing_id: str) -> JSONResponse:
     """Compact state useful for rendering the sign-off chain widget."""
@@ -1335,6 +1386,72 @@ def filing_approval_state(filing_id: str) -> JSONResponse:
         "submitted_at":  r.get("submitted_at"),
         "acked_at":      r.get("acked_at"),
     })
+
+
+@router.get("/kg/neighborhood/{rule_id}")
+def kg_neighborhood(rule_id: str, depth: int = 1) -> JSONResponse:
+    """Return a graph slice centered on `rule_id` for vis-network rendering.
+
+    Pulls the rule's immediate neighbors: cited Citation, parent Section,
+    companion Rules, and any KG nodes connected by named relationships.
+    Output shape is {nodes: [{id,label,group,...}], edges: [{from,to,label}]}.
+    """
+    if depth < 1 or depth > 3:
+        raise HTTPException(status_code=400, detail="depth must be 1..3")
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        # Variable-length match to grab the 1-2 hop neighborhood
+        cypher = f"""
+            MATCH (r:Rule)
+            WHERE r.id = $rid OR elementId(r) = $rid
+            OPTIONAL MATCH path = (r)-[*1..{depth}]-(n)
+            WITH r, collect(DISTINCT n) AS neighbors, collect(DISTINCT path) AS paths
+            RETURN r,
+                   [x IN neighbors WHERE x IS NOT NULL] AS neighbors,
+                   [p IN paths WHERE p IS NOT NULL | relationships(p)] AS rel_lists
+        """
+        res = s.run(cypher, rid=rule_id).single()
+        if not res:
+            return JSONResponse({"nodes": [], "edges": []})
+        rule = res["r"]
+        neighbors = res["neighbors"]
+        rel_lists = res["rel_lists"]
+
+        def node_dict(node, is_root=False):
+            labels = list(node.labels)
+            label = labels[0] if labels else "Node"
+            display = node.get("name") or node.get("text") or node.get("title") or node.get("citation") or label
+            return {
+                "id":     str(node.element_id),
+                "label":  display[:55] if isinstance(display, str) else label,
+                "group":  ("root" if is_root else label),
+                "title":  f"{label}\n{(display or '')[:200]}" if isinstance(display, str) else label,
+                "shape":  ("box" if is_root else ("ellipse" if label == "Rule" else "dot")),
+            }
+
+        nodes_by_id: dict[str, dict] = {}
+        nodes_by_id[str(rule.element_id)] = node_dict(rule, is_root=True)
+        for n in neighbors:
+            if n is None:
+                continue
+            nid = str(n.element_id)
+            if nid not in nodes_by_id:
+                nodes_by_id[nid] = node_dict(n)
+
+        edges: list[dict] = []
+        edge_keys = set()
+        for rels in rel_lists:
+            for rel in rels:
+                k = (str(rel.start_node.element_id), str(rel.end_node.element_id), rel.type)
+                if k in edge_keys:
+                    continue
+                edge_keys.add(k)
+                edges.append({
+                    "from":  str(rel.start_node.element_id),
+                    "to":    str(rel.end_node.element_id),
+                    "label": rel.type,
+                })
+
+    return JSONResponse({"nodes": list(nodes_by_id.values()), "edges": edges, "center": rule_id})
 
 
 @router.get("/reg/citation")
@@ -1433,7 +1550,10 @@ def bulletin_apply() -> JSONResponse:
     ])})
 
     ok = all(s["ok"] for s in steps)
-    # Audit the bulletin apply against every filing (it affects the canon, which is shared)
+    # Audit the bulletin apply against every filing (it affects the canon, which is shared).
+    # Re-run validation immediately so the UI sees the flip without a manual refresh,
+    # and so any exception closed by the bulletin gets resolution_action='bulletin'.
+    deltas: dict[str, dict] = {}
     if ok:
         for f in FILINGS:
             _record_action(
@@ -1443,8 +1563,50 @@ def bulletin_apply() -> JSONResponse:
                 summary=f"Applied bulletin {BULLETIN_PATH.stem}",
                 details={"bulletin": BULLETIN_PATH.stem, "steps": [s["step"] for s in steps]},
             )
+            # Snapshot the open exceptions for this filing before re-validation
+            try:
+                pre_rows = query(
+                    f"SELECT policy_number, rule_number FROM INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
+                    f"WHERE filing_batch_id = {_sql_quote(f['id'])} AND resolution_status = 'open'"
+                )
+                pre_keys = {(r.get("policy_number") or r.get("POLICY_NUMBER"),
+                             r.get("rule_number") or r.get("RULE_NUMBER")) for r in pre_rows}
+            except Exception:
+                pre_keys = set()
 
-    return JSONResponse({"ok": ok, "steps": steps})
+            # Re-run validation, tagging any newly-closed exception as resolved-by-bulletin
+            try:
+                result = validate_cancellations(filing=f["id"])
+                # validate_cancellations now returns JSONResponse — re-fetch the body via direct
+                # call to the internal recorder so we can tag resolutions.
+                # Easier path: do a second pass directly on the freshly-closed exceptions.
+                post_rows = query(
+                    f"SELECT policy_number, rule_number FROM INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
+                    f"WHERE filing_batch_id = {_sql_quote(f['id'])} AND resolution_status = 'open'"
+                )
+                post_keys = {(r.get("policy_number") or r.get("POLICY_NUMBER"),
+                              r.get("rule_number") or r.get("RULE_NUMBER")) for r in post_rows}
+                closed = pre_keys - post_keys
+                # Mark every closed-this-turn exception as bulletin-resolved
+                for policy, rule_num in closed:
+                    if policy is None and rule_num is None:
+                        continue
+                    query(
+                        f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
+                        f"SET resolution_action = 'bulletin' "
+                        f"WHERE filing_batch_id = {_sql_quote(f['id'])} "
+                        f"  AND policy_number = {_sql_quote(policy)} "
+                        f"  AND rule_number = {_sql_quote(rule_num)} "
+                        f"  AND resolution_status = 'fixed'"
+                    )
+                deltas[f["id"]] = {
+                    "closed_count": len(closed),
+                    "closed": [{"policy_number": p, "rule_number": r} for p, r in sorted(closed, key=lambda x: (x[0] or "", x[1] or ""))],
+                }
+            except Exception as e:
+                deltas[f["id"]] = {"error": str(e)[:200], "closed_count": 0, "closed": []}
+
+    return JSONResponse({"ok": ok, "steps": steps, "deltas": deltas})
 
 
 @router.post("/bulletin/reset")
