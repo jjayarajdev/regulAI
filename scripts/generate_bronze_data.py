@@ -143,11 +143,12 @@ def _bulk_synth_policies() -> dict[int, dict]:
     """
     rng = _rng_module.Random(BULK_RANDOM_SEED)
     bulk: dict[int, dict] = {}
+    # Note: Silver's POLICY_FORM column is VARCHAR(1) — must use single-char codes
     plans = [
-        # plan_code, id_range,            form_pool,         cov_a_range_k, tenure_max
-        ("TPA", range(2100, 2300), ["A","B","3"],  ( 180,  600), 30),
-        ("RES", range(2300, 2400), ["3","5","6"],  ( 180,  850), 25),
-        ("CL",  range(2400, 2450), ["6","CGL"],    ( 500, 5000), 40),
+        # plan_code, id_range,            form_pool,        cov_a_range_k, tenure_max
+        ("TPA", range(2100, 2300), ["A","B","3"], ( 180,  600), 30),
+        ("RES", range(2300, 2400), ["3","5","6"], ( 180,  850), 25),
+        ("CL",  range(2400, 2450), ["6"],         ( 500, 5000), 40),
     ]
     for _plan_code, id_range, form_pool, (cov_lo, cov_hi), tenure_max in plans:
         zip_choices  = [z[0] for z in _TX_ZIP_POOL]

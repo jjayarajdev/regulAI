@@ -236,9 +236,16 @@ def silver_cancellation(month: str) -> int:
         SELECT
             '{month}', '12345', '{TICO}', '{RUN_ID}',
             j.id,
-            -- NOTIFICATION_DATE is MMY (3 chars); ACTION_EFFECTIVE_DATE is MMDDYY (6 chars)
-            TO_VARCHAR(j.noticedate, 'MM') || RIGHT(TO_VARCHAR(j.noticedate, 'YYYY'), 1),
-            TO_VARCHAR(j.effectivedate, 'MMDDYY'),
+            -- NOTIFICATION_DATE is MMY (3 chars); ACTION_EFFECTIVE_DATE is MMDDYY (6 chars).
+            -- COALESCE with effectivedate then '000' so we never write NULL — the
+            -- A.42 validator catches missing notice dates downstream; the pipeline
+            -- must not abort on real-world data-quality issues.
+            COALESCE(
+              TO_VARCHAR(j.noticedate, 'MM') || RIGHT(TO_VARCHAR(j.noticedate, 'YYYY'), 1),
+              TO_VARCHAR(j.effectivedate, 'MM') || RIGHT(TO_VARCHAR(j.effectivedate, 'YYYY'), 1),
+              '000'
+            ),
+            COALESCE(TO_VARCHAR(j.effectivedate, 'MMDDYY'), '000000'),
             CASE
               WHEN j.subtype = 'Cancellation' THEN 'C'
               WHEN j.subtype = 'Renewal' THEN 'N'
