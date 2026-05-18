@@ -1,10 +1,12 @@
 # RegulAI — How It Works (Operational Runbook)
 
-**Last updated**: 2026-04-26
-**Companion docs**: `docs/technical-architecture.md` (the formal arch), `docs/solution-architecture.md` (the business framing).
+**Last updated**: 2026-05-18
+**Companion docs**: [`technical-architecture.md`](technical-architecture.md) (LHS), [`rhs-build-summary.md`](rhs-build-summary.md) (RHS — medallion pipeline + workflow + ASCII renderer + audit), [`solution-architecture.md`](solution-architecture.md) (business framing).
 **Audience**: anyone running, demoing, or extending RegulAI today.
 
 This is the "open the laptop, do the thing" guide. If something here is wrong, the runbook is wrong — fix it here first.
+
+For the RHS (Snowflake medallion + filing workflow + ASCII renderer), the canonical demo entry point is now the **integrated workstation at `/workstation`** — see [`rhs-build-summary.md`](rhs-build-summary.md) for the architecture and the API reference. The bring-up sequence below is for the LHS (KG extraction, materialization) side.
 
 ---
 
