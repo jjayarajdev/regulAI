@@ -3023,6 +3023,52 @@
       }
     }
 
+    // Other filings — populate the `other-filings` slot with rows for each
+    // non-active filing using the cached filingCounts. Click any row to
+    // switch the active filing context.
+    const otherHost = bind('other-filings');
+    const allFilings = app.data.filings?.filings || [];
+    if (otherHost && allFilings.length > 1) {
+      const dueDays = (dStr) => {
+        if (!dStr) return '—';
+        const d = new Date(dStr + 'T00:00:00');
+        const days = Math.round((d - new Date()) / (1000 * 60 * 60 * 24));
+        return days >= 0 ? `due in <b>${days} days</b>` : `<b>${-days} days late</b>`;
+      };
+      // The hardcoded first row covers TPA-Q4-2025; render every *other* filing here
+      const others = allFilings.filter(f => f.id !== 'TPA-Q4-2025');
+      otherHost.innerHTML = others.map(f => {
+        const n = app.filingCounts?.[f.id];
+        let tag, stage, stage_pct, step;
+        if (n === undefined || n === null) {
+          tag = `<span class="tag">—</span>`;
+          stage = 'Loading';
+          stage_pct = 10;
+          step = '';
+        } else if (n === 0) {
+          tag = `<span class="tag ok">ready</span>`;
+          stage = 'Awaiting approval';
+          stage_pct = 80;
+          step = 'step 4 of 5';
+        } else {
+          tag = `<span class="tag bad">${n} blocker${n > 1 ? 's' : ''}</span>`;
+          stage = 'Resolving blockers';
+          stage_pct = 55;
+          step = 'step 3 of 5';
+        }
+        return `
+          <div class="filing-row" data-action="switch-filing" data-filing="${esc(f.id)}" style="cursor:pointer;">
+            <div class="fr-name">${esc(f.plan_code)} · ${esc(f.cadence)}<span class="sub">${esc(f.plan_name)}</span></div>
+            <div>
+              <div class="progress"><div style="width:${stage_pct}%"></div></div>
+              <div class="progress-meta"><b>${esc(stage)}</b><span>${esc(step)}</span></div>
+            </div>
+            <div>${tag}</div>
+            <div class="fr-due">${dueDays(f.due_date)}</div>
+          </div>`;
+      }).join('');
+    }
+
     // Activity feed — derive from live data
     renderActivity();
 
@@ -5248,6 +5294,16 @@ ${f.warning ? '⚠ ' + f.warning + '\n\n' : ''}`;
         openDetail_filing('anomalies');  // reopen with fresh data
       } catch (e) { alert('detect failed: ' + e); }
       finally { el.disabled = false; el.textContent = orig; }
+    }
+
+    if (action === 'switch-filing') {
+      const newId = el.dataset.filing;
+      if (newId && newId !== app.currentFilingId) {
+        app.currentFilingId = newId;
+        app.selectedRule = null;
+        await refresh();
+      }
+      setScreen('filing');
     }
 
     if (action === 'toggle-section-filter') {
