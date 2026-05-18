@@ -51,49 +51,7 @@ BULLETIN_PATH = Path("synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md
 # policy-number prefix (POL-0050 would otherwise look like a TPA filing
 # because it shares the "POL-00" prefix with POL-0019). The id ranges
 # match the synthetic data in scripts/generate_bronze_data.py.
-FILINGS = [
-    {
-        "id":           "TPA-Q4-2025",
-        "plan_name":    "Texas Private Passenger Auto / Homeowners",
-        "plan_code":    "TPA",
-        # Multiple id ranges so curated demo cases + bulk synthetic both scope here.
-        # Curated: 2001-2019 (named storytelling cases · POL-0011 L-alone, etc.)
-        # Bulk:    2100-2299 (200 distribution-driven synthetic policies)
-        "policy_id_ranges": [(2001, 2019), (2100, 2299)],
-        "cadence":      "Quarterly",
-        "period_start": "2025-10-01",
-        "period_end":   "2025-12-31",
-        "due_date":     "2026-03-31",
-        "channel":      "TICO ShareFile",
-        "is_active":    True,
-    },
-    {
-        "id":           "RES-M03-2026",
-        "plan_name":    "Residential Property — March 2026",
-        "plan_code":    "RES",
-        # Curated: 2030-2034.  Bulk: 2300-2399 (100 synthetic residential policies)
-        "policy_id_ranges": [(2030, 2034), (2300, 2399)],
-        "cadence":      "Monthly",
-        "period_start": "2026-03-01",
-        "period_end":   "2026-03-31",
-        "due_date":     "2026-04-15",
-        "channel":      "TICO ShareFile",
-        "is_active":    True,
-    },
-    {
-        "id":           "CL-Q4-2025",
-        "plan_name":    "Commercial Lines",
-        "plan_code":    "CL",
-        # Curated: 2050-2053.  Bulk: 2400-2449 (50 synthetic commercial policies)
-        "policy_id_ranges": [(2050, 2053), (2400, 2449)],
-        "cadence":      "Quarterly",
-        "period_start": "2025-10-01",
-        "period_end":   "2025-12-31",
-        "due_date":     "2026-05-15",
-        "channel":      "TICO ShareFile",
-        "is_active":    True,
-    },
-]
+from packages.rhs.filings import FILINGS  # noqa: E402  — canonical registry
 
 
 def _filing(filing_id: str | None) -> dict | None:
@@ -272,13 +230,21 @@ def _record_validation_run(filing_id: str, rule_results: list[dict], violations:
                 f"WHERE exception_id = {_sql_quote(exc_id)}"
             )
 
-    # Update filing-batch summary
+    # Update filing-batch summary.
+    # State transitions:
+    #   - any open ERROR-severity violation → 'resolving'
+    #   - all ERRORs cleared → 'validated' (ready for analyst sign-off)
+    # Note: do not regress later sign-off states (analyst_signed, actuary_approved,
+    # officer_approved, submitted, acked) just because validation was re-run.
+    error_blockers = sum(1 for v in violations if (v.get("severity") or "").upper() == "ERROR")
+    auto_status = "resolving" if error_blockers else "validated"
     query(
         f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
         f"SET last_validated_at = CURRENT_TIMESTAMP(), "
         f"    last_validation_run_id = {_sql_quote(run_id)}, "
-        f"    open_blockers = {len(violations)}, "
-        f"    status = '{('resolving' if violations else 'approved')}' "
+        f"    open_blockers = {error_blockers}, "
+        f"    status = CASE WHEN status IN ('analyst_signed','actuary_approved','officer_approved','submitted','acked') "
+        f"              THEN status ELSE '{auto_status}' END "
         f"WHERE filing_batch_id = {_sql_quote(batch)}"
     )
 
@@ -1122,41 +1088,16 @@ def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
     )
     naic = (naic_rows[0].get("naic") or naic_rows[0].get("NAIC")) if naic_rows else "00000"
 
-    # Scope Gold records to this filing's policy set.
-    # TSPR_PREMIUM_RECORDS + TSPR_LOSS_RECORDS carry policy_id as POL-XXXX,
-    # so we filter directly by membership in the filing's policy-number set.
-    # TSPR_CANCELLATION_RECORDS is aggregated by Rule 34 unique-combination
-    # key (no policy_id), so we filter heuristically by ZIP5 — a Gold-side
-    # scoping refactor (adding filing_batch_id columns) is the proper fix.
-    scope_set = _filing_policy_numbers(filing_id)
-    in_list = "(" + ",".join(_sql_quote(p) for p in sorted(scope_set)) + ")" if scope_set else None
-
-    if in_list:
-        premium = query(
-            f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS "
-            f"WHERE policy_id IN {in_list} ORDER BY record_seq"
-        )
-        loss = query(
-            f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_LOSS_RECORDS "
-            f"WHERE policy_id IN {in_list} ORDER BY record_seq"
-        )
-        # Pull the filing's policy ZIPs and use them to scope cancellation aggregates
-        zips = query(
-            "SELECT DISTINCT pp.zip "
-            "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_HODWELLING pp "
-            "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HOPOLICYLINE l ON l.id = pp.policyline_id "
-            "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = l.policy_id "
-            f"WHERE 1=1 {_scope_clause(filing_id)}"
-        )
-        zip_list = sorted({(r.get("zip") or r.get("ZIP")) for r in zips if (r.get("zip") or r.get("ZIP"))})
-        if zip_list:
-            zip_sql = "(" + ",".join(_sql_quote(z) for z in zip_list) + ")"
-            cancel = query(
-                f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_CANCELLATION_RECORDS "
-                f"WHERE zip5 IN {zip_sql} ORDER BY record_seq"
-            )
-        else:
-            cancel = []
+    # Scope all three Gold tables to this filing via the stamped filing_batch_id
+    # column. (Previously cancellation fell back to a ZIP-overlap heuristic
+    # because the table was aggregated by Rule 34 unique-combination key and
+    # carried no policy reference. run_gold now stamps filing_batch_id during
+    # the Silver→Gold step.)
+    if filing_id:
+        scope = f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+        premium = query(f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS       {scope} ORDER BY record_seq")
+        loss    = query(f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_LOSS_RECORDS          {scope} ORDER BY record_seq")
+        cancel  = query(f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_CANCELLATION_RECORDS  {scope} ORDER BY record_seq")
     else:
         premium = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS ORDER BY record_seq")
         loss    = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_LOSS_RECORDS    ORDER BY record_seq")
@@ -1202,7 +1143,23 @@ def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
     }
 
     if persist:
-        # Write a FILING_SUBMISSION row + USER_ACTION audit event
+        # Gate sealing on the approval chain: only an officer-approved filing
+        # with zero open ERROR blockers can be submitted to TICO.
+        gate_rows = query(
+            f"SELECT status, open_blockers FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+            f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+        )
+        gate_status = (gate_rows[0].get("status") or gate_rows[0].get("STATUS") or "").lower() if gate_rows else ""
+        gate_blockers = int((gate_rows[0].get("open_blockers") or gate_rows[0].get("OPEN_BLOCKERS") or 0) if gate_rows else 0)
+        if gate_status != "officer_approved" or gate_blockers > 0:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"cannot seal: status is '{gate_status or 'unknown'}' with "
+                    f"{gate_blockers} open blocker(s); filing must be officer_approved with 0 ERROR blockers"
+                ),
+            )
+        # Write a FILING_SUBMISSION row + USER_ACTION audit event + advance state to 'submitted'
         sub_id = "sub-" + _uuid.uuid4().hex[:14]
         try:
             query(
@@ -1217,6 +1174,14 @@ def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
             )
         except Exception as e:
             print(f"[file] FILING_SUBMISSION insert failed: {e}")
+        try:
+            query(
+                f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+                f"SET status = 'submitted', submitted_at = CURRENT_TIMESTAMP() "
+                f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+            )
+        except Exception as e:
+            print(f"[file] FILING_BATCH status update failed: {e}")
         _record_action(
             filing_id, "file_generated",
             actor="D. Reyes",
@@ -1280,6 +1245,160 @@ def audit_history(filing_id: str, limit: int = 50) -> JSONResponse:
         "actions":   _jsonify(actions),
         "exceptions":_jsonify(exceptions),
     })
+
+
+# Sign-off chain: analyst submits for approval, actuary signs, officer signs,
+# then "Seal & submit" persists the file. Each transition writes a USER_ACTION
+# row and the resulting state lives in FILING_BATCH.status.
+APPROVAL_CHAIN = {
+    # role:     (required_current_state,        next_state,          actor_label)
+    "analyst":  (("validated",),                "analyst_signed",    "M. Okonkwo · Analyst"),
+    "actuary":  (("analyst_signed",),           "actuary_approved",  "D. Reyes · Actuary"),
+    "officer":  (("actuary_approved",),         "officer_approved",  "J. Park · Compliance Officer"),
+}
+
+
+@router.post("/filing/{filing_id}/approve")
+def filing_approve(filing_id: str, body: dict = Body(...)) -> JSONResponse:
+    """Advance the filing one step along the sign-off chain.
+
+    Body: {"role": "analyst"|"actuary"|"officer"}.
+    Each role is gated on the prior state AND zero open ERROR-severity blockers.
+    """
+    role = (body.get("role") or "").lower().strip()
+    if role not in APPROVAL_CHAIN:
+        raise HTTPException(status_code=400, detail=f"unknown role '{role}'; expected one of {list(APPROVAL_CHAIN)}")
+    required, next_state, actor = APPROVAL_CHAIN[role]
+
+    _ensure_filing_batch(filing_id)
+    rows = query(
+        f"SELECT status, open_blockers FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"no filing batch for {filing_id}")
+    current = (rows[0].get("status") or rows[0].get("STATUS") or "").lower()
+    open_blockers = int(rows[0].get("open_blockers") or rows[0].get("OPEN_BLOCKERS") or 0)
+
+    if current not in required:
+        raise HTTPException(
+            status_code=409,
+            detail=f"cannot {role}-approve in state '{current}' — must be one of {list(required)}",
+        )
+    if open_blockers > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"cannot sign off — {open_blockers} open ERROR-severity blocker(s) remain",
+        )
+
+    query(
+        f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"SET status = {_sql_quote(next_state)} "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+    )
+    _record_action(
+        filing_id, f"{role}_approved",
+        actor=actor,
+        summary=f"{actor.split(' · ')[-1]} signed off — state {current} → {next_state}",
+        details={"prev_state": current, "new_state": next_state, "role": role},
+    )
+    return JSONResponse({"filing_id": filing_id, "role": role, "prev_state": current, "new_state": next_state, "actor": actor})
+
+
+@router.get("/filing/{filing_id}/approval-state")
+def filing_approval_state(filing_id: str) -> JSONResponse:
+    """Compact state useful for rendering the sign-off chain widget."""
+    _ensure_filing_batch(filing_id)
+    rows = query(
+        f"SELECT status, open_blockers, last_validated_at, submitted_at, acked_at "
+        f"FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"no filing batch for {filing_id}")
+    r = _jsonify(rows)[0]
+    current = (r.get("status") or "").lower()
+    # The next role allowed to act, given the current state
+    next_role = None
+    for role, (required, _, _) in APPROVAL_CHAIN.items():
+        if current in required:
+            next_role = role
+            break
+    # Can_seal: officer-approved + zero ERROR blockers
+    can_seal = current == "officer_approved" and int(r.get("open_blockers") or 0) == 0
+    return JSONResponse({
+        "filing_id":     filing_id,
+        "status":        current,
+        "open_blockers": int(r.get("open_blockers") or 0),
+        "next_role":     next_role,
+        "can_seal":      can_seal,
+        "submitted_at":  r.get("submitted_at"),
+        "acked_at":      r.get("acked_at"),
+    })
+
+
+@router.get("/reg/citation")
+def reg_citation(q: str) -> JSONResponse:
+    """Resolve a citation string to the underlying regulator text.
+
+    Tries an exact citation_label match first, then a regex match against
+    citation_pattern (so "Rule A.34" hits "34"). Returns the top 5 matches
+    with their source document for drill-down.
+    """
+    if not q or len(q) > 200:
+        raise HTTPException(status_code=400, detail="bad query")
+    safe_q = q.replace("'", "''")
+    # Exact then permissive search
+    rows = query(
+        f"SELECT s.section_id, s.document_id, s.citation_label, s.section_heading, "
+        f"       s.section_text, d.title, d.document_type, d.issuing_body, d.edition "
+        f"FROM INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_SECTION s "
+        f"JOIN INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_DOCUMENT d ON d.document_id = s.document_id "
+        f"WHERE LOWER(s.citation_label) = LOWER('{safe_q}') "
+        f"   OR s.citation_label ILIKE '%{safe_q}%' "
+        f"   OR s.section_heading ILIKE '%{safe_q}%' "
+        f"ORDER BY (CASE WHEN LOWER(s.citation_label) = LOWER('{safe_q}') THEN 0 ELSE 1 END), "
+        f"         s.document_id, s.seq "
+        f"LIMIT 5"
+    )
+    return JSONResponse({"q": q, "matches": _jsonify(rows), "count": len(rows)})
+
+
+@router.get("/reg/documents")
+def reg_documents() -> JSONResponse:
+    """List all loaded regulator-source documents."""
+    rows = query(
+        "SELECT document_id, document_type, title, issuing_body, edition, "
+        "       TO_VARCHAR(effective_date, 'YYYY-MM-DD') AS effective_date, "
+        "       word_count, page_count, "
+        "       TO_VARCHAR(loaded_at, 'YYYY-MM-DD HH24:MI:SS') AS loaded_at "
+        "FROM INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_DOCUMENT "
+        "ORDER BY document_type, effective_date DESC"
+    )
+    return JSONResponse({"documents": _jsonify(rows), "count": len(rows)})
+
+
+@router.get("/anomalies")
+def anomalies_list(filing: str | None = None) -> JSONResponse:
+    """List anomalies for a filing (or all). Powers the Anomalies popout."""
+    where = f"WHERE filing_batch_id = {_sql_quote(filing)}" if filing else ""
+    rows = query(
+        f"SELECT anomaly_type, severity, territory_zip, cause_of_loss_code, "
+        f"       current_month_value, rolling_12m_mean, rolling_12m_stddev, "
+        f"       std_deviations_from_mean, anomaly_description, filing_batch_id, "
+        f"       source_records, "
+        f"       TO_VARCHAR(flagged_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS flagged_at "
+        f"FROM INSURANCE_REGULATORY.GOLD.TSPR_ANOMALY_FLAGS {where} "
+        f"ORDER BY anomaly_type, territory_zip"
+    )
+    return JSONResponse({"filing": filing, "anomalies": _jsonify(rows), "count": len(rows)})
+
+
+@router.post("/anomalies/detect")
+def anomalies_detect() -> JSONResponse:
+    """Re-run anomaly detection (TRUNCATEs + re-detects)."""
+    result = _run(["uv", "run", "python", "-m", "scripts.detect_anomalies", "--month", "2026-03"])
+    return JSONResponse(result)
 
 
 @router.post("/bulletin/apply")

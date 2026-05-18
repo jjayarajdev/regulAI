@@ -171,13 +171,36 @@ build-validation-rules: migrate-validation-rules
 load-validation-rules: build-validation-rules
 	@snow sql -c regulai --enable-templating standard -f materialized/reference/tspr_validation_rules.sql
 
+# Re-apply rules that don't survive `load-validation-rules` (which DELETEs the
+# table before re-loading from the auto-generated SQL — sourced only from
+# rules with target_table set in the KG). These two files carry the
+# hand-curated rules (A.22, A.34 variants, A.30/A.40/A.42, B.11, B.14, D.12).
+# Idempotent: each INSERT is guarded with WHERE NOT EXISTS.
+load-custom-validation-rules: load-validation-rules
+	@snow sql -c regulai -f materialized/migrations/002_extra_validation_rules.sql > /dev/null && echo "  ✓ 002_extra_validation_rules.sql"
+	@snow sql -c regulai -f materialized/migrations/003_claim_validation_rules.sql > /dev/null && echo "  ✓ 003_claim_validation_rules.sql"
+
+# Run every numbered migration in materialized/migrations/ in order.
+# All migrations are idempotent (CREATE TABLE IF NOT EXISTS, ALTER ADD COLUMN
+# IF NOT EXISTS, INSERTs guarded with WHERE NOT EXISTS) so this is safe to
+# re-run against an existing database.
+migrate-snowflake:
+	@echo "Applying Snowflake migrations:"
+	@for f in materialized/migrations/[0-9]*.sql; do \
+	  echo "  → $$f"; \
+	  snow sql -c regulai -f "$$f" > /dev/null && echo "    ✓ done" || echo "    ✗ failed"; \
+	done
+
 run-silver:
 	uv run python -m scripts.run_silver
 
 run-gold:
 	uv run python -m scripts.run_gold
 
-run-pipeline: load-bronze load-reference-all load-validation-rules run-silver run-gold
+detect-anomalies:
+	uv run python -m scripts.detect_anomalies --month 2026-03
+
+run-pipeline: load-bronze load-reference-all load-custom-validation-rules run-silver run-gold detect-anomalies
 	@echo ""
 	@echo "Full pipeline complete: Bronze → Silver → Gold."
 

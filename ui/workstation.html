@@ -2806,7 +2806,7 @@
     if (app.busy) return;
     app.busy = true;
     const fq = `?filing=${encodeURIComponent(app.currentFilingId)}`;
-    const [filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit] = await Promise.all([
+    const [filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit, approval, anomalies] = await Promise.all([
       get('/filings'),
       get('/state'),
       get('/validate/cancellations' + fq),
@@ -2817,8 +2817,14 @@
       get('/kg/rules'),
       fetch('/api/rhs/bulletin').then(r => r.ok ? r.text() : null).catch(() => null),
       get('/audit/' + encodeURIComponent(app.currentFilingId)),
+      get('/filing/' + encodeURIComponent(app.currentFilingId) + '/approval-state'),
+      get('/anomalies' + fq),
     ]);
-    app.data = { filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit };
+    app.data = { filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit, approval, anomalies };
+    // Seed per-filing counts cache from the active filing's validate result
+    // so the rail can immediately show its count while we fetch the others.
+    if (!app.filingCounts) app.filingCounts = {};
+    if (val?.summary) app.filingCounts[app.currentFilingId] = val.summary.total_violations;
     // Populate the inline bulletin-text panel
     const pre = bind('bulletin-text');
     if (pre) pre.textContent = bulletinTxt || 'Bulletin text not available.';
@@ -2828,6 +2834,22 @@
     }
     render();
     app.busy = false;
+    // Fire-and-forget: fetch violation counts for the *other* filings so the
+    // rail shows live numbers for every filing, not just the active one.
+    refreshFilingCounts();
+  }
+
+  async function refreshFilingCounts() {
+    const items = app.data.filings?.filings || [];
+    const others = items.filter(f => f.id !== app.currentFilingId);
+    if (!others.length) return;
+    await Promise.all(others.map(async f => {
+      try {
+        const r = await get('/validate/cancellations?filing=' + encodeURIComponent(f.id));
+        app.filingCounts[f.id] = r?.summary?.total_violations ?? null;
+      } catch (e) { /* leave as undefined; rail falls back to '—' */ }
+    }));
+    renderRail();
   }
 
   function render() {
@@ -2855,13 +2877,17 @@
       const items = app.data.filings.filings || [];
       railFilings.innerHTML = items.map(f => {
         const isActive = f.id === app.currentFilingId;
-        // For the active filing, show its live blocker count; others are dimmed
-        let badge = '<span class="count" style="color:var(--ink-3);">—</span>';
-        if (isActive && v) {
-          const n = v.summary.total_violations;
-          badge = n > 0
-            ? `<span class="count" style="color:var(--bad);font-family:var(--f-mono);">${n}</span>`
-            : `<span class="count" style="color:var(--good);">✓</span>`;
+        // Show the live blocker count for every filing (cached from
+        // refreshFilingCounts). '—' only while the count is still loading.
+        const n = app.filingCounts?.[f.id];
+        let badge;
+        if (n === undefined || n === null) {
+          badge = '<span class="count" style="color:var(--ink-3);">—</span>';
+        } else if (n > 0) {
+          const color = isActive ? 'var(--bad)' : 'var(--ink-2)';
+          badge = `<span class="count" style="color:${color};font-family:var(--f-mono);">${n}</span>`;
+        } else {
+          badge = '<span class="count" style="color:var(--good);">✓</span>';
         }
         return `
           <div class="rail-link ${isActive ? 'active-filing' : ''}" data-filing="${esc(f.id)}" title="${esc(f.plan_name)} · ${esc(f.cadence)} · due ${esc(f.due_date)}">
@@ -3471,26 +3497,50 @@ RETURN r, rel, n</pre>
     return ASSIGNEE_POOL[idx];
   }
 
-  function renderTicket(vio, fixable, idx) {
-    const code = reasonCodeFor(vio.policy_number) || '—';
+  // True when the rule that flagged this violation targets the claims table —
+  // claim-side rules need a different ticket layout (claim id + Claims popout
+  // action) since the per-policy manual-fix editor doesn't apply.
+  function isClaimVio(vio, rules) {
+    const r = (rules || []).find(x => x.rule_id === vio.rule_id);
+    return !!(r && (r.target_table || '').toUpperCase().includes('GW_CC_CLAIM'));
+  }
+
+  function renderTicket(vio, fixable, idx, rules) {
+    const isClaim = isClaimVio(vio, rules);
+    const code = isClaim ? null : (reasonCodeFor(vio.policy_number) || '—');
     const ass = assigneeFor(vio);
-    const isFix = code === 'L';  // bulletin fixes L-companion only
-    const action = isFix
-      ? `<button class="ticket-action fix-bul" data-action="apply-bulletin-now">Apply bulletin</button>`
-      : `<button class="ticket-action ghost" data-action="open-fix-from-ticket" data-policy="${esc(vio.policy_number)}" data-code="${esc(code)}" data-rulenum="${esc(vio.rule_number)}" data-rule="${esc(vio.rule_id)}">Fix manually →</button>`;
+    const isFix = !isClaim && code === 'L';  // bulletin fixes L-companion only
+    const claimNo = isClaim ? (vio.record_id || '') : '';
+    let action;
+    if (isFix) {
+      action = `<button class="ticket-action fix-bul" data-action="apply-bulletin-now">Apply bulletin</button>`;
+    } else if (isClaim) {
+      action = `<button class="ticket-action ghost" data-action="open-claim-detail" data-claim="${esc(claimNo)}">Review claim →</button>`;
+    } else {
+      action = `<button class="ticket-action ghost" data-action="open-fix-from-ticket" data-policy="${esc(vio.policy_number)}" data-code="${esc(code)}" data-rulenum="${esc(vio.rule_number)}" data-rule="${esc(vio.rule_id)}">Fix manually →</button>`;
+    }
+    const headRight = isClaim
+      ? `<span style="font-family:var(--f-mono);">${esc(claimNo)}</span>`
+      : `<span>${esc(vio.policy_number)}</span>`;
+    const pills = isClaim
+      ? `<span class="ticket-pill" style="background:#0ea5e91a;color:#0369a1;border-color:#bae6fd;">claim</span>
+         <span class="ticket-pill">${esc(vio.rule_number)}</span>
+         <span class="ticket-pill" style="background:transparent;color:var(--ink-3);">${esc(vio.policy_number)}</span>`
+      : `<span class="ticket-pill code">${esc(code)}</span>
+         <span class="ticket-pill">${esc(vio.rule_number)}</span>
+         ${isFix ? '<span class="ticket-pill fix">bulletin-fixable</span>' : ''}`;
+    const clickTarget = isClaim
+      ? `data-action="open-claim-detail" data-claim="${esc(claimNo)}"`
+      : `data-action="show-policy" data-policy="${esc(vio.policy_number)}"`;
     return `
-      <div class="ticket" data-action="show-policy" data-policy="${esc(vio.policy_number)}">
+      <div class="ticket" ${clickTarget}>
         <div class="ticket-head">
           <span class="ticket-id">FILE-${(1140 + idx).toString().padStart(4, '0')}</span>
-          <span>${esc(vio.policy_number)}</span>
+          ${headRight}
         </div>
         <div class="ticket-title">${esc(vio.rule_name.replace(/^Rule\s+/, ''))}</div>
         <div class="ticket-reason">${esc(vio.violation_reason || '')}</div>
-        <div class="ticket-pills">
-          <span class="ticket-pill code">${esc(code)}</span>
-          <span class="ticket-pill">${esc(vio.rule_number)}</span>
-          ${isFix ? '<span class="ticket-pill fix">bulletin-fixable</span>' : ''}
-        </div>
+        <div class="ticket-pills">${pills}</div>
         <div class="ticket-foot">
           <div class="ticket-assignee ${ass.id}" title="${esc(ass.nm)} · ${esc(ass.role)}">${ass.id === 'un' ? '?' : ass.id.toUpperCase()}</div>
           ${action}
@@ -3508,7 +3558,7 @@ RETURN r, rel, n</pre>
     const col = (lbl, key, label) => {
       const items = buckets[key];
       const body = items.length
-        ? items.map(({ vio, idx }) => renderTicket(vio, fixable, idx)).join('')
+        ? items.map(({ vio, idx }) => renderTicket(vio, fixable, idx, v.rules)).join('')
         : `<div style="color:var(--ink-3);font-size:12px;text-align:center;padding:20px 12px;">${key === 'high' ? 'no high-severity blockers' : key === 'med' ? 'no warnings' : 'no informational issues'}</div>`;
       return `
         <div class="k-col">
@@ -3618,6 +3668,7 @@ RETURN r, rel, n</pre>
           <button class="sc-secondary" data-detail="all-records">All records · ${bronzeCount}</button>
           <button class="sc-secondary" data-detail="claims">Claims · ${(app.data.claims?.rows || []).length}</button>
           <button class="sc-secondary" data-detail="rules">Rules · ${total}</button>
+          <button class="sc-secondary" data-detail="anomalies">Anomalies · ${(app.data.anomalies?.anomalies || []).length}</button>
           <button class="sc-secondary" data-detail="wire">Wire preview</button>
         </span>`;
       // Wire the buttons
@@ -3626,22 +3677,51 @@ RETURN r, rel, n</pre>
       );
     }
 
-    // ── Pipeline (compact, always visible) ──
+    // ── Pipeline (state-driven sign-off chain) ──
     const pipe = bind('filing-pipeline-card');
     if (pipe) {
-      const steps = [
-        { name: 'Drafted', state: 'done' },
-        { name: 'Validated', state: 'done' },
-        vios > 0 ? { name: 'Resolving', state: 'active', when: `${vios} open` } : { name: 'Resolved', state: 'done' },
-        vios > 0 ? { name: 'Approval', state: '', when: '2 signers' } : { name: 'Approval', state: 'active' },
-        { name: 'Submit', state: '', when: 'by Mar 31' },
+      const ap = app.data.approval || {};
+      const status = (ap.status || 'draft').toLowerCase();
+      // STAGE_ORDER drives both the rail and the dispatch of approve buttons.
+      // Each stage = (status name it represents, label, role-button if user
+      // can act here, helper hint shown below the name)
+      const STAGES = [
+        { id: 'draft',             label: 'Drafted',          role: null,      when: 'auto' },
+        { id: 'resolving',         label: 'Resolving',        role: null,      when: vios > 0 ? `${vios} blockers` : 'clean' },
+        { id: 'validated',         label: 'Validated',        role: 'analyst', when: 'analyst sign-off' },
+        { id: 'analyst_signed',    label: 'Analyst signed',   role: 'actuary', when: 'actuary sign-off' },
+        { id: 'actuary_approved',  label: 'Actuary approved', role: 'officer', when: 'officer sign-off' },
+        { id: 'officer_approved',  label: 'Officer approved', role: null,      when: 'ready to seal' },
+        { id: 'submitted',         label: 'Submitted',        role: null,      when: ap.acked_at ? 'ACKed' : 'awaiting ACK' },
       ];
-      pipe.innerHTML = `<div class="pipeline" style="padding:12px 18px;">${steps.map((s, i) => `
-        <div class="pp-step ${s.state}">
-          <div class="pp-num">${s.state === 'done' ? '' : `<span>${i+1}</span>`}</div>
-          <div class="pp-info"><div class="pp-name">${esc(s.name)}</div>${s.when ? `<div class="pp-when">${esc(s.when)}</div>` : ''}</div>
-        </div>
-      `).join('')}</div>`;
+      // Status → index in STAGES. If status is 'resolving', current is index 1.
+      // 'validated' is index 2 (and means analyst is the next signer).
+      let curIdx = STAGES.findIndex(s => s.id === status);
+      if (curIdx < 0) curIdx = 0;
+      // Skip 'resolving' visually if there are no blockers (the linear bar reads cleaner).
+      const showResolving = vios > 0 || status === 'resolving';
+      const visible = STAGES.filter(s => s.id !== 'resolving' || showResolving);
+      const visIdx = visible.findIndex(s => s.id === status);
+      pipe.innerHTML = `<div class="pipeline" style="padding:12px 18px;">${visible.map((s, i) => {
+        let stateClass = '';
+        if (i < visIdx) stateClass = 'done';
+        else if (i === visIdx) stateClass = 'active';
+        // Show an approve button if this is the current stage AND user has a role to play
+        const isCurrent = i === visIdx;
+        const canAct = isCurrent && s.role && (ap.open_blockers === 0);
+        const action = canAct
+          ? `<button class="ticket-action" style="margin-top:6px;" data-action="approve-as" data-role="${esc(s.role)}">Approve as ${esc(s.role)} →</button>`
+          : '';
+        return `
+        <div class="pp-step ${stateClass}">
+          <div class="pp-num">${stateClass === 'done' ? '' : `<span>${i+1}</span>`}</div>
+          <div class="pp-info">
+            <div class="pp-name">${esc(s.label)}</div>
+            <div class="pp-when">${esc(s.when || '')}</div>
+            ${action}
+          </div>
+        </div>`;
+      }).join('')}</div>`;
     }
 
     // ── Filing kanban + activity (Phase 2 redesign) ──
@@ -3714,16 +3794,28 @@ RETURN r, rel, n</pre>
 
     if (section === 'blockers') {
       const rows = v.violations.map(vio => {
-        const code = reasonCodeFor(vio.policy_number) || '—';
-        const isFix = code === 'L';
-        const action = isFix
-          ? `<button class="vio-action" data-action="apply-bulletin-now">Apply bulletin</button>`
-          : `<button class="vio-action unfixable" data-action="open-fix" data-policy="${esc(vio.policy_number)}" data-code="${esc(code)}" data-rulenum="${esc(vio.rule_number)}">Fix manually →</button>`;
+        const isClaim = isClaimVio(vio, v.rules);
+        const code = isClaim ? null : (reasonCodeFor(vio.policy_number) || '—');
+        const isFix = !isClaim && code === 'L';
+        let action;
+        if (isFix) {
+          action = `<button class="vio-action" data-action="apply-bulletin-now">Apply bulletin</button>`;
+        } else if (isClaim) {
+          action = `<button class="vio-action unfixable" data-action="open-claim-detail" data-claim="${esc(vio.record_id || '')}">Review claim →</button>`;
+        } else {
+          action = `<button class="vio-action unfixable" data-action="open-fix" data-policy="${esc(vio.policy_number)}" data-code="${esc(code)}" data-rulenum="${esc(vio.rule_number)}">Fix manually →</button>`;
+        }
+        const idCell = isClaim
+          ? `<span class="vio-policy" style="font-family:var(--f-mono);">${esc(vio.record_id || '')}</span>`
+          : `<span class="vio-policy">${esc(vio.policy_number)}</span>`;
+        const codeCell = isClaim
+          ? `<span class="ticket-pill" style="background:#0ea5e91a;color:#0369a1;border-color:#bae6fd;">claim</span>`
+          : `<span class="vio-code">${codePill(code)}</span>`;
         return `
           <div class="vio-row" data-rule="${esc(vio.rule_id)}" data-vio-policy="${esc(vio.policy_number)}">
             <div style="display:grid;grid-template-columns:110px 90px 1fr auto;gap:18px;align-items:center;">
-              <span class="vio-policy">${esc(vio.policy_number)}</span>
-              <span class="vio-code">${codePill(code)}</span>
+              ${idCell}
+              ${codeCell}
               <span class="vio-text"><b>${esc(vio.rule_number)}</b> — ${esc(vio.rule_name.replace(/^Rule\s+/, ''))}.<br/>${esc(vio.violation_reason || '')}</span>
               ${action}
             </div>
@@ -3760,9 +3852,14 @@ RETURN r, rel, n</pre>
           </div>
           <div class="rule-detail ${isExp ? 'open' : ''}">
             <h5>Plain language</h5><div>${esc(r.violation_reason || '—')}</div>
-            <h5>Citation</h5><div><span style="font-family:var(--f-mono);color:var(--accent);">${esc(r.citation || '—')}</span> · ${esc(r.severity || 'ERROR')}</div>
+            <h5>Citation</h5>
+            <div>
+              <span style="font-family:var(--f-mono);color:var(--accent);">${esc(r.citation || '—')}</span> · ${esc(r.severity || 'ERROR')}
+              <button class="sc-secondary" data-action="open-reg-text" data-q="${esc(r.rule_number || r.citation || '')}" style="margin-left:10px;font-size:11px;padding:2px 8px;">View regulator text →</button>
+            </div>
             ${violators.length ? `<h5>Records that violate (${violators.length})</h5><div class="viol-chips">${chips}</div>` : ''}
             <h5>SQL predicate</h5><pre>SELECT ${esc(r.target_id_expr || '*')} AS record_id\nFROM   ${esc(r.target_table || '—')}\nWHERE  ${esc(r.violation_sql || '/* see KG */')};</pre>
+            <div class="reg-text-slot"></div>
           </div>`;
       }).join('');
       openDetail('Filing Workshop',
@@ -3918,6 +4015,62 @@ RETURN r, rel, n</pre>
             <tbody>${tableRows || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink-3);">no records</td></tr>'}</tbody>
           </table>
         </div>`);
+    }
+
+    if (section === 'anomalies') {
+      const items = app.data.anomalies?.anomalies || [];
+      const sev = (s) => (s || '').toUpperCase() === 'WARN'
+        ? `<span class="ticket-pill" style="background:#fef3c7;color:#92400e;border-color:#fcd34d;">WARN</span>`
+        : `<span class="ticket-pill" style="background:#0ea5e91a;color:#0369a1;border-color:#bae6fd;">INFO</span>`;
+      const ICON = {
+        premium_spike:    '⤴',
+        hail_cluster:     '⊕',
+        freeze_in_summer: '❄',
+      };
+      const TYPE_LABEL = {
+        premium_spike:    'Premium spike',
+        hail_cluster:     'Hail cluster',
+        freeze_in_summer: 'Freeze in summer',
+      };
+      const rows = items.map(a => {
+        const t = a.anomaly_type;
+        const sources = (() => {
+          try {
+            const sr = typeof a.source_records === 'string'
+              ? JSON.parse(a.source_records) : a.source_records;
+            return Array.isArray(sr) && sr.length
+              ? `<div style="font-family:var(--f-mono);font-size:11px;color:var(--ink-3);margin-top:6px;">${sr.slice(0,6).map(esc).join(' · ')}${sr.length > 6 ? ` · +${sr.length - 6}` : ''}</div>`
+              : '';
+          } catch (e) { return ''; }
+        })();
+        const headline = a.std_deviations_from_mean
+          ? `<b style="font-family:var(--f-mono);">${Number(a.std_deviations_from_mean).toFixed(1)}σ</b>`
+          : `<b style="font-family:var(--f-mono);">${a.current_month_value ?? ''}</b>`;
+        return `
+          <div class="vio-row" style="display:grid;grid-template-columns:30px 110px 80px 90px 1fr;gap:14px;align-items:center;padding:14px 18px;">
+            <span style="font-size:18px;color:var(--ink-3);">${ICON[t] || '·'}</span>
+            <span><b>${esc(TYPE_LABEL[t] || t)}</b></span>
+            ${sev(a.severity)}
+            <span style="font-family:var(--f-mono);font-size:12px;color:var(--ink-2);">${esc(a.territory_zip || '—')}</span>
+            <div>
+              <div style="font-size:12.5px;color:var(--ink-2);line-height:1.5;">${esc(a.anomaly_description || '')}</div>
+              ${sources}
+              <div style="font-size:11px;color:var(--ink-3);margin-top:4px;">${headline}${a.flagged_at ? ` · flagged ${esc(a.flagged_at)}` : ''}</div>
+            </div>
+          </div>`;
+      }).join('');
+      const body = items.length
+        ? rows
+        : '<div style="padding:24px;text-align:center;color:var(--ink-3);">No anomalies flagged for this filing.</div>';
+      openDetail('Filing Workshop',
+        `<em>${items.length}</em> anomal${items.length === 1 ? 'y' : 'ies'}`,
+        `<div style="font-size:12.5px;color:var(--ink-3);line-height:1.55;margin-bottom:14px;">
+          Detectors: <b>premium_spike</b> (>3σ from corpus mean), <b>hail_cluster</b> (>3 Hail claims · same ZIP · 1 week),
+          <b>freeze_in_summer</b> (Freeze cause, Jun–Sep). Backed by
+          <code style="font-family:var(--f-mono);color:var(--accent);">GOLD.TSPR_ANOMALY_FLAGS</code>.
+          <button class="sc-secondary" data-action="anomaly-detect" style="margin-left:12px;">Re-run detection</button>
+        </div>
+        <div class="vio-list" style="border:1px solid var(--ink-5);border-radius:8px;background:var(--paper);">${body}</div>`);
     }
 
     if (section === 'wire') {
@@ -4644,11 +4797,80 @@ ${f.warning ? '⚠ ' + f.warning + '\n\n' : ''}`;
         const r = await fetch(`/api/rhs/filing/${encodeURIComponent(app.currentFilingId)}/file?persist=true`);
         const f = await r.json();
         const msg = bind('sharefile-status');
-        if (msg) msg.innerHTML = `✓ Sealed · <code style="font-family:var(--f-mono);font-size:11px;">${f.submission_id || '—'}</code> · written to GOLD.FILING_SUBMISSION`;
+        if (!r.ok) {
+          const detail = f?.detail || `HTTP ${r.status}`;
+          if (msg) msg.innerHTML = `<span style="color:var(--bad);">✗ ${esc(String(detail))}</span>`;
+        } else {
+          if (msg) msg.innerHTML = `✓ Sealed · <code style="font-family:var(--f-mono);font-size:11px;">${f.submission_id || '—'}</code> · written to GOLD.FILING_SUBMISSION`;
+        }
         await refresh();
       } catch (e) {
         const msg = bind('sharefile-status');
         if (msg) msg.textContent = `Seal failed: ${e}`;
+      } finally {
+        el.disabled = false;
+        el.textContent = orig;
+      }
+    }
+
+    if (action === 'open-reg-text') {
+      e.stopPropagation();
+      const q = el.dataset.q;
+      const detail = el.closest('.rule-detail');
+      const slot = detail?.querySelector('.reg-text-slot');
+      if (!slot) return;
+      if (slot.firstChild) { slot.innerHTML = ''; return; }  // toggle off
+      slot.innerHTML = '<div style="color:var(--ink-3);padding:8px;">Fetching…</div>';
+      try {
+        const r = await fetch('/api/rhs/reg/citation?q=' + encodeURIComponent(q));
+        const f = await r.json();
+        if (!f.matches?.length) {
+          slot.innerHTML = `<div style="color:var(--ink-3);padding:8px;">No regulator text indexed for "${esc(q)}".</div>`;
+          return;
+        }
+        const m = f.matches[0];
+        slot.innerHTML = `
+          <h5>Regulator text · ${esc(m.title || '')}</h5>
+          <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:6px;">
+            ${esc(m.issuing_body || '')} · edition ${esc(m.edition || '—')} · cited as ${esc(m.citation_label || '—')}
+            ${f.matches.length > 1 ? `<span style="margin-left:10px;color:var(--ink-3);">(+ ${f.matches.length - 1} other match${f.matches.length - 1 === 1 ? '' : 'es'})</span>` : ''}
+          </div>
+          <pre style="white-space:pre-wrap;background:var(--ink-6,#fafbfc);padding:12px;border-radius:4px;font-size:12px;line-height:1.55;max-height:300px;overflow:auto;border:1px solid var(--ink-5);">${esc((m.section_text || '').slice(0, 4000))}${(m.section_text || '').length > 4000 ? '\n\n…[truncated]' : ''}</pre>`;
+      } catch (err) {
+        slot.innerHTML = `<div style="color:var(--bad);padding:8px;">fetch failed: ${esc(String(err))}</div>`;
+      }
+    }
+
+    if (action === 'anomaly-detect') {
+      el.disabled = true;
+      const orig = el.textContent;
+      el.textContent = 'Detecting…';
+      try {
+        await fetch('/api/rhs/anomalies/detect', { method: 'POST' });
+        await refresh();
+        openDetail_filing('anomalies');  // reopen with fresh data
+      } catch (e) { alert('detect failed: ' + e); }
+      finally { el.disabled = false; el.textContent = orig; }
+    }
+
+    if (action === 'approve-as') {
+      const role = el.dataset.role;
+      el.disabled = true;
+      const orig = el.textContent;
+      el.textContent = 'Signing…';
+      try {
+        const r = await fetch(`/api/rhs/filing/${encodeURIComponent(app.currentFilingId)}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role }),
+        });
+        const f = await r.json();
+        if (!r.ok) {
+          alert(`Approval failed: ${f?.detail || 'HTTP ' + r.status}`);
+        }
+        await refresh();
+      } catch (e) {
+        alert(`Approval failed: ${e}`);
       } finally {
         el.disabled = false;
         el.textContent = orig;
@@ -4709,6 +4931,27 @@ ${f.warning ? '⚠ ' + f.warning + '\n\n' : ''}`;
         const fixBtn = bind('detail-body')?.querySelector(`[data-rulenum="${el.dataset.rulenum}"]`);
         if (fixBtn) fixBtn.click();
       }, 200);
+    }
+
+    if (action === 'open-claim-detail') {
+      // Claim-side ticket → open the Claims popout focused on the offending claim
+      e.stopPropagation();
+      const claimNo = el.dataset.claim;
+      openDetail_filing('claims');
+      // Scroll the popout to that row and highlight it briefly
+      setTimeout(() => {
+        const body = bind('detail-body');
+        if (!body) return;
+        const target = [...body.querySelectorAll('tr')].find(tr =>
+          tr.textContent.includes(claimNo)
+        );
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.style.transition = 'background 0.4s';
+          target.style.background = 'var(--accent-2)';
+          setTimeout(() => { target.style.background = ''; }, 1500);
+        }
+      }, 220);
     }
 
     if (action === 'open-fix-row') {
