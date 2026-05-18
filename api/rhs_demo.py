@@ -949,6 +949,243 @@ def _run(cmd: list[str]) -> dict:
     }
 
 
+# ── TSPR fixed-width ASCII renderer ────────────────────────────────────────
+# Reads Gold submission tables, emits 200-char records per TSPR layout, computes
+# the SHA-256 seal, and (optionally) persists a row to GOLD.FILING_SUBMISSION.
+# Simplified layout — captures the essential structure (record-type + key
+# positional fields) without being byte-for-byte spec-compliant.
+
+_TSPR_RECORD_WIDTH = 200
+
+
+def _pad_alpha(value: Any, length: int) -> str:
+    """Left-justify, pad right with spaces. NULL/None → spaces. Truncate if too long."""
+    s = "" if value is None else str(value)
+    return s[:length].ljust(length, " ")
+
+
+def _pad_num(value: Any, length: int, *, cents: bool = False) -> str:
+    """Right-justify, pad left with zeros. Numeric values rendered as integers
+    (cents=True multiplies by 100 to encode money-as-cents). NULL → all zeros."""
+    if value is None or value == "":
+        return "0" * length
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return "0" * length
+    if cents:
+        n = int(round(n * 100))
+    else:
+        n = int(round(n))
+    return str(abs(n))[:length].rjust(length, "0")
+
+
+def _pad_date(value: Any, length: int = 8) -> str:
+    """Render a date/datetime as YYYYMMDD (or YYMMDD if length=6)."""
+    if value is None:
+        return "0" * length
+    if isinstance(value, dt.datetime) or isinstance(value, dt.date):
+        if length == 6:
+            return value.strftime("%y%m%d")
+        return value.strftime("%Y%m%d")
+    s = str(value)
+    # Already-string ISO dates: strip dashes
+    s = s.replace("-", "").replace(" 00:00:00", "")[:length]
+    return s.ljust(length, "0")[:length]
+
+
+def _render_header(naic: str, filing: dict, premium_n: int, loss_n: int, cancel_n: int) -> str:
+    """Filing header — first line of the file."""
+    out = (
+        "H" +
+        _pad_alpha(naic, 5) +
+        _pad_alpha(filing["id"], 14) +
+        _pad_date(filing.get("period_start")) +
+        _pad_date(filing.get("period_end")) +
+        _pad_alpha(filing.get("plan_code"), 3) +
+        _pad_num(premium_n, 6) +
+        _pad_num(loss_n, 6) +
+        _pad_num(cancel_n, 6) +
+        dt.datetime.now().strftime("%Y%m%d%H%M%S")
+    )
+    return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
+
+
+def _render_premium_record(r: dict, naic: str) -> str:
+    """One P-record per row in GOLD.TSPR_PREMIUM_RECORDS."""
+    g = lambda k: r.get(k) if k in r else r.get(k.upper())
+    out = (
+        "P" +
+        _pad_alpha(naic, 5) +
+        _pad_num(g("policy_id"), 10) +
+        _pad_date(g("effective_date")) +
+        _pad_date(g("expiry_date")) +
+        _pad_num(g("amt_insurance_dw"), 10) +
+        _pad_alpha(g("policy_form"), 2) +
+        _pad_num(g("number_of_families"), 1) +
+        _pad_alpha(g("construction"), 1) +
+        _pad_alpha(g("ppc_split"), 3) +
+        _pad_num(g("term"), 3) +
+        _pad_alpha(g("line_of_business"), 3) +
+        _pad_alpha(g("tico_company_no"), 5) +
+        _pad_alpha(g("stat_plan"), 4) +
+        _pad_alpha(g("place_code"), 5)
+    )
+    return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
+
+
+def _render_loss_record(r: dict, naic: str) -> str:
+    """One L-record per row in GOLD.TSPR_LOSS_RECORDS."""
+    g = lambda k: r.get(k) if k in r else r.get(k.upper())
+    out = (
+        "L" +
+        _pad_alpha(naic, 5) +
+        _pad_num(g("policy_id"), 10) +
+        _pad_date(g("occurrence_date")) +
+        _pad_date(g("policy_effective_date")) +
+        _pad_alpha(g("kind_code"), 2) +
+        _pad_num(g("amt_insurance_dw"), 10) +
+        _pad_alpha(g("policy_form"), 2) +
+        _pad_num(g("number_of_families"), 1) +
+        _pad_alpha(g("construction"), 1) +
+        _pad_alpha(g("ppc_split"), 3) +
+        _pad_alpha(g("line_of_business"), 3) +
+        _pad_alpha(g("tico_company_no"), 5) +
+        _pad_alpha(g("stat_plan"), 4) +
+        _pad_alpha(g("place_code"), 5)
+    )
+    return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
+
+
+def _render_cancellation_record(r: dict, naic: str) -> str:
+    """One C-record per row in GOLD.TSPR_CANCELLATION_RECORDS."""
+    g = lambda k: r.get(k) if k in r else r.get(k.upper())
+    out = (
+        "C" +
+        _pad_alpha(naic, 5) +
+        _pad_date(g("notification_date_encoded"), 6) +
+        _pad_alpha(g("action_type"), 1) +
+        _pad_alpha(g("type_of_policy"), 1) +
+        _pad_alpha(g("reason_source_indicator"), 1) +
+        _pad_alpha(g("within_60_days_indicator"), 1) +
+        _pad_alpha(g("zip5"), 5) +
+        _pad_alpha(g("reason_code_list"), 5) +
+        _pad_num(g("recipient_count"), 6) +
+        _pad_num(g("actual_action_count"), 6) +
+        _pad_alpha(g("tico_company_no"), 5) +
+        _pad_alpha(g("unique_combination_key"), 20)
+    )
+    return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
+
+
+def _render_footer(naic: str, agg: dict, sha256: str) -> str:
+    """Trailer record with totals + the file's own SHA-256 seal."""
+    g = lambda k: agg.get(k) if k in agg else agg.get(k.upper())
+    out = (
+        "F" +
+        _pad_alpha(naic, 5) +
+        _pad_num(g("premium_record_count"), 6) +
+        _pad_num(g("loss_record_count"), 6) +
+        _pad_num(g("cancellation_notice_count"), 6) +
+        _pad_num(g("total_written_premium"), 14, cents=True) +
+        _pad_num(g("total_paid_losses"), 14, cents=True) +
+        _pad_num(g("total_outstanding_losses"), 14, cents=True) +
+        sha256[:64]
+    )
+    return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
+
+
+@router.get("/filing/{filing_id}/file")
+def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
+    """Render the TSPR fixed-width ASCII submission file for a filing.
+
+    Pulls every Gold record scoped to this filing, renders 200-char
+    P/L/C records, prefixes a header, appends an SHA-256-sealed footer.
+
+    Set ?persist=true to also write a FILING_SUBMISSION row + USER_ACTION
+    so the audit chain captures who generated this file when.
+    """
+    import hashlib
+
+    f = _filing(filing_id)
+    if not f:
+        raise HTTPException(404, f"unknown filing {filing_id}")
+
+    # Resolve NAIC from the first policyperiod row in scope
+    naic_rows = query(
+        "SELECT pp.naic_number AS naic "
+        "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICYPERIOD pp "
+        "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = pp.policy_id "
+        f"WHERE 1=1 {_scope_clause(filing_id)} "
+        "AND REGEXP_LIKE(pp.naic_number, '^[0-9]{5}$') "
+        "LIMIT 1"
+    )
+    naic = (naic_rows[0].get("naic") or naic_rows[0].get("NAIC")) if naic_rows else "00000"
+
+    # Pull Gold records (all rows — Gold isn't yet filing-scoped, that's a separate gap)
+    premium = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS ORDER BY record_seq")
+    loss    = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_LOSS_RECORDS ORDER BY record_seq")
+    cancel  = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_CANCELLATION_RECORDS ORDER BY record_seq")
+    agg_rows = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_MONTHLY_AGGREGATES LIMIT 1")
+    agg = agg_rows[0] if agg_rows else {}
+
+    # Render lines
+    header_line = _render_header(naic, f, len(premium), len(loss), len(cancel))
+    p_lines = [_render_premium_record(r, naic) for r in premium]
+    l_lines = [_render_loss_record(r, naic) for r in loss]
+    c_lines = [_render_cancellation_record(r, naic) for r in cancel]
+
+    body = "\n".join([header_line] + p_lines + l_lines + c_lines)
+    sha256 = hashlib.sha256(body.encode("ascii", errors="replace")).hexdigest()
+    footer_line = _render_footer(naic, agg, sha256)
+
+    file_text = body + "\n" + footer_line + "\n"
+    file_name = f"TSPR_{naic}_{f['plan_code']}_{filing_id.replace('-', '')}.txt"
+
+    response = {
+        "filing_id":    filing_id,
+        "file_name":    file_name,
+        "naic":         naic,
+        "record_count": len(p_lines) + len(l_lines) + len(c_lines),
+        "byte_count":   len(file_text.encode("ascii", errors="replace")),
+        "sha256":       sha256,
+        "preview":      file_text[:2400],   # first ~12 lines
+        "header":       header_line,
+        "footer":       footer_line,
+        "p_count":      len(p_lines),
+        "l_count":      len(l_lines),
+        "c_count":      len(c_lines),
+    }
+
+    if persist:
+        # Write a FILING_SUBMISSION row + USER_ACTION audit event
+        sub_id = "sub-" + _uuid.uuid4().hex[:14]
+        try:
+            query(
+                "INSERT INTO INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
+                "(submission_id, filing_batch_id, channel, submitted_by, "
+                " file_name, file_sha256, file_size_bytes, record_count, status, submitted_at) "
+                f"SELECT {_sql_quote(sub_id)}, {_sql_quote(filing_id)}, "
+                f"  {_sql_quote(f['channel'])}, {_sql_quote('D. Reyes')}, "
+                f"  {_sql_quote(file_name)}, {_sql_quote(sha256)}, "
+                f"  {response['byte_count']}, {response['record_count']}, "
+                f"  'sealed', CURRENT_TIMESTAMP()"
+            )
+        except Exception as e:
+            print(f"[file] FILING_SUBMISSION insert failed: {e}")
+        _record_action(
+            filing_id, "file_generated",
+            actor="D. Reyes",
+            target_record=file_name,
+            summary=f"Sealed {response['record_count']} records · {response['byte_count']} bytes · sha256:{sha256[:12]}…",
+            details={"sha256": sha256, "record_count": response["record_count"], "submission_id": sub_id},
+        )
+        response["persisted"] = True
+        response["submission_id"] = sub_id
+
+    return JSONResponse(response)
+
+
 @router.get("/audit/{filing_id}")
 def audit_history(filing_id: str, limit: int = 50) -> JSONResponse:
     """Read the persisted audit history for a filing.

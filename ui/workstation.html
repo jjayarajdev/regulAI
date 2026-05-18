@@ -2492,24 +2492,30 @@
 
 <!-- ShareFile preview modal -->
 <div data-bind="sharefile-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center;">
-  <div style="background:var(--surface);border:1px solid var(--line);border-radius:8px;max-width:780px;width:90%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.25);">
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:8px;max-width:920px;width:90%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.25);">
     <div style="padding:18px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;">ShareFile destination · preview</div>
-        <div style="font-family:var(--f-serif);font-size:22px;font-weight:300;letter-spacing:-0.015em;">TSPR_19876_25Q4.txt</div>
+        <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;">ShareFile destination · live render</div>
+        <div style="font-family:var(--f-serif);font-size:22px;font-weight:300;letter-spacing:-0.015em;">TSPR filing file</div>
       </div>
       <button class="btn ghost" data-action="close-sharefile" style="font-size:18px;padding:4px 12px;line-height:1;">×</button>
     </div>
     <div style="padding:18px 24px;flex:1;overflow-y:auto;">
       <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-bottom:14px;">
-        This is the fixed-width ASCII file that would be uploaded to
-        <code style="font-family:var(--f-mono);color:var(--accent);">sharefile.tico.org/inbox/19876/q4-2025/</code>
-        once the filing is sealed. Generated from <code>GOLD.TSPR_PREMIUM_RECORDS</code> + the Section 29 aggregates.
+        Fixed-width ASCII generated live from <code style="font-family:var(--f-mono);color:var(--accent);">GOLD.TSPR_PREMIUM_RECORDS</code> +
+        <code style="font-family:var(--f-mono);color:var(--accent);">TSPR_LOSS_RECORDS</code> +
+        <code style="font-family:var(--f-mono);color:var(--accent);">TSPR_CANCELLATION_RECORDS</code>.
+        Each record is 200 chars; SHA-256 seal in the footer is computed over the full byte stream.
       </div>
-      <pre data-bind="sharefile-content" style="font-family:var(--f-mono);font-size:11.5px;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:14px;line-height:1.7;overflow:auto;color:var(--ink);white-space:pre;">loading…</pre>
-      <div style="margin-top:14px;font-size:12px;color:var(--ink-3);">
-        Carrier private-key signature + SHA-256 hash chain seals are computed at submission time. Currently shown as a preview only.
+      <pre data-bind="sharefile-content" style="font-family:var(--f-mono);font-size:11px;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:14px;line-height:1.6;overflow:auto;color:var(--ink);white-space:pre;max-height:420px;">loading…</pre>
+      <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;">
+        <div style="font-size:12px;color:var(--ink-3);flex:1;line-height:1.55;">
+          <b>Seal &amp; submit</b> writes a row to <code style="font-family:var(--f-mono);">GOLD.FILING_SUBMISSION</code> with the file metadata
+          + SHA-256 + record count, and logs a <code style="font-family:var(--f-mono);">file_generated</code> action to <code style="font-family:var(--f-mono);">GOLD_AUDIT.USER_ACTION</code>.
+        </div>
+        <button class="btn primary" data-action="seal-and-submit" style="white-space:nowrap;">Seal &amp; submit →</button>
       </div>
+      <div data-bind="sharefile-status" style="margin-top:10px;font-size:12.5px;min-height:18px;color:var(--good);"></div>
     </div>
   </div>
 </div>
@@ -4598,18 +4604,54 @@ RETURN r, rel, n</pre>
     if (action === 'show-sharefile') {
       const modal = bind('sharefile-modal');
       const content = bind('sharefile-content');
-      if (content && app.data.val) {
-        // Build a tiny TSPR ASCII sample from current state
-        const bronze = app.data.bronze?.rows || [];
-        const violSet = new Set((app.data.val.violations || []).map(x => x.policy_number));
-        const header = '19876A2025Q4' + 'LSMUTUAL'.padEnd(20) + 'TX';
-        const lines = bronze.slice(0, 8).map(r => {
-          const flag = violSet.has(r.policy) ? '!' : ' ';
-          return `${flag} ${(r.policy || '').padEnd(10)} ${(r.action || '').padEnd(14)} ${(r.reason_code || '').padEnd(4)} ${r.noticedate || ''}`;
-        }).join('\n');
-        content.textContent = `${header}\n  policy     action         code  notice\n  ${'─'.repeat(45)}\n${lines}\n\n[${bronze.length} records · ${violSet.size} flagged · pending submission]`;
-      }
       if (modal) modal.style.display = 'flex';
+
+      // Fetch the REAL TSPR ASCII file from /api/rhs/filing/{id}/file
+      if (content) {
+        content.textContent = 'Generating filing file from Gold tables…';
+        try {
+          const r = await fetch(`/api/rhs/filing/${encodeURIComponent(app.currentFilingId)}/file`);
+          if (!r.ok) throw new Error(r.status);
+          const f = await r.json();
+
+          // Header block with metadata
+          const meta = `
+═════════════════════════════════════════════════════════════════════════════
+  ${f.file_name}
+  ${f.record_count} records  ·  ${f.byte_count.toLocaleString()} bytes  ·  NAIC ${f.naic}
+  P:${f.p_count} premium  L:${f.l_count} loss  C:${f.c_count} cancellations
+  sha256: ${f.sha256}
+═════════════════════════════════════════════════════════════════════════════
+
+`;
+          content.textContent = meta + f.preview + '\n' +
+                                '\n[file truncated at 2,400 chars — full size ' +
+                                f.byte_count.toLocaleString() + ' bytes]\n';
+          // Cache for the Seal & Submit button below
+          app.lastFiling = f;
+        } catch (e) {
+          content.textContent = `Could not generate file: ${e}\nMake sure Gold tables are populated (run the pipeline first).`;
+        }
+      }
+    }
+
+    if (action === 'seal-and-submit') {
+      el.disabled = true;
+      const orig = el.textContent;
+      el.textContent = 'Sealing…';
+      try {
+        const r = await fetch(`/api/rhs/filing/${encodeURIComponent(app.currentFilingId)}/file?persist=true`);
+        const f = await r.json();
+        const msg = bind('sharefile-status');
+        if (msg) msg.innerHTML = `✓ Sealed · <code style="font-family:var(--f-mono);font-size:11px;">${f.submission_id || '—'}</code> · written to GOLD.FILING_SUBMISSION`;
+        await refresh();
+      } catch (e) {
+        const msg = bind('sharefile-status');
+        if (msg) msg.textContent = `Seal failed: ${e}`;
+      } finally {
+        el.disabled = false;
+        el.textContent = orig;
+      }
     }
 
     if (action === 'close-sharefile') {
