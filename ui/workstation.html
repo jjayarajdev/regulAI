@@ -4623,10 +4623,11 @@ RETURN r, rel, n</pre>
   sha256: ${f.sha256}
 ═════════════════════════════════════════════════════════════════════════════
 
-`;
+${f.warning ? '⚠ ' + f.warning + '\n\n' : ''}`;
           content.textContent = meta + f.preview + '\n' +
-                                '\n[file truncated at 2,400 chars — full size ' +
-                                f.byte_count.toLocaleString() + ' bytes]\n';
+                                (f.record_count > 0
+                                  ? '\n[file truncated at 2,400 chars — full size ' + f.byte_count.toLocaleString() + ' bytes]\n'
+                                  : '\n[Gold tables empty for this filing. Run `make run-pipeline` to populate Silver + Gold from Bronze.]\n');
           // Cache for the Seal & Submit button below
           app.lastFiling = f;
         } catch (e) {

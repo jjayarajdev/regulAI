@@ -1122,10 +1122,46 @@ def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
     )
     naic = (naic_rows[0].get("naic") or naic_rows[0].get("NAIC")) if naic_rows else "00000"
 
-    # Pull Gold records (all rows — Gold isn't yet filing-scoped, that's a separate gap)
-    premium = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS ORDER BY record_seq")
-    loss    = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_LOSS_RECORDS ORDER BY record_seq")
-    cancel  = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_CANCELLATION_RECORDS ORDER BY record_seq")
+    # Scope Gold records to this filing's policy set.
+    # TSPR_PREMIUM_RECORDS + TSPR_LOSS_RECORDS carry policy_id as POL-XXXX,
+    # so we filter directly by membership in the filing's policy-number set.
+    # TSPR_CANCELLATION_RECORDS is aggregated by Rule 34 unique-combination
+    # key (no policy_id), so we filter heuristically by ZIP5 — a Gold-side
+    # scoping refactor (adding filing_batch_id columns) is the proper fix.
+    scope_set = _filing_policy_numbers(filing_id)
+    in_list = "(" + ",".join(_sql_quote(p) for p in sorted(scope_set)) + ")" if scope_set else None
+
+    if in_list:
+        premium = query(
+            f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS "
+            f"WHERE policy_id IN {in_list} ORDER BY record_seq"
+        )
+        loss = query(
+            f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_LOSS_RECORDS "
+            f"WHERE policy_id IN {in_list} ORDER BY record_seq"
+        )
+        # Pull the filing's policy ZIPs and use them to scope cancellation aggregates
+        zips = query(
+            "SELECT DISTINCT pp.zip "
+            "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_HODWELLING pp "
+            "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HOPOLICYLINE l ON l.id = pp.policyline_id "
+            "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = l.policy_id "
+            f"WHERE 1=1 {_scope_clause(filing_id)}"
+        )
+        zip_list = sorted({(r.get("zip") or r.get("ZIP")) for r in zips if (r.get("zip") or r.get("ZIP"))})
+        if zip_list:
+            zip_sql = "(" + ",".join(_sql_quote(z) for z in zip_list) + ")"
+            cancel = query(
+                f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_CANCELLATION_RECORDS "
+                f"WHERE zip5 IN {zip_sql} ORDER BY record_seq"
+            )
+        else:
+            cancel = []
+    else:
+        premium = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS ORDER BY record_seq")
+        loss    = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_LOSS_RECORDS    ORDER BY record_seq")
+        cancel  = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_CANCELLATION_RECORDS ORDER BY record_seq")
+
     agg_rows = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_MONTHLY_AGGREGATES LIMIT 1")
     agg = agg_rows[0] if agg_rows else {}
 
@@ -1142,11 +1178,12 @@ def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
     file_text = body + "\n" + footer_line + "\n"
     file_name = f"TSPR_{naic}_{f['plan_code']}_{filing_id.replace('-', '')}.txt"
 
+    record_total = len(p_lines) + len(l_lines) + len(c_lines)
     response = {
         "filing_id":    filing_id,
         "file_name":    file_name,
         "naic":         naic,
-        "record_count": len(p_lines) + len(l_lines) + len(c_lines),
+        "record_count": record_total,
         "byte_count":   len(file_text.encode("ascii", errors="replace")),
         "sha256":       sha256,
         "preview":      file_text[:2400],   # first ~12 lines
@@ -1155,6 +1192,13 @@ def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
         "p_count":      len(p_lines),
         "l_count":      len(l_lines),
         "c_count":      len(c_lines),
+        # Warning if Gold doesn't have records for this filing — happens when bulk
+        # synthetic policies have only been promoted to Bronze, not through the
+        # Silver/Gold pipeline.  Run `make run-pipeline` to populate.
+        "warning":      None if record_total > 0 else (
+            f"No Gold records found for filing {filing_id}. "
+            f"Run `make run-pipeline` to promote Bronze → Silver → Gold."
+        ),
     }
 
     if persist:
