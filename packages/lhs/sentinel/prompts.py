@@ -73,7 +73,12 @@ vocabulary, omit it and add a note in the uncited_spans entry.
 - **HITLTriggerRule** — application-internal HITL routing rule (rare in regulations themselves).
   Properties: trigger_name, condition_summary, severity ∈ {auto-handle, Tier1, Tier2, Tier3}.
 
-# Closed-vocabulary relationship types (12)
+**Application-internal types (do NOT emit — written by RegulAI infrastructure, never appear in regulations):**
+
+- **KGAuditEntry** — audit-trail row recording who mutated the canon, when, and why.
+  Written by the materialize pipeline, not by extractions.
+
+# Closed-vocabulary relationship types (13)
 
 - **SUPERSEDES**: new version replaces old version.
 - **EFFECTIVE_FROM**: rule version → effective date.
@@ -87,6 +92,11 @@ vocabulary, omit it and add a note in the uncited_spans entry.
 - **DESIGNATED_BY**: Organization → Organization (e.g., TICO designated by TDI).
 - **RECONCILES_WITH**: ReportTemplate → Organization (or another ReportTemplate).
 - **APPLIES_TO**: Rule (or CodeValue) → CoverageType / EndorsementRule / scope element.
+
+**Application-internal relationships (do NOT emit — written by RegulAI infrastructure):**
+
+- **MUTATED_BY**: any GRENode → KGAuditEntry. Records the audit entry that mutated this node.
+  Written by the materialize pipeline + audit recorder.
 
 # Citation rules
 

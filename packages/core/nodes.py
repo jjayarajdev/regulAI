@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .enums import (
     DocumentKind,
     HITLSeverity,
+    KGAuditAction,
     NodeStatus,
     OrgKind,
     ReportCadence,
@@ -223,6 +224,26 @@ class HITLTriggerRule(GRENodeBase):
     severity: HITLSeverity
 
 
+class KGAuditEntry(GRENodeBase):
+    """Audit-trail entry for every logical mutation to the KG canon.
+
+    One row per logical operation (a 'bulletin_apply' produces multiple node
+    writes but a single audit entry, with MUTATED_BY edges pointing back from
+    every affected node). Mirrors GOLD_AUDIT.USER_ACTION on the RHS side.
+
+    For CLI scripts actor='system' is acceptable. For workstation-triggered
+    flows the caller passes the authenticated user.
+    """
+
+    type: Literal["KGAuditEntry"] = "KGAuditEntry"
+    action: KGAuditAction
+    actor: str = "system"
+    summary: str
+    details_json: str | None = None  # JSON blob with operation-specific context
+    occurred_at: datetime = Field(default_factory=datetime.now)
+    affected_count: int = 0  # number of MUTATED_BY edges this entry will receive
+
+
 # Discriminated union covering every node type — useful for parsing extractions
 # and for typed iteration over heterogeneous node lists.
 GRENode = (
@@ -240,4 +261,5 @@ GRENode = (
     | ReconciliationRule
     | Organization
     | HITLTriggerRule
+    | KGAuditEntry
 )

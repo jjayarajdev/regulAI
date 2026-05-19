@@ -131,25 +131,25 @@ Both flow through the **same** `materialize()` pipeline. This means the contract
 
 ## What's thin or missing
 
-### 1. Type-as-property vs type-as-label
+### 1. Type-as-property vs type-as-label — *resolved during P1.3 audit*
 
-Every node is labeled just `GRENode` and carries a `type` property. So queries that should be:
+Initial audit (this section) reported nodes labeled only `:GRENode` with `type` as a property. That was **wrong** — `labels(n)[0]` returns only the first label, masking the second. Direct inspection during Phase 1.3 confirmed every node carries dual labels (`:GRENode:Rule`, `:GRENode:CodeList`, …), set in `Neo4jGREAdapter.create_node`:
 
-```cypher
-MATCH (r:Rule) WHERE r.section = 'A' RETURN r
+```python
+cypher = f"CREATE (n:GRENode:`{type_label}`) SET n = $props"
 ```
 
-Are actually:
+A code-base sweep found **157 native-label query usages** (`MATCH (r:Rule)`, `MATCH (cv:CodeValue)`, …) across scripts, API, and tests. The supertype `:GRENode` is reserved for type-agnostic id lookups (`MATCH (n:GRENode {id: $id})`) — which is exactly the right pattern.
 
-```cypher
-MATCH (r:GRENode {type: 'Rule'}) WHERE r.section = 'A' RETURN r
-```
+Three legacy queries in `packages/lhs/kg/queries.py` use the older `:GRENode {type: $type}` form. They're parameterized helpers (`FIND_BY_NAME_AND_TYPE`, `QUERY_ACTIVE_AS_OF`) where the type isn't known at write time, so the property-filter form is correct. Cypher labels can't be parameterized — these would need f-string injection to switch.
 
-The index `node_type_version` covers the lookup, so performance isn't catastrophic. But this loses Neo4j's native label-based query optimizer and makes Cypher queries harder to read. Every consumer of the graph (RHS scripts, validators, the workstation API) has to know to filter on `type`.
+**Native-label indexes added in P1.3** (`scripts/migrate.py`):
+- `rule_name` on `:Rule(name)` — common test + bulletin lookup
+- `codevalue_code` on `:CodeValue(code)` — heavy reason-code lookups (4 scripts)
+- `kg_audit_occurred_at` on `:KGAuditEntry(occurred_at)` — time-sorted audit queries
+- `kg_audit_action` on `:KGAuditEntry(action)` — filter-by-type audit queries
 
-**Why it was done this way**: it simplifies the materialization layer — one CREATE statement for all node types, with `type` as a discriminator. The 246-line `neo4j_adapter.py` is part of the reward.
-
-**What it would take to fix**: change `CREATE (n:GRENode {…})` to `CREATE (n:GRENode:Rule {…})` (dual-label, preserving the existing query path while enabling cleaner native queries). One-line change in `node_factory.py`, plus a re-seed. Backward-compatible.
+Total: 12 indexes covering every hot path. **No bug to fix** — the framework was correctly designed from the start; the audit query just misled my initial assessment.
 
 ### 2. No KG-side audit log
 

@@ -27,12 +27,28 @@ def _q(s) -> str:
 
 
 def fetch_rules() -> list[dict]:
+    """Return every Rule node that is currently in force.
+
+    Currently-in-force means:
+      - has executable `violation_sql`
+      - status is not 'superseded'
+      - effective_from is null OR has already passed (not a future-dated v2)
+      - effective_until is null OR has not yet arrived (not an expired v1)
+
+    The temporal filter is critical: without it, when a v2 of a Rule exists
+    with effective_from=future-date, both v1 (status='approved',
+    effective_until=null) and v2 (status='approved', effective_from=future)
+    pass the status filter and the reference table ends up with two rows
+    for the same rule_number — validation runs the predicate twice.
+    """
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
         result = s.run(
             """
             MATCH (r:Rule)
             WHERE r.violation_sql IS NOT NULL
               AND (r.status IS NULL OR r.status <> 'superseded')
+              AND (r.effective_from IS NULL OR r.effective_from <= date())
+              AND (r.effective_until IS NULL OR r.effective_until >= date())
             OPTIONAL MATCH (r)-[:CONTAINED_IN|CITES]->(d:RegulationDocument)
             WITH r, head(collect(d)) AS d
             RETURN

@@ -7,6 +7,7 @@ from uuid import UUID
 from neo4j import Driver, GraphDatabase
 
 from packages.config.settings import settings
+from packages.core.enums import KGAuditAction
 from packages.core.nodes import (
     BulletinOverride,
     CodeList,
@@ -16,6 +17,7 @@ from packages.core.nodes import (
     FieldRequirement,
     GRENode,
     HITLTriggerRule,
+    KGAuditEntry,
     Organization,
     ReconciliationRule,
     RecordLayout,
@@ -43,6 +45,7 @@ NODE_TYPE_REGISTRY: dict[str, type[GRENode]] = {
     "ReconciliationRule": ReconciliationRule,
     "Organization": Organization,
     "HITLTriggerRule": HITLTriggerRule,
+    "KGAuditEntry": KGAuditEntry,
 }
 
 
@@ -237,6 +240,51 @@ class Neo4jGREAdapter:
         with self.driver.session(database=self.database) as session:
             record = session.run(queries.COUNT_RELATIONSHIPS).single()
             return int(record["count"]) if record else 0
+
+    # -- audit ----------------------------------------------------------------
+
+    def record_audit_entry(
+        self,
+        action: KGAuditAction | str,
+        summary: str,
+        actor: str = "system",
+        affected_node_ids: list[UUID] | None = None,
+        details_json: str | None = None,
+    ) -> UUID:
+        """Persist one logical-operation audit entry + MUTATED_BY edges.
+
+        Returns the audit entry's id. Best-effort: surfaces exceptions to the
+        caller, but the caller is expected to swallow them so audit failures
+        don't break the underlying operation. The RHS-side `@_audit_safe`
+        decorator does this on its side; the LHS-side scripts can call this
+        directly inside try/except blocks.
+        """
+        act = action if isinstance(action, KGAuditAction) else KGAuditAction(action)
+        entry = KGAuditEntry(
+            name=f"{act.value}:{summary[:80]}",  # name is required on GRENodeBase
+            action=act,
+            actor=actor,
+            summary=summary[:1024],
+            details_json=details_json,
+            affected_count=len(affected_node_ids or []),
+        )
+        # Create the audit node
+        self.create_node(entry)
+
+        # Link every affected node to this entry via MUTATED_BY
+        if affected_node_ids:
+            with self.driver.session(database=self.database) as session:
+                session.run(
+                    """
+                    UNWIND $ids AS aff_id
+                    MATCH (n:GRENode {id: aff_id}), (a:GRENode {id: $audit_id})
+                    MERGE (n)-[r:MUTATED_BY]->(a)
+                    """,
+                    ids=[str(i) for i in affected_node_ids],
+                    audit_id=str(entry.id),
+                )
+
+        return entry.id
 
     # -- destructive ops ------------------------------------------------------
 

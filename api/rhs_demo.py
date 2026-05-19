@@ -595,9 +595,10 @@ def kg_reason_code(code: str) -> JSONResponse:
 def kg_rules() -> JSONResponse:
     """List every Rule node in the canon (KG).
 
-    Returns id, name, parsed section letter, citation, and an `executable`
-    flag (true when the rule has been bridged to Snowflake — i.e., it has
-    `target_table` + `violation_sql` properties, so it can be run).
+    Returns id, name, parsed section letter, citation, executable flag, and
+    version metadata (version, status, effective_from/until, currently_active)
+    so the UI can distinguish v1 / v2 of the same rule and grey out
+    superseded or not-yet-active versions.
     """
     import re
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
@@ -607,23 +608,46 @@ def kg_rules() -> JSONResponse:
             OPTIONAL MATCH (r)-[:CITES]->(c:Citation)
             WITH r, head(collect(c)) AS c
             RETURN
-              r.id            AS id,
-              r.name          AS name,
-              r.target_table  AS target_table,
-              r.violation_sql AS violation_sql,
-              r.severity      AS severity,
+              r.id              AS id,
+              r.name            AS name,
+              r.target_table    AS target_table,
+              r.violation_sql   AS violation_sql,
+              r.severity        AS severity,
+              r.version         AS version,
+              r.status          AS status,
+              r.effective_from  AS effective_from,
+              r.effective_until AS effective_until,
               CASE
                 WHEN c IS NOT NULL THEN coalesce(c.full_citation, c.text, c.name)
                 ELSE NULL
-              END             AS citation
-            ORDER BY r.name
+              END               AS citation
+            ORDER BY r.name, r.version
             """
         )
         rules = [dict(r) for r in result]
+
+    import datetime as _dt
+    today = _dt.date.today()
     for r in rules:
         m = re.match(r"Rule\s+([A-Z])\.", r.get("name") or "")
         r["section"] = m.group(1) if m else "Other"
         r["executable"] = bool(r.get("target_table"))
+        # Derive currently_active: status != superseded AND effective window includes today
+        status = (r.get("status") or "").lower()
+        def _coerce_date(v):
+            if v is None or hasattr(v, 'year') is False:
+                return v
+            try: return _dt.date(v.year, v.month, v.day)
+            except Exception: return None
+        ef = _coerce_date(r.get("effective_from"))
+        eu = _coerce_date(r.get("effective_until"))
+        r["effective_from"] = ef.isoformat() if ef else None
+        r["effective_until"] = eu.isoformat() if eu else None
+        r["currently_active"] = (
+            status != "superseded"
+            and (ef is None or ef <= today)
+            and (eu is None or eu >= today)
+        )
         # Don't ship the SQL/citation noise in the list view
         r.pop("target_table", None)
         r.pop("violation_sql", None)
@@ -1386,6 +1410,221 @@ def filing_approval_state(filing_id: str) -> JSONResponse:
         "submitted_at":  r.get("submitted_at"),
         "acked_at":      r.get("acked_at"),
     })
+
+
+@router.get("/kg/diff")
+def kg_diff(
+    since: str | None = None,
+    audit_id: str | None = None,
+) -> JSONResponse:
+    """Structured diff of canon changes.
+
+    Two query modes:
+      - `?since=YYYY-MM-DDTHH:MM:SS` — every node mutated since the given time
+      - `?audit_id=<uuid>` — every node touched by one logical audit entry
+        (e.g., a specific bulletin apply)
+
+    Returns:
+      {
+        "scope":           "since" | "audit",
+        "from":            ISO timestamp,
+        "added_nodes":     [{id, type, name, created_at}],
+        "modified_nodes":  [{id, type, name, change_summary}],
+        "superseded_nodes":[{id, type, name, effective_until}],
+        "added_edges":     [{src_name, dst_name, type}],   // best-effort
+        "audit_entries":   [{id, action, actor, summary, occurred_at, affected_count}]
+      }
+    """
+    if not (since or audit_id):
+        raise HTTPException(status_code=400, detail="provide ?since=... or ?audit_id=...")
+    if since and audit_id:
+        raise HTTPException(status_code=400, detail="provide only one of ?since / ?audit_id")
+
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+            # ── Determine the affected-node set + the audit entries in scope ──
+            if audit_id:
+                # Single-audit scope: walk MUTATED_BY from that one entry
+                audit_rows = list(s.run(
+                    """
+                    MATCH (a:KGAuditEntry {id: $aid})
+                    RETURN a
+                    """, aid=audit_id
+                ))
+                if not audit_rows:
+                    raise HTTPException(status_code=404, detail=f"audit entry not found: {audit_id}")
+                affected = list(s.run(
+                    """
+                    MATCH (n)-[:MUTATED_BY]->(a:KGAuditEntry {id: $aid})
+                    RETURN n
+                    """, aid=audit_id
+                ))
+                from_marker = audit_rows[0]["a"].get("occurred_at")
+            else:
+                # Time scope: nodes mutated AND audit entries written since the cutoff.
+                # NB: occurred_at + created_at are stored as ISO 8601 strings;
+                # lexicographic comparison is equivalent to chronological for ISO 8601.
+                audit_rows = list(s.run(
+                    """
+                    MATCH (a:KGAuditEntry)
+                    WHERE a.occurred_at >= $since
+                    RETURN a
+                    ORDER BY a.occurred_at DESC
+                    """, since=since
+                ))
+                affected = list(s.run(
+                    """
+                    MATCH (n)-[:MUTATED_BY]->(a:KGAuditEntry)
+                    WHERE a.occurred_at >= $since
+                    RETURN DISTINCT n
+                    UNION
+                    MATCH (n:GRENode)
+                    WHERE n.created_at >= $since
+                    RETURN DISTINCT n
+                    """, since=since
+                ))
+                from_marker = since
+
+            # ── Classify each affected node: added / modified / superseded ──
+            import neo4j.time as nt
+            def _iso(v):
+                if v is None: return None
+                if isinstance(v, (nt.DateTime, nt.Date)): return str(v)
+                return v
+
+            # Determine the cutoff for "is this node newly added?": for since-mode
+            # it's the `since` string; for audit-mode it's the audit's occurred_at
+            # minus a small slack so we don't miss nodes created in the same
+            # logical operation.
+            cutoff_iso = since
+            if audit_id and audit_rows:
+                cutoff_iso = audit_rows[0]["a"].get("occurred_at")
+
+            added, modified, superseded = [], [], []
+            for row in affected:
+                n = row["n"]
+                if n is None:
+                    continue
+                props = dict(n.items())
+                # Type fallback: nodes created via raw Cypher in legacy scripts may
+                # not have the `type` property set even though they carry the
+                # native label. Derive from labels(n) when the property is null.
+                node_type = props.get("type")
+                if not node_type:
+                    labels = [lbl for lbl in n.labels if lbl != "GRENode"]
+                    node_type = labels[0] if labels else None
+                summary = {
+                    "id":     props.get("id"),
+                    "type":   node_type,
+                    "name":   props.get("name"),
+                    "status": props.get("status"),
+                    "version":  props.get("version"),
+                    "created_at":      _iso(props.get("created_at")),
+                    "effective_from":  _iso(props.get("effective_from")),
+                    "effective_until": _iso(props.get("effective_until")),
+                }
+                created_str = props.get("created_at")
+                if isinstance(created_str, (nt.DateTime, nt.Date)):
+                    created_str = str(created_str)
+                # Bucketize: same-operation creation → added; superseded → superseded; else modified.
+                # For audit-mode, "added" means the node's created_at is at or after the audit's occurred_at.
+                # For since-mode, "added" means created_at >= since.
+                is_new = bool(created_str and cutoff_iso and created_str >= cutoff_iso)
+                st = (props.get("status") or "").lower()
+                if is_new:
+                    added.append(summary)
+                elif st == "superseded":
+                    superseded.append(summary)
+                else:
+                    modified.append(summary)
+
+            # ── Edges: best-effort, find OVERRIDES + CITES added in the same window via MUTATED_BY chain ──
+            # We can't easily diff arbitrary edges without history, but the bulletin flow's
+            # main edge writes (OVERRIDES, CITES from BulletinOverride) are reachable via
+            # affected nodes.
+            affected_ids = [s_["id"] for s_ in added + modified + superseded]
+            added_edges = []
+            if affected_ids:
+                edges = s.run(
+                    """
+                    MATCH (src)-[r:OVERRIDES|CITES]->(dst)
+                    WHERE src.id IN $ids OR dst.id IN $ids
+                    RETURN src.name AS src_name, src.type AS src_type,
+                           dst.name AS dst_name, dst.type AS dst_type,
+                           type(r) AS rel_type
+                    LIMIT 200
+                    """, ids=affected_ids
+                )
+                added_edges = [dict(r) for r in edges]
+
+            # ── Format audit entries ──
+            audits = []
+            for row in audit_rows:
+                a = row["a"]
+                ap = dict(a.items())
+                audits.append({
+                    "id":             ap.get("id"),
+                    "action":         ap.get("action"),
+                    "actor":          ap.get("actor"),
+                    "summary":        ap.get("summary"),
+                    "occurred_at":    _iso(ap.get("occurred_at")),
+                    "affected_count": ap.get("affected_count"),
+                })
+
+            return JSONResponse({
+                "scope":             "audit" if audit_id else "since",
+                "from":              _iso(from_marker),
+                "added_nodes":       added,
+                "modified_nodes":    modified,
+                "superseded_nodes":  superseded,
+                "added_edges":       added_edges,
+                "audit_entries":     audits,
+                "total_changes":     len(added) + len(modified) + len(superseded),
+            })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"KG diff failed: {e}") from e
+
+
+@router.get("/kg/audit")
+def kg_audit(limit: int = 50, node_id: str | None = None) -> JSONResponse:
+    """Read the KG audit history.
+
+    Returns the most recent N KGAuditEntry rows (default 50). If `node_id` is
+    provided, scopes to entries affecting that specific node via MUTATED_BY.
+    Mirrors the RHS-side /audit/{filing_id} but on the canon side.
+    """
+    if limit < 1 or limit > 500:
+        raise HTTPException(status_code=400, detail="limit must be 1..500")
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+            if node_id:
+                cypher = """
+                    MATCH (n:GRENode {id: $node_id})-[:MUTATED_BY]->(a:KGAuditEntry)
+                    RETURN a
+                    ORDER BY a.occurred_at DESC
+                    LIMIT $limit
+                """
+                rows = [dict(r["a"].items()) for r in s.run(cypher, node_id=node_id, limit=limit)]
+            else:
+                cypher = """
+                    MATCH (a:KGAuditEntry)
+                    RETURN a
+                    ORDER BY a.occurred_at DESC
+                    LIMIT $limit
+                """
+                rows = [dict(r["a"].items()) for r in s.run(cypher, limit=limit)]
+
+            # Coerce neo4j.time → iso strings for JSON
+            import neo4j.time as nt
+            for r in rows:
+                for k, v in list(r.items()):
+                    if isinstance(v, (nt.Date, nt.DateTime)):
+                        r[k] = str(v)
+            return JSONResponse({"entries": rows, "count": len(rows), "node_id": node_id})
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"KG unreachable: {e}") from e
 
 
 @router.get("/kg/neighborhood/{rule_id}")

@@ -2399,6 +2399,7 @@
           </div>
           <div class="bul-detail-actions">
             <button class="btn ghost" data-action="open-bulletin">View bulletin text</button>
+            <button class="btn ghost" data-action="show-canon-diff">View canon diff →</button>
             <button class="btn primary" data-action="bulletin-toggle" data-bind="bulletin-btn">loading…</button>
           </div>
           <div data-bind="bulletin-status" style="margin-top:14px;font-size:13px;color:var(--ink-3);"></div>
@@ -2480,6 +2481,17 @@
         <p class="audit-sub" data-bind="audit-sub">
           Loading event timeline…
         </p>
+        <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="/api/lhs/kg/graphql" target="_blank" class="sc-secondary" style="text-decoration:none;font-size:11.5px;">
+            GraphQL playground →
+          </a>
+          <a href="/api/rhs/kg/audit?limit=20" target="_blank" class="sc-secondary" style="text-decoration:none;font-size:11.5px;">
+            KG audit (JSON) →
+          </a>
+          <span style="font-size:11px;color:var(--ink-3);align-self:center;">
+            New in v1.0.1: read-only GraphQL surface · structured canon diff · audit on every KG mutation
+          </span>
+        </div>
       </div>
 
       <div class="timeline" data-bind="audit-timeline">
@@ -2837,7 +2849,7 @@
     if (app.busy) return;
     app.busy = true;
     const fq = `?filing=${encodeURIComponent(app.currentFilingId)}`;
-    const [filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit, approval, anomalies] = await Promise.all([
+    const [filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit, approval, anomalies, kgAudit] = await Promise.all([
       get('/filings'),
       get('/state'),
       get('/validate' + fq),
@@ -2850,8 +2862,9 @@
       get('/audit/' + encodeURIComponent(app.currentFilingId)),
       get('/filing/' + encodeURIComponent(app.currentFilingId) + '/approval-state'),
       get('/anomalies' + fq),
+      get('/kg/audit?limit=20').catch(() => ({ entries: [] })),
     ]);
-    app.data = { filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit, approval, anomalies };
+    app.data = { filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit, approval, anomalies, kgAudit };
     // Seed per-filing counts cache from the active filing's validate result
     // so the rail can immediately show its count while we fetch the others.
     if (!app.filingCounts) app.filingCounts = {};
@@ -4515,10 +4528,21 @@ RETURN r, rel, n</pre>
               ct = '<span class="ct" style="color:var(--ink-4);">—</span>';
               dataAttr = `data-kg-rule-id="${esc(kr.id)}"`;
             }
+            // P1.2: surface version-chain state. currently_active=false means
+            // this rule is either superseded or future-dated; show a small
+            // pill so reviewers don't trust a non-active rule's predicate.
+            const isCurrentlyActive = kr.currently_active !== false;
+            const versionBadge = (kr.version && kr.version > 1)
+              ? `<span class="ct" style="background:#dbeafe;color:#1e3a8a;font-size:10px;padding:2px 5px;border-radius:3px;margin-left:4px;">v${kr.version}</span>`
+              : '';
+            const statusBadge = !isCurrentlyActive
+              ? `<span class="ct" style="background:#f1f5f9;color:var(--ink-3);font-size:10px;padding:2px 5px;border-radius:3px;margin-left:4px;">${esc((kr.status || 'inactive'))}</span>`
+              : '';
+            const visualDim = isCurrentlyActive ? dim : 'opacity:0.45;text-decoration:line-through;';
             const ruleNumMatch = (kr.name || '').match(/Rule\s+([A-Z]\.[0-9A-Z\-]+)/);
             const ruleCode = ruleNumMatch ? ruleNumMatch[1] : (kr.section + '.•');
             const ruleLabel = (kr.name || '').replace(/^Rule\s+[A-Z]\.[0-9A-Z\-]+\s*—\s*/, '').slice(0, 55);
-            return `<div class="tree-node rule${isActive ? ' active' : ''}" style="${dim}cursor:pointer;" ${dataAttr} title="${esc(kr.name)}"><span class="code">${esc(ruleCode)}</span> ${esc(ruleLabel)}${ct}</div>`;
+            return `<div class="tree-node rule${isActive ? ' active' : ''}" style="${visualDim}cursor:pointer;" ${dataAttr} title="${esc(kr.name)}${!isCurrentlyActive ? ' (not currently in force)' : ''}"><span class="code">${esc(ruleCode)}</span> ${esc(ruleLabel)}${versionBadge}${statusBadge}${ct}</div>`;
           }).join('');
           const fails = rules.reduce((n, r) => {
             const ex = execByName.get((r.name || '').trim());
@@ -4985,14 +5009,17 @@ RETURN r, rel, n</pre>
     const actions = audit.actions || [];
     const exceptions = audit.exceptions || [];
     const batch = audit.batch || {};
+    const kgAudit = app.data.kgAudit?.entries || [];
 
     const openCount = exceptions.filter(e => (e.resolution_status || e.RESOLUTION_STATUS) === 'open').length;
     const fixedCount = exceptions.filter(e => (e.resolution_status || e.RESOLUTION_STATUS) === 'fixed').length;
 
     if (sub) {
       sub.innerHTML = `
-        <span style="color:var(--good);font-weight:500;">${actions.length} persisted events</span>
-        from <code style="font-family:var(--f-mono);">GOLD_AUDIT.USER_ACTION</code> ·
+        <span style="color:var(--good);font-weight:500;">${actions.length} RHS events</span>
+        + <span style="color:var(--accent);font-weight:500;">${kgAudit.length} KG events</span>
+        from <code style="font-family:var(--f-mono);">GOLD_AUDIT.USER_ACTION</code>
+        + <code style="font-family:var(--f-mono);">KGAuditEntry</code> ·
         ${openCount} open exception${openCount !== 1 ? 's' : ''} ·
         ${fixedCount} resolved
         ${batch.last_validated_at || batch.LAST_VALIDATED_AT ? `· last validation ${esc(batch.last_validated_at || batch.LAST_VALIDATED_AT)}` : ''}
@@ -5044,6 +5071,60 @@ RETURN r, rel, n</pre>
         </div>
       `;
     }).join('');
+
+    // ── KG audit entries (canon-side mutations) ────────────────────────
+    // Rendered in a separate section below the RHS audit. Each entry shows
+    // the action, actor, summary, and how many nodes it touched (via MUTATED_BY).
+    if (kgAudit.length) {
+      const KG_ACTION_META = {
+        bulletin_apply: { color: 'var(--kg, #6366f1)', icon: 'B', label: 'Bulletin → KG' },
+        bulletin_reset: { color: 'var(--ink-3)',        icon: 'R', label: 'Bulletin reset' },
+        node_create:    { color: 'var(--accent)',        icon: '+', label: 'Canon node added' },
+        node_supersede: { color: 'var(--amber)',          icon: '↺', label: 'Canon node superseded' },
+        manual_edit:    { color: 'var(--accent)',          icon: 'E', label: 'Manual canon edit' },
+        extraction:     { color: 'var(--sf)',                icon: 'X', label: 'Sentinel extraction' },
+        backfill:       { color: 'var(--ink-3)',              icon: '⤴', label: 'Backfill' },
+        rebuild:        { color: 'var(--ink-3)',                icon: '↻', label: 'KG rebuild' },
+      };
+      const kgRows = kgAudit.map(e => {
+        const action = (e.action || '').toLowerCase();
+        const meta = KG_ACTION_META[action] || { color: 'var(--ink-2)', icon: '·', label: action };
+        const occurred = e.occurred_at || e.OCCURRED_AT || '';
+        return `
+          <div class="tl">
+            <div class="tl-head">
+              <span class="tl-action" style="color:${meta.color};">${esc(meta.label)}</span>
+              <span class="tl-time">${esc(String(occurred))}</span>
+              <span class="ticket-pill" style="margin-left:8px;background:#6366f11a;color:#4338ca;border-color:#c7d2fe;font-size:10px;">KG</span>
+            </div>
+            <div class="tl-card">
+              <div class="tl-actor">
+                <div class="avatar" style="background:${meta.color};">${esc(meta.icon)}</div>
+                <div class="meta">
+                  <div class="nm">${esc(e.actor || 'system')}</div>
+                  <div class="rl" style="font-family:var(--f-mono);">${esc(e.action || '')}</div>
+                </div>
+              </div>
+              <div class="tl-detail">
+                ${esc(e.summary || '')}
+                ${e.affected_count > 0 ? `
+                  <div class="tl-foot">
+                    <span>affected nodes&nbsp;<b>${e.affected_count}</b></span>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+      // Append a small divider + the KG section
+      tl.innerHTML += `
+        <div style="margin:18px 0 8px;padding:8px 0;border-top:1px dashed var(--ink-5);">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--ink-3);">
+            ◆  Knowledge-graph audit · ${kgAudit.length} canon event${kgAudit.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+        ${kgRows}`;
+    }
   }
 
   // ─── Audit log (persisted from GOLD_AUDIT) ──────────────────────
@@ -5186,6 +5267,63 @@ RETURN r, rel, n</pre>
         const sec = bind('bulletin-text-section');
         if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
+    }
+
+    if (action === 'show-canon-diff') {
+      // Fetch the most recent bulletin_apply audit entry and diff it.
+      el.disabled = true;
+      const orig = el.textContent;
+      el.textContent = 'Loading diff…';
+      try {
+        const auditResp = await get('/kg/audit?limit=20');
+        const bulletinEntries = (auditResp?.entries || []).filter(e => e.action === 'bulletin_apply');
+        if (bulletinEntries.length === 0) {
+          openDetail('Canon diff', 'No applied bulletins yet',
+            '<div style="padding:20px;color:var(--ink-3);">No bulletin has been applied. Click <b>Apply bulletin</b> first, then re-open this panel to see what changed.</div>');
+          return;
+        }
+        const auditId = bulletinEntries[0].id;
+        const d = await get('/kg/diff?audit_id=' + encodeURIComponent(auditId));
+        const fmt = (n) => `
+          <div style="padding:10px 14px;margin:6px 0;border-radius:6px;background:var(--paper);border:1px solid var(--ink-5);">
+            <div style="font-family:var(--f-mono);font-size:11px;color:var(--ink-3);">${esc(n.type || '?')}${n.version ? ' · v' + n.version : ''}${n.status ? ' · ' + esc(n.status) : ''}</div>
+            <div style="font-size:13px;">${esc(n.name || '')}</div>
+            ${n.effective_from ? `<div style="font-size:11px;color:var(--ink-3);">effective ${esc(n.effective_from)}${n.effective_until ? ' until ' + esc(n.effective_until) : ''}</div>` : ''}
+          </div>`;
+        const section = (title, items, color, sign) => items.length
+          ? `<div style="margin:14px 0;">
+              <h5 style="margin:0 0 8px;color:${color};">${sign} ${esc(title)} (${items.length})</h5>
+              ${items.map(fmt).join('')}
+            </div>`
+          : '';
+        const edgeSection = d.added_edges.length
+          ? `<div style="margin:14px 0;">
+              <h5 style="margin:0 0 8px;color:var(--accent);">→ Added edges (${d.added_edges.length})</h5>
+              ${d.added_edges.slice(0, 20).map(e => `
+                <div style="font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);padding:4px 0;">
+                  ${esc(e.src_name || '')} -[${esc(e.rel_type)}]-> ${esc(e.dst_name || '')}
+                </div>
+              `).join('')}
+            </div>`
+          : '';
+        openDetail('Bulletins',
+          `<em>${d.total_changes}</em> canon change${d.total_changes !== 1 ? 's' : ''}`,
+          `<div style="font-size:12.5px;color:var(--ink-3);margin-bottom:14px;line-height:1.55;">
+            Diff of canon state caused by the most recent bulletin apply
+            (audit entry <code style="font-family:var(--f-mono);">${esc(auditId.slice(0,8))}…</code>
+            at <code style="font-family:var(--f-mono);">${esc(d.from || '')}</code>).
+            Backed by <code style="font-family:var(--f-mono);color:var(--accent);">GET /api/rhs/kg/diff?audit_id=...</code>.
+          </div>
+          ${section('Added nodes', d.added_nodes, 'var(--good)', '+')}
+          ${section('Modified nodes', d.modified_nodes, 'var(--amber)', '~')}
+          ${section('Superseded nodes', d.superseded_nodes, 'var(--ink-3)', '×')}
+          ${edgeSection}
+          ${d.total_changes === 0 ? '<div style="padding:20px;color:var(--ink-3);">No canon changes detected for this audit entry.</div>' : ''}`);
+      } catch (e) {
+        alert('Failed to load diff: ' + e);
+      } finally {
+        el.disabled = false; el.textContent = orig;
+      }
     }
 
     if (action === 'copy-bulletin') {

@@ -22,8 +22,16 @@ INDEXES: list[str] = [
        FOR (n:GRENode) ON (n.effective_from)""",
     """CREATE INDEX rule_lookup IF NOT EXISTS
        FOR (r:Rule) ON (r.section, r.rule_number)""",
+    """CREATE INDEX rule_name IF NOT EXISTS
+       FOR (r:Rule) ON (r.name)""",
     """CREATE INDEX codelist_lookup IF NOT EXISTS
        FOR (c:CodeList) ON (c.code_list_name)""",
+    """CREATE INDEX codevalue_code IF NOT EXISTS
+       FOR (cv:CodeValue) ON (cv.code)""",
+    """CREATE INDEX kg_audit_occurred_at IF NOT EXISTS
+       FOR (a:KGAuditEntry) ON (a.occurred_at)""",
+    """CREATE INDEX kg_audit_action IF NOT EXISTS
+       FOR (a:KGAuditEntry) ON (a.action)""",
 ]
 
 

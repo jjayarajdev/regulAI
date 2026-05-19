@@ -138,6 +138,16 @@ def design_03() -> FileResponse:
 app.include_router(rhs_router)
 
 
+# -- KG GraphQL surface (Phase 1.6) -------------------------------------------
+# Read-only GraphQL at /api/lhs/kg/graphql with introspection enabled. Schema
+# lives in packages/lhs/kg/graphql_schema.py.
+from strawberry.fastapi import GraphQLRouter  # noqa: E402
+
+from packages.lhs.kg.graphql_schema import schema as _kg_schema  # noqa: E402
+
+app.include_router(GraphQLRouter(_kg_schema), prefix="/api/lhs/kg/graphql")
+
+
 # -- Regulations API ----------------------------------------------------------
 
 

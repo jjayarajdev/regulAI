@@ -51,7 +51,7 @@ class HITLSeverity(str, Enum):
 
 
 class NodeType(str, Enum):
-    """The 14 closed-vocabulary node types. See docs/kg-schema.md."""
+    """The 15 closed-vocabulary node types. See docs/kg-schema.md."""
 
     REGULATION_DOCUMENT = "RegulationDocument"
     STAT_PLAN_EDITION = "StatPlanEdition"
@@ -67,10 +67,30 @@ class NodeType(str, Enum):
     RECONCILIATION_RULE = "ReconciliationRule"
     ORGANIZATION = "Organization"
     HITL_TRIGGER_RULE = "HITLTriggerRule"
+    KG_AUDIT_ENTRY = "KGAuditEntry"
+
+
+class KGAuditAction(str, Enum):
+    """The kinds of logical operations that mutate the KG canon.
+
+    One audit entry per logical operation — a 'bulletin_apply' produces
+    multiple node/edge writes but a single audit row referencing all of them
+    via MUTATED_BY edges.
+    """
+
+    NODE_CREATE     = "node_create"
+    NODE_SUPERSEDE  = "node_supersede"
+    NODE_DELETE     = "node_delete"
+    BULLETIN_APPLY  = "bulletin_apply"
+    BULLETIN_RESET  = "bulletin_reset"
+    EXTRACTION      = "extraction"
+    BACKFILL        = "backfill"
+    REBUILD         = "rebuild"
+    MANUAL_EDIT     = "manual_edit"
 
 
 class RelationshipType(str, Enum):
-    """The 12 closed-vocabulary relationship types. See docs/kg-schema.md."""
+    """The 13 closed-vocabulary relationship types. See docs/kg-schema.md."""
 
     SUPERSEDES = "SUPERSEDES"
     EFFECTIVE_FROM = "EFFECTIVE_FROM"
@@ -84,3 +104,4 @@ class RelationshipType(str, Enum):
     DESIGNATED_BY = "DESIGNATED_BY"
     RECONCILES_WITH = "RECONCILES_WITH"
     APPLIES_TO = "APPLIES_TO"
+    MUTATED_BY = "MUTATED_BY"
