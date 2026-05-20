@@ -153,6 +153,14 @@ DOCS: list[DocEntry] = [
         blurb="Florida statute creating Citizens Property Insurance Corporation — the state's residual-market insurer of last resort. Defines the corporation, board, eligibility, rate cap, assessment/surcharge mechanisms, account structure (Personal Lines / Commercial Lines / Coastal), and policy-level reporting requirements.",
         pdf_path=None,
     ),
+    DocEntry(
+        slug="fl-oir-22-04m",
+        label="FL OIR Informational Memorandum OIR-22-04M — Hurricane Ian Data Call",
+        category="Florida regulator bulletin",
+        path=Path("synthetic_regulations/real/florida/FL_OIR_22_04M_hurricane_data_call.md"),
+        blurb="FL OIR Informational Memorandum (FL's equivalent of a TICO bulletin) imposing a weekly claims data call on all P&C insurers following Hurricane Ian. Defines 16 required per-claim data fields, an aggregate summary, special provisions for Citizens, and the CRS fixed-width ASCII submission format.",
+        pdf_path=None,
+    ),
 ]
 
 DOCS_BY_SLUG: dict[str, DocEntry] = {d.slug: d for d in DOCS}

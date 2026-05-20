@@ -105,6 +105,49 @@ def test_fl_record_layout_for_citizens_policy_data():
         assert r["n"] >= 1, "FL RecordLayout missing — Sentinel should extract one from 627.351(6)(h)"
 
 
+def test_fl_bulletin_override_from_oir_memo():
+    """OIR-22-04M supersedes prior catastrophe data call directives; Sentinel
+    should recognize this and produce a BulletinOverride node scoped to US-FL."""
+    from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        r = s.run(
+            "MATCH (bo:BulletinOverride)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'}) "
+            "RETURN count(bo) AS n"
+        ).single()
+        assert r["n"] >= 1, "OIR-22-04M should have produced a BulletinOverride node"
+
+
+def test_fl_codelists_for_hurricane_data_call():
+    """The OIR data call defines 8 CodeLists (Cause of Loss, Policy Form,
+    Claim Status, etc.). Verify they made it into the FL canon."""
+    from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        r = s.run(
+            "MATCH (cl:CodeList)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'}) "
+            "RETURN count(cl) AS n"
+        ).single()
+        assert r["n"] >= 5, f"Expected ≥5 FL CodeLists from OIR memo, got {r['n']}"
+
+
+def test_fl_canon_exercises_all_node_types():
+    """After 3 FL documents, the FL canon should exercise at least 10 of the
+    19 closed-vocabulary node types — proving the schema absorbs real
+    regulator content broadly, not just narrowly."""
+    from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        rows = list(s.run("""
+            MATCH (n:GRENode)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'})
+            RETURN [l IN labels(n) WHERE l <> 'GRENode'][0] AS type
+        """))
+        types_seen = {r["type"] for r in rows}
+        assert len(types_seen) >= 10, (
+            f"FL canon only exercises {len(types_seen)} types after 3 docs: {types_seen}"
+        )
+
+
 def test_no_node_appears_in_both_tx_and_fl():
     """The most important leak test: no node should be APPLIES_IN to both jurisdictions
     without an explicit dual-scope marker. Right now we expect zero overlap."""
