@@ -27,7 +27,7 @@ from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 from packages.core.enums import KGAuditAction
 
 
-FL_EXTRACTION_PATH = Path("materialized/extractions/FL_627_062_rate_standards.extraction.json")
+FL_EXTRACTIONS_GLOB = "materialized/extractions/FL_*.extraction.json"
 FL_JUR_ID = "jur:US-FL"
 FL_REG_ID = "reg:FL-OIR"
 
@@ -89,19 +89,24 @@ def _ensure_fl_scaffolding(gre: Neo4jGREAdapter) -> dict:
 
 
 def _fl_node_signatures() -> list[tuple[str, str]]:
-    """Read FL extraction JSON; return [(type, name)] for every proposed node."""
-    if not FL_EXTRACTION_PATH.exists():
-        return []
-    data = json.loads(FL_EXTRACTION_PATH.read_text(encoding="utf-8"))
-    sigs = []
-    for n in data.get("proposed_nodes", []):
-        t = n.get("type")
-        nm = n.get("name")
-        if t and nm:
-            # Type might be enum-encoded as a dict or plain string
+    """Read every FL_*.extraction.json; return union of [(type, name)]."""
+    import glob
+    paths = sorted(Path(p) for p in glob.glob(FL_EXTRACTIONS_GLOB))
+    sigs: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for p in paths:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        for n in data.get("proposed_nodes", []):
+            t = n.get("type")
+            nm = n.get("name")
+            if not (t and nm):
+                continue
             if isinstance(t, dict):
                 t = t.get("value") or list(t.values())[0]
-            sigs.append((t, nm))
+            key = (t, nm)
+            if key not in seen:
+                sigs.append(key)
+                seen.add(key)
     return sigs
 
 
@@ -146,10 +151,10 @@ def main() -> int:
 
         sigs = _fl_node_signatures()
         if not sigs:
-            print(f"  ⚠  No FL extraction found at {FL_EXTRACTION_PATH}")
-            print(f"     Run: make extract-fl-627-062 (and then make materialize-fl)")
+            print(f"  ⚠  No FL extractions found at {FL_EXTRACTIONS_GLOB}")
+            print(f"     Run extract + materialize for an FL document first.")
             return 0
-        print(f"  · FL extraction loaded: {len(sigs)} node signatures")
+        print(f"  · FL extractions loaded: {len(sigs)} unique node signatures")
 
         retag = _retag_fl_nodes(gre, sigs)
         print(f"  ✓ Nodes retagged to US-FL: {retag['retagged']}/{len(sigs)}")

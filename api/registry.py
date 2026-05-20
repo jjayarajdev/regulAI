@@ -145,6 +145,14 @@ DOCS: list[DocEntry] = [
         blurb="Florida statute governing rate filings for property/casualty insurance. Defines 'file and use' / 'use and file' procedures, the 15 actuarial factors the FL OIR considers, Florida Hurricane Catastrophe Fund treatment, and residential property mitigation requirements.",
         pdf_path=None,
     ),
+    DocEntry(
+        slug="fl-627-351",
+        label="FL Statute 627.351 — Insurance Risk Apportionment Plans (Citizens)",
+        category="Florida statute",
+        path=Path("synthetic_regulations/real/florida/FL_627_351_citizens.txt"),
+        blurb="Florida statute creating Citizens Property Insurance Corporation — the state's residual-market insurer of last resort. Defines the corporation, board, eligibility, rate cap, assessment/surcharge mechanisms, account structure (Personal Lines / Commercial Lines / Coastal), and policy-level reporting requirements.",
+        pdf_path=None,
+    ),
 ]
 
 DOCS_BY_SLUG: dict[str, DocEntry] = {d.slug: d for d in DOCS}

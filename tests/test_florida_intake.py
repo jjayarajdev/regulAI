@@ -60,7 +60,7 @@ def test_fl_oir_regulator_exists():
 
 
 def test_fl_canon_has_real_content():
-    """At least 10 Rules and the FL Statute 627.062 document scoped to US-FL."""
+    """At least 20 Rules and both FL statutes (627.062 + 627.351) scoped to US-FL."""
     from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
@@ -68,14 +68,41 @@ def test_fl_canon_has_real_content():
             "MATCH (r:Rule)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'}) "
             "RETURN count(r) AS n"
         ).single()
-        assert rules["n"] >= 10, f"Expected ≥10 FL Rules, got {rules['n']}"
+        assert rules["n"] >= 20, f"Expected ≥20 FL Rules (after 2 statutes), got {rules['n']}"
 
-        doc = s.run(
-            "MATCH (d:RegulationDocument)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'}) "
-            "WHERE d.name CONTAINS '627.062' "
-            "RETURN count(d) AS n"
+        for chapter in ("627.062", "627.351"):
+            doc = s.run(
+                "MATCH (d:RegulationDocument)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'}) "
+                "WHERE d.name CONTAINS $ch RETURN count(d) AS n",
+                ch=chapter,
+            ).single()
+            assert doc["n"] >= 1, f"FL Statute {chapter} missing"
+
+
+def test_fl_citizens_organization_extracted():
+    """The Citizens Property Insurance Corporation should be a distinct Organization."""
+    from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        r = s.run(
+            "MATCH (o:Organization)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'}) "
+            "WHERE o.name CONTAINS 'Citizens' "
+            "RETURN o.name AS name LIMIT 1"
         ).single()
-        assert doc["n"] >= 1, "FL Statute 627.062 missing"
+        assert r is not None, "Citizens Property Insurance Corporation missing"
+        assert "Citizens" in r["name"]
+
+
+def test_fl_record_layout_for_citizens_policy_data():
+    """The Citizens statute's reporting requirements should produce a RecordLayout."""
+    from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        r = s.run(
+            "MATCH (rl:RecordLayout)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'}) "
+            "RETURN count(rl) AS n"
+        ).single()
+        assert r["n"] >= 1, "FL RecordLayout missing — Sentinel should extract one from 627.351(6)(h)"
 
 
 def test_no_node_appears_in_both_tx_and_fl():
@@ -95,7 +122,9 @@ def test_no_node_appears_in_both_tx_and_fl():
 
 
 def test_tx_canon_unchanged_post_fl_ingestion():
-    """The 14 executable rules + 1530+ canon nodes scoped to US-TX are untouched."""
+    """TX scope is untouched by FL ingestion (modulo legitimate dedup of
+    Organizations like the FL Hurricane Loss Projection Methodology Commission
+    that already existed as a TX-scoped node)."""
     from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
@@ -103,7 +132,8 @@ def test_tx_canon_unchanged_post_fl_ingestion():
             "MATCH (n:GRENode)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-TX'}) "
             "RETURN count(n) AS n"
         ).single()
-        # TX baseline is 1530 (after federal-default tagging moved 9+5=14 to US)
+        # TX baseline is 1530 (after federal-default tagging moved 9+5=14 to US,
+        # and after Citizens-statute ingestion which reused 1 existing org).
         assert r["n"] >= 1525, f"TX scope shrunk unexpectedly to {r['n']}"
 
 
