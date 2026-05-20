@@ -51,13 +51,24 @@ BULLETIN_PATH = Path("synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md
 # policy-number prefix (POL-0050 would otherwise look like a TPA filing
 # because it shares the "POL-00" prefix with POL-0019). The id ranges
 # match the synthetic data in scripts/generate_bronze_data.py.
-from packages.rhs.filings import FILINGS  # noqa: E402  — canonical registry
+from packages.rhs.filings import FILINGS  # noqa: E402  — bootstrap fallback
+from packages.rhs.filings import load_filings as _load_filings_from_kg  # noqa: E402
+
+
+def _live_filings() -> list[dict]:
+    """KG-preferred filings list (P2.4). Falls back to FILINGS on KG error.
+
+    Called per-request for low-volume endpoints (`/filings`, `_filing`). The
+    KG read is small (~3 nodes) and cached internally by Neo4j; refactoring
+    to module-level state would defeat the purpose (KG becomes the source).
+    """
+    return _load_filings_from_kg()
 
 
 def _filing(filing_id: str | None) -> dict | None:
     if not filing_id:
         return None
-    for f in FILINGS:
+    for f in _live_filings():
         if f["id"] == filing_id:
             return f
     return None
@@ -94,8 +105,15 @@ def _scope_clause(filing_id: str | None, policy_id_col: str = "p.id") -> str:
 
 @router.get("/filings")
 def filings_list() -> JSONResponse:
-    """List all known filings + which one is currently the default context."""
-    return JSONResponse({"filings": FILINGS, "default": FILINGS[0]["id"]})
+    """List all known filings + which one is currently the default context.
+
+    P2.4: source is FilingObligation nodes in KG (with fallback to the
+    in-process FILINGS list if KG is unreachable). Adding a new filing now
+    means creating a KG node, not editing Python.
+    """
+    filings = _live_filings()
+    default = filings[0]["id"] if filings else None
+    return JSONResponse({"filings": filings, "default": default})
 
 
 # ── Audit-persistence helpers ────────────────────────────────────────
@@ -125,7 +143,7 @@ def _audit_safe(fn):
 @_audit_safe
 def _ensure_filing_batch(filing_id: str, status: str = "draft") -> str:
     """Create a FILING_BATCH row for this filing if one doesn't exist."""
-    f = _filing(filing_id) or FILINGS[0]
+    f = _filing(filing_id) or (_live_filings()[0] if _live_filings() else FILINGS[0])
     rows = query(
         f"SELECT filing_batch_id FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
         f"WHERE filing_batch_id = '{f['id']}'"
@@ -428,10 +446,21 @@ def validate_cancellations(filing: str | None = None) -> JSONResponse:
 
     If `filing` is provided, results are scoped to that filing's policy-prefix.
     """
+    # P2.3: derive the filing's jurisdiction (default US-TX for the current
+    # demo). The reference table carries `jurisdiction_code` per row, so a
+    # filing for a future state would automatically use only that state's
+    # rules + federal defaults.
+    target_jur = "US-TX"
+    if filing:
+        f_obj = _filing(filing)
+        if f_obj:
+            target_jur = f_obj.get("jurisdiction_code", "US-TX")
     rules = query(
         "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
-        "       violation_sql, violation_reason, severity, citation "
+        "       violation_sql, violation_reason, severity, citation, "
+        "       jurisdiction_code, is_federal_default "
         "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
+        f"WHERE jurisdiction_code = {_sql_quote(target_jur)} OR jurisdiction_code = 'US' "
         "ORDER BY rule_number"
     )
     scope_set = _filing_policy_numbers(filing)  # None = no scope filter
@@ -811,7 +840,7 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
     filing_id = None
     if pid is not None:
         pid_int = int(pid)
-        for f in FILINGS:
+        for f in _live_filings():
             if any(lo <= pid_int <= hi for lo, hi in _filing_ranges(f)):
                 filing_id = f["id"]
                 break
@@ -1794,7 +1823,7 @@ def bulletin_apply() -> JSONResponse:
     # and so any exception closed by the bulletin gets resolution_action='bulletin'.
     deltas: dict[str, dict] = {}
     if ok:
-        for f in FILINGS:
+        for f in _live_filings():
             _record_action(
                 f["id"], "bulletin_apply",
                 actor="D. Reyes",
@@ -1871,7 +1900,7 @@ def bulletin_reset() -> JSONResponse:
 
     ok = all(s["ok"] for s in steps)
     if ok:
-        for f in FILINGS:
+        for f in _live_filings():
             _record_action(
                 f["id"], "bulletin_reset",
                 actor="D. Reyes",

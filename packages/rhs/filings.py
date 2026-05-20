@@ -4,15 +4,25 @@ The same record is consumed by:
   - api/rhs_demo.py   — request-time scoping for /validate, /bronze, /audit etc.
   - scripts/run_gold.py — stamps GOLD.*.filing_batch_id during the run
 
-Keep the registry here so both stay in sync. Each entry has multiple
-policy_id ranges so curated demo cases (e.g. POL-0011 for the L-companion
-storytelling) and bulk synthetic data (POL-2100+) can both belong to the
-same filing.
+P2.4 — the canonical registry moved to KG (FilingObligation nodes).
+The list below is a fallback used only when:
+  - KG is unreachable (boot-time / smoke tests)
+  - `make seed-filing-obligations` hasn't run yet
+
+Use `load_filings()` to get the live list, with KG-preferred + Python-fallback
+semantics. Both shapes are kept identical so downstream code is unchanged.
 """
 
 from __future__ import annotations
 
+import json
+import logging
 
+logger = logging.getLogger(__name__)
+
+
+# Fallback / bootstrap registry. Kept for offline tooling (run_gold, etc.)
+# and as a safety net if KG is unreachable.
 FILINGS: list[dict] = [
     {
         "id":           "TPA-Q4-2025",
@@ -90,3 +100,75 @@ def policy_number_to_filing_case(column: str = "s.POLICY_ID") -> str:
         in_list = ",".join(pns)
         branches.append(f"WHEN {column} IN ({in_list}) THEN '{f['id']}'")
     return "CASE " + " ".join(branches) + " ELSE NULL END"
+
+
+# ── P2.4: KG-backed registry ──────────────────────────────────────────────
+
+def _from_kg() -> list[dict]:
+    """Read FilingObligation nodes from KG. Returns same shape as FILINGS list.
+
+    Raises any underlying connection error; callers should fall back to the
+    Python list when KG is unreachable.
+    """
+    # Lazy import — keeps this module importable in environments without Neo4j
+    from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+
+    out: list[dict] = []
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        rows = list(s.run(
+            """
+            MATCH (fo:FilingObligation)
+            OPTIONAL MATCH (fo)-[:RECEIVES_SUBMISSION]->(a:StatisticalAgent)
+            OPTIONAL MATCH (fo)-[:APPLIES_IN]->(j:Jurisdiction)
+            RETURN fo.obligation_code AS id,
+                   fo.plan_name AS plan_name,
+                   fo.plan_code AS plan_code,
+                   fo.cadence AS cadence,
+                   fo.period_start AS period_start,
+                   fo.period_end AS period_end,
+                   fo.due_date AS due_date,
+                   fo.is_active AS is_active,
+                   fo.policy_id_ranges_json AS ranges_json,
+                   coalesce(a.submission_channel, 'TICO ShareFile') AS channel,
+                   coalesce(j.jurisdiction_code, 'US-TX') AS jurisdiction_code
+            ORDER BY fo.due_date
+            """
+        ))
+    for r in rows:
+        try:
+            ranges = json.loads(r["ranges_json"]) if r["ranges_json"] else []
+            # JSON gives lists; the rest of the code uses tuples.
+            ranges = [tuple(rg) for rg in ranges]
+        except (json.JSONDecodeError, TypeError):
+            ranges = []
+        out.append({
+            "id":              r["id"],
+            "plan_name":       r["plan_name"],
+            "plan_code":       r["plan_code"],
+            "policy_id_ranges": ranges,
+            "cadence":         r["cadence"],
+            "period_start":    str(r["period_start"]) if r["period_start"] else None,
+            "period_end":      str(r["period_end"]) if r["period_end"] else None,
+            "due_date":        str(r["due_date"]) if r["due_date"] else None,
+            "channel":         r["channel"],
+            "is_active":       bool(r["is_active"]),
+            "jurisdiction_code": r["jurisdiction_code"],
+        })
+    return out
+
+
+def load_filings() -> list[dict]:
+    """Get the live filings list.
+
+    Prefers KG (FilingObligation nodes). Falls back to the in-file FILINGS
+    list when KG is unreachable or empty (e.g. fresh seed). Same shape as
+    the legacy list so callers don't need to branch.
+    """
+    try:
+        kg = _from_kg()
+        if kg:
+            return kg
+        logger.info("filings.load_filings: KG has no FilingObligation nodes — using Python fallback")
+    except Exception as e:
+        logger.warning("filings.load_filings: KG unreachable (%s) — using Python fallback", e)
+    return FILINGS

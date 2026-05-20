@@ -58,24 +58,28 @@ def pytest_sessionfinish(session, exitstatus):
     if not ran_destructive:
         return
     # Best-effort reseed — don't fail the session if this errors out.
+    # The full restoration chain matches the dev-bring-up flow:
+    #   rebuild-kg                — base canon (nodes only)
+    #   migrate                    — constraints + indexes + Phase 2 unique constraint
+    #   migrate-validation-rules   — attach executable rule SQL
+    #   seed-jurisdictions         — Phase 2: Jurisdiction/Regulator/Agent + APPLIES_IN
+    #   tag-federal-defaults       — Phase 2: ~9 federal-default rules, ~5 codelists
     try:
-        subprocess.run(
-            ["make", "rebuild-kg"],
-            cwd=_REPO_ROOT,
-            check=False,
-            capture_output=True,
-            timeout=120,
-        )
-        # rebuild-kg restores the canon but does NOT attach violation_sql
-        # to Rule nodes — that's a separate migrate step. Run it so the dev
-        # workstation comes back to the "with executable rules" state.
-        subprocess.run(
-            ["make", "migrate-validation-rules"],
-            cwd=_REPO_ROOT,
-            check=False,
-            capture_output=True,
-            timeout=60,
-        )
-        print("\n[conftest] Re-seeded KG + migrate-validation-rules after destructive tests.")
+        for target in (
+            "rebuild-kg",
+            "migrate",
+            "migrate-validation-rules",
+            "seed-jurisdictions",
+            "tag-federal-defaults",
+            "seed-filing-obligations",
+        ):
+            subprocess.run(
+                ["make", target],
+                cwd=_REPO_ROOT,
+                check=False,
+                capture_output=True,
+                timeout=120,
+            )
+        print("\n[conftest] Re-seeded KG + migrate + Phase 2 state after destructive tests.")
     except Exception as e:
         print(f"\n[conftest] WARNING: KG re-seed failed: {e}")

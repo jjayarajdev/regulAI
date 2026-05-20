@@ -32,6 +32,22 @@ INDEXES: list[str] = [
        FOR (a:KGAuditEntry) ON (a.occurred_at)""",
     """CREATE INDEX kg_audit_action IF NOT EXISTS
        FOR (a:KGAuditEntry) ON (a.action)""",
+    # ── Phase 2 multi-jurisdiction ──
+    """CREATE INDEX node_jurisdiction IF NOT EXISTS
+       FOR (n:GRENode) ON (n.jurisdiction_code)""",
+    """CREATE INDEX jurisdiction_code IF NOT EXISTS
+       FOR (j:Jurisdiction) ON (j.jurisdiction_code)""",
+    """CREATE INDEX regulator_code IF NOT EXISTS
+       FOR (r:Regulator) ON (r.regulator_code)""",
+    """CREATE INDEX agent_code IF NOT EXISTS
+       FOR (a:StatisticalAgent) ON (a.agent_code)""",
+    """CREATE INDEX filing_obligation_code IF NOT EXISTS
+       FOR (f:FilingObligation) ON (f.obligation_code)""",
+]
+
+CONSTRAINTS_EXTRA: list[str] = [
+    """CREATE CONSTRAINT jurisdiction_code_unique IF NOT EXISTS
+       FOR (j:Jurisdiction) REQUIRE j.jurisdiction_code IS UNIQUE""",
 ]
 
 
@@ -43,7 +59,7 @@ def run_migrations() -> None:
     try:
         with driver.session(database=settings.neo4j_database) as session:
             print("Constraints:")
-            for cypher in CONSTRAINTS:
+            for cypher in CONSTRAINTS + CONSTRAINTS_EXTRA:
                 session.run(cypher)
                 first_line = cypher.strip().split("\n")[0]
                 print(f"  ✓ {first_line}")

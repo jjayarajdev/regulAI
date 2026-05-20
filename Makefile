@@ -73,6 +73,18 @@ validate-kg:
 kg-hygiene:
 	uv run python -m scripts.kg_hygiene
 
+seed-jurisdictions:
+	uv run python -m scripts.seed_jurisdictions
+
+tag-federal-defaults:
+	uv run python -m scripts.tag_federal_defaults
+
+seed-filing-obligations:
+	uv run python -m scripts.seed_filing_obligations
+
+p2-regression-gate:
+	uv run python -m scripts.p2_regression_gate
+
 cleanup-kg:
 	uv run python -m scripts.cleanup_kg
 

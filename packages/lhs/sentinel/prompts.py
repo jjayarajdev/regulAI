@@ -77,8 +77,18 @@ vocabulary, omit it and add a note in the uncited_spans entry.
 
 - **KGAuditEntry** — audit-trail row recording who mutated the canon, when, and why.
   Written by the materialize pipeline, not by extractions.
+- **Jurisdiction** — scoping primitive (US-TX, US-FL, US federal default).
+  Seeded by `seed_jurisdictions`, not from regulations.
+- **Regulator** — the regulatory body (TDI, CDI, FL-OIR). Seeded, not extracted.
+  *(Don't confuse with `Organization`, which is the broader closed-vocab type
+  used when a regulation NAMES a regulator. `Regulator` here is the scoping
+  primitive used for ISSUED_BY edges.)*
+- **StatisticalAgent** — the agent that receives carrier filings (TICO, ISO, NCCI).
+  Seeded, not extracted.
+- **FilingObligation** — one mandated filing for a carrier. Created by the
+  workstation admin UI / Python registry, not from regulations.
 
-# Closed-vocabulary relationship types (13)
+# Closed-vocabulary relationship types (17)
 
 - **SUPERSEDES**: new version replaces old version.
 - **EFFECTIVE_FROM**: rule version → effective date.
@@ -97,6 +107,14 @@ vocabulary, omit it and add a note in the uncited_spans entry.
 
 - **MUTATED_BY**: any GRENode → KGAuditEntry. Records the audit entry that mutated this node.
   Written by the materialize pipeline + audit recorder.
+- **APPLIES_IN**: any jurisdiction-scoped GRENode → Jurisdiction. Scoping edge.
+  Set by `seed_jurisdictions` and per-state intake migrations.
+- **ISSUED_BY**: RegulationDocument | BulletinOverride → Regulator. Marks who
+  published the rule. Set during state-intake.
+- **OBLIGATES**: FilingObligation → Organization (the carrier). Set by the
+  workstation admin flow.
+- **RECEIVES_SUBMISSION**: FilingObligation → StatisticalAgent. Marks where
+  the file is shipped. Set during state-intake.
 
 # Citation rules
 

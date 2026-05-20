@@ -51,7 +51,7 @@ class HITLSeverity(str, Enum):
 
 
 class NodeType(str, Enum):
-    """The 15 closed-vocabulary node types. See docs/kg-schema.md."""
+    """The 19 closed-vocabulary node types. See docs/kg-schema.md."""
 
     REGULATION_DOCUMENT = "RegulationDocument"
     STAT_PLAN_EDITION = "StatPlanEdition"
@@ -68,6 +68,19 @@ class NodeType(str, Enum):
     ORGANIZATION = "Organization"
     HITL_TRIGGER_RULE = "HITLTriggerRule"
     KG_AUDIT_ENTRY = "KGAuditEntry"
+    # ── Phase 2: multi-jurisdiction ──
+    JURISDICTION = "Jurisdiction"
+    REGULATOR = "Regulator"
+    STATISTICAL_AGENT = "StatisticalAgent"
+    FILING_OBLIGATION = "FilingObligation"
+
+
+class JurisdictionType(str, Enum):
+    """Whether a Jurisdiction is a state, federal, or supranational scope."""
+
+    FEDERAL  = "federal"   # US-wide, NAIC defaults, federal statutes
+    STATE    = "state"     # US-TX, US-FL, US-CA, ...
+    REGIONAL = "regional"  # multi-state compacts (e.g., GoM coastal)
 
 
 class KGAuditAction(str, Enum):
@@ -90,7 +103,7 @@ class KGAuditAction(str, Enum):
 
 
 class RelationshipType(str, Enum):
-    """The 13 closed-vocabulary relationship types. See docs/kg-schema.md."""
+    """The 17 closed-vocabulary relationship types. See docs/kg-schema.md."""
 
     SUPERSEDES = "SUPERSEDES"
     EFFECTIVE_FROM = "EFFECTIVE_FROM"
@@ -105,3 +118,8 @@ class RelationshipType(str, Enum):
     RECONCILES_WITH = "RECONCILES_WITH"
     APPLIES_TO = "APPLIES_TO"
     MUTATED_BY = "MUTATED_BY"
+    # ── Phase 2: multi-jurisdiction ──
+    APPLIES_IN = "APPLIES_IN"             # Rule | CodeList | … → Jurisdiction
+    ISSUED_BY = "ISSUED_BY"               # RegulationDocument | BulletinOverride → Regulator
+    OBLIGATES = "OBLIGATES"               # FilingObligation → Organization (the carrier)
+    RECEIVES_SUBMISSION = "RECEIVES_SUBMISSION"  # FilingObligation → StatisticalAgent

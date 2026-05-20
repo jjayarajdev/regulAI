@@ -15,15 +15,19 @@ from packages.core.nodes import (
     CoverageType,
     EndorsementRule,
     FieldRequirement,
+    FilingObligation,
     GRENode,
     HITLTriggerRule,
+    Jurisdiction,
     KGAuditEntry,
     Organization,
     ReconciliationRule,
     RecordLayout,
     RegulationDocument,
+    Regulator,
     ReportTemplate,
     Rule,
+    StatisticalAgent,
     StatPlanEdition,
 )
 from packages.core.relationships import GRERelationshipBase
@@ -46,6 +50,11 @@ NODE_TYPE_REGISTRY: dict[str, type[GRENode]] = {
     "Organization": Organization,
     "HITLTriggerRule": HITLTriggerRule,
     "KGAuditEntry": KGAuditEntry,
+    # Phase 2
+    "Jurisdiction": Jurisdiction,
+    "Regulator": Regulator,
+    "StatisticalAgent": StatisticalAgent,
+    "FilingObligation": FilingObligation,
 }
 
 

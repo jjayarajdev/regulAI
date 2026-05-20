@@ -2099,6 +2099,10 @@
     <div class="filing-ctx">
       <b>Lone Star Mutual</b>
       <span class="dot">/</span>
+      <span data-bind="topbar-jurisdiction" title="Active regulatory jurisdiction"
+            style="background:#dbeafe;color:#1e3a8a;padding:2px 8px;border-radius:4px;font-size:11.5px;font-weight:600;letter-spacing:0.3px;cursor:pointer;"
+            data-action="open-jurisdiction-picker">US-TX</span>
+      <span class="dot">/</span>
       <span data-bind="topbar-filing-id">TSPR · Q4 2025</span>
       <span class="dot">/</span>
       <span style="color:var(--ink-3);" data-bind="ctx-bulletin">canon v1</span>
@@ -2963,6 +2967,10 @@
     const f = (app.data.filings?.filings || []).find(x => x.id === app.currentFilingId);
     if (f) setText('topbar-filing-id', `${f.plan_code} · ${f.id.split('-').slice(1).join('-')}`);
 
+    // P2.5: top-bar jurisdiction pill reflects the active filing's scope
+    const jurEl = bind('topbar-jurisdiction');
+    if (jurEl && f) jurEl.textContent = f.jurisdiction_code || 'US-TX';
+
     const el = bind('ctx-bulletin');
     if (el) {
       if (!st || !st.reference_loaded) { el.textContent = '⚠ Snowflake unreachable'; el.style.color = 'var(--warn)'; }
@@ -3069,9 +3077,11 @@
           stage_pct = 55;
           step = 'step 3 of 5';
         }
+        const jur = f.jurisdiction_code || 'US-TX';
+        const jurPill = `<span style="background:#dbeafe;color:#1e3a8a;padding:1px 6px;border-radius:3px;font-size:9.5px;font-weight:600;letter-spacing:0.2px;margin-left:6px;vertical-align:middle;">${esc(jur)}</span>`;
         return `
           <div class="filing-row" data-action="switch-filing" data-filing="${esc(f.id)}" style="cursor:pointer;">
-            <div class="fr-name">${esc(f.plan_code)} · ${esc(f.cadence)}<span class="sub">${esc(f.plan_name)}</span></div>
+            <div class="fr-name">${esc(f.plan_code)} · ${esc(f.cadence)}${jurPill}<span class="sub">${esc(f.plan_name)}</span></div>
             <div>
               <div class="progress"><div style="width:${stage_pct}%"></div></div>
               <div class="progress-meta"><b>${esc(stage)}</b><span>${esc(step)}</span></div>
@@ -5442,6 +5452,48 @@ ${f.warning ? '⚠ ' + f.warning + '\n\n' : ''}`;
         await refresh();
       }
       setScreen('filing');
+    }
+
+    if (action === 'open-jurisdiction-picker') {
+      // List active jurisdictions in the KG. Today only US-TX is populated;
+      // when state #2 lands, this becomes a switcher. For v1.2 just an
+      // info dialog so users know multi-state is the architecture.
+      const filings = app.data.filings?.filings || [];
+      const byJur = {};
+      filings.forEach(f => {
+        const j = f.jurisdiction_code || 'US-TX';
+        (byJur[j] ||= []).push(f);
+      });
+      const jurs = Object.keys(byJur).sort();
+      const body = `
+        <div style="font-size:12.5px;color:var(--ink-3);line-height:1.55;margin-bottom:16px;">
+          Active regulatory jurisdictions in the KG. RegulAI scopes every Rule, CodeList,
+          and FilingObligation by jurisdiction — federal defaults (US) apply everywhere;
+          state-specific rules apply only in their own jurisdiction.
+        </div>
+        ${jurs.map(j => `
+          <div style="padding:12px 16px;border:1px solid var(--ink-5);border-radius:6px;margin-bottom:10px;background:var(--paper);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="background:#dbeafe;color:#1e3a8a;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:0.3px;">${esc(j)}</span>
+              <b style="font-size:14px;">${j === 'US-TX' ? 'Texas' : esc(j)}</b>
+              ${j === 'US-TX' ? '<span class="ticket-pill" style="background:#dcfce7;color:#14532d;border-color:#bbf7d0;">active</span>' : ''}
+            </div>
+            <div style="font-size:12px;color:var(--ink-2);margin-top:8px;">
+              ${byJur[j].length} filing${byJur[j].length !== 1 ? 's' : ''}:
+              ${byJur[j].map(f => `<code style="font-family:var(--f-mono);font-size:11px;background:var(--ink-6,#f1f5f9);padding:1px 5px;border-radius:3px;">${esc(f.id)}</code>`).join(' ')}
+            </div>
+            <div style="font-size:11px;color:var(--ink-3);margin-top:6px;">
+              Regulator: ${j === 'US-TX' ? 'Texas Department of Insurance (TDI)' : '—'}
+              · Statistical agent: ${j === 'US-TX' ? 'TICO ShareFile' : '—'}
+            </div>
+          </div>
+        `).join('')}
+        <div style="margin-top:20px;padding:12px 16px;border:1px dashed var(--ink-5);border-radius:6px;background:#fafbfc;font-size:11.5px;color:var(--ink-3);line-height:1.55;">
+          <b style="color:var(--ink-2);">Coming next:</b> when a second state (Florida, California, ...) is
+          ingested via Sentinel, its canon will appear here as another jurisdiction. The picker becomes
+          a live switcher; all five workstation screens scope to the selected jurisdiction.
+        </div>`;
+      openDetail('Top bar', 'Jurisdiction', body);
     }
 
     if (action === 'toggle-section-filter') {

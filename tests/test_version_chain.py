@@ -82,10 +82,15 @@ def fictional_v2(existing_v1):
                 version: 2,
                 status: 'approved',
                 effective_from: date($future),
+                jurisdiction_code: COALESCE(v1.jurisdiction_code, 'US-TX'),
                 created_at: datetime(),
                 created_by: 'pytest-pressure-test'
             })
             MERGE (v2)-[:SUPERSEDES]->(v1)
+            // P2.3: fetch_rules now joins on APPLIES_IN; mirror v1's jurisdiction.
+            WITH v2
+            MATCH (v1:Rule {id: $v1_id})-[:APPLIES_IN]->(j:Jurisdiction)
+            MERGE (v2)-[:APPLIES_IN]->(j)
         """, v1_id=existing_v1["id"], v2_id=v2_id, future=future_date)
 
     yield {"id": v2_id, "v1_id": existing_v1["id"], "future_date": future_date}
