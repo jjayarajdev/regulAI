@@ -23,8 +23,18 @@ from pathlib import Path
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 from packages.config.settings import settings
 
-OUT_PATH = Path("materialized/reference/tspr_validation_rules.sql")
+OUT_DIR = Path("materialized/reference")
 DEFAULT_JURISDICTION = "US-TX"
+
+
+def _out_path_for(jurisdiction: str) -> Path:
+    """Default jurisdiction (US-TX) keeps the legacy file path so existing
+    Makefile + Snowflake-load wiring is unchanged. Other jurisdictions get
+    a suffixed file so multi-state generation doesn't clobber TX."""
+    if jurisdiction == DEFAULT_JURISDICTION:
+        return OUT_DIR / "tspr_validation_rules.sql"
+    suffix = jurisdiction.lower().replace("-", "_")
+    return OUT_DIR / f"tspr_validation_rules_{suffix}.sql"
 
 
 def _q(s) -> str:
@@ -174,9 +184,10 @@ def main() -> int:
         print(f"ERROR: no in-force Rule nodes with violation_sql found for {args.jurisdiction}.")
         print("       Run `make migrate-validation-rules` and (for Phase 2) `make seed-jurisdictions`.")
         return 1
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(build_sql(rows, args.jurisdiction))
-    print(f"Wrote {OUT_PATH}  ({len(rows)} rules for {args.jurisdiction} ∪ federal)")
+    out_path = _out_path_for(args.jurisdiction)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(build_sql(rows, args.jurisdiction))
+    print(f"Wrote {out_path}  ({len(rows)} rules for {args.jurisdiction} ∪ federal)")
     print()
     fed_count = sum(1 for r in rows if r.get("is_federal_default"))
     state_count = len(rows) - fed_count

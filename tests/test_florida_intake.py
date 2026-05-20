@@ -269,19 +269,26 @@ def test_oir_memo_provisions_landed_as_memo_directive():
         )
 
 
-def test_fl_rules_have_no_violation_sql():
-    """FL canon today is statutory text, not executable predicates. Validates
-    that the validate endpoint correctly returns 0 rules for an FL filing
-    (because none have violation_sql) — not a leak from TX."""
+def test_fl_rules_have_executable_validation_sql():
+    """Cluster D: a subset of FHCF validation rules now carry violation_sql
+    so the RHS pipeline can run FL filings through the same /validate path
+    TX uses. Lock in that the 3 wired rules (FHCF Validation.2/3/4 — ZIP,
+    COUNTY_FIPS, STATE_CODE) are present and executable. The remaining 7
+    are statutory text only until we wire them too."""
     from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
         r = s.run(
-            "MATCH (r:Rule)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'}) "
-            "WHERE r.violation_sql IS NOT NULL "
-            "RETURN count(r) AS n"
-        ).single()
-        assert r["n"] == 0, (
-            "FL rules have violation_sql attached — Phase 3 only ingested statute text, "
-            "not executable predicates. Did someone annotate FL rules manually?"
-        )
+            """
+            MATCH (r:Rule)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'})
+            WHERE r.violation_sql IS NOT NULL
+              AND r.target_table = 'BRONZE.FL_FHCF_POLICY'
+            RETURN r.rule_number AS rule_number ORDER BY rule_number
+            """
+        ).data()
+        # Sentinel pulled rule_number as integers (2, 3, 4) from the FHCF
+        # markdown's numbered Validation Rules section. Cast for robustness.
+        rule_numbers = {str(row["rule_number"]) for row in r}
+        assert "2" in rule_numbers, f"ZIP_TX_PREFIX_INVALID missing executable SQL (got {rule_numbers})"
+        assert "3" in rule_numbers, f"COUNTY_FIPS_VALID missing executable SQL (got {rule_numbers})"
+        assert "4" in rule_numbers, f"STATE_CODE_FIXED missing executable SQL (got {rule_numbers})"

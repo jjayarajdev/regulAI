@@ -73,6 +73,7 @@ def pytest_sessionfinish(session, exitstatus):
             "tag-federal-defaults",
             "seed-filing-obligations",
             "seed-florida",
+            "migrate-fl-validation-rules",
         ):
             subprocess.run(
                 ["make", target],

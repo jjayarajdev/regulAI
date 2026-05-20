@@ -99,6 +99,15 @@ materialize-fl:
 seed-florida:
 	uv run python -m scripts.seed_florida
 
+migrate-fl-validation-rules:
+	uv run python -m scripts.migrate_fl_validation_rules
+
+build-validation-rules-fl: migrate-fl-validation-rules
+	uv run python -m scripts.build_validation_rules_reference -j US-FL
+
+load-validation-rules-fl: build-validation-rules-fl
+	@snow sql -c regulai --enable-templating standard -f materialized/reference/tspr_validation_rules_us_fl.sql
+
 cleanup-kg:
 	uv run python -m scripts.cleanup_kg
 
