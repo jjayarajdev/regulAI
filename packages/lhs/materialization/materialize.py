@@ -32,6 +32,7 @@ from packages.core.nodes import GRENode
 from packages.core.relationships import CitesRelationship, GRERelationship
 from packages.lhs.citations.pdf_highlight import CitationRectsBundle
 from packages.lhs.materialization.node_factory import proposed_to_typed_node
+from packages.lhs.materialization.parser_boundary import check_parser_boundary
 from packages.lhs.sentinel.schema import (
     CitationProposal,
     ProposedNode,
@@ -205,7 +206,16 @@ def materialize(
     document_label: str,
     snapshot_dir: Path | None = None,
     rects_bundle: CitationRectsBundle | None = None,
+    source: str = "sentinel",
 ) -> MaterializationResult:
+    # Phase 0 (Cluster C): refuse to materialize a parser-owned doc's
+    # extraction if Sentinel proposed parser-owned-type nodes. The parser
+    # itself is the legitimate producer of RecordLayout / FieldRequirement
+    # on parser-owned docs — when parse_record_layout.py calls materialize
+    # with source='parser', we skip the gate.
+    if source != "parser":
+        check_parser_boundary(extraction, document_label)
+
     result = MaterializationResult(document_label=document_label)
 
     # Phase 1: resolve temp_ids → UUIDs (with dedup)

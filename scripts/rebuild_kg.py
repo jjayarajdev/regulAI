@@ -23,6 +23,7 @@ from api.registry import DOCS, extraction_path_for, rects_path_for
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 from packages.lhs.citations.pdf_highlight import CitationRectsBundle
 from packages.lhs.materialization.materialize import materialize
+from packages.lhs.materialization.parser_boundary import PARSER_OWNED_SLUGS
 from packages.lhs.materialization.position_resolver import resolve_positions
 from packages.lhs.sentinel.schema import SentinelExtraction
 
@@ -52,13 +53,9 @@ def main() -> None:
     # Slugs the deterministic parser owns — LLM extractions for these
     # are unreliable for tabular content, so we skip them here and let
     # parse_record_layout produce the canonical extraction in step 4.
-    PARSER_OWNED = {
-        "tico-record-layout-homeowners",
-        "tico-section-c",
-        "tico-section-d",
-        "tico-section-e",
-        "tico-section-g",
-    }
+    # Single source of truth in parser_boundary.PARSER_OWNED_SLUGS;
+    # materialize() also enforces this as a hard gate (see Cluster C).
+    PARSER_OWNED = PARSER_OWNED_SLUGS
 
     # Slugs that exist for the `make demo-new-bulletin` demo and are
     # deliberately NOT loaded by rebuild_kg, so the demo can ingest them
