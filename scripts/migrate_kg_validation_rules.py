@@ -115,6 +115,7 @@ def main() -> int:
                     ON CREATE SET
                         r.name = $name,
                         r.title = $name,
+                        r.rule_kind = 'Statute',
                         r.rule_number = $rule_number,
                         r.section = 'A',
                         r.status = 'approved',

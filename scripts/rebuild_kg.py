@@ -23,6 +23,7 @@ from api.registry import DOCS, extraction_path_for, rects_path_for
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 from packages.lhs.citations.pdf_highlight import CitationRectsBundle
 from packages.lhs.materialization.materialize import materialize
+from packages.lhs.materialization.position_resolver import resolve_positions
 from packages.lhs.sentinel.schema import SentinelExtraction
 
 
@@ -86,6 +87,13 @@ def main() -> None:
         extraction = SentinelExtraction.model_validate(
             json.loads(ext_path.read_text(encoding="utf-8"))
         )
+        # Pre-materialize: back-fill column positions on FieldRequirements
+        # that Sentinel left null. Best-effort; resolved fields participate
+        # in byte-level wire-layout validation downstream.
+        resolved_positions = 0
+        if doc.path.exists():
+            source_text = doc.path.read_text(encoding="utf-8")
+            _, resolved_positions = resolve_positions(extraction, source_text)
         rects_bundle: CitationRectsBundle | None = None
         rects_path = rects_path_for(doc)
         if rects_path.exists():
@@ -96,10 +104,11 @@ def main() -> None:
             result = materialize(
                 extraction, gre, document_label=doc.slug, rects_bundle=rects_bundle
             )
+        suffix = f", +{resolved_positions} positions" if resolved_positions else ""
         print(
             f"  [ok] {doc.slug:<35}  +{len(result.nodes_created)} nodes  "
             f"({len(result.nodes_reused)} reused, "
-            f"{result.relationships_created} rels, {result.citations_created} cites)"
+            f"{result.relationships_created} rels, {result.citations_created} cites{suffix})"
         )
         replayed += 1
     print(f"  Replayed {replayed} cached extractions.")

@@ -23,9 +23,29 @@ class DocumentKind(str, Enum):
 
 
 class ReportCadence(str, Enum):
+    WEEKLY = "Weekly"
     MONTHLY = "Monthly"
     QUARTERLY = "Quarterly"
     ANNUAL = "Annual"
+    # Real-world catastrophe data calls and on-event reports (FL OIR-22-04M,
+    # TX HB 2067 declination notices) don't fit a fixed cadence — they fire
+    # when an event happens. Distinguished from "irregular" so the UI can
+    # render an explanation instead of an empty field.
+    ON_EVENT = "OnEvent"
+    AS_NEEDED = "AsNeeded"
+
+
+class RuleKind(str, Enum):
+    """Distinguishes statute-shaped rules (numbered §sections) from
+    bulletin/memo provisions (heading-shaped, no §number).
+
+    Statutes cite as "§627.062(2)(a)"; bulletin provisions cite as
+    "OIR-22-04M / Reporting Requirements / Cadence". Both are Rules in
+    the KG, but only statutes carry section + rule_number.
+    """
+    STATUTE = "Statute"
+    BULLETIN_PROVISION = "BulletinProvision"
+    MEMO_DIRECTIVE = "MemoDirective"
 
 
 class OrgKind(str, Enum):

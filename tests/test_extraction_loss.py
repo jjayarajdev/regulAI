@@ -8,12 +8,12 @@ schema in a way that rejects existing extractions), CI fails loud here
 instead of letting the loss go silent.
 
 Threshold rationale:
-  As of the FL ingestion (P3.6), the OIR memo drops ~20% of its
-  proposals because Rule schema requires section + rule_number (statute-
-  shaped) while memo provisions aren't section-numbered. We're temporarily
-  past the ideal 10% target. Threshold is set to 30% so the test passes
-  now but will catch regressions; tighten to 10% once Cluster B (Rule
-  polymorphism) lands and recovers the dropped memo provisions.
+  After Cluster B (Rule polymorphism + cadence broadening), all live
+  rebuild-kg snapshots drop 0% of their proposals. Older one-shot
+  snapshots (extraction-stem-named) and demo-only bulletins retain
+  small drops because they weren't refreshed; threshold of 10% catches
+  any future regression on live extractions while tolerating the
+  legacy 2–8% noise.
 """
 
 from __future__ import annotations
@@ -25,18 +25,28 @@ import pytest
 
 from packages.config.settings import settings
 
-# Tighten this once Cluster B (Rule polymorphism) is shipped.
-SKIP_THRESHOLD_PCT = 30.0
+SKIP_THRESHOLD_PCT = 10.0
 
 
-def _snapshot_paths() -> list[Path]:
+def _live_snapshot_paths() -> list[Path]:
+    """Only the snapshots regenerated on each `make rebuild-kg` — i.e. those
+    whose document_label is a registry slug. One-shot extraction-stem-named
+    snapshots from `make materialize-fl` aren't refreshed automatically and
+    can lag behind the schema; we don't gate on them."""
+    from api.registry import DOCS
+
+    slugs = {d.slug for d in DOCS}
     approved = settings.materialized_dir / "approved"
-    return sorted(approved.glob("*.materialized.json"))
+    return [
+        p for p in sorted(approved.glob("*.materialized.json"))
+        if p.stem.replace(".materialized", "") in slugs
+    ]
 
 
-@pytest.mark.parametrize("snapshot_path", _snapshot_paths(), ids=lambda p: p.stem)
+@pytest.mark.parametrize("snapshot_path", _live_snapshot_paths(), ids=lambda p: p.stem)
 def test_extraction_skip_rate_under_threshold(snapshot_path: Path):
-    """Each cached extraction's materialize() drops < threshold% of proposals."""
+    """Each live (registry-slug-named) extraction's materialize() drops
+    < threshold% of proposals. Stale one-shot snapshots aren't gated."""
     snap = json.loads(snapshot_path.read_text(encoding="utf-8"))
     totals = snap.get("totals")
     if totals is None:

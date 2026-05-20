@@ -8,7 +8,7 @@ based on `type` and pulls the relevant fields.
 from datetime import date, datetime
 from uuid import UUID
 
-from packages.core.enums import NodeType
+from packages.core.enums import NodeType, RuleKind
 from packages.core.nodes import (
     BulletinOverride,
     CodeList,
@@ -81,15 +81,45 @@ def proposed_to_typed_node(
         )
 
     if t == NodeType.RULE:
-        if p.section is None or p.rule_number is None:
-            raise ValueError(f"Rule '{p.name}' missing section/rule_number")
         document_id = temp_id_to_uuid.get(p.document_temp_id) if p.document_temp_id else None
         if not document_id:
             raise ValueError(f"Rule '{p.name}' has unresolvable document_temp_id={p.document_temp_id!r}")
+
+        # Infer rule_kind from the proposal shape:
+        #   - integer rule_number + section → STATUTE
+        #   - section set (as a heading) but no rule_number → MEMO_DIRECTIVE
+        #   - neither → MEMO_DIRECTIVE with no anchor (rare; still allowed)
+        # The OIR-22-04M memo provisions land as MEMO_DIRECTIVE.
+        if p.rule_kind:
+            rule_kind = p.rule_kind
+        elif p.section is not None and p.rule_number is not None:
+            rule_kind = RuleKind.STATUTE
+        else:
+            rule_kind = RuleKind.MEMO_DIRECTIVE
+
+        # Statute-kind rules must cite §section.number for traceability.
+        # Bulletin/memo provisions cite by document + heading instead, so
+        # we don't require section/rule_number for those.
+        if rule_kind == RuleKind.STATUTE and (p.section is None or p.rule_number is None):
+            raise ValueError(
+                f"Statute-kind Rule '{p.name}' missing section/rule_number "
+                f"(rule_kind={rule_kind.value!r}, section={p.section!r}, rule_number={p.rule_number!r})"
+            )
+
+        # For memo/bulletin provisions, lift the heading off the `section`
+        # field if Sentinel parked it there (which it does today — see
+        # OIR-22-04M extraction). Future Sentinel runs can fill `heading`
+        # directly; we accept both.
+        heading = p.heading
+        if rule_kind != RuleKind.STATUTE and heading is None and p.section is not None:
+            heading = p.section
+
         return Rule(
             **common_kwargs,
-            section=p.section,
-            rule_number=p.rule_number,
+            rule_kind=rule_kind,
+            section=p.section if rule_kind == RuleKind.STATUTE else None,
+            rule_number=p.rule_number if rule_kind == RuleKind.STATUTE else None,
+            heading=heading,
             title=p.title or p.name,
             document_id=document_id,
         )

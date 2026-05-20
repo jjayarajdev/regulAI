@@ -246,6 +246,29 @@ def test_fl_extraction_file_exists():
     assert "Florida" in content
 
 
+def test_oir_memo_provisions_landed_as_memo_directive():
+    """Cluster B regression test: the FL OIR-22-04M memo's section-shaped
+    provisions used to be rejected by the Rule schema (which required
+    integer rule_number). After Rule polymorphism, they materialize as
+    rule_kind='MemoDirective' with a heading instead. Lock that in."""
+    from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        r = s.run(
+            """
+            MATCH (r:Rule)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'})
+            WHERE r.rule_kind = 'MemoDirective' AND r.heading IS NOT NULL
+            RETURN count(r) AS n
+            """
+        ).single()
+        # The OIR memo proposes 10 such provisions ("Background", "Authority",
+        # "Reporting Requirements / Cadence", etc.) — at minimum 8 should land.
+        assert r["n"] >= 8, (
+            f"Only {r['n']} MemoDirective Rules with headings in FL scope — "
+            f"expected ≥8 from OIR-22-04M. Did Rule polymorphism regress?"
+        )
+
+
 def test_fl_rules_have_no_violation_sql():
     """FL canon today is statutory text, not executable predicates. Validates
     that the validate endpoint correctly returns 0 rules for an FL filing

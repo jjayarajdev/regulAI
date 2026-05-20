@@ -24,6 +24,7 @@ from .enums import (
     NodeStatus,
     OrgKind,
     ReportCadence,
+    RuleKind,
 )
 
 
@@ -79,19 +80,27 @@ class StatPlanEdition(GRENodeBase):
 
 
 class Rule(GRENodeBase):
-    """A numbered rule within a regulation document. Citation anchor.
+    """A rule within a regulation document. Citation anchor.
 
     Schema justification: Section A has 35 numbered rules; Section B has 20+;
-    every other node naturally cites a specific rule.
+    every other node naturally cites a specific rule. Bulletin/memo provisions
+    (e.g. FL OIR informational memoranda) are also Rules but lack the
+    section + rule_number shape — they're cited by heading instead.
 
     P2: is_federal_default=True means this rule applies in any jurisdiction
     that doesn't carry a state-specific override. Use for NAIC standards,
     federal statutes, ACORD field formats. Default False (state-specific).
+
+    P3 (Cluster B): rule_kind discriminates statute-shaped (numbered §rules)
+    from bulletin/memo provisions. Only STATUTE-kind rules require
+    section + rule_number; the others carry a heading instead.
     """
 
     type: Literal["Rule"] = "Rule"
-    section: str  # "A", "B", "C", ...
-    rule_number: int
+    rule_kind: RuleKind = RuleKind.STATUTE
+    section: str | None = None  # statute: "A", "B", "C", ... | provision: None
+    rule_number: int | None = None  # statute: 1, 2, ... | provision: None
+    heading: str | None = None  # provision-only: "Reporting Cadence", "Authority", ...
     title: str
     document_id: UUID  # back-reference to the RegulationDocument
     is_federal_default: bool = False
@@ -107,7 +116,11 @@ class ReportTemplate(GRENodeBase):
 
     type: Literal["ReportTemplate"] = "ReportTemplate"
     report_name: str
-    cadence: ReportCadence
+    # Cadence is optional because real regulator filings include event-
+    # triggered reports (catastrophe data calls) and reports where Sentinel
+    # cannot determine cadence from prose. Statute-shaped TICO reports
+    # (Premium, Loss, Notice, Notice Count) always have one filled.
+    cadence: ReportCadence | None = None
     deadline_days_after_close: int
 
 
