@@ -38,15 +38,20 @@ def main() -> None:
     dry_run = "--dry-run" in sys.argv
 
     with Neo4jGREAdapter() as gre, gre.driver.session() as s:
-        # Phantom RecordLayouts: any layout whose name isn't in the canonical
-        # set is an LLM-extraction variant for a concept the parser already
-        # owns (e.g. "Residential Property Fixed ASCII Standard Data Format
-        # Layout" → Premium/Loss). Drop along with any FieldRequirements
-        # exclusively attached to it.
+        # Phantom RecordLayouts: any TX-scoped layout whose name isn't in
+        # the canonical set is an LLM-extraction variant for a concept the
+        # parser already owns (e.g. "Residential Property Fixed ASCII
+        # Standard Data Format Layout" → Premium/Loss). Drop along with any
+        # FieldRequirements exclusively attached to it.
+        #
+        # Scoped to US-TX so legitimate FL/multi-state RecordLayouts coming
+        # from Sentinel extractions (Citizens, FHCF, etc.) survive cleanup.
+        # Requires seed_florida to have run first to retag FL nodes.
         phantom_layouts = s.run(
             """
             MATCH (l:RecordLayout)
             WHERE NOT l.name IN $canonical
+              AND coalesce(l.jurisdiction_code, 'US-TX') = 'US-TX'
             RETURN l.name AS name, l.id AS id
             ORDER BY l.name
             """,
@@ -54,10 +59,15 @@ def main() -> None:
         ).data()
 
         # Orphan FieldRequirements: not bound to ANY layout via either edge.
+        # Scoped to US-TX to match the deletion predicate below — FL/multi-
+        # state Sentinel extractions may produce floating fields that aren't
+        # yet wired to a layout; those are legitimate canon content, not
+        # cleanup targets.
         orphans = s.run("""
             MATCH (f:FieldRequirement)
             WHERE NOT (f)-[:CONTAINED_IN]->(:RecordLayout)
               AND NOT (:RecordLayout)-[:REQUIRES]->(f)
+              AND coalesce(f.jurisdiction_code, 'US-TX') = 'US-TX'
             RETURN f.name AS name, f.position_start AS ps, f.id AS id
             ORDER BY coalesce(f.position_start, 9999), f.name
         """).data()
@@ -112,13 +122,19 @@ def main() -> None:
         # DETACH DELETE removes incident relationships too. Same predicates
         # as the discovery queries above so we delete exactly what we listed.
         s.run(
-            "MATCH (l:RecordLayout) WHERE NOT l.name IN $canonical DETACH DELETE l",
+            """
+            MATCH (l:RecordLayout)
+            WHERE NOT l.name IN $canonical
+              AND coalesce(l.jurisdiction_code, 'US-TX') = 'US-TX'
+            DETACH DELETE l
+            """,
             canonical=list(CANONICAL_LAYOUTS),
         )
         s.run("""
             MATCH (f:FieldRequirement)
             WHERE NOT (f)-[:CONTAINED_IN]->(:RecordLayout)
               AND NOT (:RecordLayout)-[:REQUIRES]->(f)
+              AND coalesce(f.jurisdiction_code, 'US-TX') = 'US-TX'
             DETACH DELETE f
         """)
         s.run("""

@@ -132,7 +132,7 @@ def test_fl_codelists_for_hurricane_data_call():
 
 
 def test_fl_canon_exercises_all_node_types():
-    """After 3 FL documents, the FL canon should exercise at least 10 of the
+    """After 4 FL documents, the FL canon should exercise at least 10 of the
     19 closed-vocabulary node types — proving the schema absorbs real
     regulator content broadly, not just narrowly."""
     from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
@@ -144,8 +144,64 @@ def test_fl_canon_exercises_all_node_types():
         """))
         types_seen = {r["type"] for r in rows}
         assert len(types_seen) >= 10, (
-            f"FL canon only exercises {len(types_seen)} types after 3 docs: {types_seen}"
+            f"FL canon only exercises {len(types_seen)} types after 4 docs: {types_seen}"
         )
+
+
+def test_fl_sba_organization_present():
+    """The FHCF data call should produce an FL State Board of Administration node."""
+    from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        r = s.run(
+            "MATCH (o:Organization)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'}) "
+            "WHERE o.name CONTAINS 'State Board' OR o.name CONTAINS 'Hurricane Catastrophe Fund' "
+            "RETURN count(o) AS n"
+        ).single()
+        assert r["n"] >= 1, "FL SBA / FHCF Organization missing — expected from FHCF data call extraction"
+
+
+def test_fl_reconciliation_rule_extracted():
+    """FHCF's 0.5% NAIC reconciliation requirement should produce a ReconciliationRule node."""
+    from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        r = s.run(
+            "MATCH (rr:ReconciliationRule)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'}) "
+            "RETURN count(rr) AS n"
+        ).single()
+        assert r["n"] >= 1, "FL ReconciliationRule missing — expected from FHCF NAIC reconciliation requirement"
+
+
+def test_fhcf_extraction_respects_parser_owned_boundary():
+    """The FHCF Data Call Form contains a tabular wire-format record layout.
+    Sentinel's prompt explicitly tells it to avoid extracting RecordLayout/
+    FieldRequirement/CodeList/CodeValue for such content — those belong to
+    the deterministic parser. Verify Sentinel correctly produced ONLY prose
+    nodes for this document (Rule, Organization, ReportTemplate, etc.).
+
+    This locks in the division-of-labor behavior that prevents Sentinel from
+    duplicating parser-owned content under the parser's eventual extraction.
+    """
+    import json
+    from pathlib import Path
+
+    ext_path = Path("materialized/extractions/FL_FHCF_data_call_form.extraction.json")
+    assert ext_path.exists(), "FHCF extraction missing — run extract first"
+    data = json.loads(ext_path.read_text())
+
+    parser_owned_types = {"RecordLayout", "FieldRequirement", "CodeList", "CodeValue"}
+    actual_types = set()
+    for n in data["proposed_nodes"]:
+        t = n.get("type")
+        if isinstance(t, dict):
+            t = t.get("value") or list(t.values())[0]
+        actual_types.add(t)
+    overlap = actual_types & parser_owned_types
+    assert not overlap, (
+        f"Sentinel extracted parser-owned types from FHCF wire-format spec: {overlap}. "
+        f"The prompt's division-of-labor instruction should have prevented this."
+    )
 
 
 def test_no_node_appears_in_both_tx_and_fl():

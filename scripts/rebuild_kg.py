@@ -32,7 +32,7 @@ def _step(n: int, total: int, label: str) -> None:
 
 
 def main() -> None:
-    total_steps = 6
+    total_steps = 7
 
     _step(1, total_steps, "Wipe + migrate")
     with Neo4jGREAdapter() as gre:
@@ -109,12 +109,22 @@ def main() -> None:
     if rc != 0:
         sys.exit(rc)
 
-    _step(5, total_steps, "Cleanup phantom layouts + orphan fields")
+    # Retag FL extraction nodes to US-FL BEFORE cleanup so cleanup's
+    # phantom-layout filter (jurisdiction_code='US-TX' only) spares them.
+    # Without this, layouts like "Citizens Office-Prescribed Policy Data
+    # Format" get materialized at step 3, default-tagged US-TX by Pydantic,
+    # then deleted by cleanup_kg as a phantom TX layout.
+    _step(5, total_steps, "Retag Florida-scoped nodes to US-FL")
+    rc = subprocess.call([sys.executable, "-m", "scripts.seed_florida"])
+    if rc != 0:
+        sys.exit(rc)
+
+    _step(6, total_steps, "Cleanup phantom layouts + orphan fields")
     rc = subprocess.call([sys.executable, "-m", "scripts.cleanup_kg"])
     if rc != 0:
         sys.exit(rc)
 
-    _step(6, total_steps, "Apply BulletinOverrides (version-bump targets)")
+    _step(7, total_steps, "Apply BulletinOverrides (version-bump targets)")
     rc = subprocess.call([sys.executable, "-m", "scripts.apply_bulletin", "--all"])
     if rc != 0:
         sys.exit(rc)

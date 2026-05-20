@@ -161,6 +161,14 @@ DOCS: list[DocEntry] = [
         blurb="FL OIR Informational Memorandum (FL's equivalent of a TICO bulletin) imposing a weekly claims data call on all P&C insurers following Hurricane Ian. Defines 16 required per-claim data fields, an aggregate summary, special provisions for Citizens, and the CRS fixed-width ASCII submission format.",
         pdf_path=None,
     ),
+    DocEntry(
+        slug="fl-fhcf-data-call",
+        label="FL Hurricane Catastrophe Fund — Annual Data Call Form (FHCF-D1A)",
+        category="Florida statistical plan",
+        path=Path("synthetic_regulations/real/florida/FL_FHCF_data_call_form.md"),
+        blurb="FHCF Annual Data Call Form prescribed by the FL State Board of Administration. 320-character fixed-width record layout with 30+ field requirements, 8 code lists with FL-specific values (wind mitigation, FBC construction codes, opening protection), and 10 validation rules including TX-vs-FL ZIP-prefix detection. Structurally analogous to TICO's homeowners record layout but for FL FHCF participation under §215.555.",
+        pdf_path=None,
+    ),
 ]
 
 DOCS_BY_SLUG: dict[str, DocEntry] = {d.slug: d for d in DOCS}
