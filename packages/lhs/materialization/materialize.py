@@ -41,14 +41,38 @@ from packages.lhs.sentinel.schema import (
 
 
 @dataclass
+class SkippedProposal:
+    """A proposal that failed schema validation in materialize().
+
+    Captured for audit visibility — see scripts/audit_extraction_loss.py.
+    The char range (if available) lets reviewers locate the dropped content
+    in the source document.
+    """
+    type: str          # node type (e.g., 'Rule', 'ReportTemplate')
+    name: str
+    reason: str        # the exception message from proposed_to_typed_node
+    char_start: int | None = None  # from first CitationProposal, if any
+    char_end: int | None = None
+
+
+@dataclass
 class MaterializationResult:
     document_label: str
     nodes_created: list[tuple[str, str]] = field(default_factory=list)  # (type, name)
     nodes_reused: list[tuple[str, str]] = field(default_factory=list)
     relationships_created: int = 0
     citations_created: int = 0
-    skipped_proposals: list[tuple[str, str]] = field(default_factory=list)  # (name, reason)
+    skipped_proposals: list[SkippedProposal] = field(default_factory=list)
     materialized_path: Path | None = None
+
+    @property
+    def total_proposed(self) -> int:
+        return len(self.nodes_created) + len(self.nodes_reused) + len(self.skipped_proposals)
+
+    @property
+    def skip_pct(self) -> float:
+        total = self.total_proposed
+        return (len(self.skipped_proposals) / total * 100.0) if total else 0.0
 
     def summary(self) -> str:
         return (
@@ -56,7 +80,7 @@ class MaterializationResult:
             f"  Reused:  {len(self.nodes_reused)} nodes (existing in KG)\n"
             f"  Relationships: {self.relationships_created}\n"
             f"  Citations:     {self.citations_created}\n"
-            f"  Skipped:       {len(self.skipped_proposals)}"
+            f"  Skipped:       {len(self.skipped_proposals)} ({self.skip_pct:.1f}% of proposed)"
         )
 
 
@@ -188,6 +212,12 @@ def materialize(
     temp_id_to_uuid, existing, reused = _resolve_temp_ids(extraction.proposed_nodes, gre)
     result.nodes_reused = reused
 
+    # Index citations by temp_id so skipped proposals can carry a char-range
+    # pointer back into the source document (for audit visibility).
+    citations_by_temp_id: dict[str, list[CitationProposal]] = {}
+    for c in extraction.citations:
+        citations_by_temp_id.setdefault(c.node_temp_id, []).append(c)
+
     # Phase 2: create new nodes (those not matched against existing)
     for p in extraction.proposed_nodes:
         if p.temp_id in existing:
@@ -196,7 +226,15 @@ def materialize(
         try:
             typed = proposed_to_typed_node(p, temp_id_to_uuid[p.temp_id], temp_id_to_uuid)
         except ValueError as e:
-            result.skipped_proposals.append((p.name, str(e)))
+            cites = citations_by_temp_id.get(p.temp_id, [])
+            first = cites[0] if cites else None
+            result.skipped_proposals.append(SkippedProposal(
+                type=type_label,
+                name=p.name,
+                reason=str(e),
+                char_start=first.char_start if first else None,
+                char_end=first.char_end if first else None,
+            ))
             continue
         gre.create_node(typed)
         result.nodes_created.append((type_label, p.name))
@@ -234,8 +272,22 @@ def materialize(
         "nodes_reused": [{"type": t, "name": n} for t, n in result.nodes_reused],
         "relationships_created": result.relationships_created,
         "citations_created": result.citations_created,
+        "totals": {
+            "proposed": result.total_proposed,
+            "created": len(result.nodes_created),
+            "reused": len(result.nodes_reused),
+            "skipped": len(result.skipped_proposals),
+            "skip_pct": round(result.skip_pct, 2),
+        },
         "skipped_proposals": [
-            {"name": n, "reason": r} for n, r in result.skipped_proposals
+            {
+                "type": s.type,
+                "name": s.name,
+                "reason": s.reason,
+                "char_start": s.char_start,
+                "char_end": s.char_end,
+            }
+            for s in result.skipped_proposals
         ],
     }
     snapshot_path.write_text(json.dumps(snapshot, indent=2), encoding="utf-8")

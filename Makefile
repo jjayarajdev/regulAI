@@ -70,6 +70,9 @@ rebuild-kg:
 validate-kg:
 	uv run python -m scripts.validate_kg_coverage
 
+audit-extraction-loss:
+	uv run python -m scripts.audit_extraction_loss
+
 kg-hygiene:
 	uv run python -m scripts.kg_hygiene
 

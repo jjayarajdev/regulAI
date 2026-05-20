@@ -309,7 +309,10 @@ def approve_extraction(slug: str) -> JSONResponse:
         "nodes_reused": [{"type": t, "name": n} for t, n in result.nodes_reused],
         "relationships_created": result.relationships_created,
         "citations_created": result.citations_created,
-        "skipped": [{"name": n, "reason": r} for n, r in result.skipped_proposals],
+        "skipped": [
+            {"type": s.type, "name": s.name, "reason": s.reason}
+            for s in result.skipped_proposals
+        ],
         "snapshot_path": str(result.materialized_path) if result.materialized_path else None,
     })
 

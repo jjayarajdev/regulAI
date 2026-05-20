@@ -163,8 +163,8 @@ def main(extraction_path_str: str) -> int:
         print(f"      nodes reused   : {len(result.nodes_reused)}")
         print(f"      relationships  : {result.relationships_created}")
         print(f"      citations      : {result.citations_created}")
-        for nm, reason in result.skipped_proposals[:5]:
-            print(f"      ✗ skipped: {nm[:60]} ({reason[:80]})")
+        for s in result.skipped_proposals[:5]:
+            print(f"      ✗ skipped {s.type}: {s.name[:60]} ({s.reason[:80]})")
 
         # Step 4 — re-tag newly created nodes as FL
         after = _existing_node_ids(gre)
