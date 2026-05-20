@@ -85,6 +85,17 @@ seed-filing-obligations:
 p2-regression-gate:
 	uv run python -m scripts.p2_regression_gate
 
+# ── Phase 3: Florida intake ──
+extract-fl-627-062:
+	uv run python -m scripts.extract synthetic_regulations/real/florida/FL_627_062_rate_standards.txt
+
+materialize-fl:
+	@if [ -z "$(EXT)" ]; then echo "Usage: make materialize-fl EXT=<extraction.json>"; exit 1; fi
+	uv run python -m scripts.materialize_florida_extraction $(EXT)
+
+seed-florida:
+	uv run python -m scripts.seed_florida
+
 cleanup-kg:
 	uv run python -m scripts.cleanup_kg
 

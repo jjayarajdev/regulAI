@@ -136,6 +136,15 @@ DOCS: list[DocEntry] = [
         blurb="DEMO bulletin: adds a Reinsurance Coverage Indicator (Y/N/U) at column 184 of the Premium Record Layout, effective 2027-01-01. Used by `make demo-new-bulletin` to show end-to-end RAG → review → KG update.",
         pdf_path=None,  # markdown-only
     ),
+    # ── Phase 3: Florida regulations (first non-Texas state intake) ──
+    DocEntry(
+        slug="fl-627-062",
+        label="FL Statute 627.062 — Rate Standards",
+        category="Florida statute",
+        path=Path("synthetic_regulations/real/florida/FL_627_062_rate_standards.txt"),
+        blurb="Florida statute governing rate filings for property/casualty insurance. Defines 'file and use' / 'use and file' procedures, the 15 actuarial factors the FL OIR considers, Florida Hurricane Catastrophe Fund treatment, and residential property mitigation requirements.",
+        pdf_path=None,
+    ),
 ]
 
 DOCS_BY_SLUG: dict[str, DocEntry] = {d.slug: d for d in DOCS}
