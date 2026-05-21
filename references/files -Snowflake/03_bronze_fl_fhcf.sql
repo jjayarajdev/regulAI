@@ -47,8 +47,19 @@ CREATE TABLE IF NOT EXISTS fl_fhcf_policy (
     hurricane_deductible      NUMBER(4)                COMMENT 'Cols 111-114: pct * 100; valid 200..1000 (2%..10%)',
     written_premium           NUMBER(10)               COMMENT 'Cols 115-124: total written premium',
 
-    -- Wind mitigation (FBC)
+    -- Wind mitigation (FBC) — when wind_mitigation='Y', all 5 companion
+    -- fields must be populated (FHCF Validation Rule 7).
     wind_mitigation           VARCHAR(1)               COMMENT 'Col 135: Y/N',
+    opening_protection        VARCHAR(1)               COMMENT 'Col 136: N/B/H/A',
+    roof_cover_type           VARCHAR(1)               COMMENT 'Col 137: A/C/M/T/W/O',
+    roof_deck_attachment      VARCHAR(1)               COMMENT 'Col 138: A/B/C/D/O',
+    roof_to_wall_connection   VARCHAR(1)               COMMENT 'Col 139: T/C/S/D/A',
+    secondary_water_resistance VARCHAR(1)              COMMENT 'Col 140: Y/N/U',
+
+    -- Geocode — both columns must be populated together, or both null
+    -- (FHCF Validation Rule 10). Decimal degrees × 10^6.
+    latitude                  NUMBER(10)               COMMENT 'Cols 142-151',
+    longitude                 NUMBER(11)               COMMENT 'Cols 152-161; negative for FL',
 
     -- Audit / provenance
     reporting_year            NUMBER(4)      NOT NULL  COMMENT 'Reporting year ending 9/30',
@@ -57,36 +68,87 @@ CREATE TABLE IF NOT EXISTS fl_fhcf_policy (
 )
 COMMENT = 'FHCF Annual Data Call exposure rows. Validated against FL-scoped Rules with violation_sql.';
 
--- Convenience: 5 synthetic exposure rows demonstrating the validation rules.
--- Two clean rows (POL-FL-0001, POL-FL-0002) and three dirty rows that each
--- trigger one of the wired Rules — exactly what the test asserts.
+-- Convenience: 12 synthetic exposure rows demonstrating the validation rules.
+-- Two clean rows (POL-FL-0001, POL-FL-0002) and ten dirty rows where each
+-- triggers exactly one wired Rule — keeps test diagnostics unambiguous.
+-- Every wind_mitigation='N' below intentionally avoids Validation.7
+-- (which only applies when wind_mitigation='Y').
 INSERT INTO fl_fhcf_policy
   (insurer_naic, policy_number, risk_zip, risk_zip4, county_fips, state_code,
    policy_form, effective_date, expiry_date, occupancy_type, construction_type,
    year_built, protection_class, coverage_a, hurricane_deductible, written_premium,
-   wind_mitigation, reporting_year, source_file)
+   wind_mitigation, opening_protection, roof_cover_type, roof_deck_attachment,
+   roof_to_wall_connection, secondary_water_resistance,
+   latitude, longitude, reporting_year, source_file)
 VALUES
   -- CLEAN — Miami-Dade homeowner, valid everything
   ('0000012345', 'POL-FL-0001', '33101', '00000', '25', 'FL',
    'HO3', '2025-01-15', '2026-01-15', 'O1', 'M', 2015, 3, 450000, 500, 4200,
-   'Y', 2025, 'FHCF_D1A_0000012345_2025.txt'),
+   'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
 
   -- CLEAN — Tallahassee homeowner, valid everything
   ('0000012345', 'POL-FL-0002', '32308', '00000', '37', 'FL',
    'HO5', '2025-03-01', '2026-03-01', 'O1', 'F', 2018, 4, 285000, 200, 2150,
-   'Y', 2025, 'FHCF_D1A_0000012345_2025.txt'),
+   'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
 
   -- DIRTY — TX ZIP slipped into an FL filing (triggers Validation.2)
   ('0000012345', 'POL-FL-0003', '77002', '00000', '25', 'FL',
    'HO3', '2025-02-01', '2026-02-01', 'O1', 'M', 2010, 3, 510000, 500, 5100,
-   'Y', 2025, 'FHCF_D1A_0000012345_2025.txt'),
+   'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
 
   -- DIRTY — county FIPS 99 (only 01..67 exist in FL) (triggers Validation.3)
   ('0000012345', 'POL-FL-0004', '33139', '00000', '99', 'FL',
    'HO3', '2025-04-15', '2026-04-15', 'O1', 'MV', 2020, 2, 625000, 500, 5800,
-   'Y', 2025, 'FHCF_D1A_0000012345_2025.txt'),
+   'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
 
   -- DIRTY — STATE_CODE='TX' on an FHCF row (triggers Validation.4)
   ('0000012345', 'POL-FL-0005', '32202', '00000', '31', 'TX',
    'HO3', '2025-05-10', '2026-05-10', 'O1', 'F', 2005, 5, 195000, 200, 1850,
-   'N', 2025, 'FHCF_D1A_0000012345_2025.txt');
+   'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
+
+  -- DIRTY — NAIC '123' is not 10 digits (triggers Validation.1)
+  ('123', 'POL-FL-0006', '33122', '00000', '25', 'FL',
+   'HO3', '2025-06-01', '2026-06-01', 'O1', 'M', 2012, 3, 380000, 500, 3200,
+   'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
+
+  -- DIRTY — hurricane_deductible=1500 (>1000 = >10%) (triggers Validation.5)
+  ('0000012345', 'POL-FL-0007', '33480', '00000', '50', 'FL',
+   'HO3', '2025-07-15', '2026-07-15', 'O1', 'M', 2017, 3, 720000, 1500, 7800,
+   'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
+
+  -- DIRTY — coverage_a=10000000 (>$5M) (triggers Validation.6)
+  ('0000012345', 'POL-FL-0008', '33020', '00000', '11', 'FL',
+   'HO5', '2025-08-01', '2026-08-01', 'O1', 'S', 2019, 2, 10000000, 500, 95000,
+   'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
+
+  -- DIRTY — effective_date AFTER expiry_date (triggers Validation.8)
+  ('0000012345', 'POL-FL-0009', '34102', '00000', '21', 'FL',
+   'HO3', '2026-01-01', '2025-09-01', 'O1', 'F', 2008, 4, 425000, 500, 4100,
+   'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
+
+  -- DIRTY — year_built=1850 (<1900) (triggers Validation.9)
+  ('0000012345', 'POL-FL-0010', '32601', '00000', '01', 'FL',
+   'HO3', '2025-09-15', '2026-09-15', 'O1', 'F', 1850, 5, 165000, 200, 1500,
+   'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
+
+  -- DIRTY — wind_mitigation='Y' but companion fields null (triggers Validation.7)
+  ('0000012345', 'POL-FL-0011', '33445', '00000', '50', 'FL',
+   'HO3', '2025-10-01', '2026-10-01', 'O1', 'M', 2016, 3, 395000, 500, 3800,
+   'Y', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt'),
+
+  -- DIRTY — latitude populated but longitude null (triggers Validation.10)
+  ('0000012345', 'POL-FL-0012', '32034', '00000', '19', 'FL',
+   'HO3', '2025-11-01', '2026-11-01', 'O1', 'F', 2013, 4, 245000, 500, 2300,
+   'N', NULL, NULL, NULL, NULL, NULL, 30670000, NULL,
+   2025, 'FHCF_D1A_0000012345_2025.txt');

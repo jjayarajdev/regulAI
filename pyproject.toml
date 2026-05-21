@@ -21,6 +21,11 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",
+    # In-process SQL engine for CI verification of violation_sql.
+    # See tests/_fl_duckdb_harness.py — executes the same SQL the
+    # production /validate endpoint runs, no Snowflake creds needed.
+    # Catches alias bugs, SQL syntax errors, rule logic regressions.
+    "duckdb>=1.0",
 ]
 
 [tool.ruff]

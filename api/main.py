@@ -37,6 +37,7 @@ from packages.adapters.shared.llm.openai_adapter import OpenAIAdapter
 from packages.config.settings import settings
 from packages.lhs.citations.pdf_highlight import CitationRectsBundle, compute_rects_bundle
 from packages.lhs.materialization.materialize import materialize
+from packages.lhs.materialization.parser_boundary import ParserBoundaryViolation
 from packages.lhs.sentinel.agent import Sentinel
 from packages.lhs.sentinel.filter import strip_parser_owned
 from packages.lhs.sentinel.schema import SentinelExtraction
@@ -299,9 +300,28 @@ def approve_extraction(slug: str) -> JSONResponse:
         )
 
     with Neo4jGREAdapter() as gre:
-        result = materialize(
-            extraction, gre, document_label=doc.slug, rects_bundle=rects_bundle
-        )
+        try:
+            result = materialize(
+                extraction, gre, document_label=doc.slug, rects_bundle=rects_bundle
+            )
+        except ParserBoundaryViolation as e:
+            # Cluster C: the cached extraction proposes RecordLayout /
+            # FieldRequirement on a parser-owned slug. Return a clean 400
+            # so the UI can surface the boundary violation instead of a
+            # generic 500. The fix is either re-running batch_extract with
+            # strip_parser_owned, or relaxing PARSER_OWNED_SLUGS (rare).
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "parser_boundary_violation",
+                    "document_label": e.document_label,
+                    "offender_count": len(e.offenders),
+                    "first_offenders": [
+                        {"type": t, "name": n} for t, n in e.offenders[:5]
+                    ],
+                    "message": str(e),
+                },
+            )
 
     return JSONResponse({
         "slug": slug,
