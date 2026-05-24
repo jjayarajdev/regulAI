@@ -119,9 +119,61 @@ Today: `dagster dev` runs the webserver + daemon in one process. For production,
 
 This is documented but not yet wired — out of scope for Phase 1.
 
-## What Phase 2 brings
+## Phase 2A: Excel upload → Bronze → medallion
 
-When the demo needs to grow up:
+The end goal (per user direction): a compliance officer uploads an Excel file via the admin UI, the file lands in Snowflake's BRONZE layer, and the medallion pipeline runs end-to-end. Phase 2A delivers that for **one Bronze table** (`gw_pc_policy`) so the pattern is proven; adding more tables is mechanical (append a `TemplateSpec` to `packages/uploads/schemas.py`).
+
+### Flow
+
+```
+1. User opens /admin/upload
+2. Downloads pc_policy_template.xlsx (generated on-the-fly from schemas.py)
+3. Fills it in. Row 1 = column headers, rows 2-3 are hints/examples (auto-skipped)
+4. POST /api/admin/uploads (multipart) → server:
+     a. Saves Excel to materialized/uploads/<upload_id>/original/
+     b. Validates column headers match template
+     c. Coerces cells to typed values per ColumnSpec
+     d. Writes Parquet to materialized/uploads/<upload_id>/parquet/
+     e. Registers in materialized/uploads/_registry.json with status='converted'
+5. UI history table shows upload with "Process" button
+6. User clicks Process → POST /api/admin/uploads/<id>/process →
+     launchRun mutation against Dagster's upload_to_gold_job
+     with run_config = {ops: {op_load_bronze_from_upload: {config: {
+       upload_id, bronze_table
+     }}}}
+7. Dagster runs: op_load_bronze_from_upload → silver → gold → validate +
+   detect_anomalies → op_mark_upload_done
+8. Final op flips registry status to 'done'
+```
+
+### Key files (Phase 2A)
+
+| File | Role |
+|---|---|
+| `packages/uploads/schemas.py` | `TEMPLATES` registry. Add a `TemplateSpec` here to enable a new table. |
+| `packages/uploads/templates.py` | Generates the downloadable `.xlsx` from a `TemplateSpec`. Hint row + example row + `_README` sheet. |
+| `packages/uploads/xlsx_to_parquet.py` | Validates headers, coerces cells, writes typed Parquet. Raises `ConversionError` with row-level details. |
+| `packages/uploads/storage.py` | `_registry.json` IO, `upl_*` ID format, per-upload sidecar `meta.json` for defense in depth. |
+| `dagster_project/ops/upload_ops.py` | `op_load_bronze_from_upload` (typed Config: upload_id + bronze_table) + `op_mark_upload_done`. |
+| `dagster_project/jobs/pipeline_jobs.py` | `upload_to_gold_job` chains upload-bronze → silver → gold → validate + anomalies. |
+| `scripts/load_bronze_from_upload.py` | The subprocess the op invokes. Reads env vars, PUTs+COPY INTOs scoped to the upload. |
+| `ui/admin-upload.html` | Three-step UI: download template / upload+validate / process. History table with auto-refresh. |
+
+### Demo line for Phase 2A
+
+> *"Customer compliance team uploads their policy file. We validate the schema before saving anything. They click Process — Dagster loads it into Bronze, runs Silver and Gold transformations, validates against the rules in our Knowledge Graph, and flags any violations. From Excel to a TICO-ready filing in under a minute, with full audit trail."*
+
+### What's NOT in Phase 2A (Phase 2B)
+
+- **Multi-table uploads** — today: one .xlsx per table. Tomorrow: one .xlsx with N sheets.
+- **Direct-to-Snowflake-stage** — skip the local Parquet hop, PUT straight into Snowflake from the API.
+- **Carrier-specific column mapping** — today: assume template-exact. Tomorrow: store mapping in REFERENCE and apply at conversion.
+- **Sensor-triggered processing** — today: admin clicks Process. Tomorrow: a Dagster sensor detects new uploads and auto-launches.
+- **SFTP / S3 watch** — for carriers who already ship from a data warehouse.
+
+## What Phase 2 (broader) brings
+
+When the demo needs to grow up further:
 
 - **Native ops** — replace subprocess wrappers with direct imports of `scripts.X.main()` for richer logs and faster startup
 - **Assets, not just ops** — model each Snowflake table as a Dagster asset so lineage shows on the Dagster UI's asset graph

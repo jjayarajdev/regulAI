@@ -127,13 +127,31 @@ def list_recent_runs(job_name: str = "full_pipeline_job", limit: int = 10) -> li
     return out
 
 
-def launch_run(job_name: str = "full_pipeline_job") -> str:
-    """Trigger a fresh run of `job_name`. Returns the new run id."""
-    # First we need the repository + location names. For a single-module
-    # project loaded via `dagster dev -m dagster_project`, both are
-    # predictable: the location name is "dagster_project" and the
-    # repository name is "__repository__" (Dagster's default for a
-    # Definitions object that isn't explicitly named).
+def launch_run(
+    job_name: str = "full_pipeline_job",
+    *,
+    run_config: dict | None = None,
+    tags: dict[str, str] | None = None,
+) -> str:
+    """Trigger a fresh run of `job_name`. Returns the new run id.
+
+    Args:
+      run_config: Dagster run config dict, e.g.
+        `{"ops": {"op_X": {"config": {"upload_id": "..."}}}}`. None or
+        empty means "no config required" (the job's ops must accept
+        empty config in that case).
+      tags: arbitrary k/v tags persisted on the run; surfaced in the
+        Dagster UI + admin run-history table. Use for provenance
+        (e.g. `{"upload.id": "..."}`).
+
+    Repository location/name defaults are fixed by how we load Dagster:
+      `dagster dev -m dagster_project`
+        → location "dagster_project", repository "__repository__"
+    """
+    tag_list = [{"key": k, "value": v} for k, v in (tags or {}).items()]
+    if not tag_list:
+        tag_list = [{"key": "triggered_by", "value": "admin_ui_run_now"}]
+
     data = _gql(
         """
         mutation LaunchRun($executionParams: ExecutionParams!) {
@@ -154,13 +172,9 @@ def launch_run(job_name: str = "full_pipeline_job") -> str:
                     "repositoryName": "__repository__",
                     "pipelineName": job_name,
                 },
-                "runConfigData": {},
+                "runConfigData": run_config or {},
                 "mode": "default",
-                "executionMetadata": {
-                    "tags": [
-                        {"key": "triggered_by", "value": "admin_ui_run_now"},
-                    ],
-                },
+                "executionMetadata": {"tags": tag_list},
             }
         },
     )

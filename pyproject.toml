@@ -31,6 +31,13 @@ dependencies = [
     # to fire on each minute tick. Dagster doesn't depend on it
     # transitively in 1.13+; pinning it here is explicit.
     "croniter>=2.0",
+    # openpyxl — read uploaded Excel files + generate downloadable templates
+    # for the /admin/upload flow (Phase 2A). Pure-Python, no system deps;
+    # pyarrow is already pinned upstream for the Parquet conversion side.
+    "openpyxl>=3.1",
+    # python-multipart — required by FastAPI for `UploadFile` (multipart
+    # form uploads). Not transitive from anything else we ship.
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]

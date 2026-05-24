@@ -20,6 +20,11 @@ from dagster_project.ops.pipeline_ops import (
     op_run_silver,
     op_validate,
 )
+from dagster_project.ops.upload_ops import (
+    UploadLoadConfig,
+    op_load_bronze_from_upload,
+    op_mark_upload_done,
+)
 
 __all__ = [
     "op_load_bronze",
@@ -27,4 +32,7 @@ __all__ = [
     "op_run_gold",
     "op_validate",
     "op_detect_anomalies",
+    "op_load_bronze_from_upload",
+    "op_mark_upload_done",
+    "UploadLoadConfig",
 ]

@@ -14,9 +14,9 @@ Run: make ui
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 import random as _random
@@ -118,6 +118,12 @@ def admin_schedule_page() -> FileResponse:
     schedule is implemented by dagster_project/schedules.py reading the
     same runtime_config.json this page writes to."""
     return FileResponse(UI_DIR / "admin-schedule.html")
+
+
+@app.get("/admin/upload")
+def admin_upload_page() -> FileResponse:
+    """Admin-only: upload Excel → land in Bronze → run medallion via Dagster."""
+    return FileResponse(UI_DIR / "admin-upload.html")
 
 
 # -- Design explorations (feature/ui-designs) ----------------------------------
@@ -451,6 +457,188 @@ def run_now() -> JSONResponse:
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
     return JSONResponse({"ok": True, "run_id": run_id})
+
+
+# -- Admin: uploads (Phase 2A) ------------------------------------------------
+#
+# Upload-driven Bronze ingest. The /admin/upload page calls these routes.
+#
+#   GET  /api/admin/upload-templates              — list of templates
+#   GET  /api/admin/upload-templates/{table}      — download .xlsx
+#   POST /api/admin/uploads                       — upload + convert
+#   GET  /api/admin/uploads                       — list past uploads
+#   POST /api/admin/uploads/{id}/process          — launch Dagster job
+
+
+@app.get("/api/admin/upload-templates")
+def list_upload_templates() -> JSONResponse:
+    """Templates the admin UI can offer for download. Drives the
+    dropdown on /admin/upload."""
+    from packages.uploads import TEMPLATES
+
+    return JSONResponse({
+        "templates": [
+            {
+                "bronze_table": t.bronze_table,
+                "sheet_name": t.sheet_name,
+                "description": t.description,
+                "column_count": len(t.columns),
+                "required_columns": [c.name for c in t.columns if c.required],
+                "download_url": f"/api/admin/upload-templates/{t.bronze_table}",
+            }
+            for t in TEMPLATES
+        ],
+    })
+
+
+@app.get("/api/admin/upload-templates/{bronze_table}")
+def download_upload_template(bronze_table: str) -> Response:
+    """Serve a generated .xlsx for the given Bronze table."""
+    from packages.uploads import generate_template_workbook
+    from packages.uploads.templates import template_filename_for
+
+    try:
+        xlsx_bytes = generate_template_workbook(bronze_table)
+        filename = template_filename_for(bronze_table)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No template registered for {bronze_table!r}. See /api/admin/upload-templates for valid names.",
+        )
+
+    return Response(
+        content=xlsx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.post("/api/admin/uploads")
+async def upload_xlsx(
+    bronze_table: str = Body(..., embed=True),
+    file: UploadFile = File(...),
+) -> JSONResponse:
+    """Accept an .xlsx upload for a Bronze table. Saves, registers,
+    converts to Parquet, and returns the upload record. Fails fast on
+    schema mismatch so the user sees the problem before they ever click
+    'Process'."""
+    from packages.uploads import (
+        UploadRecord,
+        convert_uploaded_xlsx_to_parquet,
+        new_upload_dir,
+        new_upload_id,
+        record_upload,
+        update_upload_status,
+    )
+    from packages.uploads.schemas import get_template
+    from packages.uploads.xlsx_to_parquet import ConversionError
+
+    if get_template(bronze_table) is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown bronze_table {bronze_table!r}. See /api/admin/upload-templates.",
+        )
+    if not (file.filename or "").lower().endswith(".xlsx"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only .xlsx is accepted. Save your file as Excel Workbook (.xlsx), not .xls or .csv.",
+        )
+
+    upload_id = new_upload_id()
+    root = new_upload_dir(upload_id)
+    xlsx_path = root / "original" / file.filename
+    body = await file.read()
+    xlsx_path.write_bytes(body)
+
+    record = UploadRecord(
+        upload_id=upload_id,
+        filename=file.filename,
+        bronze_table=bronze_table,
+        bytes_size=len(body),
+    )
+    record_upload(record)
+
+    # Convert immediately so schema problems surface BEFORE the user
+    # commits to processing. Failures update status → "failed" with the
+    # error message so the UI can show what to fix.
+    try:
+        result = convert_uploaded_xlsx_to_parquet(record)
+    except ConversionError as e:
+        update_upload_status(upload_id, status="failed", error_message=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+
+    updated = update_upload_status(
+        upload_id, status="converted", row_count=result.row_count,
+    )
+
+    return JSONResponse({
+        "ok": True,
+        "upload": updated.to_dict() if updated else record.to_dict(),
+        "row_count": result.row_count,
+        "skipped_cells": result.skipped_cells,
+    })
+
+
+@app.get("/api/admin/uploads")
+def list_uploads_endpoint() -> JSONResponse:
+    """All uploads, newest first. Powers the admin UI's history table."""
+    from packages.uploads import list_uploads
+
+    return JSONResponse({
+        "uploads": [r.to_dict() for r in list_uploads(limit=50)],
+    })
+
+
+@app.post("/api/admin/uploads/{upload_id}/process")
+def process_upload(upload_id: str) -> JSONResponse:
+    """Launch the Dagster upload_to_gold_job for this upload. Dagster
+    reads the upload_id from run config and points Bronze loader at the
+    converted Parquet."""
+    from packages.scheduling.dagster_client import (
+        DagsterUnreachable,
+        launch_run,
+    )
+    from packages.uploads import get_upload, update_upload_status
+
+    record = get_upload(upload_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Upload {upload_id!r} not found.")
+    if record.status not in ("converted", "done", "failed"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Upload {upload_id!r} status is {record.status!r}; must be 'converted', 'done', or 'failed' to (re-)process.",
+        )
+
+    try:
+        run_id = launch_run(
+            "upload_to_gold_job",
+            run_config={
+                "ops": {
+                    "op_load_bronze_from_upload": {
+                        "config": {
+                            "upload_id": upload_id,
+                            "bronze_table": record.bronze_table,
+                        }
+                    }
+                }
+            },
+            tags={
+                "upload.id": upload_id,
+                "upload.filename": record.filename,
+                "upload.bronze_table": record.bronze_table,
+                "triggered_by": "admin_upload_process",
+            },
+        )
+    except DagsterUnreachable as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Dagster is not reachable. Is `make dagster` running? ({e})",
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    update_upload_status(upload_id, status="processing", last_run_id=run_id)
+    return JSONResponse({"ok": True, "run_id": run_id, "upload_id": upload_id})
 
 
 # -- KG API -------------------------------------------------------------------
