@@ -49,3 +49,13 @@ references/*.png
 
 # Claude Code local config
 .claude/
+
+# Dagster local run state — DB, logs, sentinel files written by `dagster dev`.
+# The orchestrator's own persistence; not source. Production deploys would
+# use a managed DAGSTER_HOME pointing at a Postgres-backed RunStorage.
+.dagster_home/
+
+# Per-upload Excel + Parquet artifacts written by the admin upload flow.
+# Customer-uploaded data; not source. Test/demo uploads regenerate on
+# every run. The registry index lives here too — never source either.
+materialized/uploads/

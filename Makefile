@@ -165,6 +165,18 @@ extract-hb2067:
 ui:
 	uv run uvicorn api.main:app --reload --port 8765
 
+# ── Dagster (data orchestration) ──────────────────────────────────────
+# `dagster dev` runs the webserver + daemon in one process; production
+# would split them. Admin UI at /admin/schedule talks to this via
+# GraphQL on port 3000. See docs/dagster-orchestration.md.
+dagster:
+	DAGSTER_HOME=$(PWD)/.dagster_home uv run dagster dev -m dagster_project --port 3000
+
+# One-off launch of the full pipeline via Dagster CLI (bypasses the
+# webserver — useful for cron debugging or CI smoke).
+dagster-run-once:
+	DAGSTER_HOME=$(PWD)/.dagster_home uv run dagster job execute -m dagster_project -j full_pipeline_job
+
 test:
 	uv run pytest tests/ -v
 
