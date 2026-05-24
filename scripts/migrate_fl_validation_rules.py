@@ -38,7 +38,7 @@ from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 
 FL_VALIDATION_RULES = [
     {
-        "match_id": "61178f25-5388-432a-b800-03ef4ca428c3",
+        "match_name": "Rule Validation.1 — NAIC_NUMERIC",
         "rule_number": "Validation.1",
         "target_table": "BRONZE.FL_FHCF_POLICY",
         "target_id_expr": "j.policy_number",
@@ -53,7 +53,7 @@ FL_VALIDATION_RULES = [
         "citation": "FHCF Data Call Form / Validation Rule 1",
     },
     {
-        "match_id": "e888b06a-c2f3-4d78-ad22-d9ef94d4f477",
+        "match_name": "Rule Validation.2 — ZIP_TX_PREFIX_INVALID",
         "rule_number": "Validation.2",
         "target_table": "BRONZE.FL_FHCF_POLICY",
         "target_id_expr": "j.policy_number",
@@ -70,7 +70,7 @@ FL_VALIDATION_RULES = [
         "citation": "FHCF Data Call Form / Validation Rule 2 / §215.555(5)(b), F.S.",
     },
     {
-        "match_id": "1968fbc3-057f-43c5-b88c-29904efe5f29",
+        "match_name": "Rule Validation.3 — COUNTY_FIPS_VALID",
         "rule_number": "Validation.3",
         "target_table": "BRONZE.FL_FHCF_POLICY",
         "target_id_expr": "j.policy_number",
@@ -85,7 +85,7 @@ FL_VALIDATION_RULES = [
         "citation": "FHCF Data Call Form / Validation Rule 3",
     },
     {
-        "match_id": "fdad27df-5324-4b87-b75c-07b651d55437",
+        "match_name": "Rule Validation.4 — STATE_CODE_FIXED",
         "rule_number": "Validation.4",
         "target_table": "BRONZE.FL_FHCF_POLICY",
         "target_id_expr": "j.policy_number",
@@ -100,7 +100,7 @@ FL_VALIDATION_RULES = [
         "citation": "FHCF Data Call Form / Validation Rule 4 / §215.555(2)(a), F.S.",
     },
     {
-        "match_id": "de8e84a9-35b1-48b5-8976-9e831a3a025e",
+        "match_name": "Rule Validation.5 — HURRICANE_DEDUCTIBLE_RANGE",
         "rule_number": "Validation.5",
         "target_table": "BRONZE.FL_FHCF_POLICY",
         "target_id_expr": "j.policy_number",
@@ -115,7 +115,7 @@ FL_VALIDATION_RULES = [
         "citation": "FHCF Data Call Form / Validation Rule 5",
     },
     {
-        "match_id": "9d35e3b2-15a5-45b1-9f59-8afdf401ea21",
+        "match_name": "Rule Validation.6 — COVERAGE_A_PLAUSIBLE",
         "rule_number": "Validation.6",
         "target_table": "BRONZE.FL_FHCF_POLICY",
         "target_id_expr": "j.policy_number",
@@ -129,7 +129,7 @@ FL_VALIDATION_RULES = [
         "citation": "FHCF Data Call Form / Validation Rule 6",
     },
     {
-        "match_id": "e853b0b1-091a-4f9e-9033-98241e751189",
+        "match_name": "Rule Validation.7 — WIND_MITIGATION_FBC_REQUIRED",
         "rule_number": "Validation.7",
         "target_table": "BRONZE.FL_FHCF_POLICY",
         "target_id_expr": "j.policy_number",
@@ -149,7 +149,7 @@ FL_VALIDATION_RULES = [
         "citation": "FHCF Data Call Form / Validation Rule 7",
     },
     {
-        "match_id": "1cc8f793-05fb-4543-8921-bbdee90bbf44",
+        "match_name": "Rule Validation.8 — DATE_ORDER",
         "rule_number": "Validation.8",
         "target_table": "BRONZE.FL_FHCF_POLICY",
         "target_id_expr": "j.policy_number",
@@ -165,7 +165,7 @@ FL_VALIDATION_RULES = [
         "citation": "FHCF Data Call Form / Validation Rule 8",
     },
     {
-        "match_id": "a36fdf98-68c0-4ee6-9cbe-0b8e97e34d8e",
+        "match_name": "Rule Validation.9 — YEAR_BUILT_RANGE",
         "rule_number": "Validation.9",
         "target_table": "BRONZE.FL_FHCF_POLICY",
         "target_id_expr": "j.policy_number",
@@ -181,7 +181,7 @@ FL_VALIDATION_RULES = [
         "citation": "FHCF Data Call Form / Validation Rule 9",
     },
     {
-        "match_id": "7d0645aa-6a44-4856-bdff-3a8520acc217",
+        "match_name": "Rule Validation.10 — GEOCODE_PRESENT_OR_NULL",
         "rule_number": "Validation.10",
         "target_table": "BRONZE.FL_FHCF_POLICY",
         "target_id_expr": "j.policy_number",
@@ -203,9 +203,12 @@ def main() -> int:
     missing: list[str] = []
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
         for rule in FL_VALIDATION_RULES:
+            # Match by Rule.name — survives UUID-scheme changes and is
+            # more readable than chasing a hardcoded UUID. Names of FHCF
+            # validation rules are unique within FL jurisdiction.
             r = s.run(
                 """
-                MATCH (r:Rule {id: $id})
+                MATCH (r:Rule {name: $name})-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'})
                 SET r.target_table = $target_table,
                     r.target_id_expr = $target_id_expr,
                     r.violation_sql = $violation_sql,
@@ -217,7 +220,7 @@ def main() -> int:
                 REMOVE r.effective_to
                 RETURN r.id AS id
                 """,
-                id=rule["match_id"],
+                name=rule["match_name"],
                 target_table=rule["target_table"],
                 target_id_expr=rule["target_id_expr"],
                 violation_sql=rule["violation_sql"],
@@ -230,7 +233,7 @@ def main() -> int:
                 attached += 1
             else:
                 missing.append(rule["rule_number"])
-                print(f"  ⚠ Not found: {rule['rule_number']:<16} (id={rule['match_id'][:16]}…)")
+                print(f"  ⚠ Not found: {rule['rule_number']:<16} (name={rule['match_name'][:40]}…)")
 
     print()
     print(f"violation_sql attached to {attached}/{len(FL_VALIDATION_RULES)} FL Rule node(s).")

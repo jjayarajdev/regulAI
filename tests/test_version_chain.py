@@ -42,11 +42,13 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture
 def existing_v1():
-    """A real executable rule from the KG. Skips test if none available."""
+    """A real executable rule from the KG, scoped to US-TX so the test's
+    default-jurisdiction fetch_rules() call covers it. Skips test if none
+    available."""
     from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
         row = s.run("""
-            MATCH (r:Rule)
+            MATCH (r:Rule)-[:APPLIES_IN]->(j:Jurisdiction {jurisdiction_code: 'US-TX'})
             WHERE r.violation_sql IS NOT NULL
               AND (r.status IS NULL OR r.status <> 'superseded')
             RETURN r.id AS id, r.name AS name, r.rule_number AS num,
@@ -54,7 +56,7 @@ def existing_v1():
             LIMIT 1
         """).single()
         if not row:
-            pytest.skip("No executable Rule with violation_sql in KG — run `make migrate-validation-rules`")
+            pytest.skip("No TX-scoped Rule with violation_sql in KG — run `make migrate-validation-rules`")
         return dict(row)
 
 

@@ -23,7 +23,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from uuid import UUID, uuid4
+from uuid import UUID, uuid5
 
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 from packages.config.settings import settings
@@ -85,10 +85,33 @@ class MaterializationResult:
         )
 
 
+# Stable namespace for deterministic KG node UUIDs (uuid5).
+#
+# Re-running `make rebuild-kg` on unchanged cached extractions used to
+# produce different UUIDs for every node (uuid4), which made every
+# downstream artifact that embeds a UUID — REFERENCE.* SQL files,
+# tspr_validation_rules.sql, snapshot JSONs — churn on every rebuild.
+# Switching to uuid5 keyed on (type, name) makes the rebuild
+# byte-deterministic; (type, name) is also exactly the identity
+# already used by find_existing_by_name dedup, so collision semantics
+# stay the same.
+#
+# DO NOT change this UUID. Any change would invalidate every UUID in
+# every production KG snapshot or load script.
+_KG_NODE_NAMESPACE = UUID("0a4d8a36-7e1a-4b8e-9c2f-67616c6c6f72")
+
+
+def _deterministic_node_uuid(type_label: str, name: str) -> UUID:
+    """uuid5-based UUID keyed on (type, name) — the same identity tuple
+    find_existing_by_name dedup uses. Stable across rebuilds, so
+    reproducing the KG from disk produces byte-identical artifacts."""
+    return uuid5(_KG_NODE_NAMESPACE, f"{type_label}|{name}")
+
+
 def _resolve_temp_ids(
     proposals: list[ProposedNode],
     gre: Neo4jGREAdapter,
-) -> tuple[dict[str, UUID], dict[str, GRENode], list[tuple[str, str]]]:
+) -> tuple[dict[str, UUID], dict[str, GRENode], list[tuple[str, str]], set[str]]:
     """First pass: assign each temp_id a UUID, reusing existing nodes when matched.
 
     Returns:
@@ -100,6 +123,15 @@ def _resolve_temp_ids(
     temp_id_to_uuid: dict[str, UUID] = {}
     existing_by_temp_id: dict[str, GRENode] = {}
     reused: list[tuple[str, str]] = []
+    in_extraction_dups: set[str] = set()
+
+    # In-extraction dedup. A single extraction sometimes proposes the
+    # same (type, name) under two temp_ids (parser merges page-break
+    # duplicates loosely; LLM occasionally re-extracts). With uuid4 these
+    # used to land as separate Neo4j nodes with same name; with uuid5
+    # they collide on insert (same deterministic id). Track the first
+    # temp_id we issue per (type, name) and route later proposals to it.
+    name_key_to_first_temp_id: dict[tuple[str, str], str] = {}
 
     for p in proposals:
         type_label = p.type.value if hasattr(p.type, "value") else str(p.type)
@@ -111,16 +143,29 @@ def _resolve_temp_ids(
                 existing_by_temp_id[p.temp_id] = doc
                 reused.append((type_label, p.name))
                 continue
-        # (type, name) dedup for everything else
+        # (type, name) dedup against the DB
         existing = gre.find_existing_by_name(type_label, p.name)
         if existing is not None:
             temp_id_to_uuid[p.temp_id] = existing.id
             existing_by_temp_id[p.temp_id] = existing
             reused.append((type_label, p.name))
-        else:
-            temp_id_to_uuid[p.temp_id] = uuid4()
+            continue
+        # (type, name) dedup *within this extraction* — later proposals
+        # with the same key share the first one's UUID and skip create.
+        # The first proposal still creates the node; subsequents are
+        # routed to the same uuid so relationships/citations attach
+        # correctly without re-attempting an insert.
+        key = (type_label, p.name)
+        if key in name_key_to_first_temp_id:
+            first_tid = name_key_to_first_temp_id[key]
+            temp_id_to_uuid[p.temp_id] = temp_id_to_uuid[first_tid]
+            in_extraction_dups.add(p.temp_id)
+            reused.append((type_label, p.name))
+            continue
+        temp_id_to_uuid[p.temp_id] = _deterministic_node_uuid(type_label, p.name)
+        name_key_to_first_temp_id[key] = p.temp_id
 
-    return temp_id_to_uuid, existing_by_temp_id, reused
+    return temp_id_to_uuid, existing_by_temp_id, reused, in_extraction_dups
 
 
 def _write_relationship(
@@ -219,7 +264,7 @@ def materialize(
     result = MaterializationResult(document_label=document_label)
 
     # Phase 1: resolve temp_ids → UUIDs (with dedup)
-    temp_id_to_uuid, existing, reused = _resolve_temp_ids(extraction.proposed_nodes, gre)
+    temp_id_to_uuid, existing, reused, dups = _resolve_temp_ids(extraction.proposed_nodes, gre)
     result.nodes_reused = reused
 
     # Index citations by temp_id so skipped proposals can carry a char-range
@@ -228,9 +273,13 @@ def materialize(
     for c in extraction.citations:
         citations_by_temp_id.setdefault(c.node_temp_id, []).append(c)
 
-    # Phase 2: create new nodes (those not matched against existing)
+    # Phase 2: create new nodes (those not matched against existing).
+    # `dups` carries temp_ids that lost an in-extraction (type, name)
+    # dedup race — they share a UUID with the first proposal, which is
+    # what actually creates the node. Skipping them here prevents a
+    # constraint violation on the shared deterministic UUID.
     for p in extraction.proposed_nodes:
-        if p.temp_id in existing:
+        if p.temp_id in existing or p.temp_id in dups:
             continue
         type_label = p.type.value if hasattr(p.type, "value") else str(p.type)
         try:

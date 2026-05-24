@@ -14,7 +14,7 @@ from datetime import date, datetime
 from typing import Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .enums import (
     DocumentKind,
@@ -105,6 +105,40 @@ class Rule(GRENodeBase):
     document_id: UUID  # back-reference to the RegulationDocument
     is_federal_default: bool = False
     supersedes_federal_rule_id: UUID | None = None  # state-specific override of a federal default
+
+    @model_validator(mode="after")
+    def _check_fields_for_rule_kind(self) -> "Rule":
+        """Cross-field validation: statute-kind needs section+rule_number;
+        bulletin/memo provisions need heading instead. Catches malformed
+        Rule construction at the model layer instead of letting bad
+        shapes reach Neo4j (where they would silently corrupt downstream
+        queries that filter by rule_kind)."""
+        if self.rule_kind == RuleKind.STATUTE:
+            if self.section is None or self.rule_number is None:
+                raise ValueError(
+                    f"Statute-kind Rule {self.name!r} requires section + rule_number "
+                    f"(got section={self.section!r}, rule_number={self.rule_number!r})"
+                )
+            if self.heading is not None:
+                raise ValueError(
+                    f"Statute-kind Rule {self.name!r} must not carry heading "
+                    f"(got heading={self.heading!r}); statutes are cited by "
+                    f"§section.rule_number, not by heading."
+                )
+        else:
+            # BULLETIN_PROVISION or MEMO_DIRECTIVE
+            if self.heading is None:
+                raise ValueError(
+                    f"{self.rule_kind.value}-kind Rule {self.name!r} requires a heading "
+                    f"(cited by document + heading, not §number)."
+                )
+            if self.section is not None or self.rule_number is not None:
+                raise ValueError(
+                    f"{self.rule_kind.value}-kind Rule {self.name!r} must not carry "
+                    f"section/rule_number (got section={self.section!r}, "
+                    f"rule_number={self.rule_number!r}); use heading instead."
+                )
+        return self
 
 
 class ReportTemplate(GRENodeBase):
