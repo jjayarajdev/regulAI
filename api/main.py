@@ -110,6 +110,16 @@ def workstation_page() -> FileResponse:
     return FileResponse(UI_DIR / "workstation.html")
 
 
+@app.get("/admin/schedule")
+def admin_schedule_page() -> FileResponse:
+    """Admin-only: cron-style schedule editor for the Dagster pipeline.
+
+    Compliance officers see this form, not Dagster's UI. Underneath, the
+    schedule is implemented by dagster_project/schedules.py reading the
+    same runtime_config.json this page writes to."""
+    return FileResponse(UI_DIR / "admin-schedule.html")
+
+
 # -- Design explorations (feature/ui-designs) ----------------------------------
 # Three takes on the regulatory-compliance UX: Jira-style workspace, TurboTax
 # wizard, Stripe-style portfolio cockpit. Static mockups, no backend wiring.
@@ -335,6 +345,112 @@ def approve_extraction(slug: str) -> JSONResponse:
         ],
         "snapshot_path": str(result.materialized_path) if result.materialized_path else None,
     })
+
+
+# -- Admin: Dagster schedule -------------------------------------------------
+#
+# The /admin/schedule UI is a thin layer over Dagster's GraphQL surface +
+# the JSON config file Dagster's schedule reads at every tick. The
+# endpoints below are intentionally simple — the goal is to let a
+# compliance officer set up "run nightly at 2am" without ever seeing
+# Dagster's UI. Dagster's web UI on :3000 is still available for the
+# data team to dig deeper.
+
+
+@app.get("/api/admin/schedule")
+def get_schedule() -> JSONResponse:
+    """Current schedule config + recent Dagster runs + Dagster reachability."""
+    from packages.scheduling import config_path, load
+    from packages.scheduling.dagster_client import (
+        DagsterUnreachable,
+        is_reachable,
+        list_recent_runs,
+    )
+
+    config = load()
+    dagster_up = is_reachable()
+    runs: list[dict] = []
+    if dagster_up:
+        try:
+            runs = [
+                {
+                    "run_id": r.run_id,
+                    "status": r.status,
+                    "job_name": r.job_name,
+                    "started_at": r.started_at,
+                    "ended_at": r.ended_at,
+                    "duration_s": r.duration_s,
+                }
+                for r in list_recent_runs(limit=10)
+            ]
+        except (DagsterUnreachable, RuntimeError):
+            # Don't 500 the page if Dagster has a transient issue.
+            runs = []
+    return JSONResponse({
+        "config": config.model_dump(mode="json"),
+        "config_path": str(config_path()),
+        "dagster_url": "http://localhost:3000",
+        "dagster_reachable": dagster_up,
+        "recent_runs": runs,
+    })
+
+
+@app.put("/api/admin/schedule")
+def put_schedule(body: dict = Body(...)) -> JSONResponse:
+    """Save a new schedule config. Validates the cron string and the
+    pipeline name; Dagster's schedule picks up the new config on its
+    next tick (~30s) with no restart."""
+    from croniter import croniter as _croniter
+
+    from packages.scheduling import ScheduleConfig, load, save
+
+    current = load()
+    incoming = current.model_dump()
+    # Accept partial updates — only override the fields the body provides.
+    for field in ("schedule_type", "cron_schedule", "enabled", "pipeline"):
+        if field in body:
+            incoming[field] = body[field]
+    # Stamp who/when. Until authn lands (#1 in production-readiness),
+    # the user is whatever the UI says it is.
+    incoming["updated_by"] = body.get("updated_by") or "admin"
+
+    try:
+        new_config = ScheduleConfig.model_validate(incoming)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid schedule config: {e}")
+
+    # Validate cron — refuse bad expressions before they trip Dagster.
+    try:
+        _croniter(new_config.cron_schedule)
+    except (ValueError, KeyError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid cron_schedule {new_config.cron_schedule!r}: {e}")
+
+    save(new_config)
+    return JSONResponse({
+        "ok": True,
+        "config": new_config.model_dump(mode="json"),
+        "note": "Dagster's schedule will pick up this change on its next tick (~30s).",
+    })
+
+
+@app.post("/api/admin/schedule/run-now")
+def run_now() -> JSONResponse:
+    """Trigger an immediate run of the full pipeline via Dagster."""
+    from packages.scheduling.dagster_client import (
+        DagsterUnreachable,
+        launch_run,
+    )
+
+    try:
+        run_id = launch_run("full_pipeline_job")
+    except DagsterUnreachable as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Dagster is not reachable. Is `make dagster` running? ({e})",
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return JSONResponse({"ok": True, "run_id": run_id})
 
 
 # -- KG API -------------------------------------------------------------------

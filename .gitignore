@@ -49,3 +49,8 @@ references/*.png
 
 # Claude Code local config
 .claude/
+
+# Dagster local run state — DB, logs, sentinel files written by `dagster dev`.
+# The orchestrator's own persistence; not source. Production deploys would
+# use a managed DAGSTER_HOME pointing at a Postgres-backed RunStorage.
+.dagster_home/
