@@ -61,7 +61,12 @@ def test_diff_by_audit_id_returns_affected_nodes_as_added():
     with Neo4jGREAdapter() as gre:
         # Find or create a target node
         with gre.driver.session(database=gre.database) as s:
-            row = s.run("MATCH (r:Rule) RETURN r.id AS id LIMIT 1").single()
+            # Filter to proper-UUID Rules (skip hand-crafted ids from
+            # migrate_kg_validation_rules — see test_kg_audit for the same fix).
+            row = s.run(
+                "MATCH (r:Rule) WHERE size(r.id) = 36 "
+                "RETURN r.id AS id LIMIT 1"
+            ).single()
             if not row:
                 pytest.skip("KG empty — skipping")
             target_id = UUID(row["id"])

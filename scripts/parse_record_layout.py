@@ -783,8 +783,12 @@ def _run_target(target: ParseTarget) -> dict:
     located = sum(1 for r in bundle.citation_rects if r)
 
     with Neo4jGREAdapter() as gre:
+        # source='parser' bypasses the parser-boundary gate — this script IS
+        # the legitimate producer of RecordLayout / FieldRequirement on
+        # parser-owned slugs (Cluster C).
         result = materialize(
-            extraction, gre, document_label=target.slug, rects_bundle=bundle
+            extraction, gre, document_label=target.slug, rects_bundle=bundle,
+            source="parser",
         )
 
     return {

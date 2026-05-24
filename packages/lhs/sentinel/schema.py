@@ -20,6 +20,7 @@ from packages.core.enums import (
     OrgKind,
     RelationshipType,
     ReportCadence,
+    RuleKind,
 )
 
 
@@ -52,8 +53,10 @@ class ProposedNode(BaseModel):
     supersedes_edition: str | None = None
 
     # Rule
+    rule_kind: RuleKind | None = None
     section: str | None = None
     rule_number: int | None = None
+    heading: str | None = None  # bulletin/memo provisions only — alt to section+rule_number
 
     # ReportTemplate
     report_name: str | None = None

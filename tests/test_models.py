@@ -71,6 +71,71 @@ def test_rule_construction() -> None:
     assert rule.document_id == doc_id
 
 
+def test_rule_validator_rejects_statute_without_section() -> None:
+    """A statute-kind rule must carry section + rule_number — the model
+    validator catches malformed Rule construction before it reaches Neo4j."""
+    import pytest as _pytest
+    from packages.core.enums import RuleKind
+
+    with _pytest.raises(ValueError, match="requires section \\+ rule_number"):
+        Rule(
+            name="bogus statute",
+            rule_kind=RuleKind.STATUTE,
+            title="x",
+            document_id=uuid4(),
+            # missing section + rule_number
+        )
+
+
+def test_rule_validator_rejects_memo_without_heading() -> None:
+    """A memo/bulletin provision must carry a heading."""
+    import pytest as _pytest
+    from packages.core.enums import RuleKind
+
+    with _pytest.raises(ValueError, match="requires a heading"):
+        Rule(
+            name="bogus memo",
+            rule_kind=RuleKind.MEMO_DIRECTIVE,
+            title="x",
+            document_id=uuid4(),
+            # missing heading
+        )
+
+
+def test_rule_validator_rejects_memo_with_section() -> None:
+    """A memo cannot carry section/rule_number — those are statute shape."""
+    import pytest as _pytest
+    from packages.core.enums import RuleKind
+
+    with _pytest.raises(ValueError, match="must not carry"):
+        Rule(
+            name="bogus memo with section",
+            rule_kind=RuleKind.MEMO_DIRECTIVE,
+            heading="Some Heading",
+            section="A",  # not allowed
+            rule_number=5,  # not allowed
+            title="x",
+            document_id=uuid4(),
+        )
+
+
+def test_rule_validator_accepts_memo_with_heading() -> None:
+    """Positive case: a memo with the right shape constructs cleanly."""
+    from packages.core.enums import RuleKind
+
+    rule = Rule(
+        name="OIR-22-04M / Reporting Requirements / Cadence",
+        rule_kind=RuleKind.MEMO_DIRECTIVE,
+        heading="Reporting Requirements / Cadence",
+        title="Hurricane Ian Data Call — Cadence",
+        document_id=uuid4(),
+    )
+    assert rule.rule_kind == RuleKind.MEMO_DIRECTIVE
+    assert rule.heading == "Reporting Requirements / Cadence"
+    assert rule.section is None
+    assert rule.rule_number is None
+
+
 def test_report_template_construction() -> None:
     template = ReportTemplate(
         name="HO Premiums",

@@ -13,7 +13,6 @@ Then: `make load-reference`
 
 from __future__ import annotations
 
-import datetime as dt
 from pathlib import Path
 
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
@@ -76,14 +75,14 @@ def fetch_reason_codes() -> list[dict]:
 
 
 def build_sql(rows: list[dict]) -> str:
-    now = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
+    # No wall-clock timestamp in the header: re-running with unchanged KG
+    # state must produce a byte-identical file so git diffs reflect real
+    # canon changes, not "I ran the script again."
     out: list[str] = []
     out.append("-- =============================================================")
     out.append("-- INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP")
     out.append("-- Generated from RegulAI KG (single source of truth for plan rules).")
-    out.append(f"-- Generated at: {now}")
     out.append(f"-- Source CodeList node: {REASON_CODE_LIST_NAME!r}")
-    out.append(f"-- Neo4j: {settings.neo4j_uri}")
     out.append("--")
     out.append("-- DO NOT EDIT MANUALLY. Re-run `make build-reference` to regenerate.")
     out.append("-- =============================================================")

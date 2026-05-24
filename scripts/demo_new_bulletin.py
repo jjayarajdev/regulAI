@@ -255,8 +255,8 @@ def demo(slug: str, auto: bool, fast: bool) -> None:
           f"{result.citations_created} citations.")
     if result.skipped_proposals:
         print(Y(f"   ⚠ skipped {len(result.skipped_proposals)} proposals:"))
-        for n, r in result.skipped_proposals[:5]:
-            print(f"     - {n}: {r}")
+        for s in result.skipped_proposals[:5]:
+            print(f"     - {s.type} '{s.name}': {s.reason}")
 
     # If the extraction included a BulletinOverride, apply it now to bump
     # versions on its OVERRIDES targets.

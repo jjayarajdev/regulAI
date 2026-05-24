@@ -70,6 +70,9 @@ rebuild-kg:
 validate-kg:
 	uv run python -m scripts.validate_kg_coverage
 
+audit-extraction-loss:
+	uv run python -m scripts.audit_extraction_loss
+
 kg-hygiene:
 	uv run python -m scripts.kg_hygiene
 
@@ -84,6 +87,26 @@ seed-filing-obligations:
 
 p2-regression-gate:
 	uv run python -m scripts.p2_regression_gate
+
+# ── Phase 3: Florida intake ──
+extract-fl-627-062:
+	uv run python -m scripts.extract synthetic_regulations/real/florida/FL_627_062_rate_standards.txt
+
+materialize-fl:
+	@if [ -z "$(EXT)" ]; then echo "Usage: make materialize-fl EXT=<extraction.json>"; exit 1; fi
+	uv run python -m scripts.materialize_florida_extraction $(EXT)
+
+seed-florida:
+	uv run python -m scripts.seed_florida
+
+migrate-fl-validation-rules:
+	uv run python -m scripts.migrate_fl_validation_rules
+
+build-validation-rules-fl: migrate-fl-validation-rules
+	uv run python -m scripts.build_validation_rules_reference -j US-FL
+
+load-validation-rules-fl: build-validation-rules-fl
+	@snow sql -c regulai --enable-templating standard -f materialized/reference/tspr_validation_rules_us_fl.sql
 
 cleanup-kg:
 	uv run python -m scripts.cleanup_kg

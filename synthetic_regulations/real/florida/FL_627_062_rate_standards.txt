@@ -1,0 +1,68 @@
+Florida Statute 627.062 — Rate Standards
+Source: Florida Legislature (flsenate.gov)
+Acquired: 2026-05-20 via RegulAI ingestion pipeline
+Jurisdiction: US-FL
+Citation kind: Statute
+
+627.062 Rate standards.—
+
+(1) The rates for all classes of insurance to which the provisions of this part are applicable shall not be excessive, inadequate, or unfairly discriminatory.
+
+(2) As to all such classes of insurance:
+
+(a) Insurers or rating organizations shall establish and use rates, rating schedules, or rating manuals to allow the insurer a reasonable rate of return on such classes of insurance written in this state. A copy of rates, rating schedules, rating manuals, premium credits or discount schedules, and surcharge schedules, and changes thereto, shall be filed with the office under one of the following procedures except as provided in subparagraph 3.:
+
+  1. If the filing is made at least 90 days before the proposed effective date and the filing is not implemented during the office's review of the filing and any proceeding and judicial review, such filing shall be considered a "file and use" filing.
+
+  2. If the filing is not made in accordance with the provisions of subparagraph 1., such filing shall be made as soon as practicable, but no later than 30 days after the effective date, and is considered a "use and file" filing. An insurer making a "use and file" filing is potentially subject to an order by the office to return to policyholders portions of rates found to be excessive.
+
+(b) Upon receiving a rate filing, the office shall review the filing to determine if a rate is excessive, inadequate, or unfairly discriminatory. In making that determination, the office shall, in accordance with generally accepted and reasonable actuarial techniques, consider the following factors:
+  1. Past and prospective loss experience within and without this state.
+  2. Past and prospective expenses.
+  3. The degree of competition among insurers for the risk insured.
+  4. Investment income reasonably expected by the insurer, consistent with the insurer's investment practices, from investable premiums anticipated in the filing.
+  5. The reasonableness of the judgment reflected in the filing.
+  6. Dividends, savings, or unabsorbed premium deposits returned to policyholders.
+  7. The adequacy of loss reserves.
+  8. The cost of reinsurance.
+  9. Trend factors, including trends in actual losses per insured unit for the insurer making the filing.
+  10. Conflagration and catastrophe hazards, if applicable.
+  11. Projected hurricane losses, if applicable, using a model or method found to be acceptable or reliable by the Florida Commission on Hurricane Loss Projection Methodology.
+  12. Projected flood losses, if applicable, using a model or method found to be acceptable or reliable by the Florida Commission on Hurricane Loss Projection Methodology.
+  13. A reasonable margin for underwriting profit and contingencies.
+  14. The cost of medical services, if applicable.
+  15. Other relevant factors which impact upon the frequency or severity of claims or upon expenses.
+
+(c) For fire insurance rates: water supply availability and 5-year loss experience shall be considered.
+
+(d) Catastrophe reserve requirements apply when such hazards are included in the rate determination.
+
+(e) Standards shall establish a reasonable rate of return as a guide to determine whether rates are excessive, inadequate, or unfairly discriminatory.
+
+(f) The office may require any additional information necessary to evaluate the filing.
+
+(g) Rates may be reviewed at any time. Disapproval following an approval requires material misrepresentation findings after a one-year approval period has elapsed.
+
+(h) Rates disapproved must be refiled. For "use and file" filings, the portion of premium found excessive must be refunded to policyholders.
+
+(i) Property/casualty insurers shall not directly or indirectly restrict the amount of acquisition cost payments to agents, brokers, or other producers, nor impede the right of policyholders to acquire insurance through agents of their choosing.
+
+(j) Residential property insurance filings shall account for mitigation measures and may use averaged hurricane projection methods.
+
+(k) Residential property insurers may make separate filings for the cost of reinsurance and financing products, subject to specific limits described in this section.
+
+(3) Individual risk rating documentation requirements and exemptions apply as specified in part IX, chapter 626.
+
+(4) Any violation of part IX, chapter 626 constitutes a violation of this section.
+
+(5) Florida Hurricane Catastrophe Fund reimbursement premiums are fully recoverable as a component of the insurer's rate.
+
+(6) Administrative hearing procedures require expedited review within 30 days of a request.
+
+(7) Medical malpractice insurance is subject to specific provisions including bad faith judgment treatment, loss experience discount requirements, and annual rate filings.
+
+(8) Property insurers' executive officers and certifying actuaries must certify rate filings under oath as compliant with the requirements of this section.
+
+(9) For high-value residential coverage (as defined), the office bears the burden of proving rates excessive.
+
+(10) Interest paid by an insurer under section 627.70131 may not be used as a justification for rate increases.

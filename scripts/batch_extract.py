@@ -11,8 +11,9 @@ import sys
 import time
 from pathlib import Path
 
-from api.registry import DOCS, WIRE_LAYOUTS_FOR_SLUG
+from api.registry import DOCS
 from packages.adapters.shared.llm.openai_adapter import OpenAIAdapter
+from packages.lhs.materialization.parser_boundary import PARSER_OWNED_SLUGS
 from packages.lhs.sentinel.agent import Sentinel
 from packages.lhs.sentinel.filter import strip_parser_owned
 
@@ -43,9 +44,12 @@ def extract_one(sentinel: Sentinel, doc_path: Path, force: bool = False) -> dict
     extraction = sentinel.extract(text, document_label=doc_path.name)
     elapsed = time.time() - started
 
-    # Defense: drop parser-owned types if this path is a parser-owned slug.
+    # First line of defense: drop parser-owned types at extraction time.
+    # The second line (parser_boundary.check_parser_boundary in materialize)
+    # raises if anything slips through. Both use the same canonical
+    # PARSER_OWNED_SLUGS set.
     slug = next((d.slug for d in DOCS if d.path == doc_path), None)
-    if slug and slug in WIRE_LAYOUTS_FOR_SLUG:
+    if slug and slug in PARSER_OWNED_SLUGS:
         extraction, _ = strip_parser_owned(extraction)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)

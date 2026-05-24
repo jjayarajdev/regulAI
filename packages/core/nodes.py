@@ -14,7 +14,7 @@ from datetime import date, datetime
 from typing import Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .enums import (
     DocumentKind,
@@ -24,6 +24,7 @@ from .enums import (
     NodeStatus,
     OrgKind,
     ReportCadence,
+    RuleKind,
 )
 
 
@@ -79,23 +80,65 @@ class StatPlanEdition(GRENodeBase):
 
 
 class Rule(GRENodeBase):
-    """A numbered rule within a regulation document. Citation anchor.
+    """A rule within a regulation document. Citation anchor.
 
     Schema justification: Section A has 35 numbered rules; Section B has 20+;
-    every other node naturally cites a specific rule.
+    every other node naturally cites a specific rule. Bulletin/memo provisions
+    (e.g. FL OIR informational memoranda) are also Rules but lack the
+    section + rule_number shape — they're cited by heading instead.
 
     P2: is_federal_default=True means this rule applies in any jurisdiction
     that doesn't carry a state-specific override. Use for NAIC standards,
     federal statutes, ACORD field formats. Default False (state-specific).
+
+    P3 (Cluster B): rule_kind discriminates statute-shaped (numbered §rules)
+    from bulletin/memo provisions. Only STATUTE-kind rules require
+    section + rule_number; the others carry a heading instead.
     """
 
     type: Literal["Rule"] = "Rule"
-    section: str  # "A", "B", "C", ...
-    rule_number: int
+    rule_kind: RuleKind = RuleKind.STATUTE
+    section: str | None = None  # statute: "A", "B", "C", ... | provision: None
+    rule_number: int | None = None  # statute: 1, 2, ... | provision: None
+    heading: str | None = None  # provision-only: "Reporting Cadence", "Authority", ...
     title: str
     document_id: UUID  # back-reference to the RegulationDocument
     is_federal_default: bool = False
     supersedes_federal_rule_id: UUID | None = None  # state-specific override of a federal default
+
+    @model_validator(mode="after")
+    def _check_fields_for_rule_kind(self) -> "Rule":
+        """Cross-field validation: statute-kind needs section+rule_number;
+        bulletin/memo provisions need heading instead. Catches malformed
+        Rule construction at the model layer instead of letting bad
+        shapes reach Neo4j (where they would silently corrupt downstream
+        queries that filter by rule_kind)."""
+        if self.rule_kind == RuleKind.STATUTE:
+            if self.section is None or self.rule_number is None:
+                raise ValueError(
+                    f"Statute-kind Rule {self.name!r} requires section + rule_number "
+                    f"(got section={self.section!r}, rule_number={self.rule_number!r})"
+                )
+            if self.heading is not None:
+                raise ValueError(
+                    f"Statute-kind Rule {self.name!r} must not carry heading "
+                    f"(got heading={self.heading!r}); statutes are cited by "
+                    f"§section.rule_number, not by heading."
+                )
+        else:
+            # BULLETIN_PROVISION or MEMO_DIRECTIVE
+            if self.heading is None:
+                raise ValueError(
+                    f"{self.rule_kind.value}-kind Rule {self.name!r} requires a heading "
+                    f"(cited by document + heading, not §number)."
+                )
+            if self.section is not None or self.rule_number is not None:
+                raise ValueError(
+                    f"{self.rule_kind.value}-kind Rule {self.name!r} must not carry "
+                    f"section/rule_number (got section={self.section!r}, "
+                    f"rule_number={self.rule_number!r}); use heading instead."
+                )
+        return self
 
 
 class ReportTemplate(GRENodeBase):
@@ -107,7 +150,11 @@ class ReportTemplate(GRENodeBase):
 
     type: Literal["ReportTemplate"] = "ReportTemplate"
     report_name: str
-    cadence: ReportCadence
+    # Cadence is optional because real regulator filings include event-
+    # triggered reports (catastrophe data calls) and reports where Sentinel
+    # cannot determine cadence from prose. Statute-shaped TICO reports
+    # (Premium, Loss, Notice, Notice Count) always have one filled.
+    cadence: ReportCadence | None = None
     deadline_days_after_close: int
 
 

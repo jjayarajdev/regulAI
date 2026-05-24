@@ -56,7 +56,13 @@ def test_record_audit_entry_creates_node_and_edges():
         # / test_neo4j_adapter both call wipe_all). The conftest session hook
         # re-seeds at session-end, so the dev env stays clean.
         with gre.driver.session(database=gre.database) as s:
-            row = s.run("MATCH (r:Rule) RETURN r.id AS id LIMIT 1").single()
+            # Filter to proper-UUID Rules (length 36, hyphen-formatted).
+            # migrate_kg_validation_rules creates one Rule with a hand-crafted
+            # id like "<uuid>-validity" that isn't a real UUID; skip it.
+            row = s.run(
+                "MATCH (r:Rule) WHERE size(r.id) = 36 "
+                "RETURN r.id AS id LIMIT 1"
+            ).single()
             if not row:
                 pytest.skip("KG empty — destructive test ran earlier in session")
             target_id = UUID(row["id"])
