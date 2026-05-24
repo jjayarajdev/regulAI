@@ -65,7 +65,7 @@ def fictional_v2(existing_v1):
     """Create a v2 of an existing rule. Cleans up after the test."""
     from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
     v2_id = f"test-v2-{uuid4().hex[:8]}"
-    future_date = (dt.date.today() + dt.timedelta(days=365)).isoformat()
+    future_date = (dt.datetime.now(dt.UTC).date() + dt.timedelta(days=365)).isoformat()
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
         s.run("""
             MATCH (v1:Rule {id: $v1_id})
@@ -149,7 +149,7 @@ def test_superseded_v1_is_excluded(existing_v1, fictional_v2):
     from scripts.build_validation_rules_reference import fetch_rules
     import datetime as dt
 
-    today = dt.date.today().isoformat()
+    today = dt.datetime.now(dt.UTC).date().isoformat()
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
         # Realistic supersession: v1 superseded + effective_until=today, v2 effective_from=today
         s.run("""
