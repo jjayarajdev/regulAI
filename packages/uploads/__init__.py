@@ -34,8 +34,10 @@ from packages.uploads.storage import (
     list_uploads,
     new_upload_dir,
     new_upload_id,
+    parquet_path_for,
     record_upload,
     update_upload_status,
+    upload_dir,
 )
 from packages.uploads.templates import generate_template_workbook
 from packages.uploads.xlsx_to_parquet import convert_uploaded_xlsx_to_parquet
@@ -51,8 +53,10 @@ __all__ = [
     "list_uploads",
     "new_upload_dir",
     "new_upload_id",
+    "parquet_path_for",
     "record_upload",
     "update_upload_status",
+    "upload_dir",
     "generate_template_workbook",
     "convert_uploaded_xlsx_to_parquet",
 ]

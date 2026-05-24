@@ -609,17 +609,17 @@ def process_upload(upload_id: str) -> JSONResponse:
             detail=f"Upload {upload_id!r} status is {record.status!r}; must be 'converted', 'done', or 'failed' to (re-)process.",
         )
 
+    # Both op_load_bronze_from_upload and op_mark_upload_done share the
+    # UploadLoadConfig schema (they both need upload_id + bronze_table), so
+    # Dagster requires config for both ops to be present in the run config.
+    op_config = {"upload_id": upload_id, "bronze_table": record.bronze_table}
     try:
         run_id = launch_run(
             "upload_to_gold_job",
             run_config={
                 "ops": {
-                    "op_load_bronze_from_upload": {
-                        "config": {
-                            "upload_id": upload_id,
-                            "bronze_table": record.bronze_table,
-                        }
-                    }
+                    "op_load_bronze_from_upload": {"config": op_config},
+                    "op_mark_upload_done": {"config": op_config},
                 }
             },
             tags={

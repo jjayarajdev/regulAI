@@ -79,9 +79,13 @@ def op_load_bronze_from_upload(
             metadata={"expected_parquet": str(parquet)},
         )
 
-    # Run the Bronze loader scoped to this upload. The loader script
-    # accepts an env var pointing at a parquet dir; we set it just for
-    # this subprocess so the standing bronze_parquet/ stays untouched.
+    # Run the Bronze loader scoped to this upload. Wrap the whole block
+    # in try/except so any failure mode — subprocess.run itself failing
+    # (e.g. uv not found in PATH), subprocess crashing with non-zero,
+    # network errors during PUT/COPY — all flow back as an
+    # `upload.status='failed'` for the admin UI. Without this wrapper,
+    # only the proc.returncode != 0 path marked failure; subprocess
+    # startup errors left the upload stuck at 'processing' forever.
     started = time.monotonic()
     env_extra = {
         "REGULAI_UPLOAD_PARQUET_DIR": str(parquet.parent),
@@ -91,14 +95,29 @@ def op_load_bronze_from_upload(
     import os
     cmd = [sys.executable, "-m", "scripts.load_bronze_from_upload"]
     context.log.info(f"$ {' '.join(cmd)}")
-    proc = subprocess.run(
-        cmd,
-        cwd=_REPO_ROOT,
-        env={**os.environ, **env_extra},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=_REPO_ROOT,
+            env={**os.environ, **env_extra},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception as e:
+        # subprocess.run itself blew up (e.g. uv not in PATH). Mark the
+        # upload as failed before re-raising so the admin UI doesn't
+        # show 'processing' forever.
+        update_upload_status(
+            config.upload_id,
+            status="failed",
+            error_message=f"Could not invoke Bronze loader: {type(e).__name__}: {e}",
+        )
+        raise Failure(
+            description=f"subprocess.run failed for upload {config.upload_id}",
+            metadata={"upload_id": config.upload_id, "error": str(e)},
+        ) from e
+
     elapsed = time.monotonic() - started
 
     if proc.stdout:
@@ -109,7 +128,6 @@ def op_load_bronze_from_upload(
             context.log.warning(line)
 
     if proc.returncode != 0:
-        # Mark the upload as failed so the admin UI shows the right state
         update_upload_status(
             config.upload_id,
             status="failed",

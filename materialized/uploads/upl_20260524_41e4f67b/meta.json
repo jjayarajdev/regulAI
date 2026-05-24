@@ -1,0 +1,12 @@
+{
+  "upload_id": "upl_20260524_41e4f67b",
+  "filename": "sample_policies.xlsx",
+  "bronze_table": "gw_pc_policy",
+  "bytes_size": 6976,
+  "row_count": 3,
+  "status": "processing",
+  "uploaded_at": "2026-05-24T18:38:40.377391+00:00",
+  "uploaded_by": "admin",
+  "last_run_id": "5922b7b0-0131-46e5-9209-355c0d7ed599",
+  "error_message": null
+}

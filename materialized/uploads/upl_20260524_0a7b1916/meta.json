@@ -1,0 +1,12 @@
+{
+  "upload_id": "upl_20260524_0a7b1916",
+  "filename": "s5.xlsx",
+  "bronze_table": "gw_pc_policy",
+  "bytes_size": 6860,
+  "row_count": 1,
+  "status": "done",
+  "uploaded_at": "2026-05-24T18:51:09.614151+00:00",
+  "uploaded_by": "admin",
+  "last_run_id": "fa897c80-c690-42be-a8b5-5a210f207a9d",
+  "error_message": null
+}

@@ -54,9 +54,33 @@ def main() -> int:
     print(f"  rows in source parquet: ", end="", flush=True)
 
     # Quick local row-count via pyarrow before touching Snowflake
+    import pyarrow as pa
     import pyarrow.parquet as pq
     parquet_rows = pq.read_metadata(parquet).num_rows
     print(parquet_rows)
+
+    # Bronze tables carry CDC bookkeeping columns (_cdc_operation,
+    # _cdc_timestamp, _ingestion_timestamp, _source_file) that the user
+    # template doesn't include. Inject them here so COPY INTO with
+    # MATCH_BY_COLUMN_NAME finds every NOT NULL column. Semantically
+    # every upload is an INSERT — if/when we support update/delete
+    # uploads, this becomes a per-row choice.
+    import datetime as dt
+    user_table = pq.read_table(parquet)
+    now = dt.datetime.now(dt.UTC).replace(tzinfo=None)  # TIMESTAMP_NTZ
+    cdc_cols = {
+        "_cdc_operation": pa.array(["INSERT"] * parquet_rows, type=pa.string()),
+        "_cdc_timestamp": pa.array([now] * parquet_rows, type=pa.timestamp("us")),
+        "_ingestion_timestamp": pa.array([now] * parquet_rows, type=pa.timestamp("us")),
+        "_source_file": pa.array([f"upload:{upload_id}/{parquet.name}"] * parquet_rows, type=pa.string()),
+    }
+    enriched = user_table
+    for col_name, arr in cdc_cols.items():
+        enriched = enriched.append_column(col_name, arr)
+    enriched_path = parquet.parent / f"_bronze_load_{parquet.name}"
+    pq.write_table(enriched, enriched_path)
+    print(f"  augmented with {len(cdc_cols)} CDC cols → {enriched_path.name}")
+    parquet = enriched_path  # PUT the enriched file
 
     # Make sure the stage subdirectory is clean — re-runs shouldn't
     # double-load the same upload's data.
@@ -88,9 +112,11 @@ def main() -> int:
     rows = query(copy_sql)
     print(f"COPY INTO result: {rows}")
 
-    # Verify
+    # Verify — pull the count case-insensitively because the underlying
+    # Snowflake client returns rows whose key case depends on connector
+    # config (sometimes "N", sometimes "n").
     count_row = query(f"SELECT COUNT(*) AS n FROM {target_qualified};")
-    n = count_row[0]["N"] if count_row else 0
+    n = next(iter(count_row[0].values())) if count_row else 0
     print(f"✓ {target_qualified} now has {n} rows (uploaded: {parquet_rows})")
 
     if n != parquet_rows:
