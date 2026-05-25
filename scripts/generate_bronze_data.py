@@ -51,7 +51,17 @@ BC_ROOT = OUTPUT_ROOT / "billingcenter"
 NAIC = "12345"
 TICO = "XYZ"
 INGEST_TS = dt.datetime(2026, 4, 1, 6, 0, 0)
-CDC_TS = dt.datetime(2026, 3, 31, 23, 59, 59)
+# Guidewire CDA emits timestamp + fingerprint as folder-name strings,
+# not row-level TIMESTAMPs. Match real CDA shape: timestampfolder is
+# the snapshot folder (e.g. "1711929599000" — epoch ms) and
+# fingerprintfolder is a diagnostic identifier.
+_CDC_EPOCH_MS = int(dt.datetime(2026, 3, 31, 23, 59, 59).timestamp() * 1000)
+CDC_TIMESTAMP_FOLDER = str(_CDC_EPOCH_MS)
+CDC_FINGERPRINT_FOLDER = "fp-synth-20260331-235959"
+
+def _hex_seq(i: int) -> str:
+    """Mirror Guidewire's gwcbi___seqval_hex: zero-padded hex string."""
+    return f"{i:016x}"
 
 import random as _rng_module
 
@@ -387,9 +397,10 @@ def _ts(y: int, m: int, d: int, hh: int = 12, mm: int = 0) -> dt.datetime:
 # ─── gw_pc_uwcompany ────────────────────────────────────────────────────────
 def uwcompany() -> pa.Table:
     return pa.table({
-        "_cdc_operation": ["INSERT"],
-        "_cdc_timestamp": [CDC_TS],
-        "_cdc_sequence": [1],
+        "gwcbi___operation": ["INSERT"],
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER],
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER],
+        "gwcbi___seqval_hex": [_hex_seq(1)],
         "_ingestion_timestamp": [INGEST_TS],
         "_source_file": ["pc_uwcompany/2026-03-31.parquet"],
         "id": [1001],
@@ -411,9 +422,10 @@ def policy() -> pa.Table:
     ]
     n = len(rows)
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["pc_policy/2026-03-31.parquet"] * n,
         "id": [r["id"] for r in rows],
@@ -481,9 +493,10 @@ def policyperiod() -> pa.Table:
     ]
     n = len(rows)
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["pc_policyperiod/2026-03-31.parquet"] * n,
         "_partition_month": ["2026-03"] * n,
@@ -744,9 +757,10 @@ def job() -> pa.Table:
 
     n = len(rows)
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["pc_job/2026-03-31.parquet"] * n,
         "id": [r["id"] for r in rows],
@@ -832,9 +846,10 @@ def address() -> pa.Table:
             "countyfipscode": "48201",
         })
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["pc_address/2026-03-31.parquet"] * n,
         "id": [r["id"] for r in rows],
@@ -858,9 +873,10 @@ def hopolicyline() -> pa.Table:
     n = len(POLICY_DETAILS)
     policy_ids = list(POLICY_DETAILS.keys())
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["pc_hopolicyline/2026-03-31.parquet"] * n,
         "id": [9000 + i for i in range(n)],
@@ -911,9 +927,10 @@ def hocoverage() -> pa.Table:
     n = len(POLICY_DETAILS)
     policy_ids = list(POLICY_DETAILS.keys())
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["pc_hocoverage/2026-03-31.parquet"] * n,
         "id": [9100 + i for i in range(n)],
@@ -953,9 +970,10 @@ def hodwelling() -> pa.Table:
     n = len(POLICY_DETAILS)
     policy_ids = list(POLICY_DETAILS.keys())
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["pc_hodwelling/2026-03-31.parquet"] * n,
         "id": [9200 + i for i in range(n)],
@@ -991,9 +1009,10 @@ def policyperiodpremium() -> pa.Table:
     n = len(POLICY_DETAILS)
     policy_ids = list(POLICY_DETAILS.keys())
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["bc_policyperiodpremium/2026-03-31.parquet"] * n,
         "id": [9300 + i for i in range(n)],
@@ -1069,9 +1088,10 @@ CLAIMS.extend(_bulk_synth_claims())
 def cc_claim() -> pa.Table:
     n = len(CLAIMS)
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["cc_claim/2026-03-31.parquet"] * n,
         "_partition_month": ["2026-03"] * n,
@@ -1115,9 +1135,10 @@ def cc_claim() -> pa.Table:
 def cc_exposure() -> pa.Table:
     n = len(CLAIMS)
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["cc_exposure/2026-03-31.parquet"] * n,
         "_partition_month": ["2026-03"] * n,
@@ -1204,9 +1225,10 @@ def cc_transaction() -> pa.Table:
             seq += 1
     n = len(rows)
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["cc_transaction/2026-03-31.parquet"] * n,
         "_partition_month": ["2026-03"] * n,
@@ -1245,9 +1267,10 @@ def cc_reserveline() -> pa.Table:
     """Month-end reserve snapshot per claim (March 2026 cycle)."""
     n = len(CLAIMS)
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["cc_reserveline/2026-03-31.parquet"] * n,
         "_partition_month": ["2026-03"] * n,
@@ -1272,9 +1295,10 @@ def cc_address() -> pa.Table:
     """Loss-location addresses, one per claim."""
     n = len(CLAIMS)
     return pa.table({
-        "_cdc_operation": ["INSERT"] * n,
-        "_cdc_timestamp": [CDC_TS] * n,
-        "_cdc_sequence": list(range(1, n + 1)),
+        "gwcbi___operation": ["INSERT"] * n,
+        "gwcdac___timestampfolder": [CDC_TIMESTAMP_FOLDER] * n,
+        "gwcdac___fingerprintfolder": [CDC_FINGERPRINT_FOLDER] * n,
+        "gwcbi___seqval_hex": [_hex_seq(i) for i in range(1, n + 1)],
         "_ingestion_timestamp": [INGEST_TS] * n,
         "_source_file": ["cc_address/2026-03-31.parquet"] * n,
         "id": [86000 + i for i in range(n)],

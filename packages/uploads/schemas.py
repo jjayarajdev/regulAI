@@ -9,7 +9,7 @@ end-to-end upload→medallion pattern. Adding another table is:
      parquet file in the upload dir, so no Dagster change needed
 
 Why we don't auto-derive from the SQL DDL:
-  - DDLs carry CDC bookkeeping columns (_cdc_operation, _cdc_timestamp,
+  - DDLs carry CDC bookkeeping columns (gwcbi___operation, gwcdac___timestampfolder,
     _ingestion_timestamp, _source_file) that the customer shouldn't
     have to think about. We inject them at conversion time.
   - DDLs use Snowflake types (NUMBER, VARCHAR, TIMESTAMP_NTZ) that
