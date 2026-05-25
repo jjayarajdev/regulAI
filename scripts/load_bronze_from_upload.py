@@ -59,27 +59,53 @@ def main() -> int:
     parquet_rows = pq.read_metadata(parquet).num_rows
     print(parquet_rows)
 
-    # Bronze tables carry CDC bookkeeping columns (_cdc_operation,
-    # _cdc_timestamp, _ingestion_timestamp, _source_file) that the user
-    # template doesn't include. Inject them here so COPY INTO with
-    # MATCH_BY_COLUMN_NAME finds every NOT NULL column. Semantically
-    # every upload is an INSERT — if/when we support update/delete
-    # uploads, this becomes a per-row choice.
+    # Bronze tables carry Guidewire CDA bookkeeping columns
+    # (gwcbi___operation, gwcbi___seqval_hex, gwcdac___timestampfolder,
+    # gwcdac___fingerprintfolder) that the user-facing template doesn't
+    # expose. We inject them here so COPY INTO with MATCH_BY_COLUMN_NAME
+    # finds every NOT NULL column. Names match github.com/Guidewire/
+    # cda-client. The CDA-style timestampfolder + fingerprintfolder are
+    # VARCHAR strings, not row-level TIMESTAMPs.
+    #
+    # We also inject our own _ingestion_timestamp + _source_file
+    # (RegulAI-specific, kept for audit traceability — not part of
+    # Guidewire's CDA contract).
+    #
+    # Semantically every upload is an INSERT — if/when we support
+    # update/delete uploads, gwcbi___operation becomes a per-row choice.
     import datetime as dt
     user_table = pq.read_table(parquet)
     now = dt.datetime.now(dt.UTC).replace(tzinfo=None)  # TIMESTAMP_NTZ
+    # CDA's timestampfolder is the snapshot folder name — epoch ms.
+    # fingerprintfolder is a diagnostic id; use the upload_id so an
+    # operator can trace back to the originating Excel.
+    ts_folder = str(int(now.timestamp() * 1000))
+    fp_folder = f"fp-{upload_id}"
+
     cdc_cols = {
-        "_cdc_operation": pa.array(["INSERT"] * parquet_rows, type=pa.string()),
-        "_cdc_timestamp": pa.array([now] * parquet_rows, type=pa.timestamp("us")),
+        # Guidewire CDA-standard columns (names match cda-client)
+        "gwcbi___operation": pa.array(["INSERT"] * parquet_rows, type=pa.string()),
+        "gwcbi___seqval_hex": pa.array(
+            [f"{i:016x}" for i in range(1, parquet_rows + 1)], type=pa.string()
+        ),
+        "gwcdac___timestampfolder": pa.array(
+            [ts_folder] * parquet_rows, type=pa.string()
+        ),
+        "gwcdac___fingerprintfolder": pa.array(
+            [fp_folder] * parquet_rows, type=pa.string()
+        ),
+        # RegulAI-specific audit columns (not part of CDA — kept for traceability)
         "_ingestion_timestamp": pa.array([now] * parquet_rows, type=pa.timestamp("us")),
-        "_source_file": pa.array([f"upload:{upload_id}/{parquet.name}"] * parquet_rows, type=pa.string()),
+        "_source_file": pa.array(
+            [f"upload:{upload_id}/{parquet.name}"] * parquet_rows, type=pa.string()
+        ),
     }
     enriched = user_table
     for col_name, arr in cdc_cols.items():
         enriched = enriched.append_column(col_name, arr)
     enriched_path = parquet.parent / f"_bronze_load_{parquet.name}"
     pq.write_table(enriched, enriched_path)
-    print(f"  augmented with {len(cdc_cols)} CDC cols → {enriched_path.name}")
+    print(f"  augmented with {len(cdc_cols)} CDA cols → {enriched_path.name}")
     parquet = enriched_path  # PUT the enriched file
 
     # Make sure the stage subdirectory is clean — re-runs shouldn't

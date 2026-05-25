@@ -17,7 +17,7 @@
 -- Design notes:
 --   - Each procedure is idempotent: DELETE+INSERT for the target month/NAIC.
 --   - All TSPR rule logic ported from silver_dlt_pipeline.py using SQL CASE/WHEN.
---   - Bronze CDC de-duplication: latest row per id resolved by MAX(_cdc_timestamp).
+--   - Bronze CDC de-duplication: latest row per id resolved by MAX(gwcdac___timestampfolder).
 --   - Rule 6  : ALE % → dollar conversion, $1000 rounding, <$1500 → 1
 --   - Rule 11 : Proximate cause lookup via reference.tspr_cause_of_loss_map
 --   - Rules 13-15-16 : Full SCD-2 claim state machine using status history
@@ -38,11 +38,11 @@ CREATE OR REPLACE VIEW silver.v_latest_policyperiod AS
     SELECT pp.*
     FROM bronze.gw_pc_policyperiod pp
     INNER JOIN (
-        SELECT id, MAX(_cdc_timestamp) AS latest_ts
+        SELECT id, MAX(gwcdac___timestampfolder) AS latest_ts
         FROM   bronze.gw_pc_policyperiod
-        WHERE  _cdc_operation != 'DELETE'
+        WHERE  gwcbi___operation != 'DELETE'
         GROUP  BY id
-    ) latest ON pp.id = latest.id AND pp._cdc_timestamp = latest.latest_ts
+    ) latest ON pp.id = latest.id AND pp.gwcdac___timestampfolder = latest.latest_ts
     WHERE pp.status IN ('Bound', 'Canceled', 'Expired', 'NonRenewed')
       AND pp.basestate = 'TX';
 
@@ -50,51 +50,51 @@ CREATE OR REPLACE VIEW silver.v_latest_hopolicyline AS
     SELECT pl.*
     FROM bronze.gw_pc_hopolicyline pl
     INNER JOIN (
-        SELECT id, MAX(_cdc_timestamp) AS latest_ts
+        SELECT id, MAX(gwcdac___timestampfolder) AS latest_ts
         FROM   bronze.gw_pc_hopolicyline
-        WHERE  _cdc_operation != 'DELETE'
+        WHERE  gwcbi___operation != 'DELETE'
         GROUP  BY id
-    ) latest ON pl.id = latest.id AND pl._cdc_timestamp = latest.latest_ts;
+    ) latest ON pl.id = latest.id AND pl.gwcdac___timestampfolder = latest.latest_ts;
 
 CREATE OR REPLACE VIEW silver.v_latest_hocoverage AS
     SELECT cov.*
     FROM bronze.gw_pc_hocoverage cov
     INNER JOIN (
-        SELECT id, MAX(_cdc_timestamp) AS latest_ts
+        SELECT id, MAX(gwcdac___timestampfolder) AS latest_ts
         FROM   bronze.gw_pc_hocoverage
-        WHERE  _cdc_operation != 'DELETE'
+        WHERE  gwcbi___operation != 'DELETE'
         GROUP  BY id
-    ) latest ON cov.id = latest.id AND cov._cdc_timestamp = latest.latest_ts;
+    ) latest ON cov.id = latest.id AND cov.gwcdac___timestampfolder = latest.latest_ts;
 
 CREATE OR REPLACE VIEW silver.v_latest_hodwelling AS
     SELECT dw.*
     FROM bronze.gw_pc_hodwelling dw
     INNER JOIN (
-        SELECT id, MAX(_cdc_timestamp) AS latest_ts
+        SELECT id, MAX(gwcdac___timestampfolder) AS latest_ts
         FROM   bronze.gw_pc_hodwelling
-        WHERE  _cdc_operation != 'DELETE'
+        WHERE  gwcbi___operation != 'DELETE'
         GROUP  BY id
-    ) latest ON dw.id = latest.id AND dw._cdc_timestamp = latest.latest_ts;
+    ) latest ON dw.id = latest.id AND dw.gwcdac___timestampfolder = latest.latest_ts;
 
 CREATE OR REPLACE VIEW silver.v_latest_claim AS
     SELECT c.*
     FROM bronze.gw_cc_claim c
     INNER JOIN (
-        SELECT id, MAX(_cdc_timestamp) AS latest_ts
+        SELECT id, MAX(gwcdac___timestampfolder) AS latest_ts
         FROM   bronze.gw_cc_claim
-        WHERE  _cdc_operation != 'DELETE'
+        WHERE  gwcbi___operation != 'DELETE'
         GROUP  BY id
-    ) latest ON c.id = latest.id AND c._cdc_timestamp = latest.latest_ts;
+    ) latest ON c.id = latest.id AND c.gwcdac___timestampfolder = latest.latest_ts;
 
 CREATE OR REPLACE VIEW silver.v_latest_exposure AS
     SELECT e.*
     FROM bronze.gw_cc_exposure e
     INNER JOIN (
-        SELECT id, MAX(_cdc_timestamp) AS latest_ts
+        SELECT id, MAX(gwcdac___timestampfolder) AS latest_ts
         FROM   bronze.gw_cc_exposure
-        WHERE  _cdc_operation != 'DELETE'
+        WHERE  gwcbi___operation != 'DELETE'
         GROUP  BY id
-    ) latest ON e.id = latest.id AND e._cdc_timestamp = latest.latest_ts;
+    ) latest ON e.id = latest.id AND e.gwcdac___timestampfolder = latest.latest_ts;
 
 
 -- ===========================================================================
@@ -479,9 +479,9 @@ BEGIN
                        tenureyears, tenurediscountpct,
                        tenureusedforrating, tenureusedfortiering,
                        ROW_NUMBER() OVER (PARTITION BY policyperiod_id
-                                         ORDER BY _cdc_timestamp DESC) AS rn
+                                         ORDER BY gwcdac___timestampfolder DESC) AS rn
                 FROM bronze.gw_bc_policyperiodpremium
-                WHERE _cdc_operation != 'DELETE'
+                WHERE gwcbi___operation != 'DELETE'
             ) bc ON pp.id = bc.policyperiod_id AND bc.rn = 1
             WHERE TO_VARCHAR(DATE_TRUNC('MONTH', pp.periodstart), 'YYYY-MM') = :v_month
               AND (p_naic_codes IS NULL
@@ -622,7 +622,7 @@ BEGIN
             claim_id,
             TO_VARCHAR(DATE_TRUNC('MONTH', MIN(reporteddate)), 'YYYY-MM') AS first_reported_month
         FROM bronze.gw_cc_claim
-        WHERE _cdc_operation != 'DELETE'
+        WHERE gwcbi___operation != 'DELETE'
         GROUP BY 1
     ),
 
@@ -1082,7 +1082,7 @@ BEGIN
             LEFT JOIN reference.tspr_reason_code_map rcm
                 ON COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason)
                    = rcm.gw_reason_code
-            WHERE j._cdc_operation != 'DELETE'
+            WHERE j.gwcbi___operation != 'DELETE'
               AND j.status = 'Bound'
               AND j.noticedate IS NOT NULL
               AND TO_VARCHAR(DATE_TRUNC('MONTH', j.noticedate), 'YYYY-MM') = :v_month

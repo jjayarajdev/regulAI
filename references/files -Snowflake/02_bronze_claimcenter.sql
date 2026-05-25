@@ -14,9 +14,10 @@ USE SCHEMA bronze;
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_cc_claim (
     -- CDC envelope
-    _cdc_operation          VARCHAR(10)     NOT NULL    COMMENT 'INSERT, UPDATE, DELETE',
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL    COMMENT 'GDP CDC event timestamp',
-    _cdc_sequence           NUMBER(19,0)                COMMENT 'Ordering sequence within microsecond',
+    gwcbi___operation          VARCHAR(10)     NOT NULL    COMMENT 'INSERT, UPDATE, DELETE',
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL    COMMENT 'GDP CDC event timestamp',
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)                   COMMENT 'Ordering sequence within microsecond',
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
     _partition_month        VARCHAR(7)                  COMMENT 'YYYY-MM from lossdate — set by ingestion pipeline',
@@ -71,9 +72,10 @@ COMMENT = 'Bronze: Raw CDC from Guidewire ClaimCenter cc_claim. Every status cha
 -- 2. Exposure  (GW: cc_exposure)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_cc_exposure (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
     _partition_month        VARCHAR(7)                  COMMENT 'YYYY-MM from createtime — set by ingestion pipeline',
@@ -116,9 +118,10 @@ COMMENT = 'Bronze: Raw CDC from Guidewire ClaimCenter cc_exposure. Coverage-leve
 -- 3. Transaction  (GW: cc_transaction)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_cc_transaction (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
     _partition_month        VARCHAR(7)                  COMMENT 'YYYY-MM from accountingdate — set by ingestion pipeline',
@@ -170,9 +173,10 @@ COMMENT = 'Bronze: Raw CDC from Guidewire ClaimCenter cc_transaction. Every paym
 -- 4. Reserve Line  (GW: cc_reserveline)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_cc_reserveline (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
     _partition_month        VARCHAR(7)                  COMMENT 'YYYY-MM from accountingmonth — set by ingestion pipeline',
@@ -202,9 +206,10 @@ COMMENT = 'Bronze: Raw CDC from Guidewire ClaimCenter cc_reserveline. Point-in-t
 -- 5. Claim Address  (GW: cc_address)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_cc_address (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
 
