@@ -270,6 +270,13 @@ build-bronze:
 load-bronze: build-bronze
 	uv run python -m scripts.load_bronze_to_snowflake
 
+# Inject demo-ready violations into TPA + CL + RES filings so the
+# /workstation Kanban shows variety in both severity columns no matter
+# which filing the demo viewer lands on. Idempotent. Restore clean
+# data with `make load-bronze`.
+seed-demo-violations:
+	uv run python -m scripts.seed_demo_violations
+
 ## Bulletin demo flow — show the flip
 demo-bulletin-baseline:
 	@echo "═══ BASELINE (no bulletin) ═══"
