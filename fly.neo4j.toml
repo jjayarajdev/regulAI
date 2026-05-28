@@ -1,0 +1,63 @@
+# Fly.io app config — Neo4j 5 community
+#
+# Optional. The simpler path is to use Neo4j Aura's free tier (cloud-
+# hosted, no Fly app needed). Use this only if you want Neo4j inside
+# Fly for some reason — e.g. data sovereignty, latency, or avoiding
+# a second cloud-vendor dependency.
+#
+# Quick start:
+#
+#   fly apps create regulai-neo4j
+#   fly volumes create neo4j_data --region bom --size 3 --app regulai-neo4j
+#   fly secrets set --app regulai-neo4j NEO4J_AUTH=neo4j/<strong-password>
+#   fly deploy --config fly.neo4j.toml --app regulai-neo4j
+#
+# Then point the api + dagster apps at it:
+#
+#   fly secrets set --app regulai \
+#     NEO4J_URI=bolt://regulai-neo4j.internal:7687 \
+#     NEO4J_USER=neo4j \
+#     NEO4J_PASSWORD=<the password>
+#   fly secrets set --app regulai-dagster \
+#     NEO4J_URI=bolt://regulai-neo4j.internal:7687 \
+#     NEO4J_USER=neo4j \
+#     NEO4J_PASSWORD=<the password>
+
+app = "regulai-neo4j"
+primary_region = "bom"
+
+[build]
+  image = "neo4j:5-community"
+
+[env]
+  NEO4J_PLUGINS = '["apoc"]'
+  NEO4J_server_memory_pagecache_size = "512M"
+  NEO4J_server_memory_heap_max__size = "1G"
+
+# Neo4j exposes two ports:
+#   7474 — HTTP browser (we don't need to expose publicly on Fly)
+#   7687 — Bolt protocol (the only one our Python clients use)
+#
+# Both stay internal — only api + dagster apps reach them over 6PN.
+# If you want to expose 7474 publicly for browser access, add a
+# [[services]] block with port=7474 and a strong NEO4J_AUTH.
+
+[[services]]
+  internal_port = 7687
+  protocol = "tcp"
+  # No [[services.ports]] block → not publicly exposed; only
+  # available on the internal 6PN network to other Fly apps in the
+  # same org.
+
+[[mounts]]
+  source = "neo4j_data"
+  destination = "/data"
+  initial_size = "3gb"
+
+[[vm]]
+  # Neo4j needs more RAM than the api/dagster vms — its query planner
+  # benefits from heap headroom and the pagecache config above presumes
+  # 1.5-2GB total available.
+  size = "shared-cpu-2x"
+  memory = "2gb"
+  cpus = 2
