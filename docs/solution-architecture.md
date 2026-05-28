@@ -1,7 +1,7 @@
 # RegulAI — Solution Architecture
 
-**Last updated**: 2026-04-26
-**Companion docs**: `docs/technical-architecture.md` (how it's built), `docs/how-it-works.md` (how to run it).
+**Last updated**: 2026-05-18
+**Companion docs**: [`technical-architecture.md`](technical-architecture.md) (LHS-side, how it's built), [`rhs-build-summary.md`](rhs-build-summary.md) (RHS-side, the medallion pipeline + workflow + ASCII renderer), [`how-it-works.md`](how-it-works.md) (operational runbook), [`business-showcase.md`](business-showcase.md) (executive framing).
 **Audience**: product owners, compliance stakeholders, sales/strategy reviewers, future technical leads onboarding.
 
 ---

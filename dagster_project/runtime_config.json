@@ -1,0 +1,9 @@
+{
+  "_description": "Editable scheduler config. Written by the FastAPI admin UI at /admin/schedule; read by dagster_project/schedules.py at every schedule-evaluation tick (~30s). DO NOT add fields without updating the schema in packages/scheduling/config.py.",
+  "schedule_type": "daily",
+  "cron_schedule": "0 2 * * *",
+  "enabled": false,
+  "pipeline": "full",
+  "updated_at": null,
+  "updated_by": null
+}

@@ -1,7 +1,7 @@
 # RegulAI — Technical Architecture (LHS, as built)
 
-**Last updated**: 2026-04-26
-**Scope**: the LHS slice currently running. RHS (medallion pipeline, transmittal builder, Bridge agent) is future work — see `docs/solution-architecture.md` for the full picture and `docs/poc-decisions.md` for the decision log.
+**Last updated**: 2026-05-18
+**Scope**: the LHS slice (Sentinel extraction → KG → reference SQL). The RHS slice (Snowflake medallion pipeline, validation engine, sign-off workflow, ASCII renderer, anomaly detector, audit chain) is now also built — see [`rhs-build-summary.md`](rhs-build-summary.md) for the engineering record. Together they form the end-to-end vertical described in [`solution-architecture.md`](solution-architecture.md).
 **Audience**: developers, architects, future contributors to the codebase.
 
 ---

@@ -51,55 +51,24 @@ BULLETIN_PATH = Path("synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md
 # policy-number prefix (POL-0050 would otherwise look like a TPA filing
 # because it shares the "POL-00" prefix with POL-0019). The id ranges
 # match the synthetic data in scripts/generate_bronze_data.py.
-FILINGS = [
-    {
-        "id":           "TPA-Q4-2025",
-        "plan_name":    "Texas Private Passenger Auto / Homeowners",
-        "plan_code":    "TPA",
-        # Multiple id ranges so curated demo cases + bulk synthetic both scope here.
-        # Curated: 2001-2019 (named storytelling cases · POL-0011 L-alone, etc.)
-        # Bulk:    2100-2299 (200 distribution-driven synthetic policies)
-        "policy_id_ranges": [(2001, 2019), (2100, 2299)],
-        "cadence":      "Quarterly",
-        "period_start": "2025-10-01",
-        "period_end":   "2025-12-31",
-        "due_date":     "2026-03-31",
-        "channel":      "TICO ShareFile",
-        "is_active":    True,
-    },
-    {
-        "id":           "RES-M03-2026",
-        "plan_name":    "Residential Property — March 2026",
-        "plan_code":    "RES",
-        # Curated: 2030-2034.  Bulk: 2300-2399 (100 synthetic residential policies)
-        "policy_id_ranges": [(2030, 2034), (2300, 2399)],
-        "cadence":      "Monthly",
-        "period_start": "2026-03-01",
-        "period_end":   "2026-03-31",
-        "due_date":     "2026-04-15",
-        "channel":      "TICO ShareFile",
-        "is_active":    True,
-    },
-    {
-        "id":           "CL-Q4-2025",
-        "plan_name":    "Commercial Lines",
-        "plan_code":    "CL",
-        # Curated: 2050-2053.  Bulk: 2400-2449 (50 synthetic commercial policies)
-        "policy_id_ranges": [(2050, 2053), (2400, 2449)],
-        "cadence":      "Quarterly",
-        "period_start": "2025-10-01",
-        "period_end":   "2025-12-31",
-        "due_date":     "2026-05-15",
-        "channel":      "TICO ShareFile",
-        "is_active":    True,
-    },
-]
+from packages.rhs.filings import FILINGS  # noqa: E402  — bootstrap fallback
+from packages.rhs.filings import load_filings as _load_filings_from_kg  # noqa: E402
+
+
+def _live_filings() -> list[dict]:
+    """KG-preferred filings list (P2.4). Falls back to FILINGS on KG error.
+
+    Called per-request for low-volume endpoints (`/filings`, `_filing`). The
+    KG read is small (~3 nodes) and cached internally by Neo4j; refactoring
+    to module-level state would defeat the purpose (KG becomes the source).
+    """
+    return _load_filings_from_kg()
 
 
 def _filing(filing_id: str | None) -> dict | None:
     if not filing_id:
         return None
-    for f in FILINGS:
+    for f in _live_filings():
         if f["id"] == filing_id:
             return f
     return None
@@ -136,8 +105,15 @@ def _scope_clause(filing_id: str | None, policy_id_col: str = "p.id") -> str:
 
 @router.get("/filings")
 def filings_list() -> JSONResponse:
-    """List all known filings + which one is currently the default context."""
-    return JSONResponse({"filings": FILINGS, "default": FILINGS[0]["id"]})
+    """List all known filings + which one is currently the default context.
+
+    P2.4: source is FilingObligation nodes in KG (with fallback to the
+    in-process FILINGS list if KG is unreachable). Adding a new filing now
+    means creating a KG node, not editing Python.
+    """
+    filings = _live_filings()
+    default = filings[0]["id"] if filings else None
+    return JSONResponse({"filings": filings, "default": default})
 
 
 # ── Audit-persistence helpers ────────────────────────────────────────
@@ -167,7 +143,7 @@ def _audit_safe(fn):
 @_audit_safe
 def _ensure_filing_batch(filing_id: str, status: str = "draft") -> str:
     """Create a FILING_BATCH row for this filing if one doesn't exist."""
-    f = _filing(filing_id) or FILINGS[0]
+    f = _filing(filing_id) or (_live_filings()[0] if _live_filings() else FILINGS[0])
     rows = query(
         f"SELECT filing_batch_id FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
         f"WHERE filing_batch_id = '{f['id']}'"
@@ -190,7 +166,8 @@ def _ensure_filing_batch(filing_id: str, status: str = "draft") -> str:
 
 
 @_audit_safe
-def _record_validation_run(filing_id: str, rule_results: list[dict], violations: list[dict]) -> str | None:
+def _record_validation_run(filing_id: str, rule_results: list[dict], violations: list[dict],
+                           resolution_action: str | None = None) -> str | None:
     """Persist a complete validation run to GOLD_AUDIT.RULE_MATCH_RESULT.
 
     Writes one row per rule × failing-record (pass-rows are summarized by absence).
@@ -266,19 +243,30 @@ def _record_validation_run(filing_id: str, rule_results: list[dict], violations:
         )
         if key not in current_keys:
             exc_id = row.get("exception_id") or row.get("EXCEPTION_ID")
+            extra = ""
+            if resolution_action:
+                extra = f", resolution_action = {_sql_quote(resolution_action)}"
             query(
                 f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
-                f"SET resolution_status = 'fixed', resolved_at = CURRENT_TIMESTAMP() "
+                f"SET resolution_status = 'fixed', resolved_at = CURRENT_TIMESTAMP() {extra} "
                 f"WHERE exception_id = {_sql_quote(exc_id)}"
             )
 
-    # Update filing-batch summary
+    # Update filing-batch summary.
+    # State transitions:
+    #   - any open ERROR-severity violation → 'resolving'
+    #   - all ERRORs cleared → 'validated' (ready for analyst sign-off)
+    # Note: do not regress later sign-off states (analyst_signed, actuary_approved,
+    # officer_approved, submitted, acked) just because validation was re-run.
+    error_blockers = sum(1 for v in violations if (v.get("severity") or "").upper() == "ERROR")
+    auto_status = "resolving" if error_blockers else "validated"
     query(
         f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
         f"SET last_validated_at = CURRENT_TIMESTAMP(), "
         f"    last_validation_run_id = {_sql_quote(run_id)}, "
-        f"    open_blockers = {len(violations)}, "
-        f"    status = '{('resolving' if violations else 'approved')}' "
+        f"    open_blockers = {error_blockers}, "
+        f"    status = CASE WHEN status IN ('analyst_signed','actuary_approved','officer_approved','submitted','acked') "
+        f"              THEN status ELSE '{auto_status}' END "
         f"WHERE filing_batch_id = {_sql_quote(batch)}"
     )
 
@@ -447,7 +435,8 @@ def reference_table(table_name: str) -> JSONResponse:
     return JSONResponse({"table": safe, "rows": _jsonify(rows), "count": len(rows)})
 
 
-@router.get("/validate/cancellations")
+@router.get("/validate")
+@router.get("/validate/cancellations")   # legacy alias — pre-dates the rule engine running everything
 def validate_cancellations(filing: str | None = None) -> JSONResponse:
     """Run every rule from REFERENCE.TSPR_VALIDATION_RULES against BRONZE.
 
@@ -457,10 +446,21 @@ def validate_cancellations(filing: str | None = None) -> JSONResponse:
 
     If `filing` is provided, results are scoped to that filing's policy-prefix.
     """
+    # P2.3: derive the filing's jurisdiction (default US-TX for the current
+    # demo). The reference table carries `jurisdiction_code` per row, so a
+    # filing for a future state would automatically use only that state's
+    # rules + federal defaults.
+    target_jur = "US-TX"
+    if filing:
+        f_obj = _filing(filing)
+        if f_obj:
+            target_jur = f_obj.get("jurisdiction_code", "US-TX")
     rules = query(
         "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
-        "       violation_sql, violation_reason, severity, citation "
+        "       violation_sql, violation_reason, severity, citation, "
+        "       jurisdiction_code, is_federal_default "
         "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
+        f"WHERE jurisdiction_code = {_sql_quote(target_jur)} OR jurisdiction_code = 'US' "
         "ORDER BY rule_number"
     )
     scope_set = _filing_policy_numbers(filing)  # None = no scope filter
@@ -624,9 +624,10 @@ def kg_reason_code(code: str) -> JSONResponse:
 def kg_rules() -> JSONResponse:
     """List every Rule node in the canon (KG).
 
-    Returns id, name, parsed section letter, citation, and an `executable`
-    flag (true when the rule has been bridged to Snowflake — i.e., it has
-    `target_table` + `violation_sql` properties, so it can be run).
+    Returns id, name, parsed section letter, citation, executable flag, and
+    version metadata (version, status, effective_from/until, currently_active)
+    so the UI can distinguish v1 / v2 of the same rule and grey out
+    superseded or not-yet-active versions.
     """
     import re
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
@@ -636,23 +637,46 @@ def kg_rules() -> JSONResponse:
             OPTIONAL MATCH (r)-[:CITES]->(c:Citation)
             WITH r, head(collect(c)) AS c
             RETURN
-              r.id            AS id,
-              r.name          AS name,
-              r.target_table  AS target_table,
-              r.violation_sql AS violation_sql,
-              r.severity      AS severity,
+              r.id              AS id,
+              r.name            AS name,
+              r.target_table    AS target_table,
+              r.violation_sql   AS violation_sql,
+              r.severity        AS severity,
+              r.version         AS version,
+              r.status          AS status,
+              r.effective_from  AS effective_from,
+              r.effective_until AS effective_until,
               CASE
                 WHEN c IS NOT NULL THEN coalesce(c.full_citation, c.text, c.name)
                 ELSE NULL
-              END             AS citation
-            ORDER BY r.name
+              END               AS citation
+            ORDER BY r.name, r.version
             """
         )
         rules = [dict(r) for r in result]
+
+    import datetime as _dt
+    today = _dt.date.today()
     for r in rules:
         m = re.match(r"Rule\s+([A-Z])\.", r.get("name") or "")
         r["section"] = m.group(1) if m else "Other"
         r["executable"] = bool(r.get("target_table"))
+        # Derive currently_active: status != superseded AND effective window includes today
+        status = (r.get("status") or "").lower()
+        def _coerce_date(v):
+            if v is None or hasattr(v, 'year') is False:
+                return v
+            try: return _dt.date(v.year, v.month, v.day)
+            except Exception: return None
+        ef = _coerce_date(r.get("effective_from"))
+        eu = _coerce_date(r.get("effective_until"))
+        r["effective_from"] = ef.isoformat() if ef else None
+        r["effective_until"] = eu.isoformat() if eu else None
+        r["currently_active"] = (
+            status != "superseded"
+            and (ef is None or ef <= today)
+            and (eu is None or eu >= today)
+        )
         # Don't ship the SQL/citation noise in the list view
         r.pop("target_table", None)
         r.pop("violation_sql", None)
@@ -816,7 +840,7 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
     filing_id = None
     if pid is not None:
         pid_int = int(pid)
-        for f in FILINGS:
+        for f in _live_filings():
             if any(lo <= pid_int <= hi for lo, hi in _filing_ranges(f)):
                 filing_id = f["id"]
                 break
@@ -949,6 +973,286 @@ def _run(cmd: list[str]) -> dict:
     }
 
 
+# ── TSPR fixed-width ASCII renderer ────────────────────────────────────────
+# Reads Gold submission tables, emits 200-char records per TSPR layout, computes
+# the SHA-256 seal, and (optionally) persists a row to GOLD.FILING_SUBMISSION.
+# Simplified layout — captures the essential structure (record-type + key
+# positional fields) without being byte-for-byte spec-compliant.
+
+_TSPR_RECORD_WIDTH = 200
+
+
+def _pad_alpha(value: Any, length: int) -> str:
+    """Left-justify, pad right with spaces. NULL/None → spaces. Truncate if too long."""
+    s = "" if value is None else str(value)
+    return s[:length].ljust(length, " ")
+
+
+def _pad_num(value: Any, length: int, *, cents: bool = False) -> str:
+    """Right-justify, pad left with zeros. Numeric values rendered as integers
+    (cents=True multiplies by 100 to encode money-as-cents). NULL → all zeros."""
+    if value is None or value == "":
+        return "0" * length
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return "0" * length
+    if cents:
+        n = int(round(n * 100))
+    else:
+        n = int(round(n))
+    return str(abs(n))[:length].rjust(length, "0")
+
+
+def _pad_date(value: Any, length: int = 8) -> str:
+    """Render a date/datetime as YYYYMMDD (or YYMMDD if length=6)."""
+    if value is None:
+        return "0" * length
+    if isinstance(value, dt.datetime) or isinstance(value, dt.date):
+        if length == 6:
+            return value.strftime("%y%m%d")
+        return value.strftime("%Y%m%d")
+    s = str(value)
+    # Already-string ISO dates: strip dashes
+    s = s.replace("-", "").replace(" 00:00:00", "")[:length]
+    return s.ljust(length, "0")[:length]
+
+
+def _render_header(naic: str, filing: dict, premium_n: int, loss_n: int, cancel_n: int) -> str:
+    """Filing header — first line of the file."""
+    out = (
+        "H" +
+        _pad_alpha(naic, 5) +
+        _pad_alpha(filing["id"], 14) +
+        _pad_date(filing.get("period_start")) +
+        _pad_date(filing.get("period_end")) +
+        _pad_alpha(filing.get("plan_code"), 3) +
+        _pad_num(premium_n, 6) +
+        _pad_num(loss_n, 6) +
+        _pad_num(cancel_n, 6) +
+        dt.datetime.now().strftime("%Y%m%d%H%M%S")
+    )
+    return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
+
+
+def _render_premium_record(r: dict, naic: str) -> str:
+    """One P-record per row in GOLD.TSPR_PREMIUM_RECORDS."""
+    g = lambda k: r.get(k) if k in r else r.get(k.upper())
+    out = (
+        "P" +
+        _pad_alpha(naic, 5) +
+        _pad_num(g("policy_id"), 10) +
+        _pad_date(g("effective_date")) +
+        _pad_date(g("expiry_date")) +
+        _pad_num(g("amt_insurance_dw"), 10) +
+        _pad_alpha(g("policy_form"), 2) +
+        _pad_num(g("number_of_families"), 1) +
+        _pad_alpha(g("construction"), 1) +
+        _pad_alpha(g("ppc_split"), 3) +
+        _pad_num(g("term"), 3) +
+        _pad_alpha(g("line_of_business"), 3) +
+        _pad_alpha(g("tico_company_no"), 5) +
+        _pad_alpha(g("stat_plan"), 4) +
+        _pad_alpha(g("place_code"), 5)
+    )
+    return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
+
+
+def _render_loss_record(r: dict, naic: str) -> str:
+    """One L-record per row in GOLD.TSPR_LOSS_RECORDS."""
+    g = lambda k: r.get(k) if k in r else r.get(k.upper())
+    out = (
+        "L" +
+        _pad_alpha(naic, 5) +
+        _pad_num(g("policy_id"), 10) +
+        _pad_date(g("occurrence_date")) +
+        _pad_date(g("policy_effective_date")) +
+        _pad_alpha(g("kind_code"), 2) +
+        _pad_num(g("amt_insurance_dw"), 10) +
+        _pad_alpha(g("policy_form"), 2) +
+        _pad_num(g("number_of_families"), 1) +
+        _pad_alpha(g("construction"), 1) +
+        _pad_alpha(g("ppc_split"), 3) +
+        _pad_alpha(g("line_of_business"), 3) +
+        _pad_alpha(g("tico_company_no"), 5) +
+        _pad_alpha(g("stat_plan"), 4) +
+        _pad_alpha(g("place_code"), 5)
+    )
+    return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
+
+
+def _render_cancellation_record(r: dict, naic: str) -> str:
+    """One C-record per row in GOLD.TSPR_CANCELLATION_RECORDS."""
+    g = lambda k: r.get(k) if k in r else r.get(k.upper())
+    out = (
+        "C" +
+        _pad_alpha(naic, 5) +
+        _pad_date(g("notification_date_encoded"), 6) +
+        _pad_alpha(g("action_type"), 1) +
+        _pad_alpha(g("type_of_policy"), 1) +
+        _pad_alpha(g("reason_source_indicator"), 1) +
+        _pad_alpha(g("within_60_days_indicator"), 1) +
+        _pad_alpha(g("zip5"), 5) +
+        _pad_alpha(g("reason_code_list"), 5) +
+        _pad_num(g("recipient_count"), 6) +
+        _pad_num(g("actual_action_count"), 6) +
+        _pad_alpha(g("tico_company_no"), 5) +
+        _pad_alpha(g("unique_combination_key"), 20)
+    )
+    return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
+
+
+def _render_footer(naic: str, agg: dict, sha256: str) -> str:
+    """Trailer record with totals + the file's own SHA-256 seal."""
+    g = lambda k: agg.get(k) if k in agg else agg.get(k.upper())
+    out = (
+        "F" +
+        _pad_alpha(naic, 5) +
+        _pad_num(g("premium_record_count"), 6) +
+        _pad_num(g("loss_record_count"), 6) +
+        _pad_num(g("cancellation_notice_count"), 6) +
+        _pad_num(g("total_written_premium"), 14, cents=True) +
+        _pad_num(g("total_paid_losses"), 14, cents=True) +
+        _pad_num(g("total_outstanding_losses"), 14, cents=True) +
+        sha256[:64]
+    )
+    return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
+
+
+@router.get("/filing/{filing_id}/file")
+def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
+    """Render the TSPR fixed-width ASCII submission file for a filing.
+
+    Pulls every Gold record scoped to this filing, renders 200-char
+    P/L/C records, prefixes a header, appends an SHA-256-sealed footer.
+
+    Set ?persist=true to also write a FILING_SUBMISSION row + USER_ACTION
+    so the audit chain captures who generated this file when.
+    """
+    import hashlib
+
+    f = _filing(filing_id)
+    if not f:
+        raise HTTPException(404, f"unknown filing {filing_id}")
+
+    # Resolve NAIC from the first policyperiod row in scope
+    naic_rows = query(
+        "SELECT pp.naic_number AS naic "
+        "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICYPERIOD pp "
+        "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = pp.policy_id "
+        f"WHERE 1=1 {_scope_clause(filing_id)} "
+        "AND REGEXP_LIKE(pp.naic_number, '^[0-9]{5}$') "
+        "LIMIT 1"
+    )
+    naic = (naic_rows[0].get("naic") or naic_rows[0].get("NAIC")) if naic_rows else "00000"
+
+    # Scope all three Gold tables to this filing via the stamped filing_batch_id
+    # column. (Previously cancellation fell back to a ZIP-overlap heuristic
+    # because the table was aggregated by Rule 34 unique-combination key and
+    # carried no policy reference. run_gold now stamps filing_batch_id during
+    # the Silver→Gold step.)
+    if filing_id:
+        scope = f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+        premium = query(f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS       {scope} ORDER BY record_seq")
+        loss    = query(f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_LOSS_RECORDS          {scope} ORDER BY record_seq")
+        cancel  = query(f"SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_CANCELLATION_RECORDS  {scope} ORDER BY record_seq")
+    else:
+        premium = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS ORDER BY record_seq")
+        loss    = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_LOSS_RECORDS    ORDER BY record_seq")
+        cancel  = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_CANCELLATION_RECORDS ORDER BY record_seq")
+
+    agg_rows = query("SELECT * FROM INSURANCE_REGULATORY.GOLD.TSPR_MONTHLY_AGGREGATES LIMIT 1")
+    agg = agg_rows[0] if agg_rows else {}
+
+    # Render lines
+    header_line = _render_header(naic, f, len(premium), len(loss), len(cancel))
+    p_lines = [_render_premium_record(r, naic) for r in premium]
+    l_lines = [_render_loss_record(r, naic) for r in loss]
+    c_lines = [_render_cancellation_record(r, naic) for r in cancel]
+
+    body = "\n".join([header_line] + p_lines + l_lines + c_lines)
+    sha256 = hashlib.sha256(body.encode("ascii", errors="replace")).hexdigest()
+    footer_line = _render_footer(naic, agg, sha256)
+
+    file_text = body + "\n" + footer_line + "\n"
+    file_name = f"TSPR_{naic}_{f['plan_code']}_{filing_id.replace('-', '')}.txt"
+
+    record_total = len(p_lines) + len(l_lines) + len(c_lines)
+    response = {
+        "filing_id":    filing_id,
+        "file_name":    file_name,
+        "naic":         naic,
+        "record_count": record_total,
+        "byte_count":   len(file_text.encode("ascii", errors="replace")),
+        "sha256":       sha256,
+        "preview":      file_text[:2400],   # first ~12 lines
+        "header":       header_line,
+        "footer":       footer_line,
+        "p_count":      len(p_lines),
+        "l_count":      len(l_lines),
+        "c_count":      len(c_lines),
+        # Warning if Gold doesn't have records for this filing — happens when bulk
+        # synthetic policies have only been promoted to Bronze, not through the
+        # Silver/Gold pipeline.  Run `make run-pipeline` to populate.
+        "warning":      None if record_total > 0 else (
+            f"No Gold records found for filing {filing_id}. "
+            f"Run `make run-pipeline` to promote Bronze → Silver → Gold."
+        ),
+    }
+
+    if persist:
+        # Gate sealing on the approval chain: only an officer-approved filing
+        # with zero open ERROR blockers can be submitted to TICO.
+        gate_rows = query(
+            f"SELECT status, open_blockers FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+            f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+        )
+        gate_status = (gate_rows[0].get("status") or gate_rows[0].get("STATUS") or "").lower() if gate_rows else ""
+        gate_blockers = int((gate_rows[0].get("open_blockers") or gate_rows[0].get("OPEN_BLOCKERS") or 0) if gate_rows else 0)
+        if gate_status != "officer_approved" or gate_blockers > 0:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"cannot seal: status is '{gate_status or 'unknown'}' with "
+                    f"{gate_blockers} open blocker(s); filing must be officer_approved with 0 ERROR blockers"
+                ),
+            )
+        # Write a FILING_SUBMISSION row + USER_ACTION audit event + advance state to 'submitted'
+        sub_id = "sub-" + _uuid.uuid4().hex[:14]
+        try:
+            query(
+                "INSERT INTO INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
+                "(submission_id, filing_batch_id, channel, submitted_by, "
+                " file_name, file_sha256, file_size_bytes, record_count, status, submitted_at) "
+                f"SELECT {_sql_quote(sub_id)}, {_sql_quote(filing_id)}, "
+                f"  {_sql_quote(f['channel'])}, {_sql_quote('D. Reyes')}, "
+                f"  {_sql_quote(file_name)}, {_sql_quote(sha256)}, "
+                f"  {response['byte_count']}, {response['record_count']}, "
+                f"  'sealed', CURRENT_TIMESTAMP()"
+            )
+        except Exception as e:
+            print(f"[file] FILING_SUBMISSION insert failed: {e}")
+        try:
+            query(
+                f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+                f"SET status = 'submitted', submitted_at = CURRENT_TIMESTAMP() "
+                f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+            )
+        except Exception as e:
+            print(f"[file] FILING_BATCH status update failed: {e}")
+        _record_action(
+            filing_id, "file_generated",
+            actor="D. Reyes",
+            target_record=file_name,
+            summary=f"Sealed {response['record_count']} records · {response['byte_count']} bytes · sha256:{sha256[:12]}…",
+            details={"sha256": sha256, "record_count": response["record_count"], "submission_id": sub_id},
+        )
+        response["persisted"] = True
+        response["submission_id"] = sub_id
+
+    return JSONResponse(response)
+
+
 @router.get("/audit/{filing_id}")
 def audit_history(filing_id: str, limit: int = 50) -> JSONResponse:
     """Read the persisted audit history for a filing.
@@ -1001,6 +1305,487 @@ def audit_history(filing_id: str, limit: int = 50) -> JSONResponse:
     })
 
 
+# Sign-off chain: analyst submits for approval, actuary signs, officer signs,
+# then "Seal & submit" persists the file. Each transition writes a USER_ACTION
+# row and the resulting state lives in FILING_BATCH.status.
+APPROVAL_CHAIN = {
+    # role:     (required_current_state,        next_state,          actor_label)
+    "analyst":  (("validated",),                "analyst_signed",    "M. Okonkwo · Analyst"),
+    "actuary":  (("analyst_signed",),           "actuary_approved",  "D. Reyes · Actuary"),
+    "officer":  (("actuary_approved",),         "officer_approved",  "J. Park · Compliance Officer"),
+}
+
+
+@router.post("/filing/{filing_id}/approve")
+def filing_approve(filing_id: str, body: dict = Body(...)) -> JSONResponse:
+    """Advance the filing one step along the sign-off chain.
+
+    Body: {"role": "analyst"|"actuary"|"officer"}.
+    Each role is gated on the prior state AND zero open ERROR-severity blockers.
+    """
+    role = (body.get("role") or "").lower().strip()
+    if role not in APPROVAL_CHAIN:
+        raise HTTPException(status_code=400, detail=f"unknown role '{role}'; expected one of {list(APPROVAL_CHAIN)}")
+    required, next_state, actor = APPROVAL_CHAIN[role]
+
+    _ensure_filing_batch(filing_id)
+    rows = query(
+        f"SELECT status, open_blockers FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"no filing batch for {filing_id}")
+    current = (rows[0].get("status") or rows[0].get("STATUS") or "").lower()
+    open_blockers = int(rows[0].get("open_blockers") or rows[0].get("OPEN_BLOCKERS") or 0)
+
+    if current not in required:
+        raise HTTPException(
+            status_code=409,
+            detail=f"cannot {role}-approve in state '{current}' — must be one of {list(required)}",
+        )
+    if open_blockers > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"cannot sign off — {open_blockers} open ERROR-severity blocker(s) remain",
+        )
+
+    query(
+        f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"SET status = {_sql_quote(next_state)} "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+    )
+    _record_action(
+        filing_id, f"{role}_approved",
+        actor=actor,
+        summary=f"{actor.split(' · ')[-1]} signed off — state {current} → {next_state}",
+        details={"prev_state": current, "new_state": next_state, "role": role},
+    )
+    return JSONResponse({"filing_id": filing_id, "role": role, "prev_state": current, "new_state": next_state, "actor": actor})
+
+
+@router.post("/filing/{filing_id}/ack")
+def filing_ack(filing_id: str) -> JSONResponse:
+    """Record a regulator (TICO) acknowledgment for the most recent submission.
+
+    In real life this would be an inbound webhook from TICO ShareFile carrying
+    the receipt id. For the demo we synthesize one. Requires the filing to be
+    in 'submitted' state.
+    """
+    rows = query(
+        f"SELECT status FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"no filing batch for {filing_id}")
+    current = (rows[0].get("status") or rows[0].get("STATUS") or "").lower()
+    if current != "submitted":
+        raise HTTPException(
+            status_code=409,
+            detail=f"cannot ACK in state '{current}' — filing must be 'submitted'",
+        )
+
+    receipt = "TICO-ACK-" + _uuid.uuid4().hex[:8].upper()
+    # Update the most recent FILING_SUBMISSION row (the seal we want to ACK)
+    query(
+        f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
+        f"SET acked_at = CURRENT_TIMESTAMP(), acknowledgment = {_sql_quote(receipt)}, status = 'acked' "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)} "
+        f"  AND submission_id = (SELECT submission_id FROM INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
+        f"                       WHERE filing_batch_id = {_sql_quote(filing_id)} "
+        f"                       ORDER BY submitted_at DESC LIMIT 1)"
+    )
+    query(
+        f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"SET status = 'acked', acked_at = CURRENT_TIMESTAMP() "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+    )
+    _record_action(
+        filing_id, "regulator_ack",
+        actor="TICO ShareFile",
+        target_record=receipt,
+        summary=f"Regulator acknowledged · receipt {receipt}",
+        details={"receipt_id": receipt, "prev_state": "submitted", "new_state": "acked"},
+    )
+    return JSONResponse({"filing_id": filing_id, "receipt_id": receipt, "new_state": "acked"})
+
+
+@router.get("/filing/{filing_id}/approval-state")
+def filing_approval_state(filing_id: str) -> JSONResponse:
+    """Compact state useful for rendering the sign-off chain widget."""
+    _ensure_filing_batch(filing_id)
+    rows = query(
+        f"SELECT status, open_blockers, last_validated_at, submitted_at, acked_at "
+        f"FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        f"WHERE filing_batch_id = {_sql_quote(filing_id)}"
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"no filing batch for {filing_id}")
+    r = _jsonify(rows)[0]
+    current = (r.get("status") or "").lower()
+    # The next role allowed to act, given the current state
+    next_role = None
+    for role, (required, _, _) in APPROVAL_CHAIN.items():
+        if current in required:
+            next_role = role
+            break
+    # Can_seal: officer-approved + zero ERROR blockers
+    can_seal = current == "officer_approved" and int(r.get("open_blockers") or 0) == 0
+    return JSONResponse({
+        "filing_id":     filing_id,
+        "status":        current,
+        "open_blockers": int(r.get("open_blockers") or 0),
+        "next_role":     next_role,
+        "can_seal":      can_seal,
+        "submitted_at":  r.get("submitted_at"),
+        "acked_at":      r.get("acked_at"),
+    })
+
+
+@router.get("/kg/diff")
+def kg_diff(
+    since: str | None = None,
+    audit_id: str | None = None,
+) -> JSONResponse:
+    """Structured diff of canon changes.
+
+    Two query modes:
+      - `?since=YYYY-MM-DDTHH:MM:SS` — every node mutated since the given time
+      - `?audit_id=<uuid>` — every node touched by one logical audit entry
+        (e.g., a specific bulletin apply)
+
+    Returns:
+      {
+        "scope":           "since" | "audit",
+        "from":            ISO timestamp,
+        "added_nodes":     [{id, type, name, created_at}],
+        "modified_nodes":  [{id, type, name, change_summary}],
+        "superseded_nodes":[{id, type, name, effective_until}],
+        "added_edges":     [{src_name, dst_name, type}],   // best-effort
+        "audit_entries":   [{id, action, actor, summary, occurred_at, affected_count}]
+      }
+    """
+    if not (since or audit_id):
+        raise HTTPException(status_code=400, detail="provide ?since=... or ?audit_id=...")
+    if since and audit_id:
+        raise HTTPException(status_code=400, detail="provide only one of ?since / ?audit_id")
+
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+            # ── Determine the affected-node set + the audit entries in scope ──
+            if audit_id:
+                # Single-audit scope: walk MUTATED_BY from that one entry
+                audit_rows = list(s.run(
+                    """
+                    MATCH (a:KGAuditEntry {id: $aid})
+                    RETURN a
+                    """, aid=audit_id
+                ))
+                if not audit_rows:
+                    raise HTTPException(status_code=404, detail=f"audit entry not found: {audit_id}")
+                affected = list(s.run(
+                    """
+                    MATCH (n)-[:MUTATED_BY]->(a:KGAuditEntry {id: $aid})
+                    RETURN n
+                    """, aid=audit_id
+                ))
+                from_marker = audit_rows[0]["a"].get("occurred_at")
+            else:
+                # Time scope: nodes mutated AND audit entries written since the cutoff.
+                # NB: occurred_at + created_at are stored as ISO 8601 strings;
+                # lexicographic comparison is equivalent to chronological for ISO 8601.
+                audit_rows = list(s.run(
+                    """
+                    MATCH (a:KGAuditEntry)
+                    WHERE a.occurred_at >= $since
+                    RETURN a
+                    ORDER BY a.occurred_at DESC
+                    """, since=since
+                ))
+                affected = list(s.run(
+                    """
+                    MATCH (n)-[:MUTATED_BY]->(a:KGAuditEntry)
+                    WHERE a.occurred_at >= $since
+                    RETURN DISTINCT n
+                    UNION
+                    MATCH (n:GRENode)
+                    WHERE n.created_at >= $since
+                    RETURN DISTINCT n
+                    """, since=since
+                ))
+                from_marker = since
+
+            # ── Classify each affected node: added / modified / superseded ──
+            import neo4j.time as nt
+            def _iso(v):
+                if v is None: return None
+                if isinstance(v, (nt.DateTime, nt.Date)): return str(v)
+                return v
+
+            # Determine the cutoff for "is this node newly added?": for since-mode
+            # it's the `since` string; for audit-mode it's the audit's occurred_at
+            # minus a small slack so we don't miss nodes created in the same
+            # logical operation.
+            cutoff_iso = since
+            if audit_id and audit_rows:
+                cutoff_iso = audit_rows[0]["a"].get("occurred_at")
+
+            added, modified, superseded = [], [], []
+            for row in affected:
+                n = row["n"]
+                if n is None:
+                    continue
+                props = dict(n.items())
+                # Type fallback: nodes created via raw Cypher in legacy scripts may
+                # not have the `type` property set even though they carry the
+                # native label. Derive from labels(n) when the property is null.
+                node_type = props.get("type")
+                if not node_type:
+                    labels = [lbl for lbl in n.labels if lbl != "GRENode"]
+                    node_type = labels[0] if labels else None
+                summary = {
+                    "id":     props.get("id"),
+                    "type":   node_type,
+                    "name":   props.get("name"),
+                    "status": props.get("status"),
+                    "version":  props.get("version"),
+                    "created_at":      _iso(props.get("created_at")),
+                    "effective_from":  _iso(props.get("effective_from")),
+                    "effective_until": _iso(props.get("effective_until")),
+                }
+                created_str = props.get("created_at")
+                if isinstance(created_str, (nt.DateTime, nt.Date)):
+                    created_str = str(created_str)
+                # Bucketize: same-operation creation → added; superseded → superseded; else modified.
+                # For audit-mode, "added" means the node's created_at is at or after the audit's occurred_at.
+                # For since-mode, "added" means created_at >= since.
+                is_new = bool(created_str and cutoff_iso and created_str >= cutoff_iso)
+                st = (props.get("status") or "").lower()
+                if is_new:
+                    added.append(summary)
+                elif st == "superseded":
+                    superseded.append(summary)
+                else:
+                    modified.append(summary)
+
+            # ── Edges: best-effort, find OVERRIDES + CITES added in the same window via MUTATED_BY chain ──
+            # We can't easily diff arbitrary edges without history, but the bulletin flow's
+            # main edge writes (OVERRIDES, CITES from BulletinOverride) are reachable via
+            # affected nodes.
+            affected_ids = [s_["id"] for s_ in added + modified + superseded]
+            added_edges = []
+            if affected_ids:
+                edges = s.run(
+                    """
+                    MATCH (src)-[r:OVERRIDES|CITES]->(dst)
+                    WHERE src.id IN $ids OR dst.id IN $ids
+                    RETURN src.name AS src_name, src.type AS src_type,
+                           dst.name AS dst_name, dst.type AS dst_type,
+                           type(r) AS rel_type
+                    LIMIT 200
+                    """, ids=affected_ids
+                )
+                added_edges = [dict(r) for r in edges]
+
+            # ── Format audit entries ──
+            audits = []
+            for row in audit_rows:
+                a = row["a"]
+                ap = dict(a.items())
+                audits.append({
+                    "id":             ap.get("id"),
+                    "action":         ap.get("action"),
+                    "actor":          ap.get("actor"),
+                    "summary":        ap.get("summary"),
+                    "occurred_at":    _iso(ap.get("occurred_at")),
+                    "affected_count": ap.get("affected_count"),
+                })
+
+            return JSONResponse({
+                "scope":             "audit" if audit_id else "since",
+                "from":              _iso(from_marker),
+                "added_nodes":       added,
+                "modified_nodes":    modified,
+                "superseded_nodes":  superseded,
+                "added_edges":       added_edges,
+                "audit_entries":     audits,
+                "total_changes":     len(added) + len(modified) + len(superseded),
+            })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"KG diff failed: {e}") from e
+
+
+@router.get("/kg/audit")
+def kg_audit(limit: int = 50, node_id: str | None = None) -> JSONResponse:
+    """Read the KG audit history.
+
+    Returns the most recent N KGAuditEntry rows (default 50). If `node_id` is
+    provided, scopes to entries affecting that specific node via MUTATED_BY.
+    Mirrors the RHS-side /audit/{filing_id} but on the canon side.
+    """
+    if limit < 1 or limit > 500:
+        raise HTTPException(status_code=400, detail="limit must be 1..500")
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+            if node_id:
+                cypher = """
+                    MATCH (n:GRENode {id: $node_id})-[:MUTATED_BY]->(a:KGAuditEntry)
+                    RETURN a
+                    ORDER BY a.occurred_at DESC
+                    LIMIT $limit
+                """
+                rows = [dict(r["a"].items()) for r in s.run(cypher, node_id=node_id, limit=limit)]
+            else:
+                cypher = """
+                    MATCH (a:KGAuditEntry)
+                    RETURN a
+                    ORDER BY a.occurred_at DESC
+                    LIMIT $limit
+                """
+                rows = [dict(r["a"].items()) for r in s.run(cypher, limit=limit)]
+
+            # Coerce neo4j.time → iso strings for JSON
+            import neo4j.time as nt
+            for r in rows:
+                for k, v in list(r.items()):
+                    if isinstance(v, (nt.Date, nt.DateTime)):
+                        r[k] = str(v)
+            return JSONResponse({"entries": rows, "count": len(rows), "node_id": node_id})
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"KG unreachable: {e}") from e
+
+
+@router.get("/kg/neighborhood/{rule_id}")
+def kg_neighborhood(rule_id: str, depth: int = 1) -> JSONResponse:
+    """Return a graph slice centered on `rule_id` for vis-network rendering.
+
+    Pulls the rule's immediate neighbors: cited Citation, parent Section,
+    companion Rules, and any KG nodes connected by named relationships.
+    Output shape is {nodes: [{id,label,group,...}], edges: [{from,to,label}]}.
+    """
+    if depth < 1 or depth > 3:
+        raise HTTPException(status_code=400, detail="depth must be 1..3")
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        # Variable-length match to grab the 1-2 hop neighborhood
+        cypher = f"""
+            MATCH (r:Rule)
+            WHERE r.id = $rid OR elementId(r) = $rid
+            OPTIONAL MATCH path = (r)-[*1..{depth}]-(n)
+            WITH r, collect(DISTINCT n) AS neighbors, collect(DISTINCT path) AS paths
+            RETURN r,
+                   [x IN neighbors WHERE x IS NOT NULL] AS neighbors,
+                   [p IN paths WHERE p IS NOT NULL | relationships(p)] AS rel_lists
+        """
+        res = s.run(cypher, rid=rule_id).single()
+        if not res:
+            return JSONResponse({"nodes": [], "edges": []})
+        rule = res["r"]
+        neighbors = res["neighbors"]
+        rel_lists = res["rel_lists"]
+
+        def node_dict(node, is_root=False):
+            labels = list(node.labels)
+            label = labels[0] if labels else "Node"
+            display = node.get("name") or node.get("text") or node.get("title") or node.get("citation") or label
+            return {
+                "id":     str(node.element_id),
+                "label":  display[:55] if isinstance(display, str) else label,
+                "group":  ("root" if is_root else label),
+                "title":  f"{label}\n{(display or '')[:200]}" if isinstance(display, str) else label,
+                "shape":  ("box" if is_root else ("ellipse" if label == "Rule" else "dot")),
+            }
+
+        nodes_by_id: dict[str, dict] = {}
+        nodes_by_id[str(rule.element_id)] = node_dict(rule, is_root=True)
+        for n in neighbors:
+            if n is None:
+                continue
+            nid = str(n.element_id)
+            if nid not in nodes_by_id:
+                nodes_by_id[nid] = node_dict(n)
+
+        edges: list[dict] = []
+        edge_keys = set()
+        for rels in rel_lists:
+            for rel in rels:
+                k = (str(rel.start_node.element_id), str(rel.end_node.element_id), rel.type)
+                if k in edge_keys:
+                    continue
+                edge_keys.add(k)
+                edges.append({
+                    "from":  str(rel.start_node.element_id),
+                    "to":    str(rel.end_node.element_id),
+                    "label": rel.type,
+                })
+
+    return JSONResponse({"nodes": list(nodes_by_id.values()), "edges": edges, "center": rule_id})
+
+
+@router.get("/reg/citation")
+def reg_citation(q: str) -> JSONResponse:
+    """Resolve a citation string to the underlying regulator text.
+
+    Tries an exact citation_label match first, then a regex match against
+    citation_pattern (so "Rule A.34" hits "34"). Returns the top 5 matches
+    with their source document for drill-down.
+    """
+    if not q or len(q) > 200:
+        raise HTTPException(status_code=400, detail="bad query")
+    safe_q = q.replace("'", "''")
+    # Exact then permissive search
+    rows = query(
+        f"SELECT s.section_id, s.document_id, s.citation_label, s.section_heading, "
+        f"       s.section_text, d.title, d.document_type, d.issuing_body, d.edition "
+        f"FROM INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_SECTION s "
+        f"JOIN INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_DOCUMENT d ON d.document_id = s.document_id "
+        f"WHERE LOWER(s.citation_label) = LOWER('{safe_q}') "
+        f"   OR s.citation_label ILIKE '%{safe_q}%' "
+        f"   OR s.section_heading ILIKE '%{safe_q}%' "
+        f"ORDER BY (CASE WHEN LOWER(s.citation_label) = LOWER('{safe_q}') THEN 0 ELSE 1 END), "
+        f"         s.document_id, s.seq "
+        f"LIMIT 5"
+    )
+    return JSONResponse({"q": q, "matches": _jsonify(rows), "count": len(rows)})
+
+
+@router.get("/reg/documents")
+def reg_documents() -> JSONResponse:
+    """List all loaded regulator-source documents."""
+    rows = query(
+        "SELECT document_id, document_type, title, issuing_body, edition, "
+        "       TO_VARCHAR(effective_date, 'YYYY-MM-DD') AS effective_date, "
+        "       word_count, page_count, "
+        "       TO_VARCHAR(loaded_at, 'YYYY-MM-DD HH24:MI:SS') AS loaded_at "
+        "FROM INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_DOCUMENT "
+        "ORDER BY document_type, effective_date DESC"
+    )
+    return JSONResponse({"documents": _jsonify(rows), "count": len(rows)})
+
+
+@router.get("/anomalies")
+def anomalies_list(filing: str | None = None) -> JSONResponse:
+    """List anomalies for a filing (or all). Powers the Anomalies popout."""
+    where = f"WHERE filing_batch_id = {_sql_quote(filing)}" if filing else ""
+    rows = query(
+        f"SELECT anomaly_type, severity, territory_zip, cause_of_loss_code, "
+        f"       current_month_value, rolling_12m_mean, rolling_12m_stddev, "
+        f"       std_deviations_from_mean, anomaly_description, filing_batch_id, "
+        f"       source_records, "
+        f"       TO_VARCHAR(flagged_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS flagged_at "
+        f"FROM INSURANCE_REGULATORY.GOLD.TSPR_ANOMALY_FLAGS {where} "
+        f"ORDER BY anomaly_type, territory_zip"
+    )
+    return JSONResponse({"filing": filing, "anomalies": _jsonify(rows), "count": len(rows)})
+
+
+@router.post("/anomalies/detect")
+def anomalies_detect() -> JSONResponse:
+    """Re-run anomaly detection (TRUNCATEs + re-detects)."""
+    result = _run(["uv", "run", "python", "-m", "scripts.detect_anomalies", "--month", "2026-03"])
+    return JSONResponse(result)
+
+
 @router.post("/bulletin/apply")
 def bulletin_apply() -> JSONResponse:
     """Apply the credit-score bulletin: materialize → version-bump → reload reference."""
@@ -1033,9 +1818,12 @@ def bulletin_apply() -> JSONResponse:
     ])})
 
     ok = all(s["ok"] for s in steps)
-    # Audit the bulletin apply against every filing (it affects the canon, which is shared)
+    # Audit the bulletin apply against every filing (it affects the canon, which is shared).
+    # Re-run validation immediately so the UI sees the flip without a manual refresh,
+    # and so any exception closed by the bulletin gets resolution_action='bulletin'.
+    deltas: dict[str, dict] = {}
     if ok:
-        for f in FILINGS:
+        for f in _live_filings():
             _record_action(
                 f["id"], "bulletin_apply",
                 actor="D. Reyes",
@@ -1043,8 +1831,50 @@ def bulletin_apply() -> JSONResponse:
                 summary=f"Applied bulletin {BULLETIN_PATH.stem}",
                 details={"bulletin": BULLETIN_PATH.stem, "steps": [s["step"] for s in steps]},
             )
+            # Snapshot the open exceptions for this filing before re-validation
+            try:
+                pre_rows = query(
+                    f"SELECT policy_number, rule_number FROM INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
+                    f"WHERE filing_batch_id = {_sql_quote(f['id'])} AND resolution_status = 'open'"
+                )
+                pre_keys = {(r.get("policy_number") or r.get("POLICY_NUMBER"),
+                             r.get("rule_number") or r.get("RULE_NUMBER")) for r in pre_rows}
+            except Exception:
+                pre_keys = set()
 
-    return JSONResponse({"ok": ok, "steps": steps})
+            # Re-run validation, tagging any newly-closed exception as resolved-by-bulletin
+            try:
+                result = validate_cancellations(filing=f["id"])
+                # validate_cancellations now returns JSONResponse — re-fetch the body via direct
+                # call to the internal recorder so we can tag resolutions.
+                # Easier path: do a second pass directly on the freshly-closed exceptions.
+                post_rows = query(
+                    f"SELECT policy_number, rule_number FROM INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
+                    f"WHERE filing_batch_id = {_sql_quote(f['id'])} AND resolution_status = 'open'"
+                )
+                post_keys = {(r.get("policy_number") or r.get("POLICY_NUMBER"),
+                              r.get("rule_number") or r.get("RULE_NUMBER")) for r in post_rows}
+                closed = pre_keys - post_keys
+                # Mark every closed-this-turn exception as bulletin-resolved
+                for policy, rule_num in closed:
+                    if policy is None and rule_num is None:
+                        continue
+                    query(
+                        f"UPDATE INSURANCE_REGULATORY.GOLD.FILING_EXCEPTION "
+                        f"SET resolution_action = 'bulletin' "
+                        f"WHERE filing_batch_id = {_sql_quote(f['id'])} "
+                        f"  AND policy_number = {_sql_quote(policy)} "
+                        f"  AND rule_number = {_sql_quote(rule_num)} "
+                        f"  AND resolution_status = 'fixed'"
+                    )
+                deltas[f["id"]] = {
+                    "closed_count": len(closed),
+                    "closed": [{"policy_number": p, "rule_number": r} for p, r in sorted(closed, key=lambda x: (x[0] or "", x[1] or ""))],
+                }
+            except Exception as e:
+                deltas[f["id"]] = {"error": str(e)[:200], "closed_count": 0, "closed": []}
+
+    return JSONResponse({"ok": ok, "steps": steps, "deltas": deltas})
 
 
 @router.post("/bulletin/reset")
@@ -1070,7 +1900,7 @@ def bulletin_reset() -> JSONResponse:
 
     ok = all(s["ok"] for s in steps)
     if ok:
-        for f in FILINGS:
+        for f in _live_filings():
             _record_action(
                 f["id"], "bulletin_reset",
                 actor="D. Reyes",

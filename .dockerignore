@@ -1,0 +1,59 @@
+# Don't ship dev clutter into the image. Mirrors .gitignore plus a few
+# build-time exclusions (caches, big binaries we don't need at runtime).
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs — uv builds a fresh one inside the image.
+.venv/
+venv/
+
+# Local environment / secrets — never bake into the image.
+.env
+.env.*
+!.env.example
+.snowflake/
+
+# Editor + OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Dagster local state — must not ship; volume-mounted at runtime.
+.dagster_home/
+
+# Runtime upload data — volume-mounted at runtime.
+materialized/uploads/
+
+# Materialized RHS outputs that the pipeline regenerates.
+materialized/approved/
+materialized/validation/
+
+# Big PDF/docx not needed at runtime (the parser reads them from
+# references/regulations/ which we DO ship — these globs just exclude
+# loose business artifacts at the references/ root).
+references/*.pdf
+references/*.docx
+references/*.png
+
+# Git, CI, docs that don't affect runtime.
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Claude Code local config
+.claude/
+
+# Old/test scratch
+materialized/bronze_parquet/.*.tmp

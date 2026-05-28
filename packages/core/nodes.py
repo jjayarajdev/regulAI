@@ -14,14 +14,17 @@ from datetime import date, datetime
 from typing import Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .enums import (
     DocumentKind,
     HITLSeverity,
+    JurisdictionType,
+    KGAuditAction,
     NodeStatus,
     OrgKind,
     ReportCadence,
+    RuleKind,
 )
 
 
@@ -39,6 +42,13 @@ class GRENodeBase(BaseModel):
     effective_to: date | None = None
     created_at: datetime = Field(default_factory=datetime.now)
     created_by: str | None = None
+    # ── Phase 2: multi-jurisdiction scoping ──
+    # Every node implicitly belongs to a jurisdiction. 'US-TX' is the default
+    # for existing canon; 'US' for federal defaults that apply absent a
+    # state-specific override. APPLIES_IN edges to a Jurisdiction node are
+    # the structural form for cross-jurisdiction queries; this property is
+    # the fast path for the common case.
+    jurisdiction_code: str = "US-TX"
 
 
 class RegulationDocument(GRENodeBase):
@@ -70,17 +80,65 @@ class StatPlanEdition(GRENodeBase):
 
 
 class Rule(GRENodeBase):
-    """A numbered rule within a regulation document. Citation anchor.
+    """A rule within a regulation document. Citation anchor.
 
     Schema justification: Section A has 35 numbered rules; Section B has 20+;
-    every other node naturally cites a specific rule.
+    every other node naturally cites a specific rule. Bulletin/memo provisions
+    (e.g. FL OIR informational memoranda) are also Rules but lack the
+    section + rule_number shape — they're cited by heading instead.
+
+    P2: is_federal_default=True means this rule applies in any jurisdiction
+    that doesn't carry a state-specific override. Use for NAIC standards,
+    federal statutes, ACORD field formats. Default False (state-specific).
+
+    P3 (Cluster B): rule_kind discriminates statute-shaped (numbered §rules)
+    from bulletin/memo provisions. Only STATUTE-kind rules require
+    section + rule_number; the others carry a heading instead.
     """
 
     type: Literal["Rule"] = "Rule"
-    section: str  # "A", "B", "C", ...
-    rule_number: int
+    rule_kind: RuleKind = RuleKind.STATUTE
+    section: str | None = None  # statute: "A", "B", "C", ... | provision: None
+    rule_number: int | None = None  # statute: 1, 2, ... | provision: None
+    heading: str | None = None  # provision-only: "Reporting Cadence", "Authority", ...
     title: str
     document_id: UUID  # back-reference to the RegulationDocument
+    is_federal_default: bool = False
+    supersedes_federal_rule_id: UUID | None = None  # state-specific override of a federal default
+
+    @model_validator(mode="after")
+    def _check_fields_for_rule_kind(self) -> "Rule":
+        """Cross-field validation: statute-kind needs section+rule_number;
+        bulletin/memo provisions need heading instead. Catches malformed
+        Rule construction at the model layer instead of letting bad
+        shapes reach Neo4j (where they would silently corrupt downstream
+        queries that filter by rule_kind)."""
+        if self.rule_kind == RuleKind.STATUTE:
+            if self.section is None or self.rule_number is None:
+                raise ValueError(
+                    f"Statute-kind Rule {self.name!r} requires section + rule_number "
+                    f"(got section={self.section!r}, rule_number={self.rule_number!r})"
+                )
+            if self.heading is not None:
+                raise ValueError(
+                    f"Statute-kind Rule {self.name!r} must not carry heading "
+                    f"(got heading={self.heading!r}); statutes are cited by "
+                    f"§section.rule_number, not by heading."
+                )
+        else:
+            # BULLETIN_PROVISION or MEMO_DIRECTIVE
+            if self.heading is None:
+                raise ValueError(
+                    f"{self.rule_kind.value}-kind Rule {self.name!r} requires a heading "
+                    f"(cited by document + heading, not §number)."
+                )
+            if self.section is not None or self.rule_number is not None:
+                raise ValueError(
+                    f"{self.rule_kind.value}-kind Rule {self.name!r} must not carry "
+                    f"section/rule_number (got section={self.section!r}, "
+                    f"rule_number={self.rule_number!r}); use heading instead."
+                )
+        return self
 
 
 class ReportTemplate(GRENodeBase):
@@ -92,7 +150,11 @@ class ReportTemplate(GRENodeBase):
 
     type: Literal["ReportTemplate"] = "ReportTemplate"
     report_name: str
-    cadence: ReportCadence
+    # Cadence is optional because real regulator filings include event-
+    # triggered reports (catastrophe data calls) and reports where Sentinel
+    # cannot determine cadence from prose. Statute-shaped TICO reports
+    # (Premium, Loss, Notice, Notice Count) always have one filled.
+    cadence: ReportCadence | None = None
     deadline_days_after_close: int
 
 
@@ -127,11 +189,16 @@ class CodeList(GRENodeBase):
 
     Schema justification: Section B is structured as ~20 named code lists;
     the dominant pattern in the regulation. Primary type.
+
+    P2: is_federal_default=True for codelists that are national in scope
+    (NAIC NAIC company numbers, ACORD policy form codes). False (default)
+    means state-specific.
     """
 
     type: Literal["CodeList"] = "CodeList"
     code_list_name: str  # e.g., "Cause of Loss", "Line of Business"
     description: str | None = None
+    is_federal_default: bool = False
 
 
 class CodeValue(GRENodeBase):
@@ -223,6 +290,101 @@ class HITLTriggerRule(GRENodeBase):
     severity: HITLSeverity
 
 
+# ────────────────────────────────────────────────────────────────────────
+# Phase 2 — multi-jurisdiction primitives
+# ────────────────────────────────────────────────────────────────────────
+
+
+class Jurisdiction(GRENodeBase):
+    """A regulatory jurisdiction: a state, federal, or supranational scope.
+
+    The canonical scope-of-applicability node. Every Rule, CodeList, etc.
+    that's *specific* to a jurisdiction carries an APPLIES_IN edge to the
+    corresponding Jurisdiction. Federal-default nodes have no APPLIES_IN
+    edge (or APPLIES_IN to the 'US' Jurisdiction).
+
+    Examples: US-TX (Texas), US-FL (Florida), US (federal default).
+    """
+
+    type: Literal["Jurisdiction"] = "Jurisdiction"
+    jurisdiction_code: str  # ISO-3166-2-style: "US-TX", "US-CA", "US"
+    jurisdiction_name: str  # "Texas", "California", "United States (federal)"
+    jurisdiction_type: JurisdictionType  # state | federal | regional
+    parent_jurisdiction_code: str | None = None  # e.g., "US" for US-TX
+
+
+class Regulator(GRENodeBase):
+    """The regulatory body issuing rules within a jurisdiction.
+
+    Each jurisdiction typically has one primary insurance regulator: TDI in
+    Texas, CDI in California, FL-OIR in Florida, NY DFS in New York.
+    Bulletins and rule adoptions are ISSUED_BY a Regulator.
+    """
+
+    type: Literal["Regulator"] = "Regulator"
+    regulator_code: str  # "TDI", "CDI", "FL-OIR"
+    regulator_name: str
+    contact_endpoint: str | None = None  # filing/submission URL or address
+
+
+class StatisticalAgent(GRENodeBase):
+    """A statistical agent that receives carrier filings.
+
+    TICO is the designated agent for TX residential. Different states use
+    different agents (or rely on NCCI / ISO for specific LOBs). The agent's
+    submission channel determines how the carrier ships the file.
+    """
+
+    type: Literal["StatisticalAgent"] = "StatisticalAgent"
+    agent_code: str  # "TICO", "ISO-CL", "NCCI", "AAIS"
+    agent_name: str
+    submission_channel: str | None = None  # "ShareFile", "SFTP", "Snowflake reader"
+
+
+class FilingObligation(GRENodeBase):
+    """One mandated filing a carrier must produce.
+
+    Replaces the hardcoded `FILINGS` registry in packages/rhs/filings.py
+    (P2.4). One row per (carrier × jurisdiction × plan × cadence). The
+    obligation OBLIGATES the Organization (carrier) and RECEIVES_SUBMISSION
+    by the StatisticalAgent that processes the file.
+    """
+
+    type: Literal["FilingObligation"] = "FilingObligation"
+    obligation_code: str         # "TPA-Q4-2025", "FL-HO-M03-2026"
+    plan_code: str               # "TPA", "RES", "CL", "FL-HO"
+    plan_name: str
+    cadence: ReportCadence
+    period_start: date
+    period_end: date
+    due_date: date
+    statute_authority: str | None = None  # "Tex. Ins. Code §38.001" etc.
+    # Per-filing policy ID ranges remain a property (KG is the registry; the
+    # actual range membership is more efficient as a JSON list than as edges).
+    policy_id_ranges_json: str | None = None
+    is_active: bool = True
+
+
+class KGAuditEntry(GRENodeBase):
+    """Audit-trail entry for every logical mutation to the KG canon.
+
+    One row per logical operation (a 'bulletin_apply' produces multiple node
+    writes but a single audit entry, with MUTATED_BY edges pointing back from
+    every affected node). Mirrors GOLD_AUDIT.USER_ACTION on the RHS side.
+
+    For CLI scripts actor='system' is acceptable. For workstation-triggered
+    flows the caller passes the authenticated user.
+    """
+
+    type: Literal["KGAuditEntry"] = "KGAuditEntry"
+    action: KGAuditAction
+    actor: str = "system"
+    summary: str
+    details_json: str | None = None  # JSON blob with operation-specific context
+    occurred_at: datetime = Field(default_factory=datetime.now)
+    affected_count: int = 0  # number of MUTATED_BY edges this entry will receive
+
+
 # Discriminated union covering every node type — useful for parsing extractions
 # and for typed iteration over heterogeneous node lists.
 GRENode = (
@@ -240,4 +402,9 @@ GRENode = (
     | ReconciliationRule
     | Organization
     | HITLTriggerRule
+    | KGAuditEntry
+    | Jurisdiction
+    | Regulator
+    | StatisticalAgent
+    | FilingObligation
 )

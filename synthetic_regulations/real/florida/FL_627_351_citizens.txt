@@ -1,0 +1,79 @@
+Florida Statute 627.351 — Insurance Risk Apportionment Plans
+Subsections 5 and 6 (excerpted)
+Source: Florida Legislature (flsenate.gov)
+Acquired: 2026-05-20 via RegulAI ingestion pipeline
+Jurisdiction: US-FL
+Citation kind: Statute
+
+627.351 Insurance risk apportionment plans.—
+
+(5) JOINT UNDERWRITING ASSOCIATION.—
+
+(a) There is hereby created the Florida Property and Casualty Joint Underwriting Association for the purpose of providing property and casualty insurance to applicants who are in good faith entitled to procure insurance through the voluntary market but are unable to do so. The plan shall be governed by a board of governors and shall operate pursuant to a plan of operation approved by the Financial Services Commission.
+
+(b) Insurers issuing property and casualty insurance in this state shall participate in the association. The plan of operation shall:
+  1. Provide for the equitable apportionment of association losses and expenses among members in proportion to each insurer's direct written premium in this state for the lines of insurance covered.
+  2. Establish underwriting criteria and rates that are actuarially sound, not excessive, inadequate, or unfairly discriminatory.
+  3. Establish procedures by which applicants may obtain coverage through the association.
+
+(6) CITIZENS PROPERTY INSURANCE CORPORATION.—
+
+(a) Creation.—There is created a government entity known as Citizens Property Insurance Corporation, hereafter referred to as "the corporation." The corporation is created for the purposes of:
+  1. Providing affordable property insurance to applicants who are entitled, but unable, to procure coverage through the voluntary market.
+  2. Operating the high-risk account and the personal lines and commercial lines accounts established under this section.
+  3. Levying assessments against participating insurers and policyholders as necessary to cover deficits.
+
+(b) Board of Governors.—The corporation shall be governed by a board of governors composed of nine members. The composition shall include appointees by the Governor, the President of the Senate, the Speaker of the House of Representatives, and the Chief Financial Officer. Members shall have demonstrated experience in insurance, finance, or risk management.
+
+(c) Eligibility.—An applicant is eligible for coverage by the corporation if:
+  1. The applicant is in good faith entitled to procure insurance through the voluntary market but is unable to do so.
+  2. The structure does not exceed the dwelling replacement cost threshold established by the corporation (currently $700,000 for residential structures, except in Miami-Dade and Monroe counties where the threshold is $1,000,000).
+  3. The structure is a residential dwelling, condominium unit, or commercial residential property eligible under the plan of operation.
+
+(d) Plan of Operation.—The corporation shall operate pursuant to a plan of operation approved by the Financial Services Commission. The plan shall:
+  1. Establish rates that are actuarially sound, equitable to all policyholders, and not excessive, inadequate, or unfairly discriminatory.
+  2. Establish underwriting criteria and policy forms applicable to coverage.
+  3. Define eligibility procedures for property owners.
+  4. Establish assessment procedures for participating insurers and policyholders.
+
+(e) Rates.—
+
+  1. The corporation shall file rates with the office at least 30 days before the proposed effective date. The office shall review the filings in accordance with section 627.062.
+
+  2. Notwithstanding subsection 627.062, residential property insurance rates established by the corporation shall be subject to the rate cap, which limits annual rate increases to no more than 11 percent for any individual residential policyholder. This rate cap may not be circumvented by the corporation through reclassification or other means.
+
+  3. The corporation shall use models or methods found acceptable by the Florida Commission on Hurricane Loss Projection Methodology for projected hurricane losses.
+
+(f) Assessments and Surcharges.—
+
+  1. The corporation may levy regular assessments on insurers participating in the assessable accounts when the assessable account has a projected deficit.
+
+  2. Regular assessments may not exceed 6 percent of the participating insurer's direct written premium for the preceding calendar year in this state for the lines of insurance covered.
+
+  3. If a regular assessment is insufficient to cover the deficit, the corporation may levy emergency assessments on policyholders of the assessable accounts and on policyholders of participating insurers in any line of insurance covered by the corporation. Emergency assessments may not exceed 10 percent of the policyholder's premium per assessment per year.
+
+  4. Recoveries from the Florida Hurricane Catastrophe Fund shall be applied to reduce the amount of any assessment otherwise levied.
+
+(g) Account Structure.—The corporation shall establish and maintain the following accounts:
+  1. The Personal Lines Account, for homeowners and dwelling policies issued to qualifying residential property owners.
+  2. The Commercial Lines Account, for commercial nonresidential and commercial residential property policies.
+  3. The Coastal Account, formerly known as the High-Risk Account, for properties in designated wind-exposed coastal territories.
+
+Each account shall be maintained separately for financial reporting and assessment purposes.
+
+(h) Reporting Requirements.—
+
+  1. The corporation shall file with the office quarterly statistical reports describing the number of policies in force by account, the geographic distribution of risks, claim experience, and reinsurance arrangements.
+
+  2. The corporation shall file annually a comprehensive financial statement audited by an independent certified public accountant.
+
+  3. Policy data shall be reported in the format prescribed by the office and shall include:
+     (i) Policy number, effective date, expiration date, and form code.
+     (ii) Insured location address, including ZIP code and territory designation.
+     (iii) Dwelling replacement cost, deductible, and coverage amounts (A, B, C, D, E, F).
+     (iv) Construction type, year built, and protection class.
+     (v) Wind mitigation discount applicability.
+
+(i) Tax Exempt Status.—The corporation is exempt from taxation, except as otherwise provided in this section.
+
+(j) Sovereign Immunity.—The corporation has the immunity from suit provided by section 768.28 to the extent that the corporation operates as an instrumentality of the state.

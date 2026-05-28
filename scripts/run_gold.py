@@ -13,10 +13,16 @@ from __future__ import annotations
 import argparse
 import time
 
+from packages.rhs.filings import policy_id_to_filing_case, policy_number_to_filing_case
 from packages.rhs.snowflake_client import query
 
 ACCOUNTING_MONTH_DEFAULT = "2026-03"
 RUN_ID = f"gold-{int(time.time())}"
+
+# CASE expressions that map a policy back to its filing_batch_id.
+# Built once at import time so we don't rebuild on every Gold run.
+FILING_CASE_BY_POLICY_NUMBER = policy_number_to_filing_case("s.POLICY_ID")
+FILING_CASE_BY_BRONZE_ID      = policy_id_to_filing_case("j.policy_id")
 
 
 def gold_premium(month: str) -> int:
@@ -35,6 +41,7 @@ def gold_premium(month: str) -> int:
             ROOF_COVERING, ROOF_INSTALL_YEAR, ROOF_COVERAGE_TYPE,
             YEAR_OF_CONSTRUCTION,
             TENURE_CODE, TENURE_DISCOUNT_PCT, WIND_COVERAGE_INCLUDED,
+            FILING_BATCH_ID,
             VALIDATION_STATUS, _CREATED_TIMESTAMP
         )
         SELECT
@@ -56,6 +63,7 @@ def gold_premium(month: str) -> int:
             s.ROOF_COVERING, s.ROOF_INSTALL_YEAR, s.ROOF_COVERAGE_TYPE,
             s.YEAR_OF_CONSTRUCTION,
             s.TENURE_CODE, s.TENURE_DISCOUNT_PCT, 'Y',
+            {FILING_CASE_BY_POLICY_NUMBER},
             'PENDING', CURRENT_TIMESTAMP()
         FROM INSURANCE_REGULATORY.SILVER.TSPR_PREMIUM_STAGING s
         WHERE s.ACCOUNTING_MONTH = '{month}'
@@ -78,6 +86,7 @@ def gold_loss(month: str) -> int:
             LINE_OF_BUSINESS, POLICY_FORM, CONSTRUCTION,
             TYPE_OF_LOSS, RECORD_INDICATOR, TENURE_CODE, TENURE_DISCOUNT_PCT,
             ZIP9,
+            FILING_BATCH_ID,
             VALIDATION_STATUS, _CREATED_TIMESTAMP
         )
         SELECT
@@ -96,6 +105,7 @@ def gold_loss(month: str) -> int:
             s.LINE_OF_BUSINESS, s.POLICY_FORM, s.CONSTRUCTION,
             s.TYPE_OF_LOSS, s.RECORD_INDICATOR, s.TENURE_CODE, '00',
             s.ZIP9,
+            {FILING_CASE_BY_POLICY_NUMBER},
             'PENDING', CURRENT_TIMESTAMP()
         FROM INSURANCE_REGULATORY.SILVER.TSPR_LOSS_STAGING s
         WHERE s.ACCOUNTING_MONTH = '{month}'
@@ -115,6 +125,7 @@ def gold_cancellation(month: str) -> int:
             ZIP5, ACTION_EFFECTIVE_DATE,
             REASON_CODE_LIST, RECIPIENT_COUNT, ACTUAL_ACTION_COUNT,
             UNIQUE_COMBINATION_KEY,
+            FILING_BATCH_ID,
             VALIDATION_STATUS, _CREATED_TIMESTAMP
         )
         SELECT
@@ -123,18 +134,22 @@ def gold_cancellation(month: str) -> int:
             s.REASON_SOURCE_INDICATOR, s.WITHIN_60_DAYS_INDICATOR,
             s.ZIP5, s.ACTION_EFFECTIVE_DATE,
             s.REASON_CODE_LIST, SUM(s.RECIPIENT_COUNT), SUM(s.ACTUAL_ACTION_COUNT),
-            -- Rule 34 unique combination key
+            -- Rule 34 unique combination key (now includes filing scope so
+            -- two filings that share a ZIP don't collapse into one row).
             s.NOTIFICATION_DATE || '|' || s.ACTION_TYPE || '|' || s.TYPE_OF_POLICY || '|' ||
               COALESCE(s.REASON_SOURCE_INDICATOR, '') || '|' ||
               COALESCE(s.WITHIN_60_DAYS_INDICATOR, '') || '|' ||
-              s.ZIP5 || '|' || s.ACTION_EFFECTIVE_DATE || '|' || s.REASON_CODE_LIST,
+              s.ZIP5 || '|' || s.ACTION_EFFECTIVE_DATE || '|' || s.REASON_CODE_LIST || '|' ||
+              COALESCE({FILING_CASE_BY_BRONZE_ID}, ''),
+            {FILING_CASE_BY_BRONZE_ID},
             'PENDING', CURRENT_TIMESTAMP()
         FROM INSURANCE_REGULATORY.SILVER.TSPR_CANCELLATION_STAGING s
+        JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j ON j.id = s.SOURCE_JOB_ID
         WHERE s.ACCOUNTING_MONTH = '{month}'
         GROUP BY s.ACCOUNTING_MONTH, s.NAIC_COMPANY_NO, s.NOTIFICATION_DATE,
                  s.ACTION_TYPE, s.TYPE_OF_POLICY, s.REASON_SOURCE_INDICATOR,
                  s.WITHIN_60_DAYS_INDICATOR, s.ZIP5, s.ACTION_EFFECTIVE_DATE,
-                 s.REASON_CODE_LIST
+                 s.REASON_CODE_LIST, j.policy_id
     """)
     r = query("SELECT COUNT(*) AS n FROM INSURANCE_REGULATORY.GOLD.TSPR_CANCELLATION_RECORDS")
     return r[0]["n"]

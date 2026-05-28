@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>RegulAI · Schedule</title>
+<style>
+  /* ── tokens (mirrors workstation.html — keep in sync) ─────── */
+  :root {
+    --paper:   #f7f9fb;
+    --surface: #ffffff;
+    --paper-2: #f1f4f8;
+    --paper-3: #e8eef4;
+    --ink:   #0f172a;
+    --ink-2: #475569;
+    --ink-3: #94a3b8;
+    --ink-4: #cbd5e1;
+    --line:   #e5e9ef;
+    --line-2: #cbd5e1;
+    --accent:      #6366f1;
+    --accent-2:    #4f46e5;
+    --accent-soft: rgba(99,102,241,0.08);
+    --good: #16a34a; --warn: #d97706; --bad: #dc2626;
+    --good-bg: rgba(22,163,74,0.08);
+    --warn-bg: rgba(217,119,6,0.10);
+    --bad-bg:  rgba(220,38,38,0.08);
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+    --shadow:    0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+    --f-sans:  "Inter", -apple-system, system-ui, sans-serif;
+    --f-mono:  "JetBrains Mono", ui-monospace, monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--f-sans); font-size: 13.5px; line-height: 1.55;
+    color: var(--ink); background: var(--paper);
+  }
+  .page { max-width: 980px; margin: 0 auto; padding: 56px 32px; }
+
+  header.h { display: flex; align-items: baseline; gap: 18px; margin-bottom: 36px; }
+  header.h h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+  header.h .sub { color: var(--ink-2); font-size: 13px; }
+  .crumb { color: var(--ink-3); }
+  .crumb a { color: inherit; text-decoration: none; }
+  .crumb a:hover { color: var(--accent); }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.01em;
+  }
+  .badge .dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+  .badge.ok  { color: var(--good); background: var(--good-bg); }
+  .badge.off { color: var(--bad);  background: var(--bad-bg); }
+
+  .grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 24px; box-shadow: var(--shadow-sm);
+  }
+  .card h2 {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--ink-2);
+    margin-bottom: 16px;
+  }
+
+  /* Form */
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block; font-size: 12px; color: var(--ink-2);
+    margin-bottom: 6px; font-weight: 500;
+  }
+  .field select, .field input[type="time"], .field input[type="text"] {
+    width: 100%; padding: 9px 11px; font: inherit; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line-2);
+    border-radius: 6px; font-family: var(--f-sans);
+  }
+  .field select:focus, .field input:focus {
+    outline: 2px solid var(--accent-soft); border-color: var(--accent);
+  }
+  .field .hint { font-size: 11.5px; color: var(--ink-3); margin-top: 5px; }
+  .field code { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink); }
+
+  .toggle {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px; background: var(--paper-2);
+    border-radius: 6px; cursor: pointer; user-select: none;
+  }
+  .toggle input { margin-right: 4px; }
+  .toggle .label { font-weight: 500; }
+  .toggle .desc  { color: var(--ink-2); font-size: 12px; margin-left: auto; }
+
+  .actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn {
+    padding: 9px 16px; font: inherit; font-weight: 500;
+    border-radius: 6px; cursor: pointer; border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+  .btn-primary:hover { background: var(--accent-2); }
+  .btn-secondary {
+    background: var(--surface); color: var(--ink); border-color: var(--line-2);
+  }
+  .btn-secondary:hover { background: var(--paper-2); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Recent runs */
+  table.runs {
+    width: 100%; border-collapse: collapse; font-size: 12.5px;
+  }
+  table.runs th {
+    text-align: left; font-weight: 500; color: var(--ink-3);
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 8px 8px 10px; border-bottom: 1px solid var(--line);
+  }
+  table.runs td {
+    padding: 10px 8px; border-bottom: 1px solid var(--line);
+    color: var(--ink); vertical-align: top;
+  }
+  table.runs tr:last-child td { border-bottom: none; }
+  table.runs .id { font-family: var(--f-mono); font-size: 11px; color: var(--ink-2); }
+  table.runs .empty {
+    text-align: center; color: var(--ink-3);
+    padding: 24px 8px; font-style: italic;
+  }
+  .status-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 500;
+  }
+  .status-pill.SUCCESS { color: var(--good); background: var(--good-bg); }
+  .status-pill.STARTED, .status-pill.QUEUED { color: var(--accent); background: var(--accent-soft); }
+  .status-pill.FAILURE { color: var(--bad);  background: var(--bad-bg); }
+  .status-pill.CANCELED { color: var(--ink-2); background: var(--paper-2); }
+
+  .helper {
+    margin-top: 24px; padding: 14px 18px;
+    background: var(--paper-2); border-radius: 8px;
+    font-size: 12.5px; color: var(--ink-2);
+  }
+  .helper b { color: var(--ink); }
+  .helper code { font-family: var(--f-mono); font-size: 11.5px; background: var(--surface); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--line); }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--ink); color: white; padding: 12px 16px;
+    border-radius: 6px; box-shadow: var(--shadow);
+    font-size: 13px; opacity: 0; transform: translateY(8px);
+    transition: opacity 0.2s, transform 0.2s;
+    max-width: 360px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.ok  { background: var(--good); }
+  .toast.err { background: var(--bad); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<header class="h">
+  <h1>Pipeline schedule</h1>
+  <span class="crumb"><a href="/">RegulAI</a> · <a href="/workstation">workstation</a> · admin</span>
+  <span style="margin-left:auto;" id="dagster-badge"></span>
+</header>
+
+<div class="grid">
+
+  <!-- Schedule editor -->
+  <section class="card">
+    <h2>Schedule</h2>
+
+    <div class="field">
+      <label for="schedule_type">Cadence</label>
+      <select id="schedule_type">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="manual">Manual only (no cron)</option>
+      </select>
+    </div>
+
+    <div class="field" id="time-field">
+      <label for="time">Time (UTC)</label>
+      <input type="time" id="time" value="02:00" />
+      <div class="hint">All times are UTC. Server local time is irrelevant to Dagster's scheduler.</div>
+    </div>
+
+    <div class="field" id="dow-field" style="display:none;">
+      <label for="dow">Day of week</label>
+      <select id="dow">
+        <option value="1">Monday</option>
+        <option value="2">Tuesday</option>
+        <option value="3">Wednesday</option>
+        <option value="4">Thursday</option>
+        <option value="5">Friday</option>
+        <option value="6">Saturday</option>
+        <option value="0">Sunday</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="cron">Cron expression</label>
+      <input type="text" id="cron" value="0 2 * * *" />
+      <div class="hint">Power users can edit this directly. Computed from above when you change cadence/time.</div>
+    </div>
+
+    <div class="field">
+      <label for="pipeline">Pipeline</label>
+      <select id="pipeline">
+        <option value="full">Full pipeline (Bronze → Silver → Gold → Validate → Anomalies)</option>
+      </select>
+    </div>
+
+    <label class="toggle">
+      <input type="checkbox" id="enabled" />
+      <span class="label">Enabled</span>
+      <span class="desc">Off = Dagster's schedule won't fire even when the cron matches.</span>
+    </label>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="save-btn">Save schedule</button>
+      <button class="btn btn-secondary" id="run-now-btn">Run pipeline now</button>
+    </div>
+
+    <div class="helper">
+      Backed by <b>Dagster</b> at <code>localhost:3000</code>. The schedule reads
+      <code>dagster_project/runtime_config.json</code> on every tick (~30s) —
+      changes here take effect on the next minute boundary, no Dagster restart.
+    </div>
+  </section>
+
+  <!-- Recent runs -->
+  <section class="card">
+    <h2>Recent runs</h2>
+    <table class="runs" id="runs-table">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Started</th>
+          <th>Duration</th>
+          <th>Run ID</th>
+        </tr>
+      </thead>
+      <tbody id="runs-body">
+        <tr><td colspan="4" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+    <div class="helper">
+      Pulled live from Dagster's GraphQL API. Click a Run ID in Dagster's
+      web UI on <code>:3000</code> for the full per-op log and lineage.
+    </div>
+  </section>
+
+</div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+function fmtDuration(s) {
+  if (s == null) return "—";
+  if (s < 60) return s.toFixed(1) + "s";
+  const m = Math.floor(s / 60), rem = (s % 60).toFixed(0);
+  return `${m}m ${rem}s`;
+}
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+}
+function toast(msg, kind = "ok") {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "toast show " + kind;
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+// --- cron <-> cadence syncing -------------------------------------------------
+function cronFromCadence() {
+  const type = $("schedule_type").value;
+  const time = $("time").value || "02:00";
+  const [h, m] = time.split(":").map(s => parseInt(s, 10));
+  if (type === "daily") return `${m} ${h} * * *`;
+  if (type === "weekly") return `${m} ${h} * * ${$("dow").value}`;
+  return "* * * * *"; // manual — won't fire because enabled=false
+}
+function updateCronFromCadence() {
+  const type = $("schedule_type").value;
+  $("dow-field").style.display = type === "weekly" ? "" : "none";
+  $("time-field").style.display = type === "manual" ? "none" : "";
+  $("cron").value = cronFromCadence();
+}
+$("schedule_type").addEventListener("change", updateCronFromCadence);
+$("time").addEventListener("change", updateCronFromCadence);
+$("dow").addEventListener("change", updateCronFromCadence);
+
+// --- load state --------------------------------------------------------------
+async function loadState() {
+  const r = await fetch("/api/admin/schedule");
+  const data = await r.json();
+  // Config
+  $("schedule_type").value = data.config.schedule_type;
+  $("cron").value = data.config.cron_schedule;
+  $("pipeline").value = data.config.pipeline;
+  $("enabled").checked = data.config.enabled;
+  updateCronFromCadence();
+  // Dagster badge
+  const badge = $("dagster-badge");
+  if (data.dagster_reachable) {
+    badge.innerHTML = `<span class="badge ok"><span class="dot"></span>Dagster online</span>`;
+  } else {
+    badge.innerHTML = `<span class="badge off"><span class="dot"></span>Dagster offline</span>`;
+  }
+  // Recent runs
+  const body = $("runs-body");
+  if (!data.recent_runs || data.recent_runs.length === 0) {
+    body.innerHTML = `<tr><td colspan="4" class="empty">No runs yet. Click "Run pipeline now" or wait for the schedule to fire.</td></tr>`;
+  } else {
+    body.innerHTML = data.recent_runs.map(r => `
+      <tr>
+        <td><span class="status-pill ${r.status}">${r.status}</span></td>
+        <td>${fmtDate(r.started_at)}</td>
+        <td>${fmtDuration(r.duration_s)}</td>
+        <td class="id">${r.run_id.slice(0, 8)}…</td>
+      </tr>
+    `).join("");
+  }
+}
+
+// --- actions ----------------------------------------------------------------
+$("save-btn").addEventListener("click", async () => {
+  const body = {
+    schedule_type: $("schedule_type").value,
+    cron_schedule: $("cron").value,
+    enabled: $("enabled").checked,
+    pipeline: $("pipeline").value,
+  };
+  const r = await fetch("/api/admin/schedule", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (r.ok) {
+    toast("Schedule saved. Dagster picks it up on the next tick (~30s).");
+    loadState();
+  } else {
+    const err = await r.json().catch(() => ({}));
+    toast(`Save failed: ${err.detail || r.statusText}`, "err");
+  }
+});
+
+$("run-now-btn").addEventListener("click", async () => {
+  $("run-now-btn").disabled = true;
+  const r = await fetch("/api/admin/schedule/run-now", { method: "POST" });
+  $("run-now-btn").disabled = false;
+  if (r.ok) {
+    const { run_id } = await r.json();
+    toast(`Pipeline launched: ${run_id.slice(0, 8)}…`);
+    setTimeout(loadState, 1500);
+  } else {
+    const err = await r.json().catch(() => ({}));
+    toast(`Run failed: ${err.detail || r.statusText}`, "err");
+  }
+});
+
+// --- init + auto-refresh -----------------------------------------------------
+loadState();
+setInterval(loadState, 15000);  // refresh history every 15s
+</script>
+</body>
+</html>

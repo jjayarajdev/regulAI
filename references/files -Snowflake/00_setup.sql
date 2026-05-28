@@ -227,7 +227,7 @@ CREATE PIPE IF NOT EXISTS bronze.pipe_gw_pc_policyperiod
     COMMENT = 'Snowpipe: Guidewire PolicyCenter pc_policyperiod -> bronze.gw_pc_policyperiod'
 AS
 COPY INTO bronze.gw_pc_policyperiod (
-    _cdc_operation, _cdc_timestamp, _cdc_source_db, _cdc_sequence,
+    gwcbi___operation, gwcdac___timestampfolder, gwcbi___sourcedb, gwcbi___seqval_hex,
     _ingestion_timestamp, _source_file, _partition_month,
     id, publicid, policy_id, account_id, producercode_id, policycontact_id,
     uwcompany_id, policyterm_id,
@@ -241,10 +241,10 @@ COPY INTO bronze.gw_pc_policyperiod (
 )
 FROM (
     SELECT
-        $1:_cdc_operation::VARCHAR,
-        $1:_cdc_timestamp::TIMESTAMP_NTZ,
+        $1:gwcbi___operation::VARCHAR,
+        $1:gwcdac___timestampfolder::VARCHAR,
         'gwpc'::VARCHAR,
-        $1:_cdc_sequence::NUMBER(19,0),
+        $1:gwcbi___seqval_hex::NUMBER(19,0),
         CURRENT_TIMESTAMP(),
         METADATA$FILENAME,
         TO_VARCHAR(DATE_TRUNC('MONTH', $1:periodstart::TIMESTAMP_NTZ), 'YYYY-MM'),
@@ -293,15 +293,15 @@ CREATE PIPE IF NOT EXISTS bronze.pipe_gw_pc_policy
     COMMENT = 'Snowpipe: Guidewire PolicyCenter pc_policy -> bronze.gw_pc_policy'
 AS
 COPY INTO bronze.gw_pc_policy (
-    _cdc_operation, _cdc_timestamp, _cdc_sequence,
+    gwcbi___operation, gwcdac___timestampfolder, gwcbi___seqval_hex,
     _ingestion_timestamp, _source_file,
     id, publicid, account_id, producercode_id, policynumber,
     issuedate, originalinceptiondate, createtime, updatetime, retiredvalue
 )
 FROM (
     SELECT
-        $1:_cdc_operation::VARCHAR, $1:_cdc_timestamp::TIMESTAMP_NTZ,
-        $1:_cdc_sequence::NUMBER(19,0), CURRENT_TIMESTAMP(), METADATA$FILENAME,
+        $1:gwcbi___operation::VARCHAR, $1:gwcdac___timestampfolder::VARCHAR,
+        $1:gwcbi___seqval_hex::NUMBER(19,0), CURRENT_TIMESTAMP(), METADATA$FILENAME,
         $1:id::NUMBER(19,0), $1:publicid::VARCHAR,
         $1:account_id::NUMBER(19,0), $1:producercode_id::NUMBER(19,0),
         $1:policynumber::VARCHAR, $1:issuedate::TIMESTAMP_NTZ,
@@ -316,7 +316,7 @@ CREATE PIPE IF NOT EXISTS bronze.pipe_gw_cc_claim
     COMMENT = 'Snowpipe: Guidewire ClaimCenter cc_claim -> bronze.gw_cc_claim'
 AS
 COPY INTO bronze.gw_cc_claim (
-    _cdc_operation, _cdc_timestamp, _cdc_sequence,
+    gwcbi___operation, gwcdac___timestampfolder, gwcbi___seqval_hex,
     _ingestion_timestamp, _source_file, _partition_month,
     id, publicid, claimnumber,
     policy_id, policynumber, policyperiod_id, uwcompany_id, naic_number,
@@ -328,8 +328,8 @@ COPY INTO bronze.gw_cc_claim (
 )
 FROM (
     SELECT
-        $1:_cdc_operation::VARCHAR, $1:_cdc_timestamp::TIMESTAMP_NTZ,
-        $1:_cdc_sequence::NUMBER(19,0), CURRENT_TIMESTAMP(), METADATA$FILENAME,
+        $1:gwcbi___operation::VARCHAR, $1:gwcdac___timestampfolder::VARCHAR,
+        $1:gwcbi___seqval_hex::NUMBER(19,0), CURRENT_TIMESTAMP(), METADATA$FILENAME,
         TO_VARCHAR(DATE_TRUNC('MONTH', $1:lossdate::TIMESTAMP_NTZ), 'YYYY-MM'),
         $1:id::NUMBER(19,0), $1:publicid::VARCHAR, $1:claimnumber::VARCHAR,
         $1:policy_id::NUMBER(19,0), $1:policynumber::VARCHAR,

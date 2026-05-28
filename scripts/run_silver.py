@@ -236,9 +236,16 @@ def silver_cancellation(month: str) -> int:
         SELECT
             '{month}', '12345', '{TICO}', '{RUN_ID}',
             j.id,
-            -- NOTIFICATION_DATE is MMY (3 chars); ACTION_EFFECTIVE_DATE is MMDDYY (6 chars)
-            TO_VARCHAR(j.noticedate, 'MM') || RIGHT(TO_VARCHAR(j.noticedate, 'YYYY'), 1),
-            TO_VARCHAR(j.effectivedate, 'MMDDYY'),
+            -- NOTIFICATION_DATE is MMY (3 chars); ACTION_EFFECTIVE_DATE is MMDDYY (6 chars).
+            -- COALESCE with effectivedate then '000' so we never write NULL — the
+            -- A.42 validator catches missing notice dates downstream; the pipeline
+            -- must not abort on real-world data-quality issues.
+            COALESCE(
+              TO_VARCHAR(j.noticedate, 'MM') || RIGHT(TO_VARCHAR(j.noticedate, 'YYYY'), 1),
+              TO_VARCHAR(j.effectivedate, 'MM') || RIGHT(TO_VARCHAR(j.effectivedate, 'YYYY'), 1),
+              '000'
+            ),
+            COALESCE(TO_VARCHAR(j.effectivedate, 'MMDDYY'), '000000'),
             CASE
               WHEN j.subtype = 'Cancellation' THEN 'C'
               WHEN j.subtype = 'Renewal' THEN 'N'
@@ -246,7 +253,7 @@ def silver_cancellation(month: str) -> int:
             END,
             -- TYPE_OF_POLICY (Section F crosswalk; just pass form letter for demo)
             CASE WHEN line.holineform IS NOT NULL THEN '01' ELSE '01' END,
-            ad.postalcode,
+            dw.zip,
             CASE WHEN j.aerialimageused OR j.thirdpartydataused THEN 'A' ELSE 'N' END,
             CASE WHEN j.within60days THEN 'Y' ELSE 'N' END,
             COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason),
@@ -275,7 +282,10 @@ def silver_cancellation(month: str) -> int:
         JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id
         JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HOPOLICYLINE line ON line.policy_id = p.id
         JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HODWELLING dw ON dw.policyline_id = line.id
-        JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_ADDRESS ad ON ad.postalcode = dw.zip
+        -- (GW_PC_ADDRESS intentionally not joined: address.postalcode is non-
+        -- unique and produced a cartesian — 234 cancellations × ~23 addresses
+        -- per ZIP = 5,310 rows. dw.zip carries the same value from the source
+        -- POLICY_DETAILS dict, so we read it directly.)
     """)
     r = query("SELECT COUNT(*) AS n FROM INSURANCE_REGULATORY.SILVER.TSPR_CANCELLATION_STAGING")
     return r[0]["n"]

@@ -13,7 +13,6 @@ Then: `make load-reference`
 
 from __future__ import annotations
 
-import datetime as dt
 from pathlib import Path
 
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
@@ -76,14 +75,14 @@ def fetch_reason_codes() -> list[dict]:
 
 
 def build_sql(rows: list[dict]) -> str:
-    now = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
+    # No wall-clock timestamp in the header: re-running with unchanged KG
+    # state must produce a byte-identical file so git diffs reflect real
+    # canon changes, not "I ran the script again."
     out: list[str] = []
     out.append("-- =============================================================")
     out.append("-- INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP")
     out.append("-- Generated from RegulAI KG (single source of truth for plan rules).")
-    out.append(f"-- Generated at: {now}")
     out.append(f"-- Source CodeList node: {REASON_CODE_LIST_NAME!r}")
-    out.append(f"-- Neo4j: {settings.neo4j_uri}")
     out.append("--")
     out.append("-- DO NOT EDIT MANUALLY. Re-run `make build-reference` to regenerate.")
     out.append("-- =============================================================")
@@ -93,6 +92,7 @@ def build_sql(rows: list[dict]) -> str:
     out.append("")
     out.append("CREATE OR REPLACE TABLE TSPR_REASON_CODE_MAP (")
     out.append("    tspr_reason_code                  CHAR(1) NOT NULL,")
+    out.append("    jurisdiction_code                 VARCHAR(8) NOT NULL DEFAULT 'US-TX',")
     out.append("    description                       VARCHAR(255) NOT NULL,")
     out.append("    must_appear_alone                 BOOLEAN NOT NULL DEFAULT FALSE,")
     out.append("    credit_score_companion_required   BOOLEAN NOT NULL DEFAULT FALSE,")
@@ -103,8 +103,8 @@ def build_sql(rows: list[dict]) -> str:
     out.append("    kg_source_document_title          VARCHAR(512),")
     out.append("    kg_canon_version                  NUMBER(10,0),")
     out.append("    generated_at                      TIMESTAMP_NTZ NOT NULL,")
-    out.append("    CONSTRAINT pk_tspr_reason_code_map PRIMARY KEY (tspr_reason_code)")
-    out.append(") COMMENT = 'Section E reason codes (Notice Record Layout col36). Sourced from RegulAI KG.';")
+    out.append("    CONSTRAINT pk_tspr_reason_code_map PRIMARY KEY (tspr_reason_code, jurisdiction_code)")
+    out.append(") COMMENT = 'Section E reason codes (Notice Record Layout col36). Sourced from RegulAI KG. P2.3: scoped by jurisdiction; default US-TX.';")
     out.append("")
     out.append("DELETE FROM TSPR_REASON_CODE_MAP;")
     out.append("")

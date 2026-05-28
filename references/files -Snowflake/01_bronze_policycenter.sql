@@ -45,10 +45,11 @@ CREATE TAG IF NOT EXISTS insurance_regulatory.bronze.tspr_relevance
 CREATE TABLE IF NOT EXISTS bronze.gw_pc_policyperiod (
 
     -- CDC envelope
-    _cdc_operation          VARCHAR(10)     NOT NULL    COMMENT 'CDC operation: INSERT, UPDATE, DELETE',
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL    COMMENT 'Timestamp of CDC event from GW Data Platform',
-    _cdc_source_db          VARCHAR(64)                 COMMENT 'Source database name from GW (e.g. gwpc)',
-    _cdc_sequence           NUMBER(19,0)                COMMENT 'CDC sequence number for ordering within a microsecond',
+    gwcbi___operation          VARCHAR(10)     NOT NULL    COMMENT 'CDC operation: INSERT, UPDATE, DELETE',
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL    COMMENT 'Timestamp of CDC event from GW Data Platform',
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___sourcedb          VARCHAR(64)                 COMMENT 'Source database name from GW (e.g. gwpc)',
+    gwcbi___seqval_hex           VARCHAR(40)                   COMMENT 'CDC sequence number for ordering within a microsecond',
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL
                                 DEFAULT CURRENT_TIMESTAMP()
                                                         COMMENT 'Auto Loader / Snowpipe ingestion timestamp',
@@ -112,9 +113,10 @@ COMMENT = 'Bronze: Raw CDC from Guidewire PolicyCenter pc_policyperiod. One row 
 -- 2. Policy  (GW: pc_policy)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_pc_policy (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
 
@@ -136,9 +138,10 @@ COMMENT = 'Bronze: Raw CDC from Guidewire PolicyCenter pc_policy. Master policy 
 -- 3. HO Policy Line  (GW: pc_hopolicyline)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_pc_hopolicyline (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
 
@@ -213,9 +216,10 @@ ALTER TABLE bronze.gw_pc_hopolicyline
 -- 4. HO Coverage  (GW: pc_hocoverage)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_pc_hocoverage (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
 
@@ -267,9 +271,10 @@ COMMENT = 'Bronze: Raw CDC from Guidewire PolicyCenter pc_hocoverage. Coverage l
 -- 5. HO Dwelling  (GW: pc_hodwelling)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_pc_hodwelling (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
 
@@ -317,9 +322,10 @@ ALTER TABLE bronze.gw_pc_hodwelling MODIFY COLUMN ziplus4 SET TAG insurance_regu
 -- 6. Policy Job  (GW: pc_job)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_pc_job (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
 
@@ -359,9 +365,10 @@ COMMENT = 'Bronze: Raw CDC from Guidewire PolicyCenter pc_job. All policy transa
 -- 7. UW Company  (GW: pc_uwcompany)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_pc_uwcompany (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
 
@@ -383,9 +390,10 @@ COMMENT = 'Bronze: Guidewire PolicyCenter pc_uwcompany. NAIC and TICO company id
 -- 8. Address  (GW: pc_address)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_pc_address (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
 
@@ -413,9 +421,10 @@ ALTER TABLE bronze.gw_pc_address MODIFY COLUMN postalcodeplus4 SET TAG insurance
 -- 9. Billing Premium  (GW: bc_policyperiodpremium — BillingCenter)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bronze.gw_bc_policyperiodpremium (
-    _cdc_operation          VARCHAR(10)     NOT NULL,
-    _cdc_timestamp          TIMESTAMP_NTZ   NOT NULL,
-    _cdc_sequence           NUMBER(19,0),
+    gwcbi___operation          VARCHAR(10)     NOT NULL,
+    gwcdac___timestampfolder          VARCHAR(64)    NOT NULL,
+    gwcdac___fingerprintfolder VARCHAR(64)                COMMENT 'CDA fingerprint folder id (Guidewire diagnostic)',
+    gwcbi___seqval_hex           VARCHAR(40)   ,
     _ingestion_timestamp    TIMESTAMP_NTZ   NOT NULL    DEFAULT CURRENT_TIMESTAMP(),
     _source_file            VARCHAR(512),
 

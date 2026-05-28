@@ -1,6 +1,6 @@
 # RegulAI — Business Showcase
 
-**Last updated**: 2026-05-06
+**Last updated**: 2026-05-18
 **For**: insurance executives, compliance officers, prospective customers
 
 ---
@@ -58,39 +58,39 @@ No engineer reads the bulletin. No spreadsheet is edited. No deployment is requi
 
 ## What you actually see
 
-The proof of concept demonstrates this end-to-end with the Texas Statistical Plan and a synthetic Guidewire data feed. There are four screens.
+The proof of concept is now a single integrated workstation at `/workstation` covering the Texas Statistical Plan filing end-to-end, with three live filings (TPA-Q4-2025, RES-M03-2026, CL-Q4-2025) running in parallel against a synthetic Guidewire feed of ~371 policies and ~154 claims. Five screens — a compliance analyst's actual day.
 
-### Screen 1 — Browse the regulation
+### Screen 1 — Dashboard
 
-Pick any section of the TSPR plan. See what RegulAI has extracted from it: rules, code lists, field requirements, with citations back to the page in the source PDF. Switch to the **Deployed in Snowflake** tab and see the reference tables those extractions produced — the regulation, now living as queryable rows in your warehouse.
+Land on the Dashboard. See pass-rate KPIs across all three filings, an estimate of fines avoided (driven by violations caught before submission), and an Active filings list. Each row shows the filing's current stage in the sign-off chain (`Resolving blockers` / `Awaiting approval` / `Submitted`), live blocker count, and days until the regulator deadline. Click any filing to open it.
 
-### Screen 2 — Watch a bulletin propagate
+### Screen 2 — Filing Workshop
 
-A synthetic bulletin (B-2026-Q4-118) modifies one rule: it permits credit-score-only declinations during state-declared catastrophe periods. Today, this would mean an analyst reading the bulletin and editing a coding spreadsheet.
+The compliance analyst's workhorse screen. Top of the screen: a state-driven **sign-off rail** that walks the filing through `validated → analyst signed → actuary approved → officer approved → submitted → TICO ACKed`. Each step has a real button for the role that owns it — clicking "Approve as actuary →" writes a `USER_ACTION` row, advances the state, and locks subsequent steps until the next role acts.
 
-In RegulAI, you click **Process this bulletin**. The screen shows two cards side by side — RegulAI's knowledge graph on one side, your Snowflake reference table on the other. They start in sync. After processing:
+Below the rail, seven **section badges** (A–G) mirroring the TSPR record layout. Each badge shows pass/fail counts for that section's rules; click a badge to filter the kanban to that section only.
 
-- The KG updates: Code L now version 2, with companion-required = false
-- The Snowflake reference row regenerates from the KG
-- Both panels show the change with a green highlight
+The kanban groups every open blocker into three columns by severity. Each ticket carries the policy or claim id, the rule it violates, the regulatory citation, the suggested fix, and the assignee (analyst / actuary / officer / unassigned). A reason-code violator gets a one-click "Apply bulletin →" button when the pending bulletin would clear it; everything else gets a "Fix manually →" editor that mutates the underlying Bronze row.
 
-A filing that was previously rejected (POL-0011 declined for credit alone) is now accepted. Nothing else changed. Nothing else needed to.
+Side popouts for the records that matter: **All records** (every policy in the filing), **Claims** (with reporting-lag and CAT-period flags), **Anomalies** (premium spikes, hail clusters, freeze-in-summer claims), **Compare filings** (three-column snapshot of TPA vs RES vs CL with best-value highlighting per metric), and **Wire preview** (the actual fixed-width 200-column ASCII bytes that go to TICO, with the SHA-256 seal).
 
-### Screen 3 — See validation in action
+### Screen 3 — Watch a bulletin propagate
 
-Every TSPR Section A plan rule lives as a row of executable SQL in `REFERENCE.TSPR_VALIDATION_RULES`. Click **Run validation**. The system executes every rule against the current Bronze data and shows a verdict with the regulatory citation:
+A synthetic bulletin (B-2026-Q4-118) modifies one rule: it permits credit-score-only declinations during state-declared catastrophe periods.
 
-> POL-0011 — Rejected
-> Reason Code L (credit/insurance score) requires at least one companion reason code
-> Source: Tex. Ins. Code §559.052(a)(2); TICO Stat Plan Rule A.34
+Click **Apply bulletin**. RegulAI materializes the change in the knowledge graph, version-bumps the affected `CodeValue`, regenerates the reference table from the new graph, and re-runs validation across every filing. A toast appears naming the policies that just flipped INVALID → VALID; their tickets in the kanban briefly flash green and disappear from the failure list. Behind the scenes, every closed exception is tagged `resolution_action='bulletin'` so the audit log records that the bulletin (not a human fix) resolved it.
 
-Click **Show executable SQL** on any rule and you see the actual SQL that ran, sourced from the reference table, sourced from the regulation. Adding a new rule means inserting a row. Updating a rule means the bulletin flow you just watched.
+A filing that was rejected thirty seconds ago is now ready for sign-off. Nothing in the application code changed. Nothing was deployed.
 
-### Screen 4 — The medallion pipeline
+### Screen 4 — Regulation Explorer
 
-Three stage cards: Bronze (raw Guidewire), Silver (TSPR-coded staging), Gold (submission-ready records). Click **Run Silver**, watch four staging tables populate. Click **Run Gold**, watch four record tables populate plus a Section 29 transmittal totals panel showing premium totals, loss totals, cancellation counts — exactly the control numbers TICO expects on the cover sheet.
+A three-pane view. Left: the full TSPR rule tree, color-coded by section. Center: when you click a rule, its plain-language explanation, its citation, the executable SQL that runs against your warehouse, and a **live KG neighborhood graph** rendered via vis-network showing how the rule connects to its citations, parent section, and companion rules in Neo4j. Right: the actual records on the current filing that violate (or pass) this rule, with one-click drill-through to the policy / claim detail.
 
-The pipeline runs against your Snowflake account. Every transformation reads from the reference tables that came from the knowledge graph that came from the regulation.
+A "View regulator text →" button on every citation fetches the matching section text directly from the loaded regulation document (TX stat plan, HB 2067, or any TDI bulletin) and shows it inline. The regulator text lives in `BRONZE_REGDOCS.RAW_REG_SECTION` — 426 sections indexed by citation pattern — so a compliance officer can trace any flagged record all the way back to the prose in the published plan.
+
+### Screen 5 — Audit log
+
+Every action against the filing in reverse-chronological order: validation runs, manual fixes, bulletin applies, role-by-role sign-offs, the seal event with the SHA-256 of the actual ASCII bytes that left the building, and the TICO ACK receipt. This is the chain of custody you hand a regulator who asks "why was this record reported this way?"
 
 ---
 
@@ -192,28 +192,37 @@ Three things matter more than the FTE numbers.
 
 ## Today's status
 
-The proof of concept covers Texas Statistical Plan filings end-to-end:
+The proof of concept covers Texas Statistical Plan filings end-to-end across **three live filings** (TPA-Q4-2025, RES-M03-2026, CL-Q4-2025) running against synthetic Guidewire data:
 
-- Knowledge graph in production (Neo4j Aura) with the full TSPR plan, HB 2067, and synthetic bulletins extracted
-- Reference schema generated from the KG and deployed to Snowflake (6 tables, 100 rows, every row carries provenance to its source)
-- 15 Bronze tables populated with synthetic Guidewire CDC data covering 6 policies and 4 claims with deliberately chosen TSPR rule scenarios
-- Silver and Gold layers running on demand against the Bronze data, producing TSPR-coded staging records and submission-ready record tables with Section 29 transmittal totals
-- Validation engine executing every rule from the reference table with regulatory citations on every violation
-- Bulletin flow demonstrated: synthetic Commissioner's Bulletin propagating through the entire stack, flipping a previously-rejected filing to accepted, with full audit trail
+- **Knowledge graph in production** (Neo4j) with the full TSPR plan, HB 2067, and three synthetic TDI bulletins extracted, plus 6 source documents + 426 indexed citation sections in `BRONZE_REGDOCS` for click-through-to-prose drill-down.
+- **Reference schema** generated from the KG and deployed to Snowflake (6 tables, 110 rows, every row carries provenance to its source).
+- **14 executable validation rules** spanning TSPR Sections A, B, D, and F. Each is one INSERT row away from the KG, runs as live SQL against Bronze, and cites the controlling statute.
+- **15 Bronze tables** populated with ~371 synthetic policies and ~154 claims, mixing a curated demo set (21 policies designed to exercise every rule) with bulk-synth statistical mass for anomaly detection.
+- **Silver and Gold layers** running on demand against the Bronze data, producing TSPR-coded staging records and submission-ready record tables stamped with `filing_batch_id` per row.
+- **Sign-off workflow** with strict state machine: `validated → analyst_signed → actuary_approved → officer_approved → submitted → acked`. Each transition writes a `USER_ACTION` row. Sealing is hard-gated on officer approval + zero ERROR blockers.
+- **ASCII renderer** producing the actual 200-column fixed-width TSPR file with SHA-256 seal, persisted to `FILING_SUBMISSION`, with a synthesized TICO ACK callback closing the chain.
+- **Anomaly detector** populating `TSPR_ANOMALY_FLAGS` with premium spikes (>3σ), hail clusters (>3 claims / same ZIP / 1 week), and freeze-in-summer claims — surfaced as a popout on the Filing screen.
+- **Bulletin flow** wired into the Filing screen — applying a bulletin re-validates every filing inline, tags every newly-closed exception with `resolution_action='bulletin'`, and shows a toast naming the policies that flipped INVALID → VALID.
+- **Three-pane Regulation Explorer** with rule tree, plain-language + SQL + live KG neighborhood graph (rendered via vis-network from the Neo4j 1-hop slice), and per-rule violators on the active filing.
+- **Critical-path test suite** covering audit reconciliation, bulletin attribution, sign-off rejection, and bronze-fix mutation. Runs under `make test`.
+- **Idempotent migrations** in `materialized/migrations/` — six numbered SQL files replayable via `make migrate-snowflake`.
 
-The architectural thesis — **the regulation drives the data plane, not the other way around** — is provable today, end to end, in roughly thirty seconds of clicking through four screens.
+The architectural thesis — **the regulation drives the data plane, the workflow, and the file on the wire** — is provable today, end to end, with every step visible in the application and every artifact persisted with provenance.
 
 ---
 
 ## What's next for a real customer
 
-Three things would round this out for a production engagement:
+The major remaining work for a production engagement:
 
-1. **SDF renderer + submission audit.** Take Gold records, render the actual 200-column fixed-width ASCII files with Rule 12 negative-number encoding, hash with SHA-256, log to an immutable submission table with 25-month retention. About a week of focused work.
-2. **Customer-specific Guidewire integration.** Replace the synthetic Parquet generator with a Snowpipe pointed at the carrier's GDP S3 bucket. The Bronze schemas are already byte-identical to GDP exports; this is a configuration change, not a code change.
-3. **Anomaly detection.** Phase 2c of Gold assembly — flag premium spikes >2.5σ, hail clusters >3.0σ, freeze losses in summer months. Surface for actuary review before SDF rendering.
+1. **Customer-specific Guidewire integration.** Replace the synthetic Parquet generator with a Snowpipe pointed at the carrier's GDP S3 bucket. The Bronze schemas are already byte-identical to GDP exports; this is a configuration change, not a code change.
+2. **More executable rules.** TSPR's canon has 84 descriptive rules; 14 are now executable. Each new rule = one row in a numbered migration + one small UI fix-spec entry. Mechanical, low-risk.
+3. **Real TICO ACK webhook.** Current implementation synthesizes the receipt on a button-click for demo purposes; production would expose an inbound endpoint that TICO ShareFile calls when it processes the submission.
+4. **Bulletin auto-ingestion.** Bulletins are dropped into the synthetic folder manually today. Production would poll the TDI Commissioner's Bulletin feed and run Sentinel extraction automatically.
+5. **Databricks parity.** The Snowflake reference DDLs and procedures have Databricks equivalents in the reference architecture doc; not loaded today.
+6. **Additional plans.** NCCI WCSP, ISO commercial lines, AAIS farm/rural — each is a new KG vocabulary + reference schema; the architecture is the same.
 
-Beyond TSPR, the platform extends one regulation at a time. Each new vertical reuses the same KG → reference → pipeline pattern.
+Beyond TSPR, the platform extends one regulation at a time. Each new vertical reuses the same KG → reference → pipeline → ASCII → audit pattern.
 
 ---
 

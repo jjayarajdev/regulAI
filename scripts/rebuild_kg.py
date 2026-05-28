@@ -23,6 +23,8 @@ from api.registry import DOCS, extraction_path_for, rects_path_for
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 from packages.lhs.citations.pdf_highlight import CitationRectsBundle
 from packages.lhs.materialization.materialize import materialize
+from packages.lhs.materialization.parser_boundary import PARSER_OWNED_SLUGS
+from packages.lhs.materialization.position_resolver import resolve_positions
 from packages.lhs.sentinel.schema import SentinelExtraction
 
 
@@ -32,7 +34,7 @@ def _step(n: int, total: int, label: str) -> None:
 
 
 def main() -> None:
-    total_steps = 6
+    total_steps = 7
 
     _step(1, total_steps, "Wipe + migrate")
     with Neo4jGREAdapter() as gre:
@@ -51,13 +53,9 @@ def main() -> None:
     # Slugs the deterministic parser owns — LLM extractions for these
     # are unreliable for tabular content, so we skip them here and let
     # parse_record_layout produce the canonical extraction in step 4.
-    PARSER_OWNED = {
-        "tico-record-layout-homeowners",
-        "tico-section-c",
-        "tico-section-d",
-        "tico-section-e",
-        "tico-section-g",
-    }
+    # Single source of truth in parser_boundary.PARSER_OWNED_SLUGS;
+    # materialize() also enforces this as a hard gate (see Cluster C).
+    PARSER_OWNED = PARSER_OWNED_SLUGS
 
     # Slugs that exist for the `make demo-new-bulletin` demo and are
     # deliberately NOT loaded by rebuild_kg, so the demo can ingest them
@@ -86,6 +84,13 @@ def main() -> None:
         extraction = SentinelExtraction.model_validate(
             json.loads(ext_path.read_text(encoding="utf-8"))
         )
+        # Pre-materialize: back-fill column positions on FieldRequirements
+        # that Sentinel left null. Best-effort; resolved fields participate
+        # in byte-level wire-layout validation downstream.
+        resolved_positions = 0
+        if doc.path.exists():
+            source_text = doc.path.read_text(encoding="utf-8")
+            _, resolved_positions = resolve_positions(extraction, source_text)
         rects_bundle: CitationRectsBundle | None = None
         rects_path = rects_path_for(doc)
         if rects_path.exists():
@@ -96,10 +101,11 @@ def main() -> None:
             result = materialize(
                 extraction, gre, document_label=doc.slug, rects_bundle=rects_bundle
             )
+        suffix = f", +{resolved_positions} positions" if resolved_positions else ""
         print(
             f"  [ok] {doc.slug:<35}  +{len(result.nodes_created)} nodes  "
             f"({len(result.nodes_reused)} reused, "
-            f"{result.relationships_created} rels, {result.citations_created} cites)"
+            f"{result.relationships_created} rels, {result.citations_created} cites{suffix})"
         )
         replayed += 1
     print(f"  Replayed {replayed} cached extractions.")
@@ -109,12 +115,22 @@ def main() -> None:
     if rc != 0:
         sys.exit(rc)
 
-    _step(5, total_steps, "Cleanup phantom layouts + orphan fields")
+    # Retag FL extraction nodes to US-FL BEFORE cleanup so cleanup's
+    # phantom-layout filter (jurisdiction_code='US-TX' only) spares them.
+    # Without this, layouts like "Citizens Office-Prescribed Policy Data
+    # Format" get materialized at step 3, default-tagged US-TX by Pydantic,
+    # then deleted by cleanup_kg as a phantom TX layout.
+    _step(5, total_steps, "Retag Florida-scoped nodes to US-FL")
+    rc = subprocess.call([sys.executable, "-m", "scripts.seed_florida"])
+    if rc != 0:
+        sys.exit(rc)
+
+    _step(6, total_steps, "Cleanup phantom layouts + orphan fields")
     rc = subprocess.call([sys.executable, "-m", "scripts.cleanup_kg"])
     if rc != 0:
         sys.exit(rc)
 
-    _step(6, total_steps, "Apply BulletinOverrides (version-bump targets)")
+    _step(7, total_steps, "Apply BulletinOverrides (version-bump targets)")
     rc = subprocess.call([sys.executable, "-m", "scripts.apply_bulletin", "--all"])
     if rc != 0:
         sys.exit(rc)

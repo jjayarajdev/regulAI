@@ -217,7 +217,7 @@ async function runValidation() {
   btn.disabled = true; btn.textContent = 'Running…';
   document.getElementById('empty-state').style.display = 'none';
   try {
-    const r = await fetch('/api/rhs/validate/cancellations').then(r => r.json());
+    const r = await fetch('/api/rhs/validate').then(r => r.json());
     renderSummary(r.summary);
     renderRules(r.rules);
     renderViolations(r.violations);

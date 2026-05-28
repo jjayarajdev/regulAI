@@ -23,6 +23,7 @@ import datetime as dt
 import uuid
 
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+from packages.core.enums import KGAuditAction
 
 BULLETIN_ID = "B-2026-Q4-118"
 BULLETIN_TITLE = "Commissioner's Bulletin B-2026-Q4-118 — Credit Score Declination During Catastrophe Periods"
@@ -50,6 +51,7 @@ def main() -> int:
             """
             MERGE (d:GRENode:RegulationDocument {id: $doc_id})
             ON CREATE SET
+                d.type        = 'RegulationDocument',
                 d.name        = $name,
                 d.title       = $name,
                 d.kind        = 'Bulletin',
@@ -92,6 +94,7 @@ def main() -> int:
             """
             MERGE (cv:GRENode:CodeValue {id: $new_id})
             ON CREATE SET
+                cv.type              = 'CodeValue',
                 cv.name              = $name,
                 cv.code              = $code,
                 cv.code_list_id      = $code_list_id,
@@ -127,6 +130,7 @@ def main() -> int:
             """
             MERGE (b:GRENode:BulletinOverride {id: $bo_id})
             ON CREATE SET
+                b.type           = 'BulletinOverride',
                 b.name           = $name,
                 b.title          = $name,
                 b.bulletin_ref   = $bulletin_ref,
@@ -152,6 +156,67 @@ def main() -> int:
             now=now_iso,
         )
         print(f"  ✓ BulletinOverride: {BULLETIN_OVERRIDE_NAME!r}")
+
+    # ── Audit ────────────────────────────────────────────────────────────
+    # One logical-operation entry covering the whole apply: new doc + new
+    # CodeValue v2 + the BulletinOverride node. Best-effort — failures here
+    # don't roll back the apply (the override is still in place).
+    try:
+        import json
+        from uuid import UUID
+        with Neo4jGREAdapter() as gre:
+            # Collect the ids of every node this apply touched
+            affected = [
+                BULLETIN_DOC_ID,
+                new_l_id,
+                BULLETIN_OVERRIDE_ID,
+                old_l_id,
+            ]
+            # Some ids are non-UUID strings (legacy seed format). MUTATED_BY uses
+            # GRENode.id property match, which is a string — pass them as-is via
+            # a small Cypher rather than UUID() coercion.
+            with gre.driver.session(database=gre.database) as s:
+                # Create the audit entry directly so we can use string ids
+                import uuid as _uuid
+                audit_id = str(_uuid.uuid4())
+                s.run(
+                    """
+                    CREATE (a:GRENode:KGAuditEntry {
+                        id: $aid, name: $nm, type: 'KGAuditEntry',
+                        action: $action, actor: $actor, summary: $summary,
+                        details_json: $details, occurred_at: $now,
+                        affected_count: $n, version: 1, status: 'approved',
+                        created_at: $now, created_by: $actor
+                    })
+                    """,
+                    aid=audit_id,
+                    nm=f"bulletin_apply:{BULLETIN_ID}",
+                    action=KGAuditAction.BULLETIN_APPLY.value,
+                    actor="apply_credit_score_bulletin",
+                    summary=f"Applied bulletin {BULLETIN_ID} — Credit Score Declination Override; superseded Code L v1, created Code L v2 with companion_required=false",
+                    details=json.dumps({
+                        "bulletin_id": BULLETIN_ID,
+                        "bulletin_doc_id": BULLETIN_DOC_ID,
+                        "override_id": BULLETIN_OVERRIDE_ID,
+                        "old_codevalue_id": old_l_id,
+                        "new_codevalue_id": new_l_id,
+                        "effective_date": EFFECTIVE_DATE,
+                    }),
+                    now=now_iso,
+                    n=len(affected),
+                )
+                s.run(
+                    """
+                    UNWIND $ids AS aff_id
+                    MATCH (n:GRENode {id: aff_id}), (a:KGAuditEntry {id: $aid})
+                    MERGE (n)-[r:MUTATED_BY]->(a)
+                    """,
+                    ids=affected,
+                    aid=audit_id,
+                )
+            print(f"  ✓ KGAuditEntry: {audit_id}  (linked to {len(affected)} nodes)")
+    except Exception as e:
+        print(f"  ⚠  audit write failed (non-fatal): {e}")
 
     print()
     print("Next steps:")

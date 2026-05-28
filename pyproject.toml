@@ -14,12 +14,41 @@ dependencies = [
     "uvicorn>=0.27",
     "pyarrow>=24.0.0",
     "snowflake-connector-python>=4.4.0",
+    "strawberry-graphql[fastapi]>=0.220",
+    # Dagster — production orchestrator for the data pipeline.
+    # The admin UI at /admin/schedule is a thin front-end over Dagster's
+    # GraphQL API; jobs are defined in dagster_project/ and run via
+    # `make dagster` on port 3000. See docs/dagster-orchestration.md.
+    "dagster>=1.8",
+    "dagster-webserver>=1.8",
+    "dagster-graphql>=1.8",
+    # HTTP client used by the FastAPI admin route to talk to the Dagster
+    # webserver's GraphQL endpoint. Sync API is fine here — admin actions
+    # are infrequent and not latency-sensitive.
+    "httpx>=0.27",
+    # croniter — parses the user-editable cron expression in
+    # runtime_config.json so the Dagster schedule can decide whether
+    # to fire on each minute tick. Dagster doesn't depend on it
+    # transitively in 1.13+; pinning it here is explicit.
+    "croniter>=2.0",
+    # openpyxl — read uploaded Excel files + generate downloadable templates
+    # for the /admin/upload flow (Phase 2A). Pure-Python, no system deps;
+    # pyarrow is already pinned upstream for the Parquet conversion side.
+    "openpyxl>=3.1",
+    # python-multipart — required by FastAPI for `UploadFile` (multipart
+    # form uploads). Not transitive from anything else we ship.
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",
+    # In-process SQL engine for CI verification of violation_sql.
+    # See tests/_fl_duckdb_harness.py — executes the same SQL the
+    # production /validate endpoint runs, no Snowflake creds needed.
+    # Catches alias bugs, SQL syntax errors, rule logic regressions.
+    "duckdb>=1.0",
 ]
 
 [tool.ruff]

@@ -70,6 +70,44 @@ rebuild-kg:
 validate-kg:
 	uv run python -m scripts.validate_kg_coverage
 
+audit-extraction-loss:
+	uv run python -m scripts.audit_extraction_loss
+
+kg-hygiene:
+	uv run python -m scripts.kg_hygiene
+
+seed-jurisdictions:
+	uv run python -m scripts.seed_jurisdictions
+
+tag-federal-defaults:
+	uv run python -m scripts.tag_federal_defaults
+
+seed-filing-obligations:
+	uv run python -m scripts.seed_filing_obligations
+
+p2-regression-gate:
+	uv run python -m scripts.p2_regression_gate
+
+# ── Phase 3: Florida intake ──
+extract-fl-627-062:
+	uv run python -m scripts.extract synthetic_regulations/real/florida/FL_627_062_rate_standards.txt
+
+materialize-fl:
+	@if [ -z "$(EXT)" ]; then echo "Usage: make materialize-fl EXT=<extraction.json>"; exit 1; fi
+	uv run python -m scripts.materialize_florida_extraction $(EXT)
+
+seed-florida:
+	uv run python -m scripts.seed_florida
+
+migrate-fl-validation-rules:
+	uv run python -m scripts.migrate_fl_validation_rules
+
+build-validation-rules-fl: migrate-fl-validation-rules
+	uv run python -m scripts.build_validation_rules_reference -j US-FL
+
+load-validation-rules-fl: build-validation-rules-fl
+	@snow sql -c regulai --enable-templating standard -f materialized/reference/tspr_validation_rules_us_fl.sql
+
 cleanup-kg:
 	uv run python -m scripts.cleanup_kg
 
@@ -127,6 +165,18 @@ extract-hb2067:
 ui:
 	uv run uvicorn api.main:app --reload --port 8765
 
+# ── Dagster (data orchestration) ──────────────────────────────────────
+# `dagster dev` runs the webserver + daemon in one process; production
+# would split them. Admin UI at /admin/schedule talks to this via
+# GraphQL on port 3000. See docs/dagster-orchestration.md.
+dagster:
+	DAGSTER_HOME=$(PWD)/.dagster_home uv run dagster dev -m dagster_project --port 3000
+
+# One-off launch of the full pipeline via Dagster CLI (bypasses the
+# webserver — useful for cron debugging or CI smoke).
+dagster-run-once:
+	DAGSTER_HOME=$(PWD)/.dagster_home uv run dagster job execute -m dagster_project -j full_pipeline_job
+
 test:
 	uv run pytest tests/ -v
 
@@ -171,13 +221,36 @@ build-validation-rules: migrate-validation-rules
 load-validation-rules: build-validation-rules
 	@snow sql -c regulai --enable-templating standard -f materialized/reference/tspr_validation_rules.sql
 
+# Re-apply rules that don't survive `load-validation-rules` (which DELETEs the
+# table before re-loading from the auto-generated SQL — sourced only from
+# rules with target_table set in the KG). These two files carry the
+# hand-curated rules (A.22, A.34 variants, A.30/A.40/A.42, B.11, B.14, D.12).
+# Idempotent: each INSERT is guarded with WHERE NOT EXISTS.
+load-custom-validation-rules: load-validation-rules
+	@snow sql -c regulai -f materialized/migrations/002_extra_validation_rules.sql > /dev/null && echo "  ✓ 002_extra_validation_rules.sql"
+	@snow sql -c regulai -f materialized/migrations/003_claim_validation_rules.sql > /dev/null && echo "  ✓ 003_claim_validation_rules.sql"
+
+# Run every numbered migration in materialized/migrations/ in order.
+# All migrations are idempotent (CREATE TABLE IF NOT EXISTS, ALTER ADD COLUMN
+# IF NOT EXISTS, INSERTs guarded with WHERE NOT EXISTS) so this is safe to
+# re-run against an existing database.
+migrate-snowflake:
+	@echo "Applying Snowflake migrations:"
+	@for f in materialized/migrations/[0-9]*.sql; do \
+	  echo "  → $$f"; \
+	  snow sql -c regulai -f "$$f" > /dev/null && echo "    ✓ done" || echo "    ✗ failed"; \
+	done
+
 run-silver:
 	uv run python -m scripts.run_silver
 
 run-gold:
 	uv run python -m scripts.run_gold
 
-run-pipeline: load-bronze load-reference-all load-validation-rules run-silver run-gold
+detect-anomalies:
+	uv run python -m scripts.detect_anomalies --month 2026-03
+
+run-pipeline: load-bronze load-reference-all load-custom-validation-rules run-silver run-gold detect-anomalies
 	@echo ""
 	@echo "Full pipeline complete: Bronze → Silver → Gold."
 
@@ -196,6 +269,13 @@ build-bronze:
 
 load-bronze: build-bronze
 	uv run python -m scripts.load_bronze_to_snowflake
+
+# Inject demo-ready violations into TPA + CL + RES filings so the
+# /workstation Kanban shows variety in both severity columns no matter
+# which filing the demo viewer lands on. Idempotent. Restore clean
+# data with `make load-bronze`.
+seed-demo-violations:
+	uv run python -m scripts.seed_demo_violations
 
 ## Bulletin demo flow — show the flip
 demo-bulletin-baseline:

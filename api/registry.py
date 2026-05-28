@@ -136,6 +136,39 @@ DOCS: list[DocEntry] = [
         blurb="DEMO bulletin: adds a Reinsurance Coverage Indicator (Y/N/U) at column 184 of the Premium Record Layout, effective 2027-01-01. Used by `make demo-new-bulletin` to show end-to-end RAG → review → KG update.",
         pdf_path=None,  # markdown-only
     ),
+    # ── Phase 3: Florida regulations (first non-Texas state intake) ──
+    DocEntry(
+        slug="fl-627-062",
+        label="FL Statute 627.062 — Rate Standards",
+        category="Florida statute",
+        path=Path("synthetic_regulations/real/florida/FL_627_062_rate_standards.txt"),
+        blurb="Florida statute governing rate filings for property/casualty insurance. Defines 'file and use' / 'use and file' procedures, the 15 actuarial factors the FL OIR considers, Florida Hurricane Catastrophe Fund treatment, and residential property mitigation requirements.",
+        pdf_path=None,
+    ),
+    DocEntry(
+        slug="fl-627-351",
+        label="FL Statute 627.351 — Insurance Risk Apportionment Plans (Citizens)",
+        category="Florida statute",
+        path=Path("synthetic_regulations/real/florida/FL_627_351_citizens.txt"),
+        blurb="Florida statute creating Citizens Property Insurance Corporation — the state's residual-market insurer of last resort. Defines the corporation, board, eligibility, rate cap, assessment/surcharge mechanisms, account structure (Personal Lines / Commercial Lines / Coastal), and policy-level reporting requirements.",
+        pdf_path=None,
+    ),
+    DocEntry(
+        slug="fl-oir-22-04m",
+        label="FL OIR Informational Memorandum OIR-22-04M — Hurricane Ian Data Call",
+        category="Florida regulator bulletin",
+        path=Path("synthetic_regulations/real/florida/FL_OIR_22_04M_hurricane_data_call.md"),
+        blurb="FL OIR Informational Memorandum (FL's equivalent of a TICO bulletin) imposing a weekly claims data call on all P&C insurers following Hurricane Ian. Defines 16 required per-claim data fields, an aggregate summary, special provisions for Citizens, and the CRS fixed-width ASCII submission format.",
+        pdf_path=None,
+    ),
+    DocEntry(
+        slug="fl-fhcf-data-call",
+        label="FL Hurricane Catastrophe Fund — Annual Data Call Form (FHCF-D1A)",
+        category="Florida statistical plan",
+        path=Path("synthetic_regulations/real/florida/FL_FHCF_data_call_form.md"),
+        blurb="FHCF Annual Data Call Form prescribed by the FL State Board of Administration. 320-character fixed-width record layout with 30+ field requirements, 8 code lists with FL-specific values (wind mitigation, FBC construction codes, opening protection), and 10 validation rules including TX-vs-FL ZIP-prefix detection. Structurally analogous to TICO's homeowners record layout but for FL FHCF participation under §215.555.",
+        pdf_path=None,
+    ),
 ]
 
 DOCS_BY_SLUG: dict[str, DocEntry] = {d.slug: d for d in DOCS}
