@@ -33,21 +33,41 @@ primary_region = "bom"
   NEO4J_PLUGINS = '["apoc"]'
   NEO4J_server_memory_pagecache_size = "512M"
   NEO4J_server_memory_heap_max__size = "1G"
+  # Tell Neo4j to advertise the public Fly hostname when clients connect
+  # to its Bolt port — Browser instances at https://browser.neo4j.io and
+  # cypher-shell both honor this. Without it Neo4j hands out its internal
+  # IP and clients fail to follow.
+  NEO4J_server_bolt_advertised__address = "regulai-neo4j.fly.dev:7687"
 
-# Neo4j exposes two ports:
-#   7474 — HTTP browser (we don't need to expose publicly on Fly)
-#   7687 — Bolt protocol (the only one our Python clients use)
+# Public access (Bolt only — strong password is the only defense):
+#   - 7687 (Bolt): exposed via [[services]] below with Fly's TLS handler.
+#     Friends point Neo4j's free hosted Browser
+#     (https://browser.neo4j.io) at neo4j+s://regulai-neo4j.fly.dev:7687
+#     with the same password. No app install needed — browser-only.
 #
-# Both stay internal — only api + dagster apps reach them over 6PN.
-# If you want to expose 7474 publicly for browser access, add a
-# [[services]] block with port=7474 and a strong NEO4J_AUTH.
+# We don't expose 7474 (the embedded Browser UI) publicly because:
+#   - Neo4j 5 / OpenJDK binds IPv6-only on Fly's kernel when given 0.0.0.0,
+#     making Fly's IPv4 edge healthcheck refuse to mark it healthy.
+#   - The fix (-Djava.net.preferIPv4Stack=true) breaks 6PN IPv6 reachability,
+#     which the api + dagster apps depend on for their internal Neo4j
+#     connection. Bolt over a [[services]] TCP+TLS block doesn't have the
+#     IPv4 healthcheck issue, so we go Bolt-only here.
+#
+# Cross-app (api + dagster reaching Neo4j over 6PN) still works via
+# regulai-neo4j.internal:7687 — IPv6, no public roundtrip.
 
 [[services]]
+  # Bolt protocol on 7687 — friends connect from browser.neo4j.io,
+  # cypher-shell, Neo4j Desktop, drivers, etc.
   internal_port = 7687
   protocol = "tcp"
-  # No [[services.ports]] block → not publicly exposed; only
-  # available on the internal 6PN network to other Fly apps in the
-  # same org.
+  [[services.ports]]
+    port = 7687
+    handlers = ["tls"]
+  [[services.tcp_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "60s"
 
 [[mounts]]
   source = "neo4j_data"
