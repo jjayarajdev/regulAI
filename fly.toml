@@ -52,6 +52,12 @@ primary_region = "bom"  # Mumbai — change to "iad" (US-East) or "lhr" (London)
   # [http_service] block below.
   PORT = "8765"
 
+[experimental]
+  # Bind IPv4 — matches dagster app for consistency. Cross-app traffic
+  # (e.g. dagster → api back-channel, if/when added) should use the
+  # .flycast DNS form which routes through Fly's IPv4-friendly proxy.
+  cmd = ["uv", "run", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8765"]
+
 [http_service]
   internal_port = 8765
   force_https = true
