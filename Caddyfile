@@ -1,0 +1,43 @@
+# Caddy reverse proxy — prod-only.
+#
+# Used by docker-compose.prod.yml. Reads REGULAI_DOMAIN + REGULAI_ACME_EMAIL
+# from the environment so the same Caddyfile works for any deployment.
+#
+# Two routes:
+#   /dagster/*       → Dagster webserver (port 3000 internal, --path-prefix=/dagster)
+#   everything else  → FastAPI app (port 8765 internal)
+#
+# Caddy auto-acquires + renews Let's Encrypt certs on first start.
+# Falls back to its built-in CA when REGULAI_DOMAIN is "localhost" or
+# an IP address — useful for local prod-shape testing.
+
+{
+    email {$REGULAI_ACME_EMAIL}
+}
+
+{$REGULAI_DOMAIN} {
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+
+    encode zstd gzip
+
+    # Dagster — strip the /dagster prefix when proxying upstream since
+    # the webserver was started with --path-prefix=/dagster (see
+    # docker-compose.prod.yml). Caddy passes the original Host header
+    # through; Dagster handles the prefix internally.
+    handle_path /dagster* {
+        reverse_proxy dagster:3000
+    }
+
+    # FastAPI — everything else. Health check 2s, retry once.
+    handle {
+        reverse_proxy api:8765 {
+            health_uri      /api/regulations
+            health_interval 30s
+            health_timeout  3s
+        }
+    }
+}

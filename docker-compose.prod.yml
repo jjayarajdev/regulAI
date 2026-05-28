@@ -1,0 +1,71 @@
+# Production overlay — adds Caddy reverse proxy with auto-HTTPS.
+#
+# Compose merges this on top of docker-compose.yml when you pass it
+# explicitly. Use:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Or define this in your `~/.bashrc` on the AWS box:
+#
+#   alias dcprod='docker compose -f docker-compose.yml -f docker-compose.prod.yml'
+#
+# Changes from the base:
+#   - api + dagster no longer expose ports to the host directly;
+#     Caddy is the only public-facing service (80 + 443).
+#   - Dagster runs with --path-prefix=/dagster so URLs like
+#     https://demo.example.com/dagster/runs work.
+#   - Caddy gets its own named volume for Let's Encrypt cert storage.
+
+services:
+  api:
+    # Remove public port mapping — only Caddy talks to api now.
+    ports: []
+    # No code changes needed; the api binds to 0.0.0.0:8765 already.
+
+  dagster:
+    ports: []
+    # Tell Dagster it's behind a /dagster path prefix. Without this,
+    # Dagster's HTML emits absolute paths (/runs, /assets) that 404
+    # when accessed through the reverse proxy.
+    command:
+      - uv
+      - run
+      - dagster-webserver
+      - -m
+      - dagster_project
+      - --host
+      - 0.0.0.0
+      - --port
+      - "3000"
+      - --path-prefix
+      - /dagster
+
+  # Caddy — TLS termination + reverse proxy.
+  caddy:
+    image: caddy:2-alpine
+    container_name: regulai-caddy
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      dagster:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Compose substitutes these at startup from .env.
+      REGULAI_DOMAIN: ${REGULAI_DOMAIN:-localhost}
+      REGULAI_ACME_EMAIL: ${REGULAI_ACME_EMAIL:-}
+    volumes:
+      # Caddyfile bind-mounted read-only so config changes are a host edit
+      # away (followed by `docker compose restart caddy`).
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Persist certs + ACME state. Named volume because Caddy writes
+      # extensively here; bind-mount would slow renewals on macOS hosts.
+      - regulai-caddy-data:/data
+      - regulai-caddy-config:/config
+
+volumes:
+  regulai-caddy-data:
+  regulai-caddy-config:
