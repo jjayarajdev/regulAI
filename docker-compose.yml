@@ -1,4 +1,26 @@
+# RegulAI — local dev / demo stack
+#
+# Three services on one Compose project:
+#   neo4j   — KG store (was the only service pre-Docker-deploy)
+#   api     — FastAPI + Sentinel + admin UIs (port 8765)
+#   dagster — orchestrator + admin's pipeline schedule (port 3000)
+#
+# Both api + dagster build from the same Dockerfile; they're the same
+# image with different commands. Mirrors how `make ui` / `make dagster`
+# run the same Python code in two processes locally.
+#
+# Bring up the full stack:   docker compose up -d
+# Tail logs:                  docker compose logs -f api dagster
+# Run one-off command:        docker compose exec api make rebuild-kg
+# Tear down + wipe volumes:   docker compose down -v
+#
+# Secrets: copy .env.example → .env and fill in. Compose auto-loads
+# .env at project startup; nothing else picks up vars implicitly.
+
 services:
+  # ────────────────────────────────────────────────────────────────
+  # Neo4j — KG store
+  # ────────────────────────────────────────────────────────────────
   neo4j:
     image: neo4j:5-community
     container_name: regulai-neo4j
@@ -8,16 +30,135 @@ services:
     environment:
       NEO4J_AUTH: neo4j/regulai-dev-password
       NEO4J_PLUGINS: '["apoc"]'
-      NEO4J_dbms_memory_pagecache_size: 512M
-      NEO4J_dbms_memory_heap_max__size: 1G
-      # Allow Browser's `:play <URL>` command to fetch guides from
-      # localhost (e.g. our FastAPI guide at :8765/cypher-guide).
-      NEO4J_browser_allow__outgoing__connections: "true"
-      NEO4J_browser_remote__content__hostname__whitelist: "localhost,127.0.0.1"
+      NEO4J_server_memory_pagecache_size: 512M
+      NEO4J_server_memory_heap_max__size: 1G
+      # The browser_allow_outgoing_connections + remote_content_hostname
+      # _whitelist settings from the Neo4j-3.x-era config were valid in
+      # Neo4j 4.x but Neo4j 5's strict config validation rejects them.
+      # They only enabled the `:play <URL>` workflow in Browser — not
+      # needed for the medallion/admin demo paths.
     volumes:
       - regulai-neo4j-data:/data
       - regulai-neo4j-logs:/logs
+    healthcheck:
+      # The Bolt port is what our Python client uses; an HTTP probe
+      # is sufficient since both come up together.
+      test: ["CMD-SHELL", "wget --quiet --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ────────────────────────────────────────────────────────────────
+  # api — FastAPI + Sentinel + admin UIs
+  # ────────────────────────────────────────────────────────────────
+  api:
+    image: regulai-app:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: regulai-api
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    ports:
+      - "8765:8765"
+    environment:
+      # Neo4j — service-name DNS on the compose network.
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: regulai-dev-password
+      # Dagster — admin UI's /admin/schedule + /admin/upload talk to
+      # Dagster via GraphQL. On the compose network it's the service name.
+      DAGSTER_URL: http://dagster:3000
+      # OpenAI + Snowflake creds come from .env; never committed.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT:-}
+      SNOWFLAKE_USER: ${SNOWFLAKE_USER:-}
+      SNOWFLAKE_TOKEN: ${SNOWFLAKE_TOKEN:-}
+      SNOWFLAKE_PASSWORD: ${SNOWFLAKE_PASSWORD:-}
+      SNOWFLAKE_ROLE: ${SNOWFLAKE_ROLE:-}
+      SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE:-COMPUTE_WH}
+      SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE:-INSURANCE_REGULATORY}
+      SNOWFLAKE_AUTHENTICATOR: ${SNOWFLAKE_AUTHENTICATOR:-}
+    volumes:
+      # Upload staging — admin/upload writes here. Bind mount so files
+      # survive container rebuilds + are visible on the host for debug.
+      - ./materialized/uploads:/app/materialized/uploads
+      # Generated reference SQL — make build-validation-rules writes
+      # here. Keep visible to host so devs can inspect.
+      - ./materialized/reference:/app/materialized/reference
+    command:
+      - uv
+      - run
+      - uvicorn
+      - api.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8765"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8765/api/regulations >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ────────────────────────────────────────────────────────────────
+  # dagster — orchestrator + scheduler
+  # ────────────────────────────────────────────────────────────────
+  dagster:
+    # Reuse the image api builds — same code, different command. Avoids
+    # the concurrent-build collision that happens when both services
+    # define `build:` for the same image tag.
+    image: regulai-app:dev
+    container_name: regulai-dagster
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      api:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    environment:
+      DAGSTER_HOME: /app/.dagster_home
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: regulai-dev-password
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT:-}
+      SNOWFLAKE_USER: ${SNOWFLAKE_USER:-}
+      SNOWFLAKE_TOKEN: ${SNOWFLAKE_TOKEN:-}
+      SNOWFLAKE_PASSWORD: ${SNOWFLAKE_PASSWORD:-}
+      SNOWFLAKE_ROLE: ${SNOWFLAKE_ROLE:-}
+      SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE:-COMPUTE_WH}
+      SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE:-INSURANCE_REGULATORY}
+      SNOWFLAKE_AUTHENTICATOR: ${SNOWFLAKE_AUTHENTICATOR:-}
+    volumes:
+      # DAGSTER_HOME — schedules, run history, sqlite storage. Named
+      # volume so it survives container restarts.
+      - regulai-dagster-home:/app/.dagster_home
+      # Uploads — Dagster ops read parquet from here; share with api.
+      - ./materialized/uploads:/app/materialized/uploads
+    command:
+      - uv
+      - run
+      - dagster
+      - dev
+      - -m
+      - dagster_project
+      - --host
+      - 0.0.0.0
+      - --port
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/server_info >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
 
 volumes:
   regulai-neo4j-data:
   regulai-neo4j-logs:
+  regulai-dagster-home:
