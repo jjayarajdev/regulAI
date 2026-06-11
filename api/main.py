@@ -12,6 +12,7 @@ Run: make ui
 """
 
 import json
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
@@ -44,6 +45,8 @@ from packages.lhs.sentinel.schema import SentinelExtraction
 from scripts.generate_sample_submission import fetch_layout, fill_record
 from scripts.validate_submission import validate_record
 
+logger = logging.getLogger("regulai.api")
+
 app = FastAPI(title="RegulAI LHS", version="0.1.0")
 
 # CORS — Neo4j Browser is served from :7474 and needs to fetch the
@@ -57,7 +60,7 @@ app.add_middleware(
         "http://127.0.0.1:8765",
     ],
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Accept"],
 )
 
 UI_DIR = Path("ui")
@@ -252,9 +255,9 @@ def run_extraction(slug: str) -> JSONResponse:
     if doc.slug in WIRE_LAYOUTS_FOR_SLUG:
         extraction, filter_stats = strip_parser_owned(extraction)
         if filter_stats["dropped_nodes"]:
-            print(
-                f"[extract] {slug}: filtered out {filter_stats['dropped_nodes']} "
-                f"parser-owned nodes ({filter_stats['by_type']})"
+            logger.info(
+                "[extract] %s: filtered out %s parser-owned nodes (%s)",
+                slug, filter_stats["dropped_nodes"], filter_stats["by_type"],
             )
 
     out_path = extraction_path_for(doc)
@@ -803,10 +806,11 @@ def landing_recent_change() -> JSONResponse:
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
+    # Deliberately sparse: no infrastructure URIs or connection details
+    # (this endpoint is unauthenticated).
     return {
         "status": "ok",
         "model": settings.openai_model,
-        "neo4j": settings.neo4j_uri,
     }
 
 

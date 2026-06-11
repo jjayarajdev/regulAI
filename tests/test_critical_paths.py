@@ -22,7 +22,15 @@ import pytest
 def _snowflake_available() -> bool:
     try:
         from packages.rhs.snowflake_client import query
-        query("SELECT 1 AS ok")
+        # Probe with a filtered COUNT: SELECT 1 / LIMIT 1 / bare COUNT(*) are
+        # all served from metadata without a running warehouse, so they succeed
+        # even on a suspended account — and the actual tests would then fail
+        # rather than skip. A filtered COUNT genuinely exercises the warehouse.
+        query(
+            "SELECT COUNT(*) AS n FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+            "WHERE filing_batch_id = %s",
+            ("__availability_probe__",),
+        )
         return True
     except Exception:
         return False
