@@ -5,9 +5,10 @@
 
 import { useState } from 'react';
 import {
-  useApprovalState, useAudit, useBackendState, useBronzeCancellations, useValidate,
+  useApplyBulletin, useApprovalState, useApproveFiling, useAudit, useBackendState,
+  useBronzeCancellations, useReceiveAck, useValidate,
 } from '../../api/hooks';
-import type { ValidateResponse, ValidationRule, Violation } from '../../api/types';
+import type { ApprovalRole, ValidationRule, Violation } from '../../api/types';
 
 interface FilingWorkshopProps {
   activeFilingId: string | null;
@@ -58,14 +59,15 @@ const TSPR_SECTIONS = [
   { id: 'G', label: 'G · Actual counts' },
 ];
 
-const PIPELINE_STAGES = [
+// role = who can act when this stage is current ('ack' = simulate TICO ACK).
+const PIPELINE_STAGES: { id: string; label: string; when: string; role?: ApprovalRole | 'ack' }[] = [
   { id: 'draft', label: 'Drafted', when: 'auto' },
   { id: 'resolving', label: 'Resolving', when: '' },
-  { id: 'validated', label: 'Validated', when: 'analyst sign-off' },
-  { id: 'analyst_signed', label: 'Analyst signed', when: 'actuary sign-off' },
-  { id: 'actuary_approved', label: 'Actuary approved', when: 'officer sign-off' },
+  { id: 'validated', label: 'Validated', when: 'analyst sign-off', role: 'analyst' },
+  { id: 'analyst_signed', label: 'Analyst signed', when: 'actuary sign-off', role: 'actuary' },
+  { id: 'actuary_approved', label: 'Actuary approved', when: 'officer sign-off', role: 'officer' },
   { id: 'officer_approved', label: 'Officer approved', when: 'ready to seal' },
-  { id: 'submitted', label: 'Submitted', when: 'awaiting TICO ACK' },
+  { id: 'submitted', label: 'Submitted', when: 'awaiting TICO ACK', role: 'ack' },
   { id: 'acked', label: 'TICO ACKed', when: 'chain of custody complete' },
 ];
 
@@ -77,6 +79,9 @@ export function FilingWorkshop({ activeFilingId, onBack }: FilingWorkshopProps) 
   const bronzeQ = useBronzeCancellations(activeFilingId);
   const auditQ = useAudit(activeFilingId);
   const stQ = useBackendState();
+  const applyBulletin = useApplyBulletin();
+  const approveFiling = useApproveFiling(activeFilingId);
+  const receiveAck = useReceiveAck(activeFilingId);
 
   const v = valQ.data;
   const ap = approvalQ.data;
@@ -181,16 +186,44 @@ export function FilingWorkshop({ activeFilingId, onBack }: FilingWorkshopProps) 
 
         {/* sign-off pipeline */}
         <div className="pipeline">
-          {visibleStages.map((s, i) => (
-            <div key={s.id} className={`pp-step ${i < visIdx ? 'done' : i === visIdx ? 'active' : ''}`}>
-              <div className="pp-num">{i < visIdx ? '✓' : <span>{i + 1}</span>}</div>
-              <div className="pp-info">
-                <div className="pp-name">{s.label}</div>
-                <div className="pp-when">{approvalQ.isLoading ? '…' : s.when}</div>
+          {visibleStages.map((s, i) => {
+            const isCurrent = i === visIdx;
+            const canAct = isCurrent && s.role && (ap?.open_blockers ?? 1) === 0;
+            const acting = approveFiling.isPending || receiveAck.isPending;
+            return (
+              <div key={s.id} className={`pp-step ${i < visIdx ? 'done' : isCurrent ? 'active' : ''}`}>
+                <div className="pp-num">{i < visIdx ? '✓' : <span>{i + 1}</span>}</div>
+                <div className="pp-info">
+                  <div className="pp-name">{s.label}</div>
+                  <div className="pp-when">{approvalQ.isLoading ? '…' : s.when}</div>
+                  {canAct && (
+                    <button
+                      className="ticket-action"
+                      style={{ marginTop: 6 }}
+                      disabled={acting}
+                      onClick={() =>
+                        s.role === 'ack'
+                          ? receiveAck.mutate()
+                          : approveFiling.mutate(s.role as ApprovalRole)}
+                    >
+                      {acting ? 'Signing…' : s.role === 'ack' ? 'Simulate TICO ACK →' : `Approve as ${s.role} →`}
+                    </button>
+                  )}
+                  {isCurrent && s.role && s.role !== 'ack' && (ap?.open_blockers ?? 0) > 0 && (
+                    <div className="pp-when" style={{ color: 'var(--bad)' }}>
+                      blocked · {ap?.open_blockers} open
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+        {approveFiling.isError && (
+          <div style={{ margin: '-8px 0 14px', fontSize: 12.5, color: 'var(--bad)' }}>
+            {String((approveFiling.error as Error).message)}
+          </div>
+        )}
 
         {/* A–G section badges */}
         {v && (
@@ -264,8 +297,16 @@ export function FilingWorkshop({ activeFilingId, onBack }: FilingWorkshopProps) 
                             {ass.id === 'un' ? '?' : ass.id.toUpperCase()}
                           </div>
                           {isFix
-                            ? <button className="ticket-action fix-bul" title="Mutation endpoints land with live mode">Apply bulletin</button>
-                            : <button className="ticket-action ghost" title="Mutation endpoints land with live mode">Fix manually →</button>}
+                            ? (
+                              <button
+                                className="ticket-action fix-bul"
+                                disabled={applyBulletin.isPending}
+                                onClick={() => applyBulletin.mutate()}
+                              >
+                                {applyBulletin.isPending ? 'Applying…' : 'Apply bulletin'}
+                              </button>
+                            )
+                            : <button className="ticket-action ghost" title="Manual-fix editor lands next">Fix manually →</button>}
                         </div>
                       </div>
                     );

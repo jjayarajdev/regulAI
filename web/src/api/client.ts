@@ -6,8 +6,8 @@
 export const API_BASE = '/api/rhs';
 
 export class ApiError extends Error {
-  constructor(public status: number, public path: string) {
-    super(`GET ${path} → ${status}`);
+  constructor(public status: number, public path: string, detail?: string) {
+    super(detail ?? `${path} → ${status}`);
   }
 }
 
@@ -29,6 +29,10 @@ export async function postJson<T>(path: string, body?: unknown): Promise<T> {
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  if (!r.ok) throw new ApiError(r.status, path);
+  if (!r.ok) {
+    // FastAPI ships error context as {"detail": "..."} — surface it.
+    const detail = await r.json().then((j) => j?.detail).catch(() => undefined);
+    throw new ApiError(r.status, path, detail);
+  }
   return r.json() as Promise<T>;
 }

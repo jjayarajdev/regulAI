@@ -239,3 +239,59 @@ export interface KgAuditResponse {
   count: number;
   node_id: string | null;
 }
+
+// ── KG neighborhood (vis-network graph) ──────────────────────────
+export interface KgGraphNode {
+  id: string;
+  label: string;
+  group: 'root' | 'Rule' | 'Citation' | 'Section' | 'CodeValue' | 'Node';
+  title: string;
+  shape: 'box' | 'ellipse' | 'dot';
+}
+
+export interface KgGraphEdge {
+  from: string;
+  to: string;
+  label: string;
+}
+
+export interface KgNeighborhoodResponse {
+  nodes: KgGraphNode[];
+  edges: KgGraphEdge[];
+  center: string;
+}
+
+// ── mutations ─────────────────────────────────────────────────────
+export type ApprovalRole = 'analyst' | 'actuary' | 'officer';
+
+export interface ApproveResponse {
+  filing_id: string;
+  role: ApprovalRole;
+  prev_state: string;
+  new_state: string;
+  actor: string;
+}
+
+export interface AckResponse {
+  filing_id: string;
+  receipt: string;
+  new_state: 'acked';
+}
+
+export interface BulletinStepResult {
+  step: string;
+  ok: boolean;
+  stdout?: string;
+  stderr?: string;
+}
+
+export interface BulletinApplyResponse {
+  ok: boolean;
+  steps: BulletinStepResult[];
+  deltas: Record<string, { closed_count: number; closed: { policy_number: string; rule_number: string }[] }>;
+}
+
+export interface BulletinResetResponse {
+  ok: boolean;
+  steps: BulletinStepResult[];
+}

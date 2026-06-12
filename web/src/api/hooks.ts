@@ -2,17 +2,23 @@
 // never call fetch directly, so swapping mock/live data or changing caching
 // policy happens here (and in client.ts), nowhere else.
 
-import { useQueries, useQuery } from '@tanstack/react-query';
-import { getJson, getText } from './client';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getJson, getText, postJson } from './client';
 import type {
+  AckResponse,
   AnomaliesResponse,
+  ApprovalRole,
   ApprovalStateResponse,
+  ApproveResponse,
   AuditResponse,
   BronzeCancellationsResponse,
+  BulletinApplyResponse,
+  BulletinResetResponse,
   ClaimsResponse,
   FilingsResponse,
   FlatValidationResponse,
   KgAuditResponse,
+  KgNeighborhoodResponse,
   KgRulesResponse,
   PipelineStateResponse,
   StateResponse,
@@ -136,5 +142,54 @@ export function useKgAudit(limit = 20) {
   return useQuery({
     queryKey: ['kgAudit', limit],
     queryFn: () => getJson<KgAuditResponse>(`/kg/audit?limit=${limit}`),
+  });
+}
+
+// ── KG neighborhood graph ─────────────────────────────────────────
+export function useKgNeighborhood(ruleId: string | null) {
+  return useQuery({
+    queryKey: ['kgNeighborhood', ruleId],
+    queryFn: () => getJson<KgNeighborhoodResponse>('/kg/neighborhood/' + encodeURIComponent(ruleId!)),
+    enabled: !!ruleId,
+    staleTime: 5 * 60_000,        // the canon changes rarely; don't refetch per selection flip
+    refetchInterval: false,
+  });
+}
+
+// ── mutations ─────────────────────────────────────────────────────
+// Every mutation invalidates the whole cache on success — the backend
+// mutations ripple across validate/approval/audit/state, so a targeted
+// invalidation list would just drift out of date.
+
+export function useApplyBulletin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => postJson<BulletinApplyResponse>('/bulletin/apply'),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+export function useResetBulletin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => postJson<BulletinResetResponse>('/bulletin/reset'),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+export function useApproveFiling(filingId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (role: ApprovalRole) =>
+      postJson<ApproveResponse>('/filing/' + encodeURIComponent(filingId!) + '/approve', { role }),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+export function useReceiveAck(filingId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => postJson<AckResponse>('/filing/' + encodeURIComponent(filingId!) + '/ack'),
+    onSuccess: () => qc.invalidateQueries(),
   });
 }

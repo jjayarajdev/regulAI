@@ -9,6 +9,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useBackendState, useFilings, useValidate, useValidateAll } from '../../api/hooks';
 import { Overview } from './Overview';
 import { FilingWorkshop } from './FilingWorkshop';
+import { Regulations } from './Regulations';
+import { Bulletins } from './Bulletins';
+import { AuditLog } from './AuditLog';
 
 export type WsScreen = 'dashboard' | 'filing' | 'regulations' | 'bulletins' | 'audit';
 
@@ -180,22 +183,9 @@ export function WorkstationApp() {
               onBack={() => setScreen('dashboard')}
             />
           )}
-          {screen !== 'dashboard' && screen !== 'filing' && (
-            <div className="screen">
-              <div className="stub-screen">
-                <div className="eyebrow">{SCREEN_TITLES[screen]}</div>
-                <div className="stub-card">
-                  The <b>{SCREEN_TITLES[screen]}</b> screen is next in the React port.
-                  The data hooks it needs are already wired (
-                  {screen === 'regulations' && 'kg/rules, validate'}
-                  {screen === 'bulletins' && 'state, bulletin text'}
-                  {screen === 'audit' && 'audit trail, kg/audit'}) — only the
-                  markup remains. Until then, the original is available in
-                  ui/workstation.html.
-                </div>
-              </div>
-            </div>
-          )}
+          {screen === 'regulations' && <Regulations activeFilingId={activeFilingId} />}
+          {screen === 'bulletins' && <Bulletins activeFilingId={activeFilingId} />}
+          {screen === 'audit' && <AuditLog activeFilingId={activeFilingId} />}
         </main>
       </div>
     </div>

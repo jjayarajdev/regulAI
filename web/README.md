@@ -49,9 +49,12 @@ mode the app is running in.
 - `src/mocks/fixtures.ts` — mock data for three filings in different states
   (violations open / clean / early draft). Edit values here to exercise UI
   states; add latency or errors in `src/mocks/handlers.ts`.
-- `src/app/components/` — screens from the wireframes. `ReguAIOverview` is
-  wired to live hooks; the rest still render hardcoded wireframe data and are
-  next in the migration queue.
+- `src/app/ws/` — the workstation screens (Overview, Filing workshop,
+  Regulations, Bulletins, Audit log), all wired to live hooks. Mutations
+  (apply/reset bulletin, sign-off chain, TICO ACK) work in both modes — the
+  mock db in `src/mocks/db.ts` mirrors the backend's state transitions.
+- `src/app/components/` — the original Figma wireframe screens, kept at
+  `?ui=wireframe` for design reference.
 
 ## Production build
 
