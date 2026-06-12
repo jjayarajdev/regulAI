@@ -5,8 +5,8 @@
 
 import * as fx from './fixtures';
 import type {
-  ApprovalRole, ApproveResponse, BulletinApplyResponse, FilingStatus,
-  KgNeighborhoodResponse, ValidateResponse,
+  ApprovalRole, ApproveResponse, BronzeFixResponse, BulletinApplyResponse,
+  FilingStatus, KgNeighborhoodResponse, ValidateResponse,
 } from '../api/types';
 
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -18,6 +18,7 @@ export const db = {
   audit: clone(fx.auditByFiling),
   kgAudit: clone(fx.kgAudit),
   kgRules: clone(fx.kgRules),
+  bronze: clone(fx.bronzeByFiling),
 };
 
 let actionSeq = 100;
@@ -42,8 +43,11 @@ function recomputeSummary(v: ValidateResponse) {
     r.violation_count = counts[r.rule_id] ?? 0;
     if (r.status !== 'error') r.status = r.violation_count > 0 ? 'fail' : 'pass';
   }
+  // The fixture's rules array is a representative sample; rules_run counts the
+  // full suite. Derive passing from the total so the readiness ratio stays
+  // consistent (failing rules are all in the sample by construction).
   v.summary.rules_failing = v.rules.filter((r) => r.status === 'fail').length;
-  v.summary.rules_passing = v.rules.filter((r) => r.status === 'pass').length;
+  v.summary.rules_passing = v.summary.rules_run - v.summary.rules_failing - v.summary.rules_errored;
   v.summary.total_violations = v.violations.length;
 }
 
@@ -102,6 +106,7 @@ export function resetBulletin() {
   db.state = clone(fx.state);
   db.validate = clone(fx.validateByFiling);
   db.approval = clone(fx.approvalByFiling);
+  db.bronze = clone(fx.bronzeByFiling);
   db.kgAudit.entries.unshift({
     id: `audit-mock-${actionSeq++}`,
     action: 'bulletin_reset',
@@ -186,5 +191,77 @@ export function neighborhood(ruleId: string): KgNeighborhoodResponse {
       { from: ruleId, to: 'cv-LB', label: 'PERMITS' },
       { from: 'sec-A', to: 'rule-sibling', label: 'CONTAINS' },
     ],
+  };
+}
+
+// ── manual bronze fix (mirrors POST /bronze/fix) ───────────────────
+// Updates the bronze row, then re-evaluates the affected rules for that
+// policy the way a real CDC propagation + revalidation would: A.34 fails
+// iff the reason code is a bare 'L'; A.22 fails iff notice precedes
+// effective by under 30 days.
+export function fixBronze(policyNumber: string, field: string, newValue: string):
+  { status: number; body: BronzeFixResponse | { detail: string } } {
+  const policy = policyNumber.trim().toUpperCase();
+  if (!policy.startsWith('POL-')) return { status: 400, body: { detail: 'policy_number must be like POL-0015' } };
+
+  let filingId: string | null = null;
+  let row: (typeof db.bronze)[string]['rows'][number] | undefined;
+  for (const [fid, table] of Object.entries(db.bronze)) {
+    row = table.rows.find((r) => r.policy === policy);
+    if (row) { filingId = fid; break; }
+  }
+  if (!row || !filingId) return { status: 404, body: { detail: `no bronze record for ${policy}` } };
+
+  let oldValue: string | null;
+  if (field === 'reason_code') {
+    const code = newValue.trim().toUpperCase();
+    if (code && (!/^[A-Z]+$/.test(code) || code.length > 3)) {
+      return { status: 400, body: { detail: 'reason_code must be 1–3 letters (or empty)' } };
+    }
+    oldValue = row.reason_code;
+    row.reason_code = code;
+  } else if (field === 'noticedate') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(newValue.trim())) {
+      return { status: 400, body: { detail: 'date must be YYYY-MM-DD' } };
+    }
+    oldValue = row.noticedate;
+    row.noticedate = newValue.trim();
+  } else {
+    return { status: 400, body: { detail: `unknown field '${field}'; mock supports reason_code, noticedate` } };
+  }
+
+  // Re-evaluate this policy's violations against the touched rules.
+  const v = db.validate[filingId];
+  if (v) {
+    const noticeOk =
+      (new Date(row.effectivedate).getTime() - new Date(row.noticedate).getTime()) / 86_400_000 >= 30;
+    v.violations = v.violations.filter((x) => {
+      if (x.policy_number !== policy) return true;
+      if (x.rule_number === 'A.34') return row!.reason_code === 'L'; // still bare L → still fails
+      if (x.rule_number === 'A.22') return !noticeOk;
+      return true;
+    });
+    recomputeSummary(v);
+    syncBlockers(filingId);
+  }
+
+  recordAction(filingId, 'manual_fix', 'D. Reyes · Analyst',
+    `${field}: ${oldValue ?? '∅'} → ${newValue || '∅'}`);
+  const audit = db.audit[filingId];
+  if (audit?.actions[0]) {
+    audit.actions[0].target_record = policy;
+    audit.actions[0].target_rule = field;
+  }
+
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      policy_number: policy,
+      field: field as BronzeFixResponse['field'],
+      table: 'BRONZE.GW_PC_JOB',
+      old_value: oldValue,
+      new_value: newValue || null,
+    },
   };
 }

@@ -6,7 +6,7 @@
 import { http, HttpResponse } from 'msw';
 import { API_BASE } from '../api/client';
 import * as fx from './fixtures';
-import { ack, applyBulletin, approve, db, neighborhood, resetBulletin } from './db';
+import { ack, applyBulletin, approve, db, fixBronze, neighborhood, resetBulletin } from './db';
 import type { ApprovalRole } from '../api/types';
 
 // Small artificial latency so loading states are visible in mock mode.
@@ -40,7 +40,7 @@ export const handlers = [
   http.get(`${API_BASE}/bronze/cancellations`, async ({ request }) => {
     await delay();
     const filing = new URL(request.url).searchParams.get('filing');
-    return HttpResponse.json(byFiling(fx.bronzeByFiling, filing));
+    return HttpResponse.json(byFiling(db.bronze, filing));
   }),
 
   http.get(`${API_BASE}/bronze/claims`, async ({ request }) => {
@@ -113,6 +113,14 @@ export const handlers = [
   http.post(`${API_BASE}/filing/:filingId/ack`, async ({ params }) => {
     await delay(400);
     const { status, body: payload } = ack(String(params.filingId));
+    return HttpResponse.json(payload, { status });
+  }),
+
+  http.post(`${API_BASE}/bronze/fix`, async ({ request }) => {
+    await delay(500);
+    const body = (await request.json()) as { policy_number?: string; field?: string; new_value?: string };
+    const { status, body: payload } = fixBronze(
+      body.policy_number ?? '', body.field ?? 'reason_code', body.new_value ?? '');
     return HttpResponse.json(payload, { status });
   }),
 ];

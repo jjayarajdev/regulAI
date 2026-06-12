@@ -9,6 +9,7 @@ import {
   useBronzeCancellations, useReceiveAck, useValidate,
 } from '../../api/hooks';
 import type { ApprovalRole, ValidationRule, Violation } from '../../api/types';
+import { DetailDrawer, PolicyDetail } from './DetailDrawer';
 
 interface FilingWorkshopProps {
   activeFilingId: string | null;
@@ -73,6 +74,7 @@ const PIPELINE_STAGES: { id: string; label: string; when: string; role?: Approva
 
 export function FilingWorkshop({ activeFilingId, onBack }: FilingWorkshopProps) {
   const [sectionFilter, setSectionFilter] = useState<string | null>(null);
+  const [detailPolicy, setDetailPolicy] = useState<string | null>(null);
 
   const valQ = useValidate(activeFilingId);
   const approvalQ = useApprovalState(activeFilingId);
@@ -280,7 +282,11 @@ export function FilingWorkshop({ activeFilingId, onBack }: FilingWorkshopProps) 
                     const ass = assigneeFor(vio);
                     const isFix = code === 'L';
                     return (
-                      <div className="ticket" key={`${vio.rule_id}-${vio.record_id}`}>
+                      <div
+                        className="ticket"
+                        key={`${vio.rule_id}-${vio.record_id}`}
+                        onClick={() => setDetailPolicy(vio.policy_number)}
+                      >
                         <div className="ticket-head">
                           <span className="ticket-id">FILE-{String(1140 + idx).padStart(4, '0')}</span>
                           <span>{vio.policy_number}</span>
@@ -301,12 +307,19 @@ export function FilingWorkshop({ activeFilingId, onBack }: FilingWorkshopProps) 
                               <button
                                 className="ticket-action fix-bul"
                                 disabled={applyBulletin.isPending}
-                                onClick={() => applyBulletin.mutate()}
+                                onClick={(e) => { e.stopPropagation(); applyBulletin.mutate(); }}
                               >
                                 {applyBulletin.isPending ? 'Applying…' : 'Apply bulletin'}
                               </button>
                             )
-                            : <button className="ticket-action ghost" title="Manual-fix editor lands next">Fix manually →</button>}
+                            : (
+                              <button
+                                className="ticket-action ghost"
+                                onClick={(e) => { e.stopPropagation(); setDetailPolicy(vio.policy_number); }}
+                              >
+                                Fix manually →
+                              </button>
+                            )}
                         </div>
                       </div>
                     );
@@ -336,6 +349,15 @@ export function FilingWorkshop({ activeFilingId, onBack }: FilingWorkshopProps) 
           </aside>
         </div>
       </div>
+
+      <DetailDrawer
+        open={!!detailPolicy}
+        eyebrow="Bronze Record"
+        title={<em>{detailPolicy}</em>}
+        onClose={() => setDetailPolicy(null)}
+      >
+        {detailPolicy && <PolicyDetail policy={detailPolicy} filingId={activeFilingId} />}
+      </DetailDrawer>
     </div>
   );
 }

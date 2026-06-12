@@ -8,6 +8,8 @@ import type {
   AckResponse,
   AnomaliesResponse,
   ApprovalRole,
+  BronzeFixField,
+  BronzeFixResponse,
   ApprovalStateResponse,
   ApproveResponse,
   AuditResponse,
@@ -190,6 +192,15 @@ export function useReceiveAck(filingId: string | null) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => postJson<AckResponse>('/filing/' + encodeURIComponent(filingId!) + '/ack'),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+export function useFixBronze() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { policy_number: string; field: BronzeFixField; new_value: string }) =>
+      postJson<BronzeFixResponse>('/bronze/fix', vars),
     onSuccess: () => qc.invalidateQueries(),
   });
 }

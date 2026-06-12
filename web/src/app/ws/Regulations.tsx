@@ -8,6 +8,7 @@ import {
   useBronzeCancellations, useKgNeighborhood, useKgRules, useValidate,
 } from '../../api/hooks';
 import type { KgRule, ValidationRule } from '../../api/types';
+import { DetailDrawer, PolicyDetail } from './DetailDrawer';
 
 interface RegulationsProps {
   activeFilingId: string | null;
@@ -69,6 +70,7 @@ export function Regulations({ activeFilingId }: RegulationsProps) {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [detailPolicy, setDetailPolicy] = useState<string | null>(null);
 
   const v = valQ.data;
   const kgRules = kgQ.data?.rules ?? [];
@@ -251,19 +253,32 @@ export function Regulations({ activeFilingId }: RegulationsProps) {
           </div>
         )}
         {violators.map((x) => (
-          <div className="rvp-row" key={x.record_id + x.rule_id}>
+          <button className="rvp-row" key={x.record_id + x.rule_id} onClick={() => setDetailPolicy(x.policy_number)}>
             <span className="rvp-policy">{x.policy_number}</span>
             <span className="rvp-reason">{x.violation_reason}</span>
-          </div>
+          </button>
         ))}
         <h4 style={{ marginTop: 22 }}>Live records · {exec?.target_table ?? '—'}</h4>
         {bronzeRows.slice(0, 12).map((r) => (
-          <div className={`rvp-row ${violatingPolicies.has(r.policy) ? '' : 'pass'}`} key={r.policy + r.noticedate}>
+          <button
+            className={`rvp-row ${violatingPolicies.has(r.policy) ? '' : 'pass'}`}
+            key={r.policy + r.noticedate}
+            onClick={() => setDetailPolicy(r.policy)}
+          >
             <span className="rvp-policy">{r.policy} · {r.reason_code}</span>
             <span className="rvp-reason">{r.action.toLowerCase()} · notice {r.noticedate}</span>
-          </div>
+          </button>
         ))}
       </aside>
+
+      <DetailDrawer
+        open={!!detailPolicy}
+        eyebrow="Bronze Record"
+        title={<em>{detailPolicy}</em>}
+        onClose={() => setDetailPolicy(null)}
+      >
+        {detailPolicy && <PolicyDetail policy={detailPolicy} filingId={activeFilingId} />}
+      </DetailDrawer>
     </div>
   );
 }

@@ -295,3 +295,14 @@ export interface BulletinResetResponse {
   ok: boolean;
   steps: BulletinStepResult[];
 }
+
+export type BronzeFixField = 'reason_code' | 'naic_number' | 'writtenpremium' | 'termtype' | 'noticedate';
+
+export interface BronzeFixResponse {
+  ok: boolean;
+  policy_number: string;
+  field: BronzeFixField;
+  table: string;
+  old_value: string | null;
+  new_value: string | null;
+}
