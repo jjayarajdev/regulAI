@@ -1,0 +1,83 @@
+# Fly.io app config — RegulAI FastAPI (api)
+#
+# Deploys ONLY the FastAPI app. Neo4j + Dagster have their own fly.toml
+# files (fly.neo4j.toml, fly.dagster.toml) — deploy them as separate
+# Fly apps and they reach each other over Fly's internal 6PN network.
+#
+# Quick start (after `fly auth login`):
+#
+#   # 1. Create the apps (once)
+#   fly apps create regulai
+#
+#   # 2. Set secrets (creds + cross-app URLs)
+#   fly secrets set \
+#     OPENAI_API_KEY=sk-... \
+#     SNOWFLAKE_ACCOUNT=... \
+#     SNOWFLAKE_USER=... \
+#     SNOWFLAKE_TOKEN=... \
+#     SNOWFLAKE_AUTHENTICATOR=PROGRAMMATIC_ACCESS_TOKEN \
+#     SNOWFLAKE_ROLE=... \
+#     SNOWFLAKE_WAREHOUSE=COMPUTE_WH \
+#     SNOWFLAKE_DATABASE=INSURANCE_REGULATORY \
+#     NEO4J_URI=neo4j+s://<aura-instance>.databases.neo4j.io \
+#     NEO4J_USER=neo4j \
+#     NEO4J_PASSWORD=... \
+#     DAGSTER_URL=http://regulai-dagster.internal:3000
+#
+#   # 3. Deploy
+#   fly deploy
+#
+#   # 4. Seed the KG inside the running machine
+#   fly ssh console -C "make rebuild-kg migrate-validation-rules seed-jurisdictions tag-federal-defaults seed-filing-obligations seed-florida migrate-fl-validation-rules seed-demo-violations"
+#
+#   # 5. Open
+#   fly open    # https://regulai.fly.dev/workstation
+#
+# Minimum credible demo (no Dagster, no own Neo4j):
+#   - Use Neo4j Aura free tier for NEO4J_URI/USER/PASSWORD
+#   - Leave DAGSTER_URL pointing at the missing dagster app — the
+#     /admin/schedule page handles "Dagster offline" gracefully
+#   - /admin/upload won't complete the medallion run (it needs Dagster
+#     to fire the upload_to_gold_job) but upload+validate+convert work
+
+app = "regulai"
+primary_region = "bom"  # Mumbai — change to "iad" (US-East) or "lhr" (London) as needed
+
+[build]
+  # Fly auto-detects ./Dockerfile in repo root. No extra config needed.
+
+[env]
+  # Internal port the FastAPI app listens on; matches uvicorn --port in
+  # the Dockerfile CMD. Fly routes 80/443 → this port via the
+  # [http_service] block below.
+  PORT = "8765"
+
+[experimental]
+  # Bind IPv4 — matches dagster app for consistency. Cross-app traffic
+  # (e.g. dagster → api back-channel, if/when added) should use the
+  # .flycast DNS form which routes through Fly's IPv4-friendly proxy.
+  cmd = ["uv", "run", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8765"]
+
+[http_service]
+  internal_port = 8765
+  force_https = true
+  # Auto-suspend during idle: saves money but adds ~5-10s wake-up
+  # latency on the first request after idle. Disable for demo days.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  # HTTP-level healthcheck mirrors the docker-compose one — /api/regulations
+  # is cheap and exercises the FastAPI startup path.
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/api/regulations"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+  cpus = 1
