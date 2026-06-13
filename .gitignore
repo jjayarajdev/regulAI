@@ -59,3 +59,9 @@ references/*.png
 # Customer-uploaded data; not source. Test/demo uploads regenerate on
 # every run. The registry index lives here too — never source either.
 materialized/uploads/
+
+# Frontend
+node_modules/
+
+# Figma wireframe export (design reference only — the React port lives in web/)
+refinedUI/

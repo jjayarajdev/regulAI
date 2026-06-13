@@ -2594,7 +2594,7 @@
   }
 
   // ─── App state ──────────────────────────────────────────────────
-  const app = { data: {}, selectedRule: null, busy: false, helpOpen: false, helpTab: 'what' };
+  const app = { data: {}, selectedRule: null, helpOpen: false, helpTab: 'what' };
 
   // ─── Help-panel content per screen ──────────────────────────────
   const HELP = {
@@ -2849,41 +2849,86 @@
   // Active filing context — set via the side rail. Default to TPA-Q4-2025.
   if (!app.currentFilingId) app.currentFilingId = 'TPA-Q4-2025';
 
+  // Coalesce many slice-completion renders into one rAF tick — repeated
+  // app.data updates in the same frame produce a single DOM rebuild.
+  function scheduleRender() {
+    if (scheduleRender._pending) return;
+    scheduleRender._pending = true;
+    requestAnimationFrame(() => {
+      scheduleRender._pending = false;
+      render();
+    });
+  }
+
+  // Each refresh gets a generation number. When a newer refresh starts
+  // (30s tick, filing switch, tab refocus), responses still in flight from
+  // the older one are discarded — stale data can never overwrite fresh data
+  // or fire side effects against the wrong filing.
+  let refreshGen = 0;
+
+  // Slices whose payload depends on the active filing — cleared on a filing
+  // switch so the new filing shows a loading state, never the old filing's
+  // numbers under the new filing's name.
+  const FILING_SLICES = ['val', 'bronze', 'claims', 'audit', 'approval', 'anomalies'];
+
   async function refresh() {
-    if (app.busy) return;
-    app.busy = true;
-    const fq = `?filing=${encodeURIComponent(app.currentFilingId)}`;
-    const [filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit, approval, anomalies, kgAudit] = await Promise.all([
-      get('/filings'),
-      get('/state'),
-      get('/validate' + fq),
-      get('/validation'),
-      get('/bronze/cancellations' + fq),
-      get('/bronze/claims' + fq),
-      get('/pipeline/state'),
-      get('/kg/rules'),
-      fetch('/api/rhs/bulletin').then(r => r.ok ? r.text() : null).catch(() => null),
-      get('/audit/' + encodeURIComponent(app.currentFilingId)),
-      get('/filing/' + encodeURIComponent(app.currentFilingId) + '/approval-state'),
-      get('/anomalies' + fq),
-      get('/kg/audit?limit=20').catch(() => ({ entries: [] })),
-    ]);
-    app.data = { filings, st, val, valFlat, bronze, claims, pl, kgRules, bulletinTxt, audit, approval, anomalies, kgAudit };
-    // Seed per-filing counts cache from the active filing's validate result
-    // so the rail can immediately show its count while we fetch the others.
+    const gen = ++refreshGen;
+    const filingId = app.currentFilingId;
+    const fq = `?filing=${encodeURIComponent(filingId)}`;
+    if (!app.data) app.data = {};
     if (!app.filingCounts) app.filingCounts = {};
-    if (val?.summary) app.filingCounts[app.currentFilingId] = val.summary.total_violations;
-    // Populate the inline bulletin-text panel
-    const pre = bind('bulletin-text');
-    if (pre) pre.textContent = bulletinTxt || 'Bulletin text not available.';
-    if (!app.selectedRule && val?.rules?.length) {
-      // pick a failing rule as default if any, else first
-      app.selectedRule = val.rules.find(r => r.status === 'fail') || val.rules[0];
+    if (app.dataFilingId !== filingId) {
+      FILING_SLICES.forEach(k => { delete app.data[k]; });
+      app.dataFilingId = filingId;
+      scheduleRender();
     }
-    render();
-    app.busy = false;
-    // Fire-and-forget: fetch violation counts for the *other* filings so the
-    // rail shows live numbers for every filing, not just the active one.
+
+    // Each slice fetches in parallel and re-renders the moment it arrives.
+    // Slow or failing endpoints (e.g. Snowflake 500s) no longer block the
+    // page from showing the fast ones — the UI hydrates progressively.
+    // A missing slice key means "not yet loaded"; null means the fetch
+    // failed (get() resolves null on any error).
+    const slices = [
+      ['filings',     () => get('/filings')],
+      ['st',          () => get('/state')],
+      ['val',         () => get('/validate' + fq)],
+      ['valFlat',     () => get('/validation')],
+      ['bronze',      () => get('/bronze/cancellations' + fq)],
+      ['claims',      () => get('/bronze/claims' + fq)],
+      ['pl',          () => get('/pipeline/state')],
+      ['kgRules',     () => get('/kg/rules')],
+      ['bulletinTxt', () => fetch('/api/rhs/bulletin').then(r => r.ok ? r.text() : null).catch(() => null)],
+      ['audit',       () => get('/audit/' + encodeURIComponent(filingId))],
+      ['approval',    () => get('/filing/' + encodeURIComponent(filingId) + '/approval-state')],
+      ['anomalies',   () => get('/anomalies' + fq)],
+      ['kgAudit',     () => get('/kg/audit?limit=20')],
+    ];
+
+    const pending = slices.map(([key, fn]) =>
+      fn().then(v => {
+        if (gen !== refreshGen) return;   // superseded — drop stale response
+        app.data[key] = v;
+        // Per-slice side effects — fire when their slice arrives, not at
+        // the end of the batch.
+        if (key === 'val') {
+          if (v?.summary) app.filingCounts[filingId] = v.summary.total_violations;
+          if (!app.selectedRule && v?.rules?.length) {
+            app.selectedRule = v.rules.find(r => r.status === 'fail') || v.rules[0];
+          }
+        } else if (key === 'bulletinTxt') {
+          setText('bulletin-text', v || 'Bulletin text not available.');
+        }
+        scheduleRender();
+      })
+    );
+
+    // allSettled (not all): a throw inside a side effect above must not
+    // wedge the refresh cycle.
+    await Promise.allSettled(pending);
+    if (gen !== refreshGen) return;       // a newer refresh took over
+    app.lastRefreshDone = Date.now();
+    // Fire-and-forget: fetch violation counts for the *other* filings so
+    // the rail shows live numbers for every filing, not just the active one.
     refreshFilingCounts();
   }
 
@@ -2973,7 +3018,8 @@
 
     const el = bind('ctx-bulletin');
     if (el) {
-      if (!st || !st.reference_loaded) { el.textContent = '⚠ Snowflake unreachable'; el.style.color = 'var(--warn)'; }
+      if (st === undefined) { el.textContent = '… connecting'; el.style.color = 'var(--ink-3)'; }
+      else if (!st || !st.reference_loaded) { el.textContent = '⚠ Snowflake unreachable'; el.style.color = 'var(--warn)'; }
       else if (st.bulletin_applied) { el.textContent = '✓ bulletin B-2026-Q4-118 applied'; el.style.color = 'var(--good)'; }
       else { el.textContent = '◯ canon v1 (baseline)'; el.style.color = 'var(--ink-3)'; }
     }
@@ -2981,12 +3027,14 @@
     const sfState = bind('ph-sf-state');
     const kgState = bind('ph-kg-state');
     if (sfState) {
-      if (st && st.reference_loaded) { sfState.textContent = 'live'; sfState.style.color = 'var(--good)'; }
+      if (st === undefined) { sfState.textContent = '…'; sfState.style.color = 'var(--ink-3)'; }
+      else if (st && st.reference_loaded) { sfState.textContent = 'live'; sfState.style.color = 'var(--good)'; }
       else { sfState.textContent = 'offline'; sfState.style.color = 'var(--warn)'; }
     }
     if (kgState) {
       // Assume KG is live if backend responded (RHS bulletin endpoint uses Neo4j)
-      if (st) { kgState.textContent = 'live'; kgState.style.color = 'var(--good)'; }
+      if (st === undefined) { kgState.textContent = '…'; kgState.style.color = 'var(--ink-3)'; }
+      else if (st) { kgState.textContent = 'live'; kgState.style.color = 'var(--good)'; }
       else { kgState.textContent = 'offline'; kgState.style.color = 'var(--warn)'; }
     }
   }
@@ -2997,10 +3045,11 @@
     const vf = app.data.valFlat;
 
     if (!v) {
+      const s = sliceStatus(v);
       setText('kpi-readiness', '—');
-      setText('kpi-readiness-meta', backendError());
+      setText('kpi-readiness-meta', s.msg);
       setText('kpi-blockers', '—');
-      setText('kpi-blockers-meta', backendError());
+      setText('kpi-blockers-meta', s.msg);
     } else {
       const total = v.summary.rules_run;
       const pass = v.summary.rules_passing;
@@ -3917,8 +3966,9 @@ RETURN r, rel, n</pre>
     const meta = bind('filing-meta');
 
     if (!v) {
-      if (meta) meta.innerHTML = `<span style="color:var(--warn);">${esc(backendError())}</span>`;
-      setHTML('filing-section-cards', `<div class="sc"><div class="sc-summary" style="color:var(--warn);">${esc(backendError())}</div></div>`);
+      const s = sliceStatus(v);
+      if (meta) meta.innerHTML = `<span style="color:${s.color};">${esc(s.msg)}</span>`;
+      setHTML('filing-section-cards', `<div class="sc"><div class="sc-summary" style="color:${s.color};">${esc(s.msg)}</div></div>`);
       return;
     }
 
@@ -4479,10 +4529,11 @@ RETURN r, rel, n</pre>
     const tree = bind('reg-tree');
 
     if (!v) {
-      if (tree) tree.innerHTML = `<div class="tree-h">Rules</div><div style="padding:14px 24px;color:var(--warn);">${esc(backendError())}</div>`;
-      setText('reg-title', 'Backend unreachable');
+      const s = sliceStatus(v);
+      if (tree) tree.innerHTML = `<div class="tree-h">Rules</div><div style="padding:14px 24px;color:${s.color};">${esc(s.msg)}</div>`;
+      setText('reg-title', v === null ? 'Backend unreachable' : 'Loading…');
       setText('reg-code', '—');
-      setHTML('reg-data-tbody', `<tr><td colspan="4" style="text-align:center;color:var(--ink-3);">${esc(backendError())}</td></tr>`);
+      setHTML('reg-data-tbody', `<tr><td colspan="4" style="text-align:center;color:var(--ink-3);">${esc(s.msg)}</td></tr>`);
       return;
     }
 
@@ -4675,17 +4726,23 @@ RETURN r, rel, n</pre>
   // out with the library's force-directed default. Re-running disposes the
   // previous network so the canvas doesn't accumulate stale state.
   let _kgNetwork = null;
+  // Last rule drawn — render() now runs once per slice arrival, so skip the
+  // neighborhood refetch and graph relayout when the selection is unchanged.
+  let _kgRuleId = null;
   async function renderKgGraph(ruleId) {
     const host = bind('reg-kg-graph');
     if (!host || !ruleId) return;
+    if (ruleId === _kgRuleId) return;
     if (typeof vis === 'undefined') {
       host.innerHTML = '<div style="color:var(--ink-3);">vis-network library not loaded yet — reload the page.</div>';
       return;
     }
+    _kgRuleId = ruleId;
     host.innerHTML = '<div style="color:var(--ink-3);">Loading neighborhood…</div>';
     try {
       const r = await fetch('/api/rhs/kg/neighborhood/' + encodeURIComponent(ruleId));
       const data = await r.json();
+      if (_kgRuleId !== ruleId) return;   // selection changed mid-fetch
       if (!data.nodes || !data.nodes.length) {
         host.innerHTML = '<div style="color:var(--ink-3);">No KG neighborhood found for this rule.</div>';
         return;
@@ -4724,6 +4781,7 @@ RETURN r, rel, n</pre>
         nodes: { font: { face: 'system-ui, -apple-system, sans-serif' } },
       });
     } catch (e) {
+      _kgRuleId = null;   // allow a retry on the next render
       host.innerHTML = `<div style="color:var(--bad);">Failed to load neighborhood: ${esc(String(e))}</div>`;
     }
   }
@@ -4884,8 +4942,9 @@ RETURN r, rel, n</pre>
     }
 
     if (!st) {
-      if (btn) { btn.textContent = 'Backend unreachable'; btn.disabled = true; }
-      if (statusEl) statusEl.textContent = backendError();
+      const s = sliceStatus(st);
+      if (btn) { btn.textContent = st === null ? 'Backend unreachable' : 'Loading…'; btn.disabled = true; }
+      if (statusEl) statusEl.textContent = s.msg;
       return;
     }
 
@@ -5147,8 +5206,9 @@ RETURN r, rel, n</pre>
     if (!tl) return;
 
     if (!st || !v) {
-      if (sub) sub.innerHTML = `<span style="color:var(--warn);">${esc(backendError())}</span>`;
-      tl.innerHTML = `<div style="padding:32px;text-align:center;color:var(--ink-3);">${esc(backendError())}</div>`;
+      const s = sliceStatus(st, v);
+      if (sub) sub.innerHTML = `<span style="color:${s.color};">${esc(s.msg)}</span>`;
+      tl.innerHTML = `<div style="padding:32px;text-align:center;color:var(--ink-3);">${esc(s.msg)}</div>`;
       return;
     }
 
@@ -5247,6 +5307,15 @@ RETURN r, rel, n</pre>
 
   function backendError() {
     return 'Snowflake unreachable (check IP allowlist)';
+  }
+
+  // A slice is `undefined` until its first response arrives and `null` when
+  // its fetch failed — only the latter is a backend error. Renders happen
+  // per slice arrival, so empty slots are usually just "not loaded yet".
+  function sliceStatus(...vals) {
+    return vals.some(x => x === null)
+      ? { msg: backendError(), color: 'var(--warn)' }
+      : { msg: 'Loading…', color: 'var(--ink-3)' };
   }
 
   // ─── Button wiring ──────────────────────────────────────────────
@@ -5803,11 +5872,32 @@ ${f.warning ? '⚠ ' + f.warning + '\n\n' : ''}`;
     }
   });
 
-  // ─── Initial load ───────────────────────────────────────────────
-  refresh();
-
-  // Auto-refresh every 30s
-  setInterval(refresh, 30000);
+  // ─── Initial load + auto-refresh ────────────────────────────────
+  // Refresh every 30s, but only while the tab is visible: a background tab
+  // doesn't poll, and a tab opened in the background doesn't start polling
+  // either. A tab returning to focus catches up once — but only if its data
+  // is actually stale, so rapid alt-tabbing doesn't fire a full backend
+  // batch on every flip.
+  let refreshTimer = null;
+  function startAutoRefresh() {
+    if (refreshTimer) return;
+    refreshTimer = setInterval(refresh, 30000);
+  }
+  function stopAutoRefresh() {
+    if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      if (Date.now() - (app.lastRefreshDone || 0) > 30000) refresh();
+      startAutoRefresh();
+    } else {
+      stopAutoRefresh();
+    }
+  });
+  if (document.visibilityState === 'visible') {
+    refresh();
+    startAutoRefresh();
+  }
 </script>
 
 </body>
