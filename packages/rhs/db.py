@@ -23,6 +23,16 @@ from __future__ import annotations
 import os
 from typing import Any
 
+# Load .env into os.environ so the drivers (which read os.environ directly) see
+# REGULAI_DB and the per-engine credentials on a laptop run, not just inside
+# Docker. Existing env vars always win; safe if python-dotenv is absent.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except Exception:
+    pass
+
 _BACKEND = os.environ.get("REGULAI_DB", "snowflake").strip().lower()
 
 

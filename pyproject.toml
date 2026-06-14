@@ -38,6 +38,9 @@ dependencies = [
     # python-multipart — required by FastAPI for `UploadFile` (multipart
     # form uploads). Not transitive from anything else we ship.
     "python-multipart>=0.0.9",
+    # python-dotenv — load .env into os.environ at the db seam so engine
+    # selection + credentials work on a laptop run, not just in Docker.
+    "python-dotenv>=1.0",
     # DuckDB — free/local engine driver for the RHS pipeline (REGULAI_DB=duckdb),
     # and the in-process SQL engine for CI verification of violation_sql
     # (tests/_fl_duckdb_harness.py). Runs the same SQL as /validate, no creds.
