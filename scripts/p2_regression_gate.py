@@ -136,7 +136,7 @@ def run_gate() -> bool:
     # ── 5. Snowflake REFERENCE.TSPR_VALIDATION_RULES ──────────────────────
     print("\n5. Snowflake reference table")
     try:
-        from packages.rhs.snowflake_client import query
+        from packages.rhs.db import query
         rows = query(
             "SELECT COUNT(*) AS n FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES"
         )

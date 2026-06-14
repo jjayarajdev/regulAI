@@ -14,7 +14,7 @@ import argparse
 import time
 
 from packages.rhs.filings import policy_id_to_filing_case, policy_number_to_filing_case
-from packages.rhs.snowflake_client import query
+from packages.rhs.db import query
 
 ACCOUNTING_MONTH_DEFAULT = "2026-03"
 RUN_ID = f"gold-{int(time.time())}"

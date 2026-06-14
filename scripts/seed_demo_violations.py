@@ -23,7 +23,7 @@ Run: uv run python -m scripts.seed_demo_violations
 
 from __future__ import annotations
 
-from packages.rhs.snowflake_client import query
+from packages.rhs.db import query
 
 
 # Filing-scoped corruption recipes. Each entry: (filing_id, policy_id_range, recipe)

@@ -21,7 +21,7 @@ import hashlib
 import re
 from pathlib import Path
 
-from packages.rhs.snowflake_client import query
+from packages.rhs.db import query
 
 
 ROOT = Path(__file__).resolve().parent.parent

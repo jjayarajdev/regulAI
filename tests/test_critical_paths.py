@@ -21,7 +21,7 @@ import pytest
 
 def _snowflake_available() -> bool:
     try:
-        from packages.rhs.snowflake_client import query
+        from packages.rhs.db import query
         # Probe with a filtered COUNT: SELECT 1 / LIMIT 1 / bare COUNT(*) are
         # all served from metadata without a running warehouse, so they succeed
         # even on a suspended account — and the actual tests would then fail
@@ -51,7 +51,7 @@ def test_record_validation_run_is_idempotent():
     equal the violations set.
     """
     from api.rhs_demo import _record_validation_run
-    from packages.rhs.snowflake_client import query
+    from packages.rhs.db import query
 
     filing = "TPA-Q4-2025"
 
@@ -77,7 +77,7 @@ def test_exception_close_carries_resolution_action():
     """When _record_validation_run is called with a resolution_action and
     closes exceptions, those exceptions carry the action."""
     from api.rhs_demo import _record_validation_run
-    from packages.rhs.snowflake_client import query
+    from packages.rhs.db import query
 
     filing = "TPA-Q4-2025"
 
@@ -148,7 +148,7 @@ def test_bronze_fix_mutates_underlying_row():
     """
     from fastapi.testclient import TestClient
     from api.main import app
-    from packages.rhs.snowflake_client import query
+    from packages.rhs.db import query
 
     client = TestClient(app)
 

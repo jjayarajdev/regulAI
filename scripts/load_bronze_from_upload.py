@@ -23,7 +23,7 @@ import os
 import sys
 from pathlib import Path
 
-from packages.rhs.snowflake_client import query
+from packages.rhs.db import query
 
 
 def _env(name: str) -> str:

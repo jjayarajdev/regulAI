@@ -65,3 +65,7 @@ node_modules/
 
 # Figma wireframe export (design reference only — the React port lives in web/)
 refinedUI/
+
+# Local DuckDB demo warehouse (rebuild with scripts/seed_duckdb.py)
+materialized/*.duckdb
+materialized/*.duckdb.wal

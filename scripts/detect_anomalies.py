@@ -20,7 +20,7 @@ import time
 import uuid
 
 from packages.rhs.filings import FILINGS, policy_id_to_filing_case
-from packages.rhs.snowflake_client import query
+from packages.rhs.db import query
 
 
 def detect_premium_spike(month: str, run_id: str) -> int:

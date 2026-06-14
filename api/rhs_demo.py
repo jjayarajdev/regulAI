@@ -21,7 +21,7 @@ from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
-from packages.rhs.snowflake_client import query
+from packages.rhs.db import query
 
 logger = logging.getLogger("regulai.rhs")
 
