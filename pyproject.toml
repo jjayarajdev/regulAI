@@ -38,17 +38,22 @@ dependencies = [
     # python-multipart — required by FastAPI for `UploadFile` (multipart
     # form uploads). Not transitive from anything else we ship.
     "python-multipart>=0.0.9",
+    # DuckDB — free/local engine driver for the RHS pipeline (REGULAI_DB=duckdb),
+    # and the in-process SQL engine for CI verification of violation_sql
+    # (tests/_fl_duckdb_harness.py). Runs the same SQL as /validate, no creds.
+    "duckdb>=1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",
-    # In-process SQL engine for CI verification of violation_sql.
-    # See tests/_fl_duckdb_harness.py — executes the same SQL the
-    # production /validate endpoint runs, no Snowflake creds needed.
-    # Catches alias bugs, SQL syntax errors, rule logic regressions.
-    "duckdb>=1.0",
+]
+# Databricks SQL warehouse engine (REGULAI_DB=databricks). Install with
+#   uv sync --extra databricks
+# Driver: packages/rhs/databricks_client.py · seed: scripts/seed_databricks.py
+databricks = [
+    "databricks-sql-connector>=3.0",
 ]
 
 [tool.ruff]
