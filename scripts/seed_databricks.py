@@ -92,6 +92,11 @@ def _q(cur, sql: str):
 
 
 def main() -> None:
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except Exception:
+        pass
     from databricks import sql as dbx_sql
 
     conn = dbx_sql.connect(
