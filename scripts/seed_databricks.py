@@ -25,7 +25,6 @@ import duckdb
 
 from scripts.seed_duckdb import REASON_CODES  # dialect-neutral reference data
 
-CATALOG = os.environ.get("DATABRICKS_CATALOG", "INSURANCE_REGULATORY")
 PARQUET_ROOT = Path("materialized/bronze_parquet")
 
 BRONZE_TABLES = [
@@ -99,10 +98,12 @@ def main() -> None:
         pass
     from databricks import sql as dbx_sql
 
+    CATALOG = os.environ.get("DATABRICKS_CATALOG", "INSURANCE_REGULATORY")
     conn = dbx_sql.connect(
         server_hostname=os.environ["DATABRICKS_SERVER_HOSTNAME"],
         http_path=os.environ["DATABRICKS_HTTP_PATH"],
         access_token=os.environ["DATABRICKS_TOKEN"],
+        use_inline_params=True,  # codebase emits %s markers
     )
     local = duckdb.connect()  # reads parquet, infers schema
     cur = conn.cursor()

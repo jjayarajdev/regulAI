@@ -33,7 +33,11 @@ import re
 import threading
 from typing import Any
 
-CATALOG = os.environ.get("DATABRICKS_CATALOG", "INSURANCE_REGULATORY")
+def _catalog() -> str:
+    # Read at call time, not import — .env is loaded by the db.py seam, which
+    # may run after this module is first imported.
+    return os.environ.get("DATABRICKS_CATALOG", "INSURANCE_REGULATORY")
+
 
 _lock = threading.Lock()
 _conn = None
@@ -74,8 +78,11 @@ def get_connection():
                 server_hostname=cfg["host"],
                 http_path=cfg["path"],
                 access_token=cfg["token"],
-                catalog=CATALOG,
+                catalog=_catalog(),
                 schema=os.environ.get("DATABRICKS_SCHEMA"),
+                # The codebase emits Snowflake-style %s markers; inline params
+                # restore that (v3 connector defaults to native ? otherwise).
+                use_inline_params=True,
             )
         return _conn
 
@@ -110,8 +117,9 @@ def _snow_fmt_to_spark(fmt: str) -> str:
 
 
 def _translate_sql(sql: str) -> str:
-    if CATALOG != "INSURANCE_REGULATORY":
-        sql = sql.replace("INSURANCE_REGULATORY.", f"{CATALOG}.")
+    catalog = _catalog()
+    if catalog != "INSURANCE_REGULATORY":
+        sql = sql.replace("INSURANCE_REGULATORY.", f"{catalog}.")
     sql = _CURRENT_TS.sub("CURRENT_TIMESTAMP()", sql)
     sql = _PARSE_JSON.sub("(", sql)  # store JSON as string
     sql = _TO_VARCHAR_FMT.sub(
