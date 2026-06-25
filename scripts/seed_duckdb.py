@@ -51,7 +51,12 @@ VALIDATION_RULES = [
     (
         "A.34", "Reason code L (credit score declination) requires companion",
         "BRONZE.GW_PC_JOB", "j.publicid",
-        "j.declinereason = 'L'",
+        # Canon-flag driven: L-alone is a violation only while the reason-code
+        # map still requires a companion. Applying bulletin B-2026-Q4-118 flips
+        # that flag, so this rule stops firing — engine-agnostic bulletin effect.
+        "j.declinereason = 'L' AND EXISTS ("
+        "SELECT 1 FROM INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP m "
+        "WHERE m.tspr_reason_code = 'L' AND m.credit_score_companion_required)",
         "L requires companion code", "ERROR",
         "TICO Stat Plan Rule A.34 / Section E",
     ),

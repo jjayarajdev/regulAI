@@ -51,7 +51,12 @@ BRONZE_TABLES = [
 VALIDATION_RULES = [
     ("A.34", "Reason code L (credit score declination) requires companion",
      "BRONZE.GW_PC_JOB", "j.publicid",
-     "j.declinereason = 'L'",
+     # Canon-flag driven so the bulletin's effect is one portable UPDATE (see
+     # /bulletin/apply): L-alone violates only while the reason-code map still
+     # requires a companion.
+     "j.declinereason = 'L' AND EXISTS ("
+     "SELECT 1 FROM INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP m "
+     "WHERE m.tspr_reason_code = 'L' AND m.credit_score_companion_required)",
      "L requires companion code", "ERROR", "TICO Stat Plan Rule A.34 / Section E"),
     ("A.22", "Notice date must precede effective date by 30+ days",
      "BRONZE.GW_PC_JOB", "j.publicid",

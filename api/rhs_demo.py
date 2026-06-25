@@ -21,7 +21,7 @@ from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
-from packages.rhs.db import query
+from packages.rhs.db import backend_name, query
 
 logger = logging.getLogger("regulai.rhs")
 
@@ -1805,32 +1805,45 @@ def anomalies_detect() -> JSONResponse:
 def bulletin_apply() -> JSONResponse:
     """Apply the credit-score bulletin: materialize → version-bump → reload reference."""
     steps = []
-    # 1. Materialize bulletin into KG
-    steps.append({"step": "materialize", **_run(
-        ["uv", "run", "python", "-m", "scripts.apply_credit_score_bulletin"]
-    )})
-    if not steps[-1]["ok"]:
-        return JSONResponse({"ok": False, "steps": steps}, status_code=500)
+    if backend_name() == "snowflake":
+        # KG-driven canon pipeline: materialize → version-bump → reference → load.
+        steps.append({"step": "materialize", **_run(
+            ["uv", "run", "python", "-m", "scripts.apply_credit_score_bulletin"]
+        )})
+        if not steps[-1]["ok"]:
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
-    # 2. Bump versions
-    steps.append({"step": "version_bump", **_run([
-        "uv", "run", "python", "-m", "scripts.apply_bulletin",
-        "--bulletin", BULLETIN_OVERRIDE_NAME,
-    ])})
-    if not steps[-1]["ok"]:
-        return JSONResponse({"ok": False, "steps": steps}, status_code=500)
+        steps.append({"step": "version_bump", **_run([
+            "uv", "run", "python", "-m", "scripts.apply_bulletin",
+            "--bulletin", BULLETIN_OVERRIDE_NAME,
+        ])})
+        if not steps[-1]["ok"]:
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
-    # 3. Regenerate reference + load to Snowflake
-    steps.append({"step": "build_reference", **_run(
-        ["uv", "run", "python", "-m", "scripts.build_reference_reason_codes"]
-    )})
-    if not steps[-1]["ok"]:
-        return JSONResponse({"ok": False, "steps": steps}, status_code=500)
+        steps.append({"step": "build_reference", **_run(
+            ["uv", "run", "python", "-m", "scripts.build_reference_reason_codes"]
+        )})
+        if not steps[-1]["ok"]:
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
-    steps.append({"step": "load_reference", **_run([
-        "snow", "sql", "-c", "regulai", "-f",
-        "materialized/reference/tspr_reason_code_map.sql",
-    ])})
+        steps.append({"step": "load_reference", **_run([
+            "snow", "sql", "-c", "regulai", "-f",
+            "materialized/reference/tspr_reason_code_map.sql",
+        ])})
+    else:
+        # Portable engines (duckdb / databricks): the A.34 rule is canon-flag
+        # driven, so clearing L's companion requirement makes L-alone valid on
+        # the next validation — same observable effect as the KG pipeline, one
+        # UPDATE through the seam. No Snowflake/Neo4j/snow-CLI dependency.
+        try:
+            query(
+                "UPDATE INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP "
+                "SET credit_score_companion_required = FALSE WHERE tspr_reason_code = 'L'"
+            )
+            steps.append({"step": "flip_canon", "ok": True})
+        except Exception as e:
+            steps.append({"step": "flip_canon", "ok": False, "error": str(e)[:200]})
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
     ok = all(s["ok"] for s in steps)
     # Audit the bulletin apply against every filing (it affects the canon, which is shared).
@@ -1899,22 +1912,35 @@ def bulletin_apply() -> JSONResponse:
 def bulletin_reset() -> JSONResponse:
     """Roll back the bulletin and reload baseline reference."""
     steps = []
-    steps.append({"step": "reset", **_run(
-        ["uv", "run", "python", "-m", "scripts.reset_credit_score_bulletin"]
-    )})
-    if not steps[-1]["ok"]:
-        return JSONResponse({"ok": False, "steps": steps}, status_code=500)
+    if backend_name() == "snowflake":
+        steps.append({"step": "reset", **_run(
+            ["uv", "run", "python", "-m", "scripts.reset_credit_score_bulletin"]
+        )})
+        if not steps[-1]["ok"]:
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
-    steps.append({"step": "build_reference", **_run(
-        ["uv", "run", "python", "-m", "scripts.build_reference_reason_codes"]
-    )})
-    if not steps[-1]["ok"]:
-        return JSONResponse({"ok": False, "steps": steps}, status_code=500)
+        steps.append({"step": "build_reference", **_run(
+            ["uv", "run", "python", "-m", "scripts.build_reference_reason_codes"]
+        )})
+        if not steps[-1]["ok"]:
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
-    steps.append({"step": "load_reference", **_run([
-        "snow", "sql", "-c", "regulai", "-f",
-        "materialized/reference/tspr_reason_code_map.sql",
-    ])})
+        steps.append({"step": "load_reference", **_run([
+            "snow", "sql", "-c", "regulai", "-f",
+            "materialized/reference/tspr_reason_code_map.sql",
+        ])})
+    else:
+        # Portable engines: restore L's companion requirement → A.34 re-flags
+        # L-alone on the next validation.
+        try:
+            query(
+                "UPDATE INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP "
+                "SET credit_score_companion_required = TRUE WHERE tspr_reason_code = 'L'"
+            )
+            steps.append({"step": "reset_canon", "ok": True})
+        except Exception as e:
+            steps.append({"step": "reset_canon", "ok": False, "error": str(e)[:200]})
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
     ok = all(s["ok"] for s in steps)
     if ok:
