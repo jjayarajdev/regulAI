@@ -182,3 +182,23 @@ actually engine-coupled.
 ~1 focused pass: base + three dialects + unified seed + re-verify. Net result:
 the three drivers (~430 lines) + two seeds (~400 lines) collapse to one base +
 three small dialects + one seeder, and engine #4 costs ~40 lines instead of ~450.
+
+## Switching engines & rolling back to Snowflake
+
+The engine is a **runtime** choice — rollback needs no code change:
+
+| To run on… | Do this |
+|---|---|
+| **Databricks** (demo) | `REGULAI_DB=databricks` in `.env` (+ DATABRICKS_*); `uv run python -m scripts.seed_databricks` once |
+| **DuckDB** (free/offline) | `REGULAI_DB=duckdb`; `uv run python -m scripts.seed_duckdb` once |
+| **Snowflake** (rollback) | `REGULAI_DB=snowflake` in `.env` (+ SNOWFLAKE_*). That's the entire rollback — the Snowflake driver and its full bulletin/KG pipeline are unchanged. |
+
+Tags:
+- **`v1.0.0-snowflake`** — the Snowflake-only baseline (before the engine layer).
+  Code-level rollback: `git checkout v1.0.0-snowflake`.
+- **`v1.1.0-multi-engine`** — this release: the `REGULAI_DB` switch with
+  Databricks/DuckDB/Snowflake, demo-verified end-to-end on Databricks.
+
+So there are two independent rollback levers: flip `REGULAI_DB=snowflake` to
+move the *running* app back to Snowflake, or check out `v1.0.0-snowflake` to
+get the *code* as it was before any of this.
