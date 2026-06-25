@@ -157,18 +157,46 @@ def _from_kg() -> list[dict]:
     return out
 
 
+# Short-lived cache so a single page load (which calls this several times
+# across endpoints) hits the KG at most once per window — and, when the KG is
+# down, logs the fallback once instead of on every call. When Neo4j comes back
+# up the next window picks it up automatically.
+import time
+
+_CACHE_TTL_S = 30.0
+_cache: tuple[float, list[dict]] | None = None
+_kg_down_logged = False
+
+
 def load_filings() -> list[dict]:
     """Get the live filings list.
 
     Prefers KG (FilingObligation nodes). Falls back to the in-file FILINGS
     list when KG is unreachable or empty (e.g. fresh seed). Same shape as
-    the legacy list so callers don't need to branch.
+    the legacy list so callers don't need to branch. Result is cached for
+    ~30s to avoid hammering (and re-logging) an unreachable KG per request.
     """
+    global _cache, _kg_down_logged
+    now = time.monotonic()
+    if _cache is not None and (now - _cache[0]) < _CACHE_TTL_S:
+        return _cache[1]
+
+    result = FILINGS
     try:
         kg = _from_kg()
         if kg:
-            return kg
-        logger.info("filings.load_filings: KG has no FilingObligation nodes — using Python fallback")
+            result = kg
+            _kg_down_logged = False  # KG recovered — allow the warning again
+        else:
+            logger.info("filings.load_filings: KG has no FilingObligation nodes — using Python fallback")
     except Exception as e:
-        logger.warning("filings.load_filings: KG unreachable (%s) — using Python fallback", e)
-    return FILINGS
+        if not _kg_down_logged:
+            logger.warning(
+                "filings.load_filings: KG unreachable (%s) — using Python fallback "
+                "(further KG-down messages suppressed for ~%.0fs)",
+                e, _CACHE_TTL_S,
+            )
+            _kg_down_logged = True
+
+    _cache = (now, result)
+    return result
