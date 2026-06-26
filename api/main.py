@@ -71,6 +71,15 @@ MOCK_UI_DIR = Path("mock-ui-v2")
 
 if UI_DIR.exists():
     app.mount("/static/ui", StaticFiles(directory=UI_DIR), name="ui_static")
+
+# React workstation (web/) — built into web/dist by the Docker image and served
+# at /app. html=True serves index.html for the SPA; assets resolve via Vite
+# base '/app/'. Guarded so a source checkout without a build still boots (the
+# legacy single-file UI at / keeps working either way).
+WEB_DIST = Path("web/dist")
+if WEB_DIST.exists():
+    app.mount("/app", StaticFiles(directory=WEB_DIST, html=True), name="react_app")
+
 if MOCK_UI_DIR.exists():
     # mount mock-ui-v2's styles directory so we can reuse the design language
     if (MOCK_UI_DIR / "styles").exists():

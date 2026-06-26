@@ -16,7 +16,10 @@ function figmaAssetResolver() {
   }
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // Production builds are served by FastAPI under /app (see api/main.py mount);
+  // dev server stays at root. Keeps asset URLs correct in the deployed image.
+  base: mode === 'production' ? '/app/' : '/',
   plugins: [
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
@@ -40,4 +43,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))
