@@ -41,7 +41,9 @@
 #     to fire the upload_to_gold_job) but upload+validate+convert work
 
 app = "regulai"
-primary_region = "bom"  # Mumbai — change to "iad" (US-East) or "lhr" (London) as needed
+primary_region = "iad"  # US-East — co-located with the Databricks warehouse
+                        # (fast data path); bom had no capacity. "sin"/"bom"
+                        # are closer to an India-based audience if you prefer.
 
 [build]
   # Fly auto-detects ./Dockerfile in repo root. No extra config needed.
