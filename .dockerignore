@@ -57,3 +57,8 @@ references/*.png
 
 # Old/test scratch
 materialized/bronze_parquet/.*.tmp
+
+# Node deps — installed fresh in the web-builder stage. Never ship host
+# installs: macOS/arm64 binaries (e.g. rollup native) break the Linux build.
+**/node_modules/
+web/dist/
