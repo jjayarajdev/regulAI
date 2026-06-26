@@ -68,14 +68,15 @@ primary_region = "bom"  # Mumbai — change to "iad" (US-East) or "lhr" (London)
   min_machines_running = 0
   processes = ["app"]
 
-  # HTTP-level healthcheck mirrors the docker-compose one — /api/regulations
-  # is cheap and exercises the FastAPI startup path.
+  # Healthcheck hits the static React index — confirms the process is serving
+  # without depending on Neo4j or a warm Databricks warehouse, so an external
+  # dependency being asleep can't flap the check or trigger a rollback.
   [[http_service.checks]]
     interval = "30s"
     timeout = "5s"
     grace_period = "30s"
     method = "GET"
-    path = "/api/regulations"
+    path = "/app/"
 
 [[vm]]
   size = "shared-cpu-1x"
