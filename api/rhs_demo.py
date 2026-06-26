@@ -17,7 +17,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
@@ -159,14 +159,28 @@ def _ensure_filing_batch(filing_id: str, status: str = "draft") -> str:
     return f["id"]
 
 
+# Last persisted violation signature per filing. The frontend auto-refreshes,
+# re-running validation on an unchanged result set; persisting that identical
+# audit run every time is pure waste — and on an analytics warehouse like
+# Databricks the row-by-row audit DML (a MERGE per violation) costs seconds.
+# Skip when nothing changed; only real transitions (a fix, a bulletin) persist.
+_last_validation_sig: dict[str, str] = {}
+
+
 @_audit_safe
 def _record_validation_run(filing_id: str, rule_results: list[dict], violations: list[dict],
-                           resolution_action: str | None = None) -> str | None:
+                           resolution_action: str | None = None, force: bool = False) -> str | None:
     """Persist a complete validation run to GOLD_AUDIT.RULE_MATCH_RESULT.
 
     Writes one row per rule × failing-record (pass-rows are summarized by absence).
     Returns the run_id so callers can update FILING_BATCH.last_validation_run_id.
+    `force` bypasses the unchanged-since-last-run dedupe (used by the bulletin
+    flow, which must reconcile exceptions to compute its deltas).
     """
+    sig = "|".join(sorted(f"{v.get('policy_number')}~{v.get('rule_id')}" for v in violations))
+    if not force and _last_validation_sig.get(filing_id) == sig:
+        return None  # unchanged since the last persisted run — skip the audit DML
+
     batch = _ensure_filing_batch(filing_id, status="validating") or filing_id
     run_id = "run-" + _uuid.uuid4().hex[:12]
     rows_params: list[tuple] = []
@@ -274,6 +288,7 @@ def _record_validation_run(filing_id: str, rule_results: list[dict], violations:
                    details={"run_id": run_id, "passing": sum(1 for r in rule_results if r.get('violation_count', 0) == 0),
                             "failing": sum(1 for r in rule_results if r.get('violation_count', 0) > 0),
                             "violations": len(violations)})
+    _last_validation_sig[filing_id] = sig
     return run_id
 
 
@@ -432,7 +447,8 @@ def reference_table(table_name: str) -> JSONResponse:
 
 @router.get("/validate")
 @router.get("/validate/cancellations")   # legacy alias — pre-dates the rule engine running everything
-def validate_cancellations(filing: str | None = None) -> JSONResponse:
+def validate_cancellations(filing: str | None = None,
+                           background_tasks: BackgroundTasks = None) -> JSONResponse:
     """Run every rule from REFERENCE.TSPR_VALIDATION_RULES against BRONZE.
 
     For each rule we read its `violation_sql` (TRUE → row violates the rule)
@@ -537,10 +553,18 @@ def validate_cancellations(filing: str | None = None) -> JSONResponse:
         "total_violations": len(violations),
     }
 
-    # Persist this run to audit (best-effort, never fails the request)
+    # Persist this run to audit (best-effort, never fails the request). Over
+    # HTTP this runs in the background so the UI gets results immediately;
+    # internal callers (e.g. bulletin apply, which needs the exception table
+    # reconciled before computing deltas) pass no background_tasks → synchronous.
     run_id = None
     if filing:
-        run_id = _record_validation_run(filing, rule_results, violations)
+        if background_tasks is not None:
+            background_tasks.add_task(_record_validation_run, filing, rule_results, violations)
+        else:
+            # Internal callers (bulletin apply) need the exception table
+            # reconciled now, so force past the dedupe.
+            run_id = _record_validation_run(filing, rule_results, violations, force=True)
 
     return JSONResponse({
         "summary": summary,
