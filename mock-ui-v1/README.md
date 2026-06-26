@@ -1,5 +1,8 @@
 # RegulAI
 
+> ⚠️ **Legacy static mock (April 2026).** Superseded by the live React
+> workstation in [`../web/`](../web/). Kept for design reference only.
+
 **The agentic regulatory workforce for U.S. P&C insurance.**
 
 This repository contains the working artifacts of a design and architecture engagement for RegulAI — a B2B RegTech-as-a-Service platform that replaces the retiring manual compliance workforce at insurance carriers with a graph-native regulation engine, an agentic pipeline, and human specialists on standby for edge cases.
