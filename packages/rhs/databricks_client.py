@@ -135,18 +135,30 @@ def _translate_sql(sql: str) -> str:
 def query(sql: str, params: tuple | None = None) -> list[dict[str, Any]]:
     """Run a query, return rows as a list of dicts (lowercase column → value).
 
+    Self-healing: the process-wide connection dies when the serverless
+    warehouse auto-stops, after which every query fails fast. On any error we
+    drop the cached connection and retry once with a fresh one — which also
+    wakes a cold warehouse (the connector starts it on connect/query).
+
     The connector accepts Snowflake-style `%s` markers with a parameter
     sequence, so the SQL passes through unchanged on that axis.
     """
-    conn = get_connection()
     out_sql = _translate_sql(sql)
-    with _lock:
-        with conn.cursor() as cur:
-            cur.execute(out_sql, list(params) if params else None)
-            if cur.description is None:
-                return []
-            cols = [d[0].lower() for d in cur.description]
-            return [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
+    last_err: Exception | None = None
+    for attempt in range(2):
+        conn = get_connection()
+        try:
+            with _lock:
+                with conn.cursor() as cur:
+                    cur.execute(out_sql, list(params) if params else None)
+                    if cur.description is None:
+                        return []
+                    cols = [d[0].lower() for d in cur.description]
+                    return [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
+        except Exception as e:
+            last_err = e
+            close()  # drop the (likely dead) connection; next attempt reconnects
+    raise last_err  # type: ignore[misc]
 
 
 def close() -> None:
