@@ -3,6 +3,7 @@
 // recent activity from the audit trail, and the fixed-width wire preview.
 
 import { useApprovalStates, useAudit, useBronzeCancellations, useFilings, useValidate, useValidateAll } from '../../api/hooks';
+import { ENGINE_LABEL } from '../../api/client';
 import type { FilingStatus } from '../../api/types';
 
 interface OverviewProps {
@@ -115,7 +116,7 @@ export function Overview({ activeFilingId, onOpenFiling }: OverviewProps) {
           <div className="kpi-meta" style={valFailed ? { color: 'var(--warn)' } : undefined}>
             {activeVal
               ? `${activeVal.summary.rules_passing} of ${activeVal.summary.rules_run} rules passing · ${activeVal.summary.rules_failing} failing`
-              : valFailed ? 'Snowflake unreachable (check IP allowlist)' : loadingMeta}
+              : valFailed ? `${ENGINE_LABEL} warming up — retry in a moment` : loadingMeta}
           </div>
         </div>
         <div className="kpi">
@@ -240,7 +241,7 @@ export function Overview({ activeFilingId, onOpenFiling }: OverviewProps) {
           <div className="wire-card">
             <div className="wire-body">
               {bronzeQ.isLoading && <span className="ruler">loading sample…</span>}
-              {bronzeQ.isError && <span style={{ color: 'var(--warn)' }}>Snowflake unreachable</span>}
+              {bronzeQ.isError && <span style={{ color: 'var(--warn)' }}>{ENGINE_LABEL} warming up…</span>}
               {bronzeQ.data && (
                 <>
                   <span className="ruler">{'POLICY      ACTION        CODE  NOTICE      EFFECTIVE'}</span>

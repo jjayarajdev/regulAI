@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { ENGINE_CONSOLE_URL, ENGINE_LABEL } from '../../api/client';
 import { useBackendState, useFilings, useValidate, useValidateAll } from '../../api/hooks';
 import { Overview } from './Overview';
 import { FilingWorkshop } from './FilingWorkshop';
@@ -75,7 +76,7 @@ export function WorkstationApp() {
               {stQ.isLoading
                 ? '… connecting'
                 : !st || !st.reference_loaded
-                  ? '⚠ Snowflake unreachable'
+                  ? `⚠ ${ENGINE_LABEL} warming up…`
                   : st.bulletin_applied
                     ? `✓ bulletin ${st.bulletin_id} applied`
                     : '◯ canon v1 (baseline)'}
@@ -150,8 +151,8 @@ export function WorkstationApp() {
             <a className="rail-link" href="http://localhost:7474" target="_blank" rel="noopener noreferrer">
               Knowledge graph<span className="count">↗</span>
             </a>
-            <a className="rail-link" href="https://app.snowflake.com/" target="_blank" rel="noopener noreferrer">
-              Snowflake<span className="count">↗</span>
+            <a className="rail-link" href={ENGINE_CONSOLE_URL} target="_blank" rel="noopener noreferrer">
+              {ENGINE_LABEL}<span className="count">↗</span>
             </a>
             <div className="rail-link">ShareFile<span className="count">preview</span></div>
           </div>
@@ -163,7 +164,7 @@ export function WorkstationApp() {
           <span className="ph-sep">/</span>
           <span className="ph-title">{cycleLabel}</span>
           <div className="ph-meta">
-            <span><span className={`live-dot ${sfState !== 'live' ? 'off' : ''}`} />Snowflake {sfState}</span>
+            <span><span className={`live-dot ${sfState !== 'live' ? 'off' : ''}`} />{ENGINE_LABEL} {sfState}</span>
             <span><span className={`live-dot ${kgState !== 'live' ? 'off' : ''}`} />Neo4j KG {kgState}</span>
             <button className="refresh" onClick={() => queryClient.invalidateQueries()}>⟲ Refresh</button>
           </div>

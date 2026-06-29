@@ -23,7 +23,7 @@ RUN npm install -g pnpm@9
 WORKDIR /web
 COPY web/ ./
 RUN pnpm install --no-frozen-lockfile \
-    && VITE_API_MODE=live pnpm build
+    && VITE_API_MODE=live VITE_ENGINE_LABEL=Databricks pnpm build
 
 # ────────────────────────────────────────────────────────────────────
 # Stage 1: build deps with uv

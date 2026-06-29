@@ -49,6 +49,42 @@ logger = logging.getLogger("regulai.api")
 
 app = FastAPI(title="RegulAI LHS", version="0.1.0")
 
+
+# ── Keep-warm (opt-in via REGULAI_KEEPWARM=1) ────────────────────────────────
+# A serverless warehouse (Databricks) auto-stops when idle, so the first request
+# after a lull pays a ~15-45s cold start. When enabled, ping the warehouse on an
+# interval shorter than its auto-stop so the demo never hits a cold load. Touches
+# the bronze tables the /validate path scans, to keep the data + plan cache warm.
+# OFF by default — leaving it on holds the warehouse open continuously (cost /
+# Free-Edition quota). Enable for demo days, disable after.
+import asyncio as _asyncio  # noqa: E402
+import os as _os  # noqa: E402
+
+
+def _keep_warm_query() -> None:
+    from packages.rhs.db import query
+    query("SELECT 1")  # wakes / keeps the warehouse session alive
+    for tbl in ("GW_PC_JOB", "GW_PC_POLICY", "GW_CC_CLAIM"):
+        query(f"SELECT count(*) FROM INSURANCE_REGULATORY.BRONZE.{tbl}")
+
+
+@app.on_event("startup")
+async def _start_keep_warm() -> None:
+    if _os.environ.get("REGULAI_KEEPWARM", "").strip().lower() not in ("1", "true", "yes"):
+        return
+    interval = int(_os.environ.get("REGULAI_KEEPWARM_SECONDS", "240"))
+
+    async def _loop() -> None:
+        while True:
+            try:
+                await _asyncio.to_thread(_keep_warm_query)
+            except Exception:
+                logging.getLogger("keepwarm").warning("keep-warm ping failed", exc_info=True)
+            await _asyncio.sleep(interval)
+
+    _asyncio.create_task(_loop())
+    logging.getLogger("keepwarm").info("keep-warm enabled · every %ss", interval)
+
 # CORS — Neo4j Browser is served from :7474 and needs to fetch the
 # Cypher guide HTML from our :8765. Local-dev origins only.
 app.add_middleware(
