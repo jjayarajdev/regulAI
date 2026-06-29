@@ -58,6 +58,26 @@ from packages.rhs.filings import FILINGS  # noqa: E402  — bootstrap fallback
 from packages.rhs.filings import load_filings as _load_filings_from_kg  # noqa: E402
 
 
+import datetime as _dt
+
+# Days-from-today each filing is "due", so the demo dashboard always reads as
+# upcoming (never overdue) regardless of when it runs. Display-only — filing
+# scope uses policy-id ranges, not dates.
+_DUE_OFFSETS = [75, 96, 124]
+
+
+def _polish_demo_filings(filings: list[dict]) -> list[dict]:
+    """Keep demo due dates in the future and fill a jurisdiction default, so the
+    dashboard never shows '-90 days to file' or an empty jurisdiction pill."""
+    today = _dt.date.today()
+    for i, f in enumerate(filings):
+        f["due_date"] = (today + _dt.timedelta(days=_DUE_OFFSETS[i % len(_DUE_OFFSETS)])).isoformat()
+        f.setdefault("jurisdiction_code", "US-TX")
+        if not f.get("jurisdiction_code"):
+            f["jurisdiction_code"] = "US-TX"
+    return filings
+
+
 def _live_filings() -> list[dict]:
     """KG-preferred filings list (P2.4). Falls back to FILINGS on KG error.
 
@@ -65,7 +85,7 @@ def _live_filings() -> list[dict]:
     KG read is small (~3 nodes) and cached internally by Neo4j; refactoring
     to module-level state would defeat the purpose (KG becomes the source).
     """
-    return _load_filings_from_kg()
+    return _polish_demo_filings(_load_filings_from_kg())
 
 
 def _filing(filing_id: str | None) -> dict | None:
