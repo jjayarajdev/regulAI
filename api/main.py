@@ -49,6 +49,42 @@ logger = logging.getLogger("regulai.api")
 
 app = FastAPI(title="RegulAI LHS", version="0.1.0")
 
+
+# ── Keep-warm (opt-in via REGULAI_KEEPWARM=1) ────────────────────────────────
+# A serverless warehouse (Databricks) auto-stops when idle, so the first request
+# after a lull pays a ~15-45s cold start. When enabled, ping the warehouse on an
+# interval shorter than its auto-stop so the demo never hits a cold load. Touches
+# the bronze tables the /validate path scans, to keep the data + plan cache warm.
+# OFF by default — leaving it on holds the warehouse open continuously (cost /
+# Free-Edition quota). Enable for demo days, disable after.
+import asyncio as _asyncio  # noqa: E402
+import os as _os  # noqa: E402
+
+
+def _keep_warm_query() -> None:
+    from packages.rhs.db import query
+    query("SELECT 1")  # wakes / keeps the warehouse session alive
+    for tbl in ("GW_PC_JOB", "GW_PC_POLICY", "GW_CC_CLAIM"):
+        query(f"SELECT count(*) FROM INSURANCE_REGULATORY.BRONZE.{tbl}")
+
+
+@app.on_event("startup")
+async def _start_keep_warm() -> None:
+    if _os.environ.get("REGULAI_KEEPWARM", "").strip().lower() not in ("1", "true", "yes"):
+        return
+    interval = int(_os.environ.get("REGULAI_KEEPWARM_SECONDS", "240"))
+
+    async def _loop() -> None:
+        while True:
+            try:
+                await _asyncio.to_thread(_keep_warm_query)
+            except Exception:
+                logging.getLogger("keepwarm").warning("keep-warm ping failed", exc_info=True)
+            await _asyncio.sleep(interval)
+
+    _asyncio.create_task(_loop())
+    logging.getLogger("keepwarm").info("keep-warm enabled · every %ss", interval)
+
 # CORS — Neo4j Browser is served from :7474 and needs to fetch the
 # Cypher guide HTML from our :8765. Local-dev origins only.
 app.add_middleware(
@@ -71,6 +107,15 @@ MOCK_UI_DIR = Path("mock-ui-v2")
 
 if UI_DIR.exists():
     app.mount("/static/ui", StaticFiles(directory=UI_DIR), name="ui_static")
+
+# React workstation (web/) — built into web/dist by the Docker image and served
+# at /app. html=True serves index.html for the SPA; assets resolve via Vite
+# base '/app/'. Guarded so a source checkout without a build still boots (the
+# legacy single-file UI at / keeps working either way).
+WEB_DIST = Path("web/dist")
+if WEB_DIST.exists():
+    app.mount("/app", StaticFiles(directory=WEB_DIST, html=True), name="react_app")
+
 if MOCK_UI_DIR.exists():
     # mount mock-ui-v2's styles directory so we can reuse the design language
     if (MOCK_UI_DIR / "styles").exists():
@@ -129,6 +174,12 @@ def admin_upload_page() -> FileResponse:
     return FileResponse(UI_DIR / "admin-upload.html")
 
 
+@app.get("/admin/mapping")
+def admin_mapping_page() -> FileResponse:
+    """Admin-only: agentic source onboarding — profile → propose → review → compile → validate."""
+    return FileResponse(UI_DIR / "mapping-review.html")
+
+
 # -- Design explorations (feature/ui-designs) ----------------------------------
 # Three takes on the regulatory-compliance UX: Jira-style workspace, TurboTax
 # wizard, Stripe-style portfolio cockpit. Static mockups, no backend wiring.
@@ -156,6 +207,10 @@ def design_03() -> FileResponse:
 
 
 app.include_router(rhs_router)
+
+from api.mapping_demo import router as mapping_router  # noqa: E402
+
+app.include_router(mapping_router)
 
 
 # -- KG GraphQL surface (Phase 1.6) -------------------------------------------

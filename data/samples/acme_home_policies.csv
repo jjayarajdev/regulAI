@@ -1,0 +1,9 @@
+policy_no,carrier_naic,eff_dt,exp_dt,dwelling_limit,personal_property_limit,other_structures_limit,lob,form_code,num_families,construction_type,protection_class,deductible_amt,fire_prem,ec_prem,roof_material,roof_year,zip,year_built,underwriting_notes
+ACME-HO-100021,45219,2026-01-15,2027-01-15,325000,162500,32500,HO,HO-3,1,Frame,4,2500,410,285,Asphalt Shingle,2018,787012345,1998,Prior water claim 2021 - resolved
+ACME-HO-100022,45219,2026-02-01,2027-02-01,540000,270000,54000,HO,HO-5,1,Masonry,3,5000,690,510,Tile,2015,733011020,2007,New business
+ACME-HO-100023,45219,2026-02-10,2027-02-10,210000,105000,21000,HO,HO-3,1,Frame,6,1000,300,205,Asphalt Shingle,2005,787451200,1985,
+ACME-DP-100024,45219,2026-03-05,2027-03-05,175000,0,17500,DP,DP-3,2,Frame,7,1000,255,180,Metal,2020,760109988,1972,Rental - tenant occupied
+ACME-HO-100025,45219,2026-03-22,2027-03-22,615000,307500,61500,HO,HO-5,1,Fire Resistive,2,10000,720,560,Tile,2012,787230456,2011,High value - inspection on file
+ACME-HO-100026,45219,2026-04-01,2027-04-01,289000,144500,28900,HO,HO-3,1,Masonry,5,2500,395,275,Asphalt Shingle,2009,733540071,1995,
+ACME-DP-100027,45219,2026-04-18,2027-04-18,132000,0,13200,DP,DP-1,1,Frame,9,500,210,150,Wood Shake,1999,764330210,1968,Seasonal dwelling
+ACME-HO-100028,45219,2026-05-02,2027-05-02,458000,229000,45800,HO,HO-5,1,Masonry,3,5000,640,470,Tile,2019,787119003,2016,

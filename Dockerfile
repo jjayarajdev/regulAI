@@ -13,6 +13,19 @@
 ARG PYTHON_VERSION=3.12-slim-bookworm
 
 # ────────────────────────────────────────────────────────────────────
+# Stage 0: build the React workstation (web/) → web/dist
+# Built with VITE_API_MODE=live so it calls the real API (no MSW mocks),
+# and Vite base=/app/ (production mode) so assets resolve under the
+# FastAPI /app mount.
+# ────────────────────────────────────────────────────────────────────
+FROM node:20-bookworm-slim AS web-builder
+RUN npm install -g pnpm@9
+WORKDIR /web
+COPY web/ ./
+RUN pnpm install --no-frozen-lockfile \
+    && VITE_API_MODE=live VITE_ENGINE_LABEL=Databricks pnpm build
+
+# ────────────────────────────────────────────────────────────────────
 # Stage 1: build deps with uv
 # ────────────────────────────────────────────────────────────────────
 FROM python:${PYTHON_VERSION} AS builder
@@ -41,12 +54,12 @@ RUN apt-get update \
 # cached when only Python files change but not the lock file.
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --extra dev
+    uv sync --frozen --no-install-project --extra dev --extra databricks
 
 # Now copy source + install the project itself (editable).
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --extra dev
+    uv sync --frozen --extra dev --extra databricks
 
 # ────────────────────────────────────────────────────────────────────
 # Stage 2: runtime
@@ -73,6 +86,8 @@ RUN useradd --uid ${APP_UID} --user-group --create-home --shell /bin/bash regula
 
 WORKDIR /app
 COPY --from=builder --chown=regulai:regulai /app /app
+# The built React workstation, served by FastAPI at /app (see api/main.py).
+COPY --from=web-builder --chown=regulai:regulai /web/dist /app/web/dist
 
 # Make uv use the venv from the builder image without re-resolving.
 ENV PATH="/app/.venv/bin:${PATH}" \

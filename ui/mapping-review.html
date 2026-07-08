@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RegulAI — Source Onboarding (Agentic ETL)</title>
+<style>
+  :root{
+    --ink:#1f2933; --teal:#1f7a72; --teal-bg:#eaf3f1;
+    --amber:#b7791f; --amber-bg:#fdf6e9; --paper:#faf9f6;
+    --line:#e2ddd2; --muted:#5b6670; --red:#b23b3b; --red-bg:#fbecec;
+    --green:#2f7d4f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;background:var(--paper);color:var(--ink);padding:28px 32px;line-height:1.45}
+  h1{font-size:19px;font-weight:800;letter-spacing:-.2px}
+  .sub{color:var(--muted);font-size:12.5px;margin:3px 0 20px}
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+  select,button{font:inherit;border-radius:7px;border:1px solid var(--line);padding:8px 12px;background:#fff;color:var(--ink)}
+  button{cursor:pointer;font-weight:600}
+  button.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+  button.ghost{background:transparent}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .meta{font-size:12px;color:var(--muted);margin-left:auto}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:16px}
+  .card h3{font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#8a8577;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:#8a8577;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:6px 8px;border-bottom:1px solid #f0ece2;vertical-align:top}
+  tr.review td{background:var(--amber-bg)}
+  input[type=text]{width:100%;font:inherit;font-size:12px;border:1px solid var(--line);border-radius:5px;padding:4px 6px;background:#fff}
+  input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
+  .badge{display:inline-block;font-size:10px;font-weight:700;border-radius:5px;padding:2px 7px}
+  .badge.review{color:var(--amber);background:#fff;border:1px solid var(--amber)}
+  .badge.ok{color:var(--green);background:#eaf4ee;border:1px solid var(--green)}
+  .conf{font-variant-numeric:tabular-nums;font-weight:600}
+  .conf.lo{color:var(--red)} .conf.mid{color:var(--amber)} .conf.hi{color:var(--green)}
+  .chip{display:inline-block;font-size:11px;color:var(--muted);background:#f2efe7;border:1px solid var(--line);border-radius:5px;padding:3px 8px;margin:2px 4px 2px 0}
+  .notes{font-size:12px;color:var(--muted);font-style:italic}
+  #status{font-size:12.5px;margin-left:8px}
+  #status.err{color:var(--red)} #status.ok{color:var(--green)} #status.busy{color:var(--muted)}
+  pre{background:#1f2933;color:#e8e6df;font-size:11px;border-radius:8px;padding:12px 14px;overflow:auto;max-height:320px;white-space:pre-wrap}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:6px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+  <h1>Source onboarding — agentic ETL</h1>
+  <p class="sub">Profile an arbitrary insurer file → the agent proposes a mapping onto <b>SILVER.TSPR_PREMIUM_STAGING</b> → you review &amp; approve → compile to SQL → validate the load. The agent proposes; you decide.</p>
+
+  <div class="bar">
+    <select id="sample"></select>
+    <button class="primary" id="btn-propose">Profile &amp; propose</button>
+    <button class="ghost" id="btn-approve" disabled>Approve &amp; save</button>
+    <button class="ghost" id="btn-compile" disabled>Compile SQL</button>
+    <button class="ghost" id="btn-validate" disabled>Validate load</button>
+    <span id="status"></span>
+    <span class="meta" id="summary"></span>
+  </div>
+
+  <div class="card hidden" id="preview-card">
+    <h3>Source data — <span id="preview-name" style="text-transform:none;color:var(--ink)"></span> <span id="preview-meta" style="color:var(--muted);font-weight:400"></span></h3>
+    <div style="overflow:auto;max-height:260px"><table id="preview-table"></table></div>
+  </div>
+
+  <div class="card hidden" id="spec-card">
+    <h3>Proposed mapping — edit any cell, tick to accept</h3>
+    <table id="map-table">
+      <thead><tr>
+        <th style="width:26px">✓</th><th style="width:180px">Target column</th>
+        <th style="width:190px">Source column</th><th>Transform (SQL)</th>
+        <th style="width:60px">Conf</th><th style="width:80px">Status</th><th>Rationale</th>
+      </tr></thead>
+      <tbody id="map-body"></tbody>
+    </table>
+    <div style="margin-top:14px" id="unmapped-wrap" class="hidden">
+      <h3 style="margin-bottom:8px">Unmapped source columns</h3>
+      <div id="unmapped"></div>
+    </div>
+    <div style="margin-top:12px" id="notes-wrap" class="hidden">
+      <span class="badge review">AGENT NOTES</span> <span class="notes" id="notes"></span>
+    </div>
+  </div>
+
+  <div class="card hidden" id="out-card">
+    <h3 id="out-title">Output</h3>
+    <pre id="out"></pre>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let CURRENT = null;   // { label, profile, spec }
+
+function setStatus(msg, cls){ const s=$("status"); s.textContent=msg||""; s.className=cls||""; }
+function confClass(c){ return c>=0.85?"hi":c>=0.6?"mid":"lo"; }
+
+async function loadSamples(){
+  const r = await fetch("/api/mapping/samples");
+  const { samples } = await r.json();
+  $("sample").innerHTML = samples.map(s=>`<option>${s}</option>`).join("") || "<option disabled>no samples</option>";
+  if(samples.length) loadPreview($("sample").value);
+}
+
+async function loadPreview(source){
+  if(!source) return;
+  try{
+    const r = await fetch("/api/mapping/preview?source="+encodeURIComponent(source));
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.detail||r.statusText);
+    $("preview-name").textContent = source;
+    $("preview-meta").textContent = `· ${d.total} rows · ${d.columns.length} columns (showing ${d.rows.length})`;
+    const head = "<thead><tr>" + d.columns.map(c=>`<th>${c}</th>`).join("") + "</tr></thead>";
+    const body = "<tbody>" + d.rows.map(row=>"<tr>"+row.map(v=>`<td>${v===""?'<span style="color:#c0392b">∅</span>':v}</td>`).join("")+"</tr>").join("") + "</tbody>";
+    $("preview-table").innerHTML = head + body;
+    $("preview-card").classList.remove("hidden");
+  }catch(e){ setStatus("preview failed: "+e.message,"err"); }
+}
+
+$("sample").onchange = () => { loadPreview($("sample").value); };
+
+function renderSpec(spec){
+  const body = $("map-body");
+  body.innerHTML = spec.mappings.map((m,i)=>{
+    const cls = m.needs_review ? "review" : "";
+    const badge = m.needs_review ? '<span class="badge review">REVIEW</span>' : '<span class="badge ok">OK</span>';
+    const conf = (m.confidence ?? 0).toFixed(2);
+    const accepted = !m.needs_review;   // pre-accept confident rows; reviewer confirms the rest
+    return `<tr class="${cls}" data-i="${i}">
+      <td><input type="checkbox" class="acc" ${accepted?"checked":""}></td>
+      <td><b>${m.target_column}</b></td>
+      <td><input type="text" class="src" value="${m.source_column ?? ""}"></td>
+      <td><input type="text" class="mono tx" value="${(m.transform_sql ?? "").replace(/"/g,'&quot;')}"></td>
+      <td><span class="conf ${confClass(m.confidence)}">${conf}</span></td>
+      <td>${badge}</td>
+      <td>${m.rationale ?? ""}</td>
+    </tr>`;
+  }).join("");
+
+  const um = spec.unmapped_source_columns || [];
+  $("unmapped-wrap").classList.toggle("hidden", um.length===0);
+  $("unmapped").innerHTML = um.map(u=>`<span class="chip" title="${u.reason}">${u.name}</span>`).join("");
+  $("notes-wrap").classList.toggle("hidden", !spec.notes);
+  $("notes").textContent = spec.notes || "";
+  const review = spec.mappings.filter(m=>m.needs_review).length;
+  const mapped = spec.mappings.filter(m=>m.source_column).length;
+  $("summary").textContent = `${mapped} mapped · ${review} need review · ${um.length} unmapped`;
+  $("spec-card").classList.remove("hidden");
+}
+
+// Read edits back out of the table into a spec object
+function collectSpec(){
+  const rows = [...document.querySelectorAll("#map-body tr")];
+  const mappings = rows.map(tr=>{
+    const i = +tr.dataset.i;
+    const base = CURRENT.spec.mappings[i];
+    const src = tr.querySelector(".src").value.trim() || null;
+    return {
+      ...base,
+      source_column: src,
+      transform_sql: tr.querySelector(".tx").value,
+      accepted: tr.querySelector(".acc").checked,
+    };
+  });
+  return { ...CURRENT.spec, mappings };
+}
+
+$("btn-propose").onclick = async () => {
+  const source = $("sample").value;
+  if(!source) return;
+  setStatus("profiling + calling agent…","busy");
+  ["btn-approve","btn-compile","btn-validate"].forEach(b=>$(b).disabled=true);
+  try{
+    const r = await fetch("/api/mapping/propose",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source})});
+    if(!r.ok){ throw new Error((await r.json()).detail || r.statusText); }
+    const data = await r.json();
+    CURRENT = { label: data.profile.source_label, profile: data.profile, spec: data.spec };
+    renderSpec(data.spec);
+    setStatus("proposed — review the highlighted rows","ok");
+    $("btn-approve").disabled = false;
+  }catch(e){ setStatus("propose failed: "+e.message,"err"); }
+};
+
+$("btn-approve").onclick = async () => {
+  const spec = collectSpec();
+  setStatus("saving reviewed spec…","busy");
+  try{
+    const r = await fetch("/api/mapping/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label:CURRENT.label,spec})});
+    if(!r.ok){ throw new Error((await r.json()).detail || r.statusText); }
+    CURRENT.spec = spec;
+    setStatus("approved & saved","ok");
+    $("btn-compile").disabled = false;
+  }catch(e){ setStatus("save failed: "+e.message,"err"); }
+};
+
+$("btn-compile").onclick = async () => {
+  setStatus("compiling…","busy");
+  try{
+    const r = await fetch("/api/mapping/compile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label:CURRENT.label})});
+    const data = await r.json();
+    if(!r.ok){ throw new Error(data.detail || r.statusText); }
+    $("out-title").textContent = "Compiled SQL — INSERT INTO "+ (data.target_table||"") ;
+    $("out").textContent = data.sql || JSON.stringify(data,null,2);
+    $("out-card").classList.remove("hidden");
+    setStatus("compiled","ok");
+    $("btn-validate").disabled = false;
+  }catch(e){ setStatus("compile failed: "+e.message,"err"); }
+};
+
+$("btn-validate").onclick = async () => {
+  setStatus("running load + validation…","busy");
+  try{
+    const r = await fetch("/api/mapping/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label:CURRENT.label})});
+    const data = await r.json();
+    if(!r.ok){ throw new Error(data.detail || r.statusText); }
+    $("out-title").textContent = "Validation report — " + (data.ok ? "PASS" : "FAIL (fail-closed)");
+    $("out").textContent = JSON.stringify(data,null,2);
+    $("out-card").classList.remove("hidden");
+    setStatus(data.ok ? "validation passed" : "validation failed (fail-closed)", data.ok?"ok":"err");
+  }catch(e){ setStatus("validate failed: "+e.message,"err"); }
+};
+
+loadSamples();
+</script>
+</body>
+</html>

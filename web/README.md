@@ -1,7 +1,9 @@
 # regulAI Web — React frontend
 
-React + Vite + Tailwind v4 + shadcn/ui rebuild of the regulAI workstation,
-based on the Figma wireframes in `refinedUI/` ([original Figma file](https://www.figma.com/design/EF6tZeCEchAgD8PY51Xcoe/Create-Underwriting-Workbench-Wireframes--Community-)).
+React + Vite + Tailwind v4 rebuild of the regulAI workstation, following the
+original `ui/workstation.html` design (Fraunces / Inter / JetBrains Mono, cool
+slate + indigo). The Figma "Underwriting Workbench" wireframes in `refinedUI/`
+are kept as design reference only and remain reachable at `?ui=wireframe`.
 Data flows through TanStack Query hooks (`src/api/hooks.ts`) — components
 never call `fetch` directly.
 
@@ -20,7 +22,7 @@ One flag controls the data source: `VITE_API_MODE` in `.env.development`.
 | Mode | What happens | Needs |
 |------|--------------|-------|
 | `mock` (default) | MSW intercepts `/api/rhs/*` in the browser and answers from `src/mocks/fixtures.ts` | nothing |
-| `live` | Requests pass through the Vite dev proxy to the FastAPI server on `localhost:8765` | running backend + Snowflake |
+| `live` | Requests pass through the Vite dev proxy to the FastAPI server on `localhost:8765` | a running backend on any engine — Snowflake, DuckDB, or Databricks (set via `REGULAI_DB`; see [`../docs/data-engine-architecture.md`](../docs/data-engine-architecture.md)) |
 
 Switch per-run without editing files:
 

@@ -5,6 +5,12 @@
 
 export const API_BASE = '/api/rhs';
 
+// Which warehouse the backend is running (REGULAI_DB). Baked at build time so
+// the UI labels match the deployed engine; defaults to Databricks (the hosted
+// demo). Set VITE_ENGINE_LABEL / VITE_ENGINE_CONSOLE_URL to change.
+export const ENGINE_LABEL = import.meta.env.VITE_ENGINE_LABEL ?? 'Databricks';
+export const ENGINE_CONSOLE_URL = import.meta.env.VITE_ENGINE_CONSOLE_URL ?? 'https://www.databricks.com/';
+
 export class ApiError extends Error {
   constructor(public status: number, public path: string, detail?: string) {
     super(detail ?? `${path} → ${status}`);

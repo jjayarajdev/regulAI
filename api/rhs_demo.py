@@ -17,11 +17,11 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
-from packages.rhs.snowflake_client import query
+from packages.rhs.db import backend_name, query
 
 logger = logging.getLogger("regulai.rhs")
 
@@ -58,6 +58,26 @@ from packages.rhs.filings import FILINGS  # noqa: E402  — bootstrap fallback
 from packages.rhs.filings import load_filings as _load_filings_from_kg  # noqa: E402
 
 
+import datetime as _dt
+
+# Days-from-today each filing is "due", so the demo dashboard always reads as
+# upcoming (never overdue) regardless of when it runs. Display-only — filing
+# scope uses policy-id ranges, not dates.
+_DUE_OFFSETS = [75, 96, 124]
+
+
+def _polish_demo_filings(filings: list[dict]) -> list[dict]:
+    """Keep demo due dates in the future and fill a jurisdiction default, so the
+    dashboard never shows '-90 days to file' or an empty jurisdiction pill."""
+    today = _dt.date.today()
+    for i, f in enumerate(filings):
+        f["due_date"] = (today + _dt.timedelta(days=_DUE_OFFSETS[i % len(_DUE_OFFSETS)])).isoformat()
+        f.setdefault("jurisdiction_code", "US-TX")
+        if not f.get("jurisdiction_code"):
+            f["jurisdiction_code"] = "US-TX"
+    return filings
+
+
 def _live_filings() -> list[dict]:
     """KG-preferred filings list (P2.4). Falls back to FILINGS on KG error.
 
@@ -65,7 +85,7 @@ def _live_filings() -> list[dict]:
     KG read is small (~3 nodes) and cached internally by Neo4j; refactoring
     to module-level state would defeat the purpose (KG becomes the source).
     """
-    return _load_filings_from_kg()
+    return _polish_demo_filings(_load_filings_from_kg())
 
 
 def _filing(filing_id: str | None) -> dict | None:
@@ -159,14 +179,28 @@ def _ensure_filing_batch(filing_id: str, status: str = "draft") -> str:
     return f["id"]
 
 
+# Last persisted violation signature per filing. The frontend auto-refreshes,
+# re-running validation on an unchanged result set; persisting that identical
+# audit run every time is pure waste — and on an analytics warehouse like
+# Databricks the row-by-row audit DML (a MERGE per violation) costs seconds.
+# Skip when nothing changed; only real transitions (a fix, a bulletin) persist.
+_last_validation_sig: dict[str, str] = {}
+
+
 @_audit_safe
 def _record_validation_run(filing_id: str, rule_results: list[dict], violations: list[dict],
-                           resolution_action: str | None = None) -> str | None:
+                           resolution_action: str | None = None, force: bool = False) -> str | None:
     """Persist a complete validation run to GOLD_AUDIT.RULE_MATCH_RESULT.
 
     Writes one row per rule × failing-record (pass-rows are summarized by absence).
     Returns the run_id so callers can update FILING_BATCH.last_validation_run_id.
+    `force` bypasses the unchanged-since-last-run dedupe (used by the bulletin
+    flow, which must reconcile exceptions to compute its deltas).
     """
+    sig = "|".join(sorted(f"{v.get('policy_number')}~{v.get('rule_id')}" for v in violations))
+    if not force and _last_validation_sig.get(filing_id) == sig:
+        return None  # unchanged since the last persisted run — skip the audit DML
+
     batch = _ensure_filing_batch(filing_id, status="validating") or filing_id
     run_id = "run-" + _uuid.uuid4().hex[:12]
     rows_params: list[tuple] = []
@@ -274,6 +308,7 @@ def _record_validation_run(filing_id: str, rule_results: list[dict], violations:
                    details={"run_id": run_id, "passing": sum(1 for r in rule_results if r.get('violation_count', 0) == 0),
                             "failing": sum(1 for r in rule_results if r.get('violation_count', 0) > 0),
                             "violations": len(violations)})
+    _last_validation_sig[filing_id] = sig
     return run_id
 
 
@@ -432,7 +467,8 @@ def reference_table(table_name: str) -> JSONResponse:
 
 @router.get("/validate")
 @router.get("/validate/cancellations")   # legacy alias — pre-dates the rule engine running everything
-def validate_cancellations(filing: str | None = None) -> JSONResponse:
+def validate_cancellations(filing: str | None = None,
+                           background_tasks: BackgroundTasks = None) -> JSONResponse:
     """Run every rule from REFERENCE.TSPR_VALIDATION_RULES against BRONZE.
 
     For each rule we read its `violation_sql` (TRUE → row violates the rule)
@@ -537,10 +573,18 @@ def validate_cancellations(filing: str | None = None) -> JSONResponse:
         "total_violations": len(violations),
     }
 
-    # Persist this run to audit (best-effort, never fails the request)
+    # Persist this run to audit (best-effort, never fails the request). Over
+    # HTTP this runs in the background so the UI gets results immediately;
+    # internal callers (e.g. bulletin apply, which needs the exception table
+    # reconciled before computing deltas) pass no background_tasks → synchronous.
     run_id = None
     if filing:
-        run_id = _record_validation_run(filing, rule_results, violations)
+        if background_tasks is not None:
+            background_tasks.add_task(_record_validation_run, filing, rule_results, violations)
+        else:
+            # Internal callers (bulletin apply) need the exception table
+            # reconciled now, so force past the dedupe.
+            run_id = _record_validation_run(filing, rule_results, violations, force=True)
 
     return JSONResponse({
         "summary": summary,
@@ -1805,32 +1849,45 @@ def anomalies_detect() -> JSONResponse:
 def bulletin_apply() -> JSONResponse:
     """Apply the credit-score bulletin: materialize → version-bump → reload reference."""
     steps = []
-    # 1. Materialize bulletin into KG
-    steps.append({"step": "materialize", **_run(
-        ["uv", "run", "python", "-m", "scripts.apply_credit_score_bulletin"]
-    )})
-    if not steps[-1]["ok"]:
-        return JSONResponse({"ok": False, "steps": steps}, status_code=500)
+    if backend_name() == "snowflake":
+        # KG-driven canon pipeline: materialize → version-bump → reference → load.
+        steps.append({"step": "materialize", **_run(
+            ["uv", "run", "python", "-m", "scripts.apply_credit_score_bulletin"]
+        )})
+        if not steps[-1]["ok"]:
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
-    # 2. Bump versions
-    steps.append({"step": "version_bump", **_run([
-        "uv", "run", "python", "-m", "scripts.apply_bulletin",
-        "--bulletin", BULLETIN_OVERRIDE_NAME,
-    ])})
-    if not steps[-1]["ok"]:
-        return JSONResponse({"ok": False, "steps": steps}, status_code=500)
+        steps.append({"step": "version_bump", **_run([
+            "uv", "run", "python", "-m", "scripts.apply_bulletin",
+            "--bulletin", BULLETIN_OVERRIDE_NAME,
+        ])})
+        if not steps[-1]["ok"]:
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
-    # 3. Regenerate reference + load to Snowflake
-    steps.append({"step": "build_reference", **_run(
-        ["uv", "run", "python", "-m", "scripts.build_reference_reason_codes"]
-    )})
-    if not steps[-1]["ok"]:
-        return JSONResponse({"ok": False, "steps": steps}, status_code=500)
+        steps.append({"step": "build_reference", **_run(
+            ["uv", "run", "python", "-m", "scripts.build_reference_reason_codes"]
+        )})
+        if not steps[-1]["ok"]:
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
-    steps.append({"step": "load_reference", **_run([
-        "snow", "sql", "-c", "regulai", "-f",
-        "materialized/reference/tspr_reason_code_map.sql",
-    ])})
+        steps.append({"step": "load_reference", **_run([
+            "snow", "sql", "-c", "regulai", "-f",
+            "materialized/reference/tspr_reason_code_map.sql",
+        ])})
+    else:
+        # Portable engines (duckdb / databricks): the A.34 rule is canon-flag
+        # driven, so clearing L's companion requirement makes L-alone valid on
+        # the next validation — same observable effect as the KG pipeline, one
+        # UPDATE through the seam. No Snowflake/Neo4j/snow-CLI dependency.
+        try:
+            query(
+                "UPDATE INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP "
+                "SET credit_score_companion_required = FALSE WHERE tspr_reason_code = 'L'"
+            )
+            steps.append({"step": "flip_canon", "ok": True})
+        except Exception as e:
+            steps.append({"step": "flip_canon", "ok": False, "error": str(e)[:200]})
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
     ok = all(s["ok"] for s in steps)
     # Audit the bulletin apply against every filing (it affects the canon, which is shared).
@@ -1899,22 +1956,35 @@ def bulletin_apply() -> JSONResponse:
 def bulletin_reset() -> JSONResponse:
     """Roll back the bulletin and reload baseline reference."""
     steps = []
-    steps.append({"step": "reset", **_run(
-        ["uv", "run", "python", "-m", "scripts.reset_credit_score_bulletin"]
-    )})
-    if not steps[-1]["ok"]:
-        return JSONResponse({"ok": False, "steps": steps}, status_code=500)
+    if backend_name() == "snowflake":
+        steps.append({"step": "reset", **_run(
+            ["uv", "run", "python", "-m", "scripts.reset_credit_score_bulletin"]
+        )})
+        if not steps[-1]["ok"]:
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
-    steps.append({"step": "build_reference", **_run(
-        ["uv", "run", "python", "-m", "scripts.build_reference_reason_codes"]
-    )})
-    if not steps[-1]["ok"]:
-        return JSONResponse({"ok": False, "steps": steps}, status_code=500)
+        steps.append({"step": "build_reference", **_run(
+            ["uv", "run", "python", "-m", "scripts.build_reference_reason_codes"]
+        )})
+        if not steps[-1]["ok"]:
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
-    steps.append({"step": "load_reference", **_run([
-        "snow", "sql", "-c", "regulai", "-f",
-        "materialized/reference/tspr_reason_code_map.sql",
-    ])})
+        steps.append({"step": "load_reference", **_run([
+            "snow", "sql", "-c", "regulai", "-f",
+            "materialized/reference/tspr_reason_code_map.sql",
+        ])})
+    else:
+        # Portable engines: restore L's companion requirement → A.34 re-flags
+        # L-alone on the next validation.
+        try:
+            query(
+                "UPDATE INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP "
+                "SET credit_score_companion_required = TRUE WHERE tspr_reason_code = 'L'"
+            )
+            steps.append({"step": "reset_canon", "ok": True})
+        except Exception as e:
+            steps.append({"step": "reset_canon", "ok": False, "error": str(e)[:200]})
+            return JSONResponse({"ok": False, "steps": steps}, status_code=500)
 
     ok = all(s["ok"] for s in steps)
     if ok:

@@ -41,7 +41,9 @@
 #     to fire the upload_to_gold_job) but upload+validate+convert work
 
 app = "regulai"
-primary_region = "bom"  # Mumbai — change to "iad" (US-East) or "lhr" (London) as needed
+primary_region = "iad"  # US-East — co-located with the Databricks warehouse
+                        # (fast data path); bom had no capacity. "sin"/"bom"
+                        # are closer to an India-based audience if you prefer.
 
 [build]
   # Fly auto-detects ./Dockerfile in repo root. No extra config needed.
@@ -61,21 +63,24 @@ primary_region = "bom"  # Mumbai — change to "iad" (US-East) or "lhr" (London)
 [http_service]
   internal_port = 8765
   force_https = true
-  # Auto-suspend during idle: saves money but adds ~5-10s wake-up
-  # latency on the first request after idle. Disable for demo days.
-  auto_stop_machines = "stop"
+  # Kept warm for the demo — no idle suspend, always ≥1 machine running, so
+  # there's no Fly cold-start. (Revert to "stop"/0 after the demo to save cost;
+  # the Databricks serverless warehouse still cold-starts independently, so hit
+  # the app once a couple minutes before the call to warm both.)
+  auto_stop_machines = "off"
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ["app"]
 
-  # HTTP-level healthcheck mirrors the docker-compose one — /api/regulations
-  # is cheap and exercises the FastAPI startup path.
+  # Healthcheck hits the static React index — confirms the process is serving
+  # without depending on Neo4j or a warm Databricks warehouse, so an external
+  # dependency being asleep can't flap the check or trigger a rollback.
   [[http_service.checks]]
     interval = "30s"
     timeout = "5s"
     grace_period = "30s"
     method = "GET"
-    path = "/api/regulations"
+    path = "/app/"
 
 [[vm]]
   size = "shared-cpu-1x"

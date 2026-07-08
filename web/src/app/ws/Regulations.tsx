@@ -1,5 +1,5 @@
 // Regulations screen — rule tree (KG canon merged with executable rules),
-// rule detail with KG→Snowflake bridge, generated SQL, the live KG
+// rule detail with KG→warehouse bridge, generated SQL, the live KG
 // neighborhood graph (vis-network), and the violators side pane.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -7,6 +7,7 @@ import { Network } from 'vis-network';
 import {
   useBronzeCancellations, useKgNeighborhood, useKgRules, useValidate,
 } from '../../api/hooks';
+import { ENGINE_LABEL } from '../../api/client';
 import type { KgRule, ValidationRule } from '../../api/types';
 import { DetailDrawer, PolicyDetail } from './DetailDrawer';
 
@@ -206,7 +207,7 @@ export function Regulations({ activeFilingId }: RegulationsProps) {
                 </div>
                 <div className="br-arrow">→</div>
                 <div className="br-cell" style={exec ? undefined : { opacity: 0.4 }}>
-                  <div className="br-key s">Snowflake</div>
+                  <div className="br-key s">{ENGINE_LABEL}</div>
                   <div className="br-val">{exec?.target_table ?? 'no SQL attached'}</div>
                   {exec && <div className="br-sub">REFERENCE.TSPR_VALIDATION_RULES</div>}
                 </div>

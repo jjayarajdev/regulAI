@@ -1,5 +1,8 @@
 # RegulAI · Mock UI · v2
 
+> ⚠️ **Legacy static mock (April 2026).** Superseded by the live React
+> workstation in [`../web/`](../web/). Kept for design reference only.
+
 **Interactive HTML mock of the RegulAI product surfaces, aligned with the April 2026
 Business Plan, End-to-End Solution Architecture, and Human-in-the-Loop Compliance
 Architecture documents.**

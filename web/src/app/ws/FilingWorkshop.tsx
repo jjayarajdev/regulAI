@@ -8,6 +8,7 @@ import {
   useApplyBulletin, useApprovalState, useApproveFiling, useAudit, useBackendState,
   useBronzeCancellations, useReceiveAck, useValidate,
 } from '../../api/hooks';
+import { ENGINE_LABEL } from '../../api/client';
 import type { ApprovalRole, ValidationRule, Violation } from '../../api/types';
 import { DetailDrawer, PolicyDetail } from './DetailDrawer';
 
@@ -147,7 +148,7 @@ export function FilingWorkshop({ activeFilingId, onBack }: FilingWorkshopProps) 
         st?.bulletin_applied
           ? { icon: 'kg', label: 'B', who: 'KG canon', what: <>bulletin <b style={{ color: 'var(--accent)' }}>{st.bulletin_id}</b> applied · canon updated</>, when: 'earlier today' }
           : { icon: 'bul', label: 'B', who: 'TDI bulletin', what: <><b>{st?.bulletin_id ?? 'B-2026-Q4-118'}</b> received — affects A.34 L-companion rule</>, when: 'pending' },
-        { icon: 'sf', label: 'S', who: 'Snowflake', what: <>Bronze ingest from PolicyCenter · <b>{bronzeRows.length} records</b> · 0 errors</>, when: 'overnight' },
+        { icon: 'sf', label: 'S', who: ENGINE_LABEL, what: <>Bronze ingest from PolicyCenter · <b>{bronzeRows.length} records</b> · 0 errors</>, when: 'overnight' },
         ...(auditQ.data?.actions ?? []).slice(0, 2).map((a) => ({
           icon: '', label: a.actor.slice(0, 2).toUpperCase(), who: a.actor,
           what: <>{a.summary}</>, when: a.acted_at.slice(5, 16),
@@ -169,7 +170,7 @@ export function FilingWorkshop({ activeFilingId, onBack }: FilingWorkshopProps) 
           <h1 className="fm-title">Reason-code <em>validation</em></h1>
           <div className="fm-meta">
             {valQ.isLoading && <span style={{ color: 'var(--ink-3)' }}>loading rule summary…</span>}
-            {valQ.isError && <span style={{ color: 'var(--warn)' }}>Snowflake unreachable (check IP allowlist)</span>}
+            {valQ.isError && <span style={{ color: 'var(--warn)' }}>{ENGINE_LABEL} warming up — retry in a moment</span>}
             {v && (
               <>
                 <span><b>{readiness}/100</b> readiness</span>
