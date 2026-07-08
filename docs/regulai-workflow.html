@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RegulAI — Filing Validation Workflow</title>
+<style>
+  :root{
+    --ink:#1f2933; --teal:#1f7a72; --teal-bg:#eaf3f1;
+    --amber:#b7791f; --amber-bg:#fdf6e9; --paper:#faf9f6;
+    --line:#e2ddd2; --muted:#5b6670;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;background:var(--paper);color:var(--ink);padding:40px 32px;line-height:1.4}
+  h1{font-size:20px;font-weight:800;letter-spacing:-.2px}
+  .sub{color:var(--muted);font-size:13px;margin:4px 0 28px}
+  .grid{display:grid;grid-template-columns:200px 1fr 250px;gap:0;align-items:stretch;border-top:1px solid var(--line)}
+  .colhead{font-size:10px;font-weight:800;letter-spacing:.8px;color:#8a8577;padding:14px 12px 10px;text-transform:uppercase}
+  .lane{border-bottom:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;justify-content:center;min-height:82px}
+  .center{background:#fff}
+  .step{display:flex;align-items:flex-start;gap:12px}
+  .num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .num.teal{background:var(--teal)}
+  .step-t{font-size:14px;font-weight:700}
+  .step-s{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .pill{display:inline-block;font-size:11px;font-weight:600;color:var(--teal);background:var(--teal-bg);border:1px solid var(--teal);border-radius:6px;padding:5px 10px}
+  .pill.ink{color:var(--ink);background:#f0efe9;border-color:#cfcabb}
+  .data{font-size:11px;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .data b{color:var(--ink);font-weight:600}
+  .engine{border-left:3px solid var(--teal)}
+  .callout{margin-top:16px;display:flex;gap:12px;align-items:flex-start;background:var(--amber-bg);border:1px solid var(--amber);border-radius:10px;padding:14px 16px}
+  .callout .lbl{flex:none;font-size:11px;font-weight:800;color:var(--amber);background:#fff;border:1px solid var(--amber);border-radius:6px;padding:5px 10px;letter-spacing:.3px}
+  .callout p{font-size:12.5px;color:var(--muted)}
+  .callout strong{color:var(--ink)}
+  .foot-note{margin-top:16px;background:#f2f6f5;border:1px solid var(--teal);border-radius:10px;padding:18px 20px}
+  .foot-note h3{color:var(--teal);font-size:14px;font-weight:800;margin-bottom:8px}
+  .foot-note p{font-size:12.5px;color:var(--muted);margin-top:6px}
+  .foot-note strong{color:var(--ink)}
+  .foot-note code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--ink)}
+</style>
+</head>
+<body>
+  <h1>RegulAI — insurance filing validation workflow</h1>
+  <p class="sub">An analyst validates a filing against rules-as-data, clears each blocker by fixing the data or changing the rule, and signs off — every step recorded on the Databricks medallion.</p>
+
+  <div class="grid">
+    <div class="colhead">Workstation screen</div>
+    <div class="colhead" style="text-align:center">Validation journey · Filing #TPA-Q4-2025</div>
+    <div class="colhead">Data platform · Databricks</div>
+
+    <!-- 1 -->
+    <div class="lane"><span class="pill ink">Overview</span></div>
+    <div class="lane center"><div class="step"><div class="num">1</div><div><div class="step-t">Portfolio triage</div><div class="step-s">Analyst sees every open filing with its live blocker count and due date.</div></div></div></div>
+    <div class="lane"><div class="data">reads <b>GOLD.FILING_EXCEPTION</b><br>(open blockers per filing)</div></div>
+
+    <!-- 2 -->
+    <div class="lane"><span class="pill ink">Filing workshop</span></div>
+    <div class="lane center engine"><div class="step"><div class="num teal">2</div><div><div class="step-t">Run validation</div><div class="step-s">Every rule for the filing's jurisdiction runs its <strong>violation_sql</strong> against the raw records. Rules are data, not code.</div></div></div></div>
+    <div class="lane"><div class="data"><b>REFERENCE.TSPR_VALIDATION_RULES</b><br>→ <b>BRONZE.GW_*</b> (Guidewire)</div></div>
+
+    <!-- 3 -->
+    <div class="lane"><span class="pill ink">Filing workshop</span></div>
+    <div class="lane center"><div class="step"><div class="num">3</div><div><div class="step-t">Blockers with provenance</div><div class="step-s">Each violation names the offending record, the rule, its severity and the regulatory citation.</div></div></div></div>
+    <div class="lane"><div class="data">writes <b>GOLD.FILING_EXCEPTION</b><br>(status = open)</div></div>
+
+    <!-- 4 -->
+    <div class="lane"><span class="pill">Fix editor</span></div>
+    <div class="lane center engine"><div class="step"><div class="num teal">4</div><div><div class="step-t">Fix the data</div><div class="step-s">Correct the offending source record, re-validate — the blocker clears. <strong>One way a blocker resolves.</strong></div></div></div></div>
+    <div class="lane"><div class="data">updates <b>BRONZE.GW_*</b><br>→ re-runs the engine</div></div>
+
+    <!-- 5 -->
+    <div class="lane"><span class="pill">Regulations</span></div>
+    <div class="lane center engine"><div class="step"><div class="num teal">5</div><div><div class="step-t">Apply a bulletin</div><div class="step-s">A new regulatory bulletin flips a rule flag at runtime; re-validation auto-closes the blockers it obsoletes. <strong>The other way.</strong></div></div></div></div>
+    <div class="lane"><div class="data">flips <b>REFERENCE</b> canon flag<br>→ resolution_action = <b>bulletin</b></div></div>
+
+    <!-- 6 -->
+    <div class="lane"><span class="pill ink">Filing workshop</span></div>
+    <div class="lane center"><div class="step"><div class="num">6</div><div><div class="step-t">Approve the filing</div><div class="step-s">With zero open blockers, the analyst signs off. The engine flagged; the human decides.</div></div></div></div>
+    <div class="lane"><div class="data">records approval<br>(named analyst · timestamp)</div></div>
+
+    <!-- 7 -->
+    <div class="lane"><span class="pill ink">Audit log</span></div>
+    <div class="lane center"><div class="step"><div class="num">7</div><div><div class="step-t">Reconstructable trail</div><div class="step-s">Every validation run, fix, bulletin and approval is queryable end-to-end for a DOI examination.</div></div></div></div>
+    <div class="lane"><div class="data"><b>GOLD_AUDIT.validation_run</b><br><b>· rule_match_result · user_action</b></div></div>
+  </div>
+
+  <div class="callout">
+    <span class="lbl">THE CORE IDEA</span>
+    <p><strong>A blocker clears exactly two ways</strong> — fix the data (step 4) or change the rule (step 5). Both re-run the <strong>same rules-as-data engine</strong> and both land in the same audit trail. Changing a rule needs no redeploy — the regulation lives in a table, not in code.</p>
+  </div>
+
+  <div class="foot-note">
+    <h3>What makes it portable</h3>
+    <p>The medallion (<strong>Bronze → Silver → Gold</strong>) and every rule query run through one engine seam — <code>query()</code> — so the same app runs on <strong>Databricks</strong>, DuckDB (free/local) or Snowflake by flipping <code>REGULAI_DB</code>. Regulatory provenance is carried in a <strong>Neo4j knowledge graph</strong>; rules and reason-code canon are materialised into <code>REFERENCE</code> so a new jurisdiction is new rows, not new code.</p>
+  </div>
+</body>
+</html>

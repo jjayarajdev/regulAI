@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RegulAI — AI Ops Workflow (Insurance Filing Validation)</title>
+<style>
+  :root{
+    --ink:#1f2933; --teal:#1f7a72; --teal-bg:#eaf3f1;
+    --amber:#b7791f; --amber-bg:#fdf6e9; --paper:#faf9f6;
+    --line:#e2ddd2; --muted:#5b6670;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;background:var(--paper);color:var(--ink);padding:40px 32px;line-height:1.4}
+  h1{font-size:20px;font-weight:800;letter-spacing:-.2px}
+  .sub{color:var(--muted);font-size:13px;margin:4px 0 28px}
+  .grid{display:grid;grid-template-columns:190px 1fr 190px;gap:0;align-items:stretch;border-top:1px solid var(--line)}
+  .colhead{font-size:10px;font-weight:800;letter-spacing:.8px;color:#8a8577;padding:14px 12px 10px;text-transform:uppercase}
+  .lane{border-bottom:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;justify-content:center;min-height:78px}
+  .center{background:#fff}
+  .step{display:flex;align-items:flex-start;gap:12px}
+  .num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .num.teal{background:var(--teal)}
+  .step-t{font-size:14px;font-weight:700}
+  .step-s{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .pill{display:inline-block;font-size:11px;font-weight:600;color:var(--teal);background:var(--teal-bg);border:1px solid var(--teal);border-radius:6px;padding:5px 10px}
+  .pill.amber{color:var(--amber);background:var(--amber-bg);border-color:var(--amber)}
+  .pill.ghost{color:#a8a498;background:transparent;border:1px dashed var(--line)}
+  .spine{grid-column:3;grid-row:1 / span 8;background:var(--amber-bg);border-left:3px solid var(--amber);padding:16px 14px}
+  .spine h3{color:var(--amber);font-size:12px;font-weight:800;letter-spacing:.5px;margin-bottom:10px}
+  .spine li{font-size:11.5px;color:var(--muted);list-style:none;padding:4px 0;border-bottom:1px dashed #e8ddc4}
+  .spine .foot{font-size:11px;font-style:italic;color:var(--amber);margin-top:12px}
+  .foot-note{margin-top:26px;background:#f2f6f5;border:1px solid var(--teal);border-radius:10px;padding:18px 20px}
+  .foot-note h3{color:var(--teal);font-size:14px;font-weight:800;margin-bottom:8px}
+  .foot-note p{font-size:12.5px;color:var(--muted);margin-top:6px}
+  .foot-note strong{color:var(--ink)}
+</style>
+</head>
+<body>
+  <h1>AI Ops workflow — RegulAI insurance filing validation</h1>
+  <p class="sub">Delivery plane runs the check; control plane gates and accounts for it; governance is the rule-set each filing is validated against at runtime.</p>
+
+  <div class="grid">
+    <div class="colhead">Control plane applies</div>
+    <div class="colhead" style="text-align:center">Request pipeline · Filing #TPA-Q4-2025</div>
+    <div class="colhead">&nbsp;</div>
+
+    <!-- 1 -->
+    <div class="lane"></div>
+    <div class="lane center"><div class="step"><div class="num">1</div><div><div class="step-t">Analyst requests validation</div><div class="step-s">Opens the filing in the workshop, asks the engine to check it against the active rule set.</div></div></div></div>
+
+    <!-- spine spans right column -->
+    <div class="spine">
+      <h3>AUDIT SPINE</h3>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">One record, every step:</div>
+      <li>Validation request event</li>
+      <li>Input screen result</li>
+      <li>Rule execution + rules fired</li>
+      <li>Compute / query attribution</li>
+      <li>Anomaly / eval score</li>
+      <li>Output screen result</li>
+      <li>Human resolution + approval</li>
+      <div class="foot">Reconstructable end-to-end for NAIC / state-DOI examination — proves the engine flagged, the analyst decided.</div>
+    </div>
+
+    <!-- 2 -->
+    <div class="lane"><span class="pill">ControlPlane — access</span></div>
+    <div class="lane center"><div class="step"><div class="num teal">2</div><div><div class="step-t">Authorize</div><div class="step-s">Reads only this filing's bronze records + the active rules, through the single engine seam. Least privilege; attributable to a named analyst.</div></div></div></div>
+
+    <!-- 3 -->
+    <div class="lane"><span class="pill">Guardrails — input</span></div>
+    <div class="lane center"><div class="step"><div class="num teal">3</div><div><div class="step-t">Screen input</div><div class="step-s">Source-record completeness + schema checks on the ingested filing before any rule runs. Bad data is quarantined, not scored.</div></div></div></div>
+
+    <!-- 4 -->
+    <div class="lane"><span class="pill ghost">Delivery plane</span></div>
+    <div class="lane center"><div class="step"><div class="num">4</div><div><div class="step-t">Engine executes</div><div class="step-s">Runs each rule's <strong>violation_sql</strong> against the medallion tables; produces the blocker list with cited clauses.</div></div></div></div>
+
+    <!-- 5 -->
+    <div class="lane"><span class="pill">Observability — perf / drift</span></div>
+    <div class="lane center"><div class="step"><div class="num teal">5</div><div><div class="step-t">Capture + eval</div><div class="step-s">Full run recorded and scored: which rules fired, anomaly checks, did the control operate as designed? Drift = examination evidence.</div></div></div></div>
+
+    <!-- 6 -->
+    <div class="lane"><span class="pill">Guardrails — output</span></div>
+    <div class="lane center"><div class="step"><div class="num teal">6</div><div><div class="step-t">Screen output</div><div class="step-s">Hard-gated to a <strong>blocker list / recommendation for human decision</strong> — never an automated filing approval or rejection.</div></div></div></div>
+
+    <!-- 7 -->
+    <div class="lane"></div>
+    <div class="lane center"><div class="step"><div class="num">7</div><div><div class="step-t">Analyst decides</div><div class="step-s">Reviews blockers, resolves or overrides, approves the filing. The human owns the outcome.</div></div></div></div>
+  </div>
+
+  <!-- FinOps callout under pipeline -->
+  <div style="display:flex;gap:10px;align-items:center;margin-top:14px;padding-left:190px">
+    <span class="pill amber">FinOps-for-AI</span>
+    <span style="font-size:12px;color:var(--muted)">meters Databricks warehouse spend live across step 4 → attributes compute to the filing &amp; jurisdiction cost centre · trips anomaly alerts on runaway rule runs.</span>
+  </div>
+
+  <div class="foot-note">
+    <h3>Governance is config, not documentation</h3>
+    <p>Policy is authored once and enforced at runtime by each layer: <strong>access matrix</strong> → engine seam (<code>query()</code>) · <strong>compute thresholds</strong> → Databricks metering · <strong>eval criteria</strong> → anomaly detection · <strong>content rules</strong> → rules-as-data (<code>REFERENCE.TSPR_VALIDATION_RULES</code>). A new regulatory bulletin flips a rule flag at runtime — no redeploy, no rewrite.</p>
+    <p>Two non-negotiables: <strong>one enforcement chokepoint</strong> that can't be routed around (the <code>query()</code> invocation boundary — every engine reads through it), and <strong>one shared audit spine</strong> all layers write to (<code>gold_audit</code>) — so every product reconciles to one provable record.</p>
+  </div>
+</body>
+</html>
