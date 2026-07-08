@@ -1,0 +1,105 @@
+"""The canonical target contract the agent maps *to*.
+
+This is the load-bearing piece of agentic ETL: the agent can only map an
+arbitrary source well if the target columns carry machine-readable *semantics*
+(meaning, units, allowed codes, whether the pipeline derives them). Today this
+lives implicitly inside run_silver.py's hand-written INSERT…SELECT; here we lift
+it out as data so the agent — and later the compiler — can consume it.
+
+Scope of this slice: SILVER.TSPR_PREMIUM_STAGING (the premium record). The same
+shape extends to the loss / cancellation staging tables.
+"""
+
+from __future__ import annotations
+
+from pydantic import BaseModel
+
+
+class TargetColumn(BaseModel):
+    name: str
+    dtype: str
+    description: str
+    required: bool = False
+    # system_populated: filled by the pipeline (run id, source system, encoded
+    # accounting month, validation status) — the agent must NOT map these.
+    system_populated: bool = False
+    # domain_encoded: value needs a TSPR-specific transform the agent should
+    # flag for human curation rather than infer (e.g. the MMDDY date encoding).
+    domain_encoded: bool = False
+
+
+TSPR_PREMIUM_STAGING: list[TargetColumn] = [
+    TargetColumn(name="NAIC_COMPANY_NO", dtype="string", required=True,
+                 description="NAIC company code of the reporting insurer (5-digit)."),
+    TargetColumn(name="POLICY_ID", dtype="string", required=True,
+                 description="Unique policy number / identifier for the record."),
+    TargetColumn(name="EFFECTIVE_DATE", dtype="string", required=True, domain_encoded=True,
+                 description="TSPR MMDDY-encoded policy period start (MM + DD + last digit of year). "
+                             "Source supplies a real date; the pipeline applies the encoding."),
+    TargetColumn(name="EXPIRY_DATE", dtype="string", required=True, domain_encoded=True,
+                 description="TSPR MMY-encoded policy period end (MM + last digit of year)."),
+    TargetColumn(name="AMT_INSURANCE_DW", dtype="number",
+                 description="Dwelling coverage limit (Coverage A), whole dollars."),
+    TargetColumn(name="AMT_INSURANCE_PP", dtype="number",
+                 description="Personal property coverage limit (Coverage C), whole dollars."),
+    TargetColumn(name="AMT_INSURANCE_ALU", dtype="number",
+                 description="Additional living / other-structures coverage limit, whole dollars."),
+    TargetColumn(name="LINE_OF_BUSINESS", dtype="string",
+                 description="Line of business code (e.g. HO homeowners, DP dwelling fire)."),
+    TargetColumn(name="POLICY_FORM", dtype="string",
+                 description="Policy form code (e.g. HO-3, HO-5, DP-3)."),
+    TargetColumn(name="NUMBER_OF_FAMILIES", dtype="number",
+                 description="Number of dwelling units / families (1–4)."),
+    TargetColumn(name="COVERAGE_OCCUPANCY", dtype="string",
+                 description="Occupancy code (owner-occupied, tenant, seasonal, vacant)."),
+    TargetColumn(name="CONSTRUCTION", dtype="string",
+                 description="Construction class (frame, masonry, fire-resistive)."),
+    TargetColumn(name="PPC_SIMPLE", dtype="string",
+                 description="Public Protection Class, single value (1–10)."),
+    TargetColumn(name="PPC_SPLIT", dtype="string",
+                 description="Public Protection Class in split form (e.g. 3/3Y). Use only if the source is split."),
+    TargetColumn(name="DEDUCTIBLE_1_AMT", dtype="number",
+                 description="Primary (all-other-perils) deductible amount, whole dollars."),
+    TargetColumn(name="FIRE_PREMIUM", dtype="number",
+                 description="Fire portion of written premium, whole dollars."),
+    TargetColumn(name="EC_PREMIUM", dtype="number",
+                 description="Extended-coverage portion of written premium, whole dollars."),
+    TargetColumn(name="ROOF_COVERING", dtype="string",
+                 description="Roof covering material (asphalt shingle, metal, tile, etc.)."),
+    TargetColumn(name="ROOF_INSTALL_YEAR", dtype="number",
+                 description="Four-digit year the roof was installed/replaced."),
+    TargetColumn(name="ZIP9", dtype="string",
+                 description="Risk-location ZIP, up to 9 digits (ZIP+4), digits only."),
+    TargetColumn(name="YEAR_OF_CONSTRUCTION", dtype="number",
+                 description="Four-digit year the dwelling was built."),
+    TargetColumn(name="TENURE_CODE", dtype="string",
+                 description="Continuous-tenure discount tier code, if the source carries one."),
+
+    # System-populated — the pipeline sets these; the agent must not map them.
+    TargetColumn(name="ACCOUNTING_MONTH", dtype="string", system_populated=True,
+                 description="Reporting month; set from the pipeline run parameter."),
+    TargetColumn(name="RUN_ID", dtype="string", system_populated=True,
+                 description="Pipeline run id; provenance."),
+    TargetColumn(name="RECORD_TYPE", dtype="string", system_populated=True,
+                 description="TSPR record-type constant for premium rows."),
+    TargetColumn(name="VALIDATION_STATUS", dtype="string", system_populated=True,
+                 description="Set downstream by the rule engine."),
+    TargetColumn(name="_SOURCE_SYSTEM", dtype="string", system_populated=True,
+                 description="Provenance tag for the source system."),
+]
+
+
+def render_target_contract(columns: list[TargetColumn]) -> str:
+    """Human/agent-readable rendering of the mappable target contract."""
+    lines: list[str] = []
+    for c in columns:
+        if c.system_populated:
+            continue  # not the agent's job
+        tags = []
+        if c.required:
+            tags.append("REQUIRED")
+        if c.domain_encoded:
+            tags.append("DOMAIN-ENCODED→needs_review")
+        tag = f"  [{', '.join(tags)}]" if tags else ""
+        lines.append(f"- {c.name} ({c.dtype}){tag}: {c.description}")
+    return "\n".join(lines)

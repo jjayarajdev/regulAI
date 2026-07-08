@@ -69,3 +69,6 @@ refinedUI/
 # Local DuckDB demo warehouse (rebuild with scripts/seed_duckdb.py)
 materialized/*.duckdb
 materialized/*.duckdb.wal
+
+# Agentic-ETL scratch specs (regenerated locally)
+materialized/mappings/

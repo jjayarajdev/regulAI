@@ -174,6 +174,12 @@ def admin_upload_page() -> FileResponse:
     return FileResponse(UI_DIR / "admin-upload.html")
 
 
+@app.get("/admin/mapping")
+def admin_mapping_page() -> FileResponse:
+    """Admin-only: agentic source onboarding — profile → propose → review → compile → validate."""
+    return FileResponse(UI_DIR / "mapping-review.html")
+
+
 # -- Design explorations (feature/ui-designs) ----------------------------------
 # Three takes on the regulatory-compliance UX: Jira-style workspace, TurboTax
 # wizard, Stripe-style portfolio cockpit. Static mockups, no backend wiring.
@@ -201,6 +207,10 @@ def design_03() -> FileResponse:
 
 
 app.include_router(rhs_router)
+
+from api.mapping_demo import router as mapping_router  # noqa: E402
+
+app.include_router(mapping_router)
 
 
 # -- KG GraphQL surface (Phase 1.6) -------------------------------------------

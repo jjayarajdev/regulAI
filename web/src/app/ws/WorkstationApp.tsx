@@ -154,6 +154,9 @@ export function WorkstationApp() {
             <a className="rail-link" href={ENGINE_CONSOLE_URL} target="_blank" rel="noopener noreferrer">
               {ENGINE_LABEL}<span className="count">↗</span>
             </a>
+            <a className="rail-link" href="/admin/mapping" target="_blank" rel="noopener noreferrer">
+              Source onboarding<span className="count">new</span>
+            </a>
             <div className="rail-link">ShareFile<span className="count">preview</span></div>
           </div>
         </nav>

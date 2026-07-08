@@ -1,0 +1,9 @@
+naic_company_no,policy_id,effective_date,expiry_date,dwelling_amount,personal_property_amount,other_structures_amount,line_of_business,policy_form,number_of_families,occupancy,construction_class,protection_class,deductible_amount,fire_premium,ec_premium,roof_covering,roof_install_year,zip_plus4,year_built,tenure_code
+34118,NS-HO-500101,2026-01-10,2027-01-10,340000,170000,34000,HO,HO-3,1,Owner Occupied,Frame,4,2500,415,290,Asphalt Shingle,2019,787011234,2001,T3
+34118,NS-HO-500102,2026-01-22,2027-01-22,565000,282500,56500,HO,HO-5,1,Owner Occupied,Masonry,3,5000,700,515,Tile,2016,733012045,2009,T5
+34118,NS-HO-500103,2026-02-05,2027-02-05,225000,112500,22500,HO,HO-3,1,Owner Occupied,Frame,6,1000,305,210,Asphalt Shingle,2006,787452200,1988,T1
+34118,NS-DP-500104,2026-02-19,2027-02-19,185000,0,18500,DP,DP-3,2,Tenant Occupied,Frame,7,1000,260,185,Metal,2021,760101988,1974,T2
+34118,NS-HO-500105,2026-03-08,2027-03-08,630000,315000,63000,HO,HO-5,1,Owner Occupied,Fire Resistive,2,10000,725,560,Tile,2013,787231456,2012,T5
+34118,NS-HO-500106,2026-03-25,2027-03-25,298000,149000,29800,HO,HO-3,1,Owner Occupied,Masonry,5,2500,398,278,Asphalt Shingle,2010,733541071,1996,T4
+34118,NS-DP-500107,2026-04-12,2027-04-12,142000,0,14200,DP,DP-1,1,Seasonal,Frame,9,500,215,155,Wood Shake,2000,764331210,1969,T1
+34118,NS-HO-500108,2026-05-01,2027-05-01,472000,236000,47200,HO,HO-5,1,Owner Occupied,Masonry,3,5000,645,475,Tile,2020,787110003,2017,T4
