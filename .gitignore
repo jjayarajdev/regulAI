@@ -72,3 +72,10 @@ materialized/*.duckdb.wal
 
 # Agentic-ETL scratch specs (regenerated locally)
 materialized/mappings/
+materialized/crawls/
+
+# DB Crawler — local source databases (rebuild with scripts/seed_source_dbs.py)
+data/source_dbs/
+
+# Transform plans (regenerated locally)
+materialized/transforms/

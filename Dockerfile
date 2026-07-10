@@ -61,6 +61,12 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --extra dev --extra databricks
 
+# Seed the DB Crawler's demo source databases into the image. DuckDB + SQLite
+# only (core dep + stdlib) — deterministic, no external services — so
+# /admin/crawler works out of the box in production. Regenerated on every build,
+# so it never depends on local host state.
+RUN uv run python -m scripts.seed_source_dbs
+
 # ────────────────────────────────────────────────────────────────────
 # Stage 2: runtime
 # ────────────────────────────────────────────────────────────────────

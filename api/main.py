@@ -180,6 +180,12 @@ def admin_mapping_page() -> FileResponse:
     return FileResponse(UI_DIR / "mapping-review.html")
 
 
+@app.get("/admin/crawler")
+def admin_crawler_page() -> FileResponse:
+    """Admin-only: DB crawler + transform — introspect → plan → pull → resolve transforms."""
+    return FileResponse(UI_DIR / "crawler.html")
+
+
 # -- Design explorations (feature/ui-designs) ----------------------------------
 # Three takes on the regulatory-compliance UX: Jira-style workspace, TurboTax
 # wizard, Stripe-style portfolio cockpit. Static mockups, no backend wiring.
@@ -211,6 +217,10 @@ app.include_router(rhs_router)
 from api.mapping_demo import router as mapping_router  # noqa: E402
 
 app.include_router(mapping_router)
+
+from api.crawler_demo import router as crawler_router  # noqa: E402
+
+app.include_router(crawler_router)
 
 
 # -- KG GraphQL surface (Phase 1.6) -------------------------------------------

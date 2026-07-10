@@ -58,6 +58,12 @@ dev = [
 databricks = [
     "databricks-sql-connector>=3.0",
 ]
+# DB Crawler (stage 0 of agentic ETL) — Postgres source introspection. DuckDB
+# and SQLite crawling need no extra (duckdb is a core dep, sqlite3 is stdlib).
+# Install with `uv sync --extra crawler`. Driver: packages/rhs/mapper/crawler.py
+crawler = [
+    "psycopg[binary]>=3.1",
+]
 
 [tool.ruff]
 line-length = 100
