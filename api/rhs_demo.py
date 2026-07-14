@@ -912,6 +912,54 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
     })
 
 
+@router.get("/bronze/policy/{policy}")
+def bronze_policy(policy: str) -> JSONResponse:
+    """Return a policy's current *editable* Bronze fields (the ones `/bronze/fix`
+    can change), so the record-detail Edit panel can show + edit real values."""
+    policy = (policy or "").strip().upper()
+    if not policy.startswith("POL-"):
+        raise HTTPException(400, "policy_number must be like POL-0015")
+
+    def _safe(v: Any) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, (dt.datetime, dt.date, dt.time)):
+            return v.isoformat()[:10]
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
+
+    job = query(
+        "SELECT j.cancellationreason, j.nonrenewalreason, j.declinereason, j.noticedate "
+        "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j "
+        "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+        "WHERE p.policynumber = %s LIMIT 1",
+        (policy,),
+    )
+    pp = query(
+        "SELECT j.naic_number, j.writtenpremium, j.termtype "
+        "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICYPERIOD j "
+        "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+        "WHERE p.policynumber = %s LIMIT 1",
+        (policy,),
+    )
+    jr, pr = (job[0] if job else {}), (pp[0] if pp else {})
+    reason = next(
+        (_g(jr, c) for c in ("cancellationreason", "nonrenewalreason", "declinereason")
+         if _g(jr, c) is not None), None,
+    )
+    return JSONResponse({
+        "policy_number": policy,
+        "fields": {
+            "reason_code": _safe(reason),
+            "naic_number": _safe(_g(pr, "naic_number")),
+            "writtenpremium": _safe(_g(pr, "writtenpremium")),
+            "termtype": _safe(_g(pr, "termtype")),
+            "noticedate": _safe(_g(jr, "noticedate")),
+        },
+    })
+
+
 @router.get("/bronze/claims")
 def bronze_claims(filing: str | None = None) -> JSONResponse:
     """List GW_CC_CLAIM rows joined to GW_PC_POLICY, scoped to a filing.

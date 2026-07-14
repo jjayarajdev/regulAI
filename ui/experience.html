@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RegulAI — Compliance Workstation</title>
+<style>
+  :root{
+    --head:#06312c; --head-2:#0b3b34;
+    --canvas:#eef2f6; --card:#ffffff; --border:#e4e9ee; --border-2:#eef1f5;
+    --ink:#1b2733; --ink-2:#3a4652; --muted:#6b7580; --muted-2:#9aa2ab;
+    --sage:#e7efe9; --sage-ink:#1f7a5b;
+    --primary:#0f3d38; --primary-h:#155049;
+    --green:#2e9e5b; --green-bg:#e8f4ec;
+    --red:#e0483d; --red-bg:#fbeceb;
+    --purple:#7b7be0; --purple-bg:#eeeefb;
+    --amber:#c98a1a; --amber-bg:#fbf2e0;
+    --grey:#aeb4ba;
+    --link:#5b5bd6;
+    --shadow:0 1px 2px rgba(16,40,36,.04), 0 2px 10px rgba(16,40,36,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;background:var(--canvas);color:var(--ink);
+       font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  button{font:inherit;cursor:pointer;border:none;background:none}
+  a{color:var(--link);text-decoration:none}
+  .mono{font-variant-numeric:tabular-nums}
+
+  /* ── header ─────────────────────────────────────────────── */
+  .head{height:52px;background:var(--head);display:flex;align-items:center;padding:0 22px;position:sticky;top:0;z-index:20}
+  .head .brand{color:#fff;font-weight:800;font-size:16px;letter-spacing:-.2px}
+  .head .brand span{color:#7fd1b9}
+  .head .right{margin-left:auto;display:flex;align-items:center;gap:16px}
+  .head .env{color:#9fc7bd;font-size:11px;font-weight:600;border:1px solid #235049;border-radius:20px;padding:3px 10px;display:inline-flex;align-items:center;gap:7px}
+  .head .env .lv{width:7px;height:7px;border-radius:50%;background:#3ecf8e}
+  .head .env .lv.mock{background:#c98a1a}
+  .avatar{width:30px;height:30px;border-radius:50%;background:#12463e;color:#cdeee2;display:grid;place-items:center;font-size:12px;font-weight:700}
+
+  /* ── shell ──────────────────────────────────────────────── */
+  .shell{display:flex;min-height:calc(100vh - 52px)}
+  .rail{width:60px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;
+        align-items:center;padding:14px 0;gap:6px;position:sticky;top:52px;height:calc(100vh - 52px)}
+  .rail button{width:40px;height:40px;border-radius:9px;display:grid;place-items:center;color:var(--muted-2);transition:.15s}
+  .rail button:hover{background:var(--canvas);color:var(--ink-2)}
+  .rail button.active{background:var(--sage);color:var(--primary)}
+  .rail .ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .rail .grow{flex:1}
+  .main{flex:1;min-width:0}
+
+  /* ── page header ────────────────────────────────────────── */
+  .pghead{display:flex;align-items:center;gap:14px;padding:16px 26px;background:var(--card);border-bottom:1px solid var(--border)}
+  .pghead h1{font-size:20px;font-weight:700}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--sage);color:var(--ink-2);border-radius:8px;
+        padding:7px 12px;font-size:13px;font-weight:600}
+  .pill .cv{opacity:.6;font-size:11px}
+  .content{padding:22px 26px 60px}
+
+  /* ── KPI cards ──────────────────────────────────────────── */
+  .sect-h{font-size:17px;font-weight:600;margin:6px 0 2px}
+  .sect-sub{color:var(--muted);font-size:13px;margin-bottom:14px}
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:26px}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:18px 20px;box-shadow:var(--shadow)}
+  .kpi .n{font-size:26px;font-weight:700;display:flex;align-items:center;gap:9px;letter-spacing:-.5px}
+  .kpi .lbl{color:var(--muted);font-size:12.5px;margin-top:5px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+  .dot.green{background:var(--green)} .dot.red{background:var(--red)} .dot.purple{background:var(--purple)}
+  .dot.amber{background:var(--amber)} .dot.grey{background:var(--grey)}
+
+  /* ── stage tabs + filters ───────────────────────────────── */
+  .stagebar{display:flex;align-items:center;gap:2px;border-bottom:1px solid var(--border);margin-bottom:2px;flex-wrap:wrap}
+  .stagebar .lead{font-size:12px;color:var(--muted);font-weight:600;margin-right:14px}
+  .stage{display:flex;align-items:center;gap:8px;padding:12px 16px;font-size:13.5px;font-weight:600;color:var(--muted);
+         border-bottom:2px solid transparent;background:none}
+  .stage:hover{color:var(--ink-2)}
+  .stage.active{color:var(--primary);border-bottom-color:var(--primary)}
+  .count{font-size:11px;font-weight:700;background:#eef1f4;color:var(--muted);border-radius:20px;padding:2px 8px}
+  .stage.active .count{background:var(--sage);color:var(--primary)}
+  .filtbar{display:flex;align-items:center;gap:22px;padding:12px 2px}
+  .filtbar .lead{font-size:12px;color:var(--muted);font-weight:600;margin-right:2px}
+  .statf{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);font-weight:600}
+  .statf .num{font-weight:700}
+  .statf.sel{background:var(--red-bg);border:1px solid #f0c3bf;border-radius:8px;padding:5px 11px}
+
+  /* ── data table ─────────────────────────────────────────── */
+  .tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .tbl-tools{display:flex;align-items:center;gap:10px;padding:14px 16px;justify-content:flex-end;border-bottom:1px solid var(--border-2)}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.2px;padding:12px 14px;border-bottom:1px solid var(--border);background:#fafbfc}
+  td{padding:13px 14px;border-bottom:1px solid var(--border-2);font-size:13px;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{cursor:pointer;transition:.1s}
+  tbody tr:hover{background:#f7f9fb}
+  td.amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .st{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:12.5px}
+  .chev{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;color:var(--muted-2)}
+  tbody tr:hover .chev{background:var(--sage);color:var(--primary)}
+  .tag{font-size:11px;font-weight:600;background:#eef1f4;color:var(--ink-2);border-radius:6px;padding:2px 8px;display:inline-block}
+  .cb{width:15px;height:15px;accent-color:var(--primary)}
+  .tbl-foot{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--border-2);font-size:12.5px;color:var(--muted)}
+  .btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:8px 13px;font-size:13px;font-weight:600;border:1px solid var(--border)}
+  .btn .ic{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .btn.primary:hover{background:var(--primary-h)}
+  .btn.ghost{background:var(--sage);color:var(--sage-ink);border-color:transparent}
+  .btn.plain{background:#fff;color:var(--ink-2)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .empty-note{padding:40px;text-align:center;color:var(--muted)}
+
+  /* ── detail ─────────────────────────────────────────────── */
+  .dhead{display:flex;align-items:center;gap:22px;padding:14px 26px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .back{display:flex;align-items:center;gap:7px;font-weight:700;color:var(--ink);font-size:14px}
+  .back .ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+  .dh-item{font-size:12.5px;color:var(--muted)}
+  .dh-item b{color:var(--ink);font-weight:600;margin-left:6px}
+  .stage-pill{background:var(--purple-bg);color:#5555c8;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:600;margin-left:6px}
+  .assignee{display:inline-flex;align-items:center;gap:7px;background:var(--sage);border-radius:20px;padding:4px 11px 4px 4px;font-size:12.5px;font-weight:600;color:var(--ink-2)}
+  .assignee .av{width:20px;height:20px;border-radius:50%;background:#12463e;color:#cdeee2;display:grid;place-items:center;font-size:10px;font-weight:700}
+  .reason{padding:12px 26px;background:#fbfcfd;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:baseline}
+  .reason .lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.3px;text-transform:uppercase;white-space:nowrap}
+  .reason .txt{font-size:13px;color:var(--ink-2)}
+  .dgrid{display:grid;grid-template-columns:1fr 380px;gap:20px;padding:22px 26px 60px}
+  @media(max-width:1100px){.dgrid{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+  .panel-h{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--border-2)}
+  .panel-h h3{font-size:15px;font-weight:600}
+  .panel-h .sp{margin-left:auto;display:flex;gap:8px}
+  .ctx{display:flex;gap:24px;padding:12px 18px;background:#fafbfc;border-bottom:1px solid var(--border-2);font-size:12.5px;flex-wrap:wrap}
+  .ctx b{color:var(--muted);font-weight:600;margin-right:6px}
+  .kv{width:100%}
+  .kv td{padding:11px 18px;border-bottom:1px solid var(--border-2);font-size:13px}
+  .kv tr:last-child td{border-bottom:none}
+  .kv .k{color:var(--muted);width:170px;font-weight:500}
+  .kv .k2{color:var(--muted);width:150px;font-weight:500;border-left:1px solid var(--border-2)}
+  .kv .v{color:var(--ink);font-weight:500}
+  .kv input{font:inherit;font-size:13px;border:1px solid var(--primary);border-radius:6px;padding:5px 8px;width:100%;
+            outline:none;box-shadow:0 0 0 3px rgba(15,61,56,.08)}
+  .kv tr.editing td{background:#f4f8f7}
+  .prov{padding:11px 18px;background:#f6f8fa;color:var(--link);font-size:12px;font-weight:500}
+  .rtabs{display:flex;gap:2px;border-bottom:1px solid var(--border-2);padding:0 8px}
+  .rtab{padding:13px 14px;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
+  .rtab.active{color:var(--ink);border-bottom-color:var(--primary)}
+  .hist{padding:14px 18px}
+  .hrow{display:flex;gap:11px;padding:9px 0;border-bottom:1px solid var(--border-2)}
+  .hrow:last-child{border-bottom:none}
+  .hdot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;background:var(--grey)}
+  .hrow .ht{font-size:13px;color:var(--ink-2)}
+  .hrow .hm{font-size:11.5px;color:var(--muted-2);margin-top:2px}
+  .actbox{padding:14px 18px}
+  .actline{display:flex;justify-content:space-between;padding:9px 12px;background:#f6f8fa;border-radius:8px;margin-bottom:8px;font-size:13px}
+  .actline b{font-weight:600}
+  /* ── resolution ───────────────────────────────────────────── */
+  .reslist{padding:14px 18px}
+  .reso{border:1px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:11px}
+  .reso:last-child{margin-bottom:0}
+  .reso h4{font-size:13.5px;font-weight:700;margin-bottom:3px}
+  .reso p{font-size:12.5px;color:var(--muted);margin-bottom:11px}
+  .reso .rrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .reso input{font:inherit;font-size:13px;border:1px solid var(--primary);border-radius:7px;padding:8px 10px;width:150px;
+              outline:none;box-shadow:0 0 0 3px rgba(15,61,56,.08)}
+  .reso.resolved{background:var(--green-bg);border-color:#bcdcc7}
+  .rmsg{font-size:12.5px;margin-top:10px;min-height:16px}
+  .rmsg.ok{color:var(--green)} .rmsg.err{color:var(--red)} .rmsg.busy{color:var(--muted)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+  <!-- header -->
+  <div class="head">
+    <div class="brand">Regul<span>AI</span></div>
+    <div class="right">
+      <span class="env" id="env"><span class="lv"></span>connecting…</span>
+      <div class="avatar">DR</div>
+    </div>
+  </div>
+
+  <div class="shell">
+    <!-- rail -->
+    <nav class="rail">
+      <button class="active" data-nav="dashboard" title="Dashboard">
+        <svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      </button>
+      <button data-nav="records" title="Records">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      </button>
+      <button data-nav="sources" title="Sources">
+        <svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+      </button>
+      <div class="grow"></div>
+      <button title="Settings">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2.2-1.3L14 2h-4l-.3 2.1a7 7 0 0 0-2.2 1.3l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.3l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2.2 1.3L10 22h4l.3-2.1a7 7 0 0 0 2.2-1.3l2.4 1 2-3.4-2-1.6c.06-.43.1-.86.1-1.3Z"/></svg>
+      </button>
+    </nav>
+
+    <main class="main" id="main"></main>
+  </div>
+
+<script>
+const $ = (s,r=document)=>r.querySelector(s);
+const api = async (p)=>{ const r=await fetch(p); if(!r.ok) throw new Error(p+' → '+r.status); return r.json(); };
+const CARRIER = { "US-TX":"Lone Star Mutual", "US-FL":"Gulf Coast Insurance" };
+const carrierFor = j => CARRIER[j] || j || "—";
+
+/* ── mock fallback — used only if the API is unreachable (mock-first) ────── */
+const MOCK = {
+  filings:[
+    {id:"TPA-Q4-2025",jurisdiction_code:"US-TX",plan_code:"TPA",plan_name:"TICO Third-Party Admin",due_date:"2026-09-27",is_active:true},
+    {id:"RES-M03-2026",jurisdiction_code:"US-TX",plan_code:"RES",plan_name:"Residual Market",due_date:"2026-10-18",is_active:true},
+  ],
+  bulletin:{reference_loaded:true,bulletin_applied:false,bulletin_id:"B-2026-Q4-118"},
+  records:[
+    {key:"TPA/POL-0011",id:"POL-0011",jur:"US-TX",plan:"TPA",filingId:"TPA-Q4-2025",carrier:"Lone Star Mutual",
+     ruleNumber:"A.34",ruleName:"Reason code L requires companion",severity:"ERROR",status:"blocked",stage:"In Review",
+     reason:"A.34 — L requires companion code",reasonFull:"Reason code 'L' (credit-score declination) requires a companion code; reported alone. (TICO Stat Plan Rule A.34 / Section E)",
+     citation:"TICO Stat Plan Rule A.34 / Section E",recordId:"job-0011"},
+    {key:"TPA/POL-0032",id:"POL-0032",jur:"US-TX",plan:"TPA",filingId:"TPA-Q4-2025",carrier:"Lone Star Mutual",
+     ruleNumber:"A.34",ruleName:"Reason code L requires companion",severity:"ERROR",status:"blocked",stage:"In Review",
+     reason:"A.34 — L requires companion code",reasonFull:"Reason code 'L' requires a companion code; reported alone. (TICO Stat Plan Rule A.34 / Section E)",
+     citation:"TICO Stat Plan Rule A.34 / Section E",recordId:"job-0032"},
+  ],
+};
+
+/* ── state + router ─────────────────────────────────────────────────────── */
+let STATE = {view:"dashboard", filter:"all", live:false, filings:[], records:[], byFiling:{}, kpi:null, bulletin:{}, selKey:null};
+let EDIT=false;
+
+function setEnv(){
+  const e=$("#env");
+  e.innerHTML = `<span class="lv ${STATE.live?'':'mock'}"></span>${STATE.live?'live data':'sample data'} · Lone Star Mutual · Q4 2025`;
+}
+function nav(view){ STATE.view=view; document.querySelectorAll(".rail [data-nav]").forEach(b=>b.classList.toggle("active",b.dataset.nav===view)); render(); }
+document.querySelectorAll(".rail [data-nav]").forEach(b=> b.onclick=()=>nav(b.dataset.nav));
+
+/* ── data load (real → /api/rhs, fallback → MOCK) ───────────────────────── */
+function mapViolation(f, v){
+  const sev = (v.severity||"ERROR").toUpperCase();
+  return {
+    key: f.id+"/"+v.policy_number, id:v.policy_number, jur:f.jurisdiction_code, plan:f.plan_code,
+    filingId:f.id, carrier:carrierFor(f.jurisdiction_code),
+    ruleNumber:v.rule_number, ruleName:v.rule_name, severity:sev,
+    status: sev==="ERROR"?"blocked":(sev==="WARNING"?"warning":"review"), stage:"In Review",
+    reason:(v.rule_number?v.rule_number+" — ":"")+v.violation_reason,
+    reasonFull:v.violation_reason+(v.citation?" ("+v.citation+")":""),
+    citation:v.citation, recordId:v.record_id,
+  };
+}
+async function boot(){
+  renderLoading();
+  try{
+    const [fl, st] = await Promise.all([api("/api/rhs/filings"), api("/api/rhs/state")]);
+    const filings = fl.filings||[];
+    const results = await Promise.all(filings.map(f =>
+      api("/api/rhs/validate?filing="+encodeURIComponent(f.id)).then(v=>({f,v})).catch(()=>({f,v:null}))));
+    const records=[], byFiling={};
+    for(const {f,v} of results){
+      const viol=(v&&v.violations)||[];
+      byFiling[f.id]={filing:f, summary:(v&&v.summary)||{}, count:viol.length};
+      viol.forEach(x=>records.push(mapViolation(f,x)));
+    }
+    STATE.filings=filings; STATE.records=records; STATE.byFiling=byFiling;
+    STATE.bulletin=st; STATE.live=true;
+  }catch(e){
+    console.warn("[experience] API unavailable — sample data.", e);
+    STATE.filings=MOCK.filings; STATE.records=MOCK.records; STATE.bulletin=MOCK.bulletin; STATE.live=false;
+    STATE.byFiling={}; STATE.filings.forEach(f=>{ STATE.byFiling[f.id]={filing:f,summary:{},count:STATE.records.filter(r=>r.filingId===f.id).length}; });
+  }
+  STATE.kpi = deriveKpi();
+  setEnv(); render();
+}
+
+function deriveKpi(){
+  const F=STATE.filings, R=STATE.records, BF=STATE.byFiling;
+  const today=new Date();
+  const overdue=F.filter(f=> f.due_date && new Date(f.due_date)<today).length;
+  const withExc=F.filter(f=> (BF[f.id]?.count||0)>0).length;
+  const active=F.filter(f=> f.is_active!==false).length;
+  const flagged=new Set(R.map(r=>r.id)).size;
+  const errors=R.filter(r=>r.severity==="ERROR").length;
+  const warns=R.filter(r=>r.severity==="WARNING").length;
+  const rules=new Set(R.map(r=>r.ruleNumber)).size;
+  return {
+    filings:{title:"Filing obligations", sub:"Statutory filings for the current reporting cycle", cards:[
+      {n:F.length,dot:"purple",lbl:"Total filings"},
+      {n:active,dot:"green",lbl:"Active this cycle"},
+      {n:overdue,dot:overdue?"red":"grey",lbl:"Overdue"},
+      {n:withExc,dot:withExc?"red":"green",lbl:"With open exceptions"},
+      {n:F.length-withExc,dot:"green",lbl:"Clean"},
+    ]},
+    validation:{title:"Validation", sub:"Rule-engine results across the current filings", cards:[
+      {n:R.length,dot:R.length?"red":"green",lbl:"Total violations"},
+      {n:flagged,dot:flagged?"purple":"grey",lbl:"Records flagged"},
+      {n:errors,dot:errors?"red":"grey",lbl:"Errors (blockers)"},
+      {n:warns,dot:warns?"amber":"grey",lbl:"Warnings"},
+      {n:rules,dot:"purple",lbl:"Rules triggered"},
+    ]},
+  };
+}
+
+function render(){
+  if(STATE.view==="dashboard") return renderDashboard();
+  if(STATE.view==="records")   return renderRecords();
+  if(STATE.view==="detail")    return renderDetail();
+  if(STATE.view==="sources")   return renderSources();
+}
+function renderLoading(){ $("#main").innerHTML=`<div class="content"><div class="empty-note">Loading live data…</div></div>`; }
+
+const STATUS = { clean:{dot:"green",label:"Clean"}, blocked:{dot:"red",label:"Blocked"}, warning:{dot:"amber",label:"Warning"}, review:{dot:"purple",label:"In Review"} };
+function pill(label,val){ return `<span class="pill">${label}${val?` <span class="cv">${val}</span>`:""} <span class="cv">▾</span></span>`; }
+
+/* ── dashboard ──────────────────────────────────────────────────────────── */
+function kpiRow(g){
+  return `<div class="sect-h">${g.title}</div><div class="sect-sub">${g.sub}</div>
+    <div class="kpi-row">${g.cards.map(c=>`<div class="kpi"><div class="n"><span class="dot ${c.dot}"></span>${c.n.toLocaleString()}</div><div class="lbl">${c.lbl}</div></div>`).join("")}</div>`;
+}
+function renderDashboard(){
+  const jurs=[...new Set(STATE.filings.map(f=>f.jurisdiction_code))];
+  const bull = STATE.bulletin.bulletin_applied ? `bulletin ${STATE.bulletin.bulletin_id} applied` : (STATE.bulletin.bulletin_id? `${STATE.bulletin.bulletin_id} pending` : "canon v1");
+  $("#main").innerHTML = `
+    <div class="pghead"><h1>Dashboard</h1>${pill("Q4 2025","cycle")}${pill(jurs.join(" · ")||"All jurisdictions")}${pill(bull)}</div>
+    <div class="content">${kpiRow(STATE.kpi.filings)}${kpiRow(STATE.kpi.validation)}</div>`;
+}
+
+/* ── records list ───────────────────────────────────────────────────────── */
+function renderRecords(){
+  const rows = STATE.records.filter(r=> STATE.filter==="all" ? true : r.filingId===STATE.filter);
+  const errors=STATE.records.filter(r=>r.severity==="ERROR").length;
+  const warns=STATE.records.filter(r=>r.severity==="WARNING").length;
+  const flagged=new Set(STATE.records.map(r=>r.id)).size;
+  const tabs=[{k:"all",label:"All records",n:STATE.records.length},
+    ...STATE.filings.map(f=>({k:f.id,label:f.id,n:(STATE.byFiling[f.id]?.count||0)}))];
+  $("#main").innerHTML = `
+    <div class="pghead"><h1>Records</h1>${pill("Q4 2025")}${pill("All jurisdictions")}${pill("All carriers")}</div>
+    <div class="content">
+      <div class="stagebar"><span class="lead">Filter by filing</span>
+        ${tabs.map(t=>`<button class="stage ${STATE.filter===t.k?'active':''}" data-f="${t.k}">${t.label}<span class="count">${t.n.toLocaleString()}</span></button>`).join("")}
+      </div>
+      <div class="filtbar"><span class="lead">Filter by status</span>
+        <span class="statf sel"><span class="dot red"></span><span class="num">${errors}</span> Errors</span>
+        <span class="statf"><span class="dot amber"></span><span class="num">${warns}</span> Warnings</span>
+        <span class="statf"><span class="dot purple"></span><span class="num">${flagged}</span> Records flagged</span>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-tools">
+          <button class="btn plain"><svg class="ic" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>Assign</button>
+          <button class="btn plain"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download .csv</button>
+          <button class="btn primary"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters</button>
+        </div>
+        ${rows.length? `<table>
+          <thead><tr>
+            <th style="width:34px"><input type="checkbox" class="cb"></th>
+            <th style="width:80px">Jur.</th><th style="width:70px">Plan</th><th>Record ID</th>
+            <th style="width:80px">Rule</th><th style="width:120px">Status</th>
+            <th>Reason</th><th>Carrier</th><th style="width:40px"></th>
+          </tr></thead>
+          <tbody>${rows.map(r=>{const st=STATUS[r.status];return `<tr data-key="${r.key}">
+            <td><input type="checkbox" class="cb" onclick="event.stopPropagation()"></td>
+            <td><span class="tag">${r.jur}</span></td>
+            <td>${r.plan}</td>
+            <td class="mono"><b>${r.id}</b></td>
+            <td class="mono">${r.ruleNumber||"—"}</td>
+            <td><span class="st"><span class="dot ${st.dot}"></span>${st.label}</span></td>
+            <td style="color:var(--muted)">${r.reason}</td>
+            <td>${r.carrier}</td>
+            <td><span class="chev"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></td>
+          </tr>`}).join("")}</tbody>
+        </table>
+        <div class="tbl-foot">Records <b style="color:var(--ink)">1–${rows.length}</b> of ${rows.length} · Per page 25</div>`
+        : `<div class="empty-note">No exceptions for this filing — all records passing. ✓</div>`}
+      </div>
+    </div>`;
+  document.querySelectorAll("[data-f]").forEach(b=> b.onclick=()=>{STATE.filter=b.dataset.f;render();});
+  document.querySelectorAll("tbody tr[data-key]").forEach(tr=> tr.onclick=()=>{STATE.view="detail";STATE.selKey=tr.dataset.key;EDITKEYS=false;EDITVALS=null;render();});
+}
+
+/* ── resolution (real fix paths, wired to /api/rhs) ─────────────────────── */
+const apiPost = async (p,b)=>{ const r=await fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b||{})}); const d=await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.detail||p+" → "+r.status); return d; };
+// rule → which Bronze field corrects it, plus a suggested value + guidance.
+const FIX = {
+  "A.34":{field:"reason_code", label:"Reason code", suggest:"LB", hint:"Reason 'L' (credit-score declination) needs a companion. Use LB (credit-score + companion) or LD (+ claims history)."},
+  "A.10":{field:"writtenpremium", label:"Written premium", suggest:"", hint:"Written premium must be positive — enter the corrected amount."},
+  "A.22":{field:"noticedate", label:"Notice date", suggest:"", hint:"Notice must precede the effective date by the required days (YYYY-MM-DD)."},
+};
+const ruleBase = r => (r.ruleNumber||"").split(" ")[0];
+const fixSpec = r => FIX[ruleBase(r)] || {field:"reason_code",label:"Reason code",suggest:"",hint:"Correct the offending value on the source record."};
+const BULLETIN_RULES = new Set(["A.34"]);   // rules a known bulletin addresses
+
+async function refreshFiling(fid){
+  const v = await api("/api/rhs/validate?filing="+encodeURIComponent(fid));
+  const f = STATE.byFiling[fid].filing;
+  STATE.byFiling[fid] = {filing:f, summary:v.summary||{}, count:(v.violations||[]).length};
+  STATE.records = STATE.records.filter(x=>x.filingId!==fid).concat((v.violations||[]).map(x=>mapViolation(f,x)));
+  STATE.kpi = deriveKpi();
+  return v.violations||[];
+}
+async function saveFix(){
+  const r=STATE.current, spec=fixSpec(r), msg=$("#fixMsg");
+  const val=$("#fixInput").value.trim();
+  msg.className="rmsg busy"; msg.textContent="Applying correction to the source record + re-validating…";
+  try{
+    await apiPost("/api/rhs/bronze/fix",{policy_number:r.id, field:spec.field, new_value:val});
+    const viol=await refreshFiling(r.filingId);
+    const still=viol.find(x=>x.policy_number===r.id && x.rule_number===r.ruleNumber);
+    if(still){ msg.className="rmsg err"; msg.textContent="Still failing: "+still.violation_reason; return; }
+    r.status="clean"; r.resolved=true; r.resolvedBy=`Record curated — ${spec.field} → ${val}. Re-validation passed.`;
+    render();
+  }catch(e){ msg.className="rmsg err"; msg.textContent="Fix failed: "+e.message; }
+}
+async function applyBulletin(){
+  const r=STATE.current, msg=$("#bullMsg")||$("#keysMsg")||{};
+  msg.className="rmsg busy"; msg.textContent="Applying bulletin + re-validating every filing…";
+  try{
+    await apiPost("/api/rhs/bulletin/apply",{});
+    STATE.bulletin.bulletin_applied=true;
+    for(const f of STATE.filings){ await refreshFiling(f.id); }
+    const still=STATE.records.find(x=>x.key===r.key);
+    if(still){ msg.className="rmsg err"; msg.textContent="Bulletin applied, but this record still fails — try curating."; return; }
+    r.status="clean"; r.resolved=true; r.resolvedBy=`Bulletin ${STATE.bulletin.bulletin_id||""} applied — companion requirement removed canon-wide.`;
+    render();
+  }catch(e){ msg.className="rmsg err"; msg.textContent="Bulletin failed: "+e.message; }
+}
+
+/* ── general Edit (any editable source field, via /bronze/fix) ──────────── */
+let EDITKEYS=false, EDITVALS=null;
+const EDITABLE=[
+  {key:"reason_code",    label:"Reason code",     ph:"e.g. L, LB, LD"},
+  {key:"naic_number",    label:"NAIC company #",  ph:"5-digit NAIC"},
+  {key:"writtenpremium", label:"Written premium", ph:"amount"},
+  {key:"termtype",       label:"Term type",       ph:"Annual / Semi-Annual"},
+  {key:"noticedate",     label:"Notice date",     ph:"YYYY-MM-DD"},
+];
+async function loadEditable(policy){
+  try{ const d=await api("/api/rhs/bronze/policy/"+encodeURIComponent(policy)); EDITVALS=d.fields||{}; }
+  catch(e){ EDITVALS={}; }
+  if(STATE.view==="detail") render();
+}
+async function saveKeys(){
+  const r=STATE.current, msg=$("#keysMsg");
+  const changes=[];
+  for(const f of EDITABLE){
+    const el=document.getElementById("ek_"+f.key); if(!el) continue;
+    const v=el.value.trim();
+    const cur=(EDITVALS&&EDITVALS[f.key]!=null)?String(EDITVALS[f.key]):"";
+    if(v!==cur) changes.push({field:f.key,new_value:v});
+  }
+  if(!changes.length){ EDITKEYS=false; render(); return; }
+  msg.className="rmsg busy"; msg.textContent=`Applying ${changes.length} change(s) to the source + re-validating…`;
+  try{
+    for(const c of changes) await apiPost("/api/rhs/bronze/fix",{policy_number:r.id, field:c.field, new_value:c.new_value});
+    const viol=await refreshFiling(r.filingId);
+    const still=viol.find(x=>x.policy_number===r.id && x.rule_number===r.ruleNumber);
+    EDITKEYS=false; EDITVALS=null;
+    if(!still && r.status==="blocked"){ r.status="clean"; r.resolved=true; r.resolvedBy=`Edited ${changes.map(c=>c.field).join(", ")}. Re-validation passed.`; }
+    render(); loadEditable(r.id);
+  }catch(e){ msg.className="rmsg err"; msg.textContent="Save failed: "+e.message; }
+}
+function ekRow(f){
+  const val=(EDITVALS&&EDITVALS[f.key]!=null)?EDITVALS[f.key]:"";
+  return `<tr class="${EDITKEYS?'editing':''}"><td class="k">${f.label}</td><td class="v">${
+    EDITKEYS?`<input id="ek_${f.key}" value="${val}" placeholder="${f.ph}">`
+           :(val===""?'<span class="meta">—</span>':val)}</td></tr>`;
+}
+
+/* ── record detail ──────────────────────────────────────────────────────── */
+function kvRow(k,v,k2,v2,edit2){
+  return `<tr class="${edit2&&EDIT?'editing':''}"><td class="k">${k}</td><td class="v">${v}</td>`+
+    (k2!==undefined?`<td class="k2">${k2}</td><td class="v">${EDIT&&edit2?`<input value="${v2}">`:v2}</td>`:'<td colspan="2"></td>')+`</tr>`;
+}
+function renderDetail(){
+  let r = STATE.records.find(x=>x.key===STATE.selKey) || STATE.current; if(!r) return renderRecords();
+  STATE.current=r;
+  const resolved=!!r.resolved;
+  const st = resolved?{dot:"green",label:"Cleared"}:STATUS[r.status];
+  const blocked = r.status==="blocked" && !resolved;
+  const sm=STATE.byFiling[r.filingId]?.summary||{};
+  const canBulletin = BULLETIN_RULES.has(ruleBase(r)) && !STATE.bulletin.bulletin_applied;
+  const sevTag = s => `<span class="tag" style="color:${s==='ERROR'?'var(--red)':s==='WARNING'?'var(--amber)':'var(--ink-2)'};background:${s==='ERROR'?'var(--red-bg)':s==='WARNING'?'var(--amber-bg)':'#eef1f4'}">${s}</span>`;
+  const keyActions = EDITKEYS
+    ? `<button class="btn plain" onclick="EDITKEYS=false;render()">Cancel</button><button class="btn primary" onclick="saveKeys()">Save &amp; re-validate</button>`
+    : `<button class="btn ghost" onclick="EDITKEYS=true;render()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Edit</button>`;
+
+  $("#main").innerHTML = `
+    <div class="dhead">
+      <button class="back" onclick="STATE.view='records';render()"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Back</button>
+      <span class="dh-item">Status <b><span class="dot ${st.dot}"></span> ${blocked?'Posting Blocked':st.label}</b></span>
+      <span class="dh-item">Stage <span class="stage-pill">${resolved?'Ready':r.stage}</span></span>
+      <span class="dh-item">Assigned to <span class="assignee"><span class="av">DR</span> diana.reyes@lonestar</span></span>
+      <div style="margin-left:auto;display:flex;gap:10px">
+        ${(blocked&&canBulletin)?`<button class="btn ghost" onclick="applyBulletin()" title="apply ${STATE.bulletin.bulletin_id||'bulletin'} — clears every A.34 record">Apply bulletin</button>`:''}
+        <button class="btn primary" ${blocked?'disabled title="edit a field to resolve, or apply the bulletin"':`onclick="STATE.view='records';render()"`}><svg class="ic" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Approve &amp; clear</button>
+      </div>
+    </div>
+    <div class="reason"><span class="lbl">Decision reasoning</span><span class="txt">${r.reasonFull}</span></div>
+    <div class="dgrid">
+      <div>
+        <div class="panel">
+          <div class="panel-h"><h3>Key details</h3><span class="tag" style="margin-left:8px">editable</span><div class="sp">${keyActions}</div></div>
+          <div class="ctx"><span><b>Jurisdiction</b>${r.jur}</span><span><b>Carrier</b>${r.carrier}</span><span><b>Plan</b>${r.plan}</span><span><b>Filing</b>${r.filingId}</span></div>
+          <table class="kv">
+            <tr><td class="k">Record / Policy ID</td><td class="v"><span class="tag">${r.id}</span></td></tr>
+            ${EDITVALS===null?'<tr><td class="k">loading…</td><td class="v"></td></tr>':EDITABLE.map(ekRow).join("")}
+          </table>
+          <div class="rmsg" id="keysMsg" style="padding:0 18px 12px">${EDITKEYS?'Change any field, then Save — writes to the source record (Bronze) and re-validates.':''}</div>
+          <div class="prov">Editable fields write to the source • re-validates on save</div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><h3>Validation</h3><div class="sp"><button class="btn plain"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button></div></div>
+          <table class="kv">
+            ${kvRow("Rule", `<span class="mono">${r.ruleNumber||"—"}</span>`, "Severity", resolved?sevTag("PASS"):sevTag(r.severity))}
+            ${kvRow("Rule name", r.ruleName||"—")}
+            ${kvRow("Violation reason", resolved?"—":r.reasonFull.split(" (")[0])}
+            ${kvRow("Citation", r.citation||"—")}
+          </table>
+          <div class="actbox">
+            <div class="actline"><span>Rules run (filing)</span><b>${sm.rules_run??"—"}</b></div>
+            <div class="actline"><span>Rules failing</span><b style="color:${(sm.rules_failing||0)?'var(--red)':'var(--green)'}">${sm.rules_failing??"—"}</b></div>
+            <div class="actline"><span>Total violations (filing)</span><b style="color:${(sm.total_violations||0)?'var(--red)':'var(--green)'}">${sm.total_violations??"—"}</b></div>
+            <div class="actline"><span>This record</span><b>${resolved?'<span class="tag" style="color:var(--green);background:var(--green-bg)">PASS</span>':sevTag(r.severity)}</b></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="panel">
+          <div class="rtabs"><button class="rtab active">History</button><button class="rtab">Bulletins</button><button class="rtab">Email</button></div>
+          <div class="hist" id="hist">
+            ${resolved?`<div class="hrow"><span class="hdot" style="background:var(--green)"></span><div><div class="ht">Blocker resolved</div><div class="hm">Diana Reyes · just now</div></div></div>`:""}
+            <div class="hrow"><span class="hdot" style="background:${st.dot==='red'?'var(--red)':st.dot==='amber'?'var(--amber)':st.dot==='green'?'var(--green)':'var(--purple)'}"></span><div><div class="ht">Flagged by rule <b>${r.ruleNumber||"—"}</b></div><div class="hm">Validation engine · run ${sm.run_id||"current"}</div></div></div>
+            <div class="hrow"><span class="hdot" style="background:var(--purple)"></span><div><div class="ht">Assigned to Diana Reyes</div><div class="hm">Auto-routing</div></div></div>
+            <div class="hrow"><span class="hdot" style="background:var(--green)"></span><div><div class="ht">Part of filing <b>${r.filingId}</b></div><div class="hm">${r.jur} · ${r.plan}</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  loadHistory(r);
+  if(EDITVALS===null) loadEditable(r.id);
+}
+async function loadHistory(r){
+  try{
+    const a=await api("/api/rhs/audit/"+encodeURIComponent(r.filingId));
+    const acts=(a.actions||[]).filter(x=> !x.target_record || x.target_record===r.id).slice(0,6);
+    if(!acts.length) return;
+    $("#hist").innerHTML = acts.map(x=>`<div class="hrow"><span class="hdot" style="background:var(--purple)"></span><div><div class="ht">${x.summary||x.action_type}</div><div class="hm">${x.actor||"system"} · ${(x.acted_at||"").replace('T',' ').slice(0,16)}</div></div></div>`).join("");
+  }catch(e){ /* keep the derived history */ }
+}
+
+/* ── sources ────────────────────────────────────────────────────────────── */
+function renderSources(){
+  $("#main").innerHTML = `
+    <div class="pghead"><h1>Sources</h1>${pill("Databricks")}${pill("DuckDB")}</div>
+    <div class="content">
+      <div class="sect-h">Data onboarding</div><div class="sect-sub">Get carrier data into the canonical model.</div>
+      <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+        <a href="/admin/crawler" class="kpi" style="text-decoration:none;color:inherit"><div class="n"><span class="dot green"></span>DB Crawler</div><div class="lbl">Introspect a source DB → agent crawl plan → transform</div></a>
+        <a href="/admin/mapping" class="kpi" style="text-decoration:none;color:inherit"><div class="n"><span class="dot purple"></span>File onboarding</div><div class="lbl">Profile a file → propose mapping → review → validate</div></a>
+        <div class="kpi"><div class="n"><span class="dot grey"></span>Connections</div><div class="lbl">Snowflake · Databricks · Neo4j KG</div></div>
+      </div>
+      <div class="sect-h" style="margin-top:22px">Regulation onboarding</div><div class="sect-sub">Get rules into the Knowledge Graph — LLM extraction from regulation &amp; bulletin PDFs.</div>
+      <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+        <a href="/admin/regulations" class="kpi" style="text-decoration:none;color:inherit"><div class="n"><span class="dot green"></span>Upload regulation / bulletin</div><div class="lbl">Upload PDF → Sentinel (LLM) extracts cited rules → review → approve into KG</div></a>
+      </div>
+    </div>`;
+}
+
+boot();
+</script>
+</body>
+</html>
