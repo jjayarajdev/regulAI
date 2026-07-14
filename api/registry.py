@@ -7,6 +7,7 @@ Each entry exposes:
   - `pdf_start_page` / `pdf_end_page` — for sections, the page range within the parent PDF
 """
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -204,3 +205,68 @@ WIRE_LAYOUTS_FOR_SLUG: dict[str, list[str]] = {
 
 def wire_layouts_for(slug: str) -> list[str]:
     return WIRE_LAYOUTS_FOR_SLUG.get(slug, [])
+
+
+# ── Uploaded documents (self-serve regulation/bulletin ingestion) ──────────
+# User-uploaded PDFs are registered at runtime and persisted to a manifest so
+# they survive restarts. They flow through the same Sentinel-extract → KG-approve
+# path as the built-in docs.
+UPLOADED_MANIFEST = Path("materialized/uploaded_regulations/manifest.json")
+
+
+def _entry_to_dict(d: DocEntry) -> dict:
+    return {
+        "slug": d.slug, "label": d.label, "category": d.category,
+        "path": str(d.path), "blurb": d.blurb,
+        "pdf_path": str(d.pdf_path) if d.pdf_path else None,
+    }
+
+
+def _entry_from_dict(x: dict) -> DocEntry:
+    return DocEntry(
+        slug=x["slug"], label=x["label"], category=x.get("category", "Uploaded"),
+        path=Path(x["path"]), blurb=x.get("blurb", ""),
+        pdf_path=Path(x["pdf_path"]) if x.get("pdf_path") else None,
+    )
+
+
+def _read_manifest() -> list[dict]:
+    if UPLOADED_MANIFEST.exists():
+        try:
+            return json.loads(UPLOADED_MANIFEST.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+    return []
+
+
+def register_uploaded_doc(entry: DocEntry) -> None:
+    """Add (or replace) an uploaded doc in the live registry + persist it.
+
+    Mutates DOCS in place (slice-assign) rather than rebinding, so importers
+    that hold a reference to the list (e.g. api/main.py) see the new entry.
+    """
+    DOCS[:] = [d for d in DOCS if d.slug != entry.slug]
+    DOCS.append(entry)
+    DOCS_BY_SLUG[entry.slug] = entry
+    manifest = [m for m in _read_manifest() if m.get("slug") != entry.slug]
+    manifest.append(_entry_to_dict(entry))
+    UPLOADED_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+    UPLOADED_MANIFEST.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+
+def load_uploaded_docs() -> int:
+    """Restore persisted uploaded docs into the registry (called at startup)."""
+    n = 0
+    for x in _read_manifest():
+        try:
+            entry = _entry_from_dict(x)
+        except Exception:
+            continue
+        if entry.slug not in DOCS_BY_SLUG:
+            DOCS.append(entry)
+            DOCS_BY_SLUG[entry.slug] = entry
+            n += 1
+    return n
+
+
+load_uploaded_docs()

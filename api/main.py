@@ -15,7 +15,7 @@ import json
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -26,9 +26,12 @@ from fastapi import Body
 
 from api.registry import (
     DOCS,
+    REGULATIONS_DIR,
     WIRE_LAYOUTS_FOR_SLUG,
+    DocEntry,
     extraction_path_for,
     get_doc,
+    register_uploaded_doc,
     rects_path_for,
     wire_layouts_for,
 )
@@ -186,6 +189,21 @@ def admin_crawler_page() -> FileResponse:
     return FileResponse(UI_DIR / "crawler.html")
 
 
+@app.get("/admin/regulations")
+def admin_regulations_page() -> FileResponse:
+    """Self-serve regulation/bulletin ingestion — upload PDF → Sentinel (LLM)
+    extract → review → approve into the Knowledge Graph."""
+    return FileResponse(UI_DIR / "reg-upload.html")
+
+
+@app.get("/experience")
+def experience_page() -> FileResponse:
+    """New-experience design reference — CBRE-style compliance workstation
+    (dark header, icon rail, KPI dashboard, stage-tab records, record detail
+    with decision reasoning + edit). Mock-first; the React /app follows this."""
+    return FileResponse(UI_DIR / "experience.html")
+
+
 # -- Design explorations (feature/ui-designs) ----------------------------------
 # Three takes on the regulatory-compliance UX: Jira-style workspace, TurboTax
 # wizard, Stripe-style portfolio cockpit. Static mockups, no backend wiring.
@@ -303,6 +321,67 @@ def get_regulation_pdf(slug: str):
     )
 
 
+@app.post("/api/regulations/upload")
+async def upload_regulation(
+    file: UploadFile = File(...),
+    label: str | None = Form(None),
+    category: str | None = Form(None),
+) -> JSONResponse:
+    """Upload a regulation/bulletin PDF and register it for Sentinel extraction.
+
+    Saves the PDF, extracts its text (PyMuPDF) as the Sentinel input, and adds a
+    DocEntry to the registry. From here the existing `/extract` (LLM → KG) and
+    `/approve` endpoints take over — same path as the built-in documents.
+    """
+    name = (file.filename or "").strip()
+    if not name.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF uploads are supported.")
+
+    import re as _re
+    stem = _re.sub(r"[^a-z0-9]+", "-", Path(name).stem.lower()).strip("-") or "regulation"
+    slug = f"uploaded-{stem}"
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty file.")
+
+    REGULATIONS_DIR.mkdir(parents=True, exist_ok=True)
+    pdf_path = REGULATIONS_DIR / f"{slug}.pdf"
+    pdf_path.write_bytes(data)
+
+    # Extract text (PyMuPDF) → the Sentinel input file.
+    try:
+        import fitz  # PyMuPDF
+        with fitz.open(stream=data, filetype="pdf") as pdf:
+            pages = pdf.page_count
+            text = "\n\n".join(page.get_text() for page in pdf)
+    except Exception as e:  # noqa: BLE001 — surface a clean error
+        raise HTTPException(status_code=422, detail=f"Could not read PDF text: {e}") from e
+    if not text.strip():
+        raise HTTPException(status_code=422, detail="No extractable text (scanned PDF?). OCR not supported yet.")
+
+    text_dir = Path("materialized/uploaded_regulations")
+    text_dir.mkdir(parents=True, exist_ok=True)
+    text_path = text_dir / f"{slug}.md"
+    text_path.write_text(text, encoding="utf-8")
+
+    entry = DocEntry(
+        slug=slug,
+        label=label or Path(name).stem,
+        category=category or "Uploaded regulations & bulletins",
+        path=text_path,
+        blurb=f"Uploaded {name} · {pages} pages · {len(text):,} chars extracted.",
+        pdf_path=pdf_path,
+    )
+    register_uploaded_doc(entry)
+
+    return JSONResponse({
+        "slug": slug, "label": entry.label, "category": entry.category,
+        "pages": pages, "chars": len(text),
+        "next": f"POST /api/regulations/{slug}/extract  (Sentinel → KG)",
+    })
+
+
 @app.post("/api/regulations/{slug}/extract")
 def run_extraction(slug: str) -> JSONResponse:
     doc = get_doc(slug)
@@ -312,7 +391,13 @@ def run_extraction(slug: str) -> JSONResponse:
     text = doc.path.read_text(encoding="utf-8")
     llm = OpenAIAdapter()
     sentinel = Sentinel(llm)
-    extraction = sentinel.extract(text, document_label=doc.path.name)
+    try:
+        extraction = sentinel.extract(text, document_label=doc.path.name)
+    except Exception as e:  # noqa: BLE001 — return a clean JSON error, not a 500 HTML page
+        msg = str(e)
+        if "insufficient_quota" in msg or "429" in msg:
+            msg = "OpenAI quota exceeded (429) — check billing, or run this on prod (separate key)."
+        raise HTTPException(status_code=502, detail=f"Sentinel LLM extraction failed: {msg}") from e
 
     # Defense: for parser-owned slugs, drop any RecordLayout / FieldRequirement /
     # CodeList / CodeValue Sentinel may have emitted. The deterministic parser

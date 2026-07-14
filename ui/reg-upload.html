@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RegulAI — Regulation & Bulletin Ingestion</title>
+<style>
+  :root{
+    --head:#06312c; --canvas:#eef2f6; --card:#fff; --border:#e4e9ee; --border-2:#eef1f5;
+    --ink:#1b2733; --ink-2:#3a4652; --muted:#6b7580; --muted-2:#9aa2ab;
+    --sage:#e7efe9; --sage-ink:#1f7a5b; --primary:#0f3d38; --primary-h:#155049;
+    --green:#2e9e5b; --green-bg:#e8f4ec; --red:#e0483d; --red-bg:#fbeceb;
+    --amber:#c98a1a; --amber-bg:#fbf2e0; --purple:#7b7be0; --purple-bg:#eeeefb;
+    --shadow:0 1px 2px rgba(16,40,36,.04),0 2px 10px rgba(16,40,36,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;background:var(--canvas);color:var(--ink);font-size:14px;line-height:1.45}
+  a{color:var(--primary);font-weight:600}
+  button{font:inherit;cursor:pointer;border:none;background:none}
+  .head{height:52px;background:var(--head);display:flex;align-items:center;padding:0 24px}
+  .head .brand{color:#fff;font-weight:800;font-size:16px}.head .brand span{color:#7fd1b9}
+  .head .env{margin-left:auto;color:#9fc7bd;font-size:11px;font-weight:600;border:1px solid #235049;border-radius:20px;padding:3px 10px}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 26px 70px}
+  h1{font-size:21px;font-weight:700;letter-spacing:-.3px}
+  .sub{color:var(--muted);font-size:13px;margin:6px 0 4px;max-width:760px}
+  .nav{font-size:12px;margin:10px 0 22px;color:var(--muted-2)}
+  .flow{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:20px;flex-wrap:wrap}
+  .flow b{color:var(--primary)} .flow .ar{color:var(--muted-2)}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+  .panel-h{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--border-2)}
+  .panel-h h3{font-size:14px;font-weight:700}
+  .panel-b{padding:16px 18px}
+  .tag{font-size:9.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 8px;border-radius:20px}
+  .tag.llm{color:#fff;background:var(--primary)} .tag.kg{color:#5555c8;background:var(--purple-bg)} .tag.det{color:var(--muted);background:#efece3}
+  .drop{border:1.5px dashed #c7cfd6;border-radius:10px;padding:26px;text-align:center;color:var(--muted);transition:.15s;cursor:pointer}
+  .drop:hover,.drop.over{border-color:var(--primary);background:#f4f8f7;color:var(--ink-2)}
+  .drop b{color:var(--ink)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  input[type=text]{font:inherit;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:9px 11px;flex:1;min-width:200px}
+  .btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;border:1px solid var(--border);background:#fff;color:var(--ink-2)}
+  .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}.btn.primary:hover{background:var(--primary-h)}
+  .btn.ghost{background:var(--sage);color:var(--sage-ink);border-color:transparent}
+  .btn.mini{padding:5px 10px;font-size:11.5px}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .spin{width:13px;height:13px;border:2px solid #d8d2c4;border-top-color:var(--primary);border-radius:50%;display:inline-block;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  #umsg{font-size:12.5px;margin-left:6px}.ok{color:var(--green)}.err{color:var(--red)}.busy{color:var(--muted)}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;padding:10px 12px;border-bottom:1px solid var(--border)}
+  td{padding:11px 12px;border-bottom:1px solid var(--border-2);font-size:13px;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  .pill{font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:4px}
+  .pill.on{color:var(--green);background:var(--green-bg)} .pill.off{color:var(--muted);background:#eef1f4}
+  .pill.new{color:var(--amber);background:var(--amber-bg)}
+  .muted{color:var(--muted)} .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  .up-row td{background:#fbfcf8}
+  .stat{display:inline-flex;flex-direction:column;gap:2px;margin-right:26px}
+  .stat .n{font-size:22px;font-weight:700}.stat .l{font-size:11px;color:var(--muted)}
+  .node{border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:7px;font-size:12.5px;background:#fdfcf9}
+  .node .ty{font-weight:700;color:var(--primary)} .conf{font-weight:700;font-variant-numeric:tabular-nums}
+  .conf.hi{color:var(--green)}.conf.mid{color:var(--amber)}.conf.lo{color:var(--red)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+  <div class="head"><div class="brand">Regul<span>AI</span></div><span class="env">Regulation ingestion</span></div>
+  <div class="wrap">
+    <h1>Regulations &amp; bulletins</h1>
+    <p class="sub">Upload a regulation or bulletin PDF. The <b>LLM (Sentinel)</b> extracts cited, confidence-scored rules; you review, then approve them into the <b>Knowledge Graph</b> — after which they're live in validation.</p>
+    <p class="nav">↔ <a href="/experience">Workstation</a> · <a href="/admin/crawler">DB crawler</a> · <a href="/admin/mapping">File onboarding</a></p>
+    <div class="flow"><b>Upload PDF</b><span class="ar">→</span><span class="tag llm">LLM · Sentinel</span> extract<span class="ar">→</span><b>Review</b><span class="ar">→</span><span class="tag kg">Knowledge Graph</span> approve<span class="ar">→</span>live in validation</div>
+
+    <!-- upload -->
+    <div class="panel">
+      <div class="panel-h"><h3>Upload a document</h3><span class="tag det" style="margin-left:auto">PDF</span></div>
+      <div class="panel-b">
+        <div class="drop" id="drop"><b>Drop a PDF here</b> or click to choose · regulation or bulletin<input type="file" id="file" accept="application/pdf,.pdf" style="display:none"></div>
+        <div class="row">
+          <input type="text" id="label" placeholder="Label (optional) — e.g. Commissioner's Bulletin B-2026-Q4-118">
+          <button class="btn primary" id="uploadBtn" disabled>Upload</button>
+          <span id="umsg"></span>
+        </div>
+        <div class="muted" id="picked" style="font-size:12px;margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- documents -->
+    <div class="panel">
+      <div class="panel-h"><h3>Documents</h3><span class="muted" id="docmeta" style="margin-left:auto;font-size:12px"></span></div>
+      <table><thead><tr><th>Document</th><th style="width:120px">Status</th><th style="width:220px">Actions</th></tr></thead>
+        <tbody id="docs"></tbody></table>
+    </div>
+
+    <!-- extraction result -->
+    <div class="panel hidden" id="resPanel">
+      <div class="panel-h"><h3>Extraction — <span id="resName" style="font-weight:600;color:var(--ink)"></span></h3>
+        <span class="tag llm" style="margin-left:auto">LLM · Sentinel</span></div>
+      <div class="panel-b">
+        <div style="margin-bottom:14px">
+          <span class="stat"><span class="n" id="sNodes">—</span><span class="l">rules / nodes</span></span>
+          <span class="stat"><span class="n" id="sRels">—</span><span class="l">relationships</span></span>
+          <span class="stat"><span class="n" id="sCites">—</span><span class="l">citations</span></span>
+          <span class="stat"><span class="n mono" id="sModel" style="font-size:14px">—</span><span class="l">model</span></span>
+        </div>
+        <div class="muted" id="resSummary" style="font-size:12.5px;margin-bottom:14px"></div>
+        <div id="resNodes"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn ghost" id="approveBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Approve into Knowledge Graph</button>
+          <span id="amsg"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const $=(id)=>document.getElementById(id);
+let PICKED=null, CURRENT=null;
+// Read a response body as JSON, but fall back to text so a 500 HTML page
+// surfaces as a clean message instead of "Unexpected token 'I'".
+async function readJson(r){ const t=await r.text(); try{ return JSON.parse(t); }catch{ return {detail:(t||r.statusText||"error").replace(/<[^>]*>/g,"").trim().slice(0,160)}; } }
+
+const drop=$("drop"), fileEl=$("file");
+drop.onclick=()=>fileEl.click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add("over")};
+drop.ondragleave=()=>drop.classList.remove("over");
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove("over");if(e.dataTransfer.files[0])pick(e.dataTransfer.files[0]);};
+fileEl.onchange=()=>{if(fileEl.files[0])pick(fileEl.files[0]);};
+function pick(f){
+  if(!f.name.toLowerCase().endsWith(".pdf")){ $("umsg").className="err";$("umsg").textContent="PDF only";return; }
+  PICKED=f; $("picked").innerHTML=`Selected: <b>${f.name}</b> · ${(f.size/1024).toFixed(0)} KB`;
+  $("uploadBtn").disabled=false; $("umsg").textContent="";
+}
+
+$("uploadBtn").onclick=async()=>{
+  if(!PICKED)return;
+  const fd=new FormData(); fd.append("file",PICKED); if($("label").value.trim())fd.append("label",$("label").value.trim());
+  $("umsg").className="busy";$("umsg").innerHTML='<span class="spin"></span> uploading + extracting text…';
+  $("uploadBtn").disabled=true;
+  try{
+    const r=await fetch("/api/regulations/upload",{method:"POST",body:fd});
+    const d=await readJson(r); if(!r.ok)throw new Error(d.detail||r.statusText);
+    $("umsg").className="ok";$("umsg").textContent=`✓ ${d.label} · ${d.pages} pages · ${d.chars.toLocaleString()} chars`;
+    PICKED=null;$("picked").textContent="";$("label").value="";
+    loadDocs();
+  }catch(e){ $("umsg").className="err";$("umsg").textContent="Upload failed: "+e.message; $("uploadBtn").disabled=false; }
+};
+
+async function loadDocs(){
+  const r=await fetch("/api/regulations"); const d=await r.json();
+  const docs=d.documents||[];
+  const up=docs.filter(x=>x.slug.startsWith("uploaded-"));
+  const rest=docs.filter(x=>!x.slug.startsWith("uploaded-"));
+  $("docmeta").textContent=`${docs.length} documents · ${up.length} uploaded`;
+  const rowFor=(x,isUp)=>{
+    const pills=`${x.exists?'<span class="pill on">text</span>':'<span class="pill off">no text</span>'}${x.has_pdf?'<span class="pill on">pdf</span>':''}${x.has_extraction?'<span class="pill on">extracted</span>':'<span class="pill new">not extracted</span>'}`;
+    return `<tr class="${isUp?'up-row':''}">
+      <td><b>${x.label}</b><div class="muted" style="font-size:11.5px">${x.category}${x.blurb?' · '+x.blurb:''}</div></td>
+      <td>${pills}</td>
+      <td>
+        <button class="btn mini primary" onclick="extract('${x.slug}','${(x.label||'').replace(/'/g,'')}')">Extract (LLM)</button>
+        ${x.has_extraction?`<button class="btn mini ghost" onclick="approve('${x.slug}')">Approve → KG</button>`:''}
+      </td></tr>`;
+  };
+  $("docs").innerHTML = (up.map(x=>rowFor(x,true)).join("")||"") + rest.map(x=>rowFor(x,false)).join("");
+}
+
+async function extract(slug,name){
+  CURRENT=slug;
+  $("resPanel").classList.remove("hidden");
+  $("resName").textContent=name||slug;
+  ["sNodes","sRels","sCites","sModel"].forEach(id=>$(id).textContent="…");
+  $("resSummary").innerHTML='<span class="spin"></span> Sentinel (LLM) reading the document…';
+  $("resNodes").innerHTML=""; $("amsg").textContent="";
+  $("resPanel").scrollIntoView({behavior:"smooth",block:"start"});
+  try{
+    const r=await fetch(`/api/regulations/${slug}/extract`,{method:"POST"});
+    const d=await readJson(r); if(!r.ok)throw new Error(d.detail||r.statusText);
+    $("sNodes").textContent=d.n_nodes ?? "—";
+    $("sRels").textContent=d.n_relationships ?? "—";
+    $("sCites").textContent=d.n_citations ?? "—";
+    $("sModel").textContent=d.model||"—";
+    $("resSummary").textContent=d.summary||"";
+    const nodes=(d.extraction&&d.extraction.proposed_nodes)||[];
+    $("resNodes").innerHTML = nodes.slice(0,12).map(n=>{
+      const p=n.properties||{};
+      const nm=p.name||p.rule_number||p.title||p.code||"";
+      const c=(p.confidence!=null)?p.confidence:(n.confidence!=null?n.confidence:null);
+      const cc=c==null?"":`<span class="conf ${c>=.85?'hi':c>=.6?'mid':'lo'}">${(+c).toFixed(2)}</span>`;
+      return `<div class="node"><span class="ty">${n.label||n.type||"Node"}</span> ${nm} ${cc}<div class="muted">${(p.description||p.summary||p.text||"").slice(0,140)}</div></div>`;
+    }).join("") || '<div class="muted">No structured nodes returned.</div>';
+    loadDocs();
+  }catch(e){ $("resSummary").className="err";$("resSummary").textContent="Extraction failed: "+e.message+(e.message.includes('quota')||e.message.includes('429')?" (OpenAI quota — try on prod or restore billing)":""); }
+}
+
+async function approve(slug){
+  $("amsg").className="busy";$("amsg").innerHTML='<span class="spin"></span> approving into the Knowledge Graph…';
+  try{
+    const r=await fetch(`/api/regulations/${slug}/approve`,{method:"POST"});
+    const d=await readJson(r); if(!r.ok)throw new Error(d.detail||r.statusText);
+    $("amsg").className="ok";$("amsg").textContent="✓ approved into the KG — live in validation";
+  }catch(e){ $("amsg").className="err";$("amsg").textContent="Approve failed: "+e.message; }
+}
+
+loadDocs();
+</script>
+</body>
+</html>

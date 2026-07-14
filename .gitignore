@@ -79,3 +79,7 @@ data/source_dbs/
 
 # Transform plans (regenerated locally)
 materialized/transforms/
+
+# Uploaded regulations/bulletins — user runtime data, not source
+references/regulations/uploaded-*.pdf
+materialized/uploaded_regulations/
