@@ -270,10 +270,11 @@ def silver_cancellation(month: str) -> int:
             -- withdrawal_violation: any must_appear_alone code is combined with others
             CASE
               WHEN LENGTH(COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason)) > 1
-                AND COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason) LIKE ANY (
-                  SELECT '%' || tspr_reason_code || '%'
-                  FROM INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP
-                  WHERE must_appear_alone = TRUE
+                AND EXISTS (
+                  SELECT 1 FROM INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP m
+                  WHERE m.must_appear_alone = TRUE
+                    AND COALESCE(j.cancellationreason, j.nonrenewalreason, j.declinereason)
+                        LIKE '%' || m.tspr_reason_code || '%'
                 )
               THEN TRUE ELSE FALSE
             END,
