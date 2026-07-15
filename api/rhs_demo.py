@@ -960,6 +960,56 @@ def bronze_policy(policy: str) -> JSONResponse:
     })
 
 
+_SUBMISSION_COLS = [
+    "naic_company_no", "policy_id", "record_type", "stat_plan",
+    "effective_date", "expiry_date", "amt_insurance_dw", "amt_insurance_pp",
+    "line_of_business", "policy_form", "number_of_families", "coverage_occupancy",
+    "construction", "ppc_simple", "deductible_1_amt", "fire_premium", "ec_premium",
+    "zip9", "validation_status",
+]
+
+
+@router.get("/submission/{policy}")
+def submission_record(policy: str) -> JSONResponse:
+    """The final TSPR record that will be submitted for a policy — the encoded
+    canonical row from SILVER.TSPR_PREMIUM_STAGING (MMDDY effective / MMY expiry
+    dates, amounts in $1000s, coded LOB / form / construction / PPC). This is the
+    output the pipeline files, as opposed to the editable Bronze source."""
+    policy = (policy or "").strip().upper()
+    if not policy.startswith("POL-"):
+        raise HTTPException(400, "policy_number must be like POL-0015")
+
+    def _safe(v: Any) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, (dt.datetime, dt.date, dt.time)):
+            return v.isoformat()[:10]
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
+
+    try:
+        rows = query(
+            f"SELECT {', '.join(_SUBMISSION_COLS)} "
+            "FROM INSURANCE_REGULATORY.SILVER.TSPR_PREMIUM_STAGING "
+            "WHERE policy_id = %s LIMIT 1",
+            (policy,),
+        )
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"submission lookup failed: {e}") from e
+
+    if not rows:
+        return JSONResponse({
+            "policy_number": policy, "found": False,
+            "note": "No SILVER.TSPR_PREMIUM_STAGING row — run the Bronze→Silver pipeline.",
+        })
+    r = rows[0]
+    return JSONResponse({
+        "policy_number": policy, "found": True,
+        "fields": {c: _safe(_g(r, c)) for c in _SUBMISSION_COLS},
+    })
+
+
 @router.get("/bronze/claims")
 def bronze_claims(filing: str | None = None) -> JSONResponse:
     """List GW_CC_CLAIM rows joined to GW_PC_POLICY, scoped to a filing.

@@ -306,6 +306,21 @@ function renderLoading(){ $("#main").innerHTML=`<div class="content"><div class=
 const STATUS = { clean:{dot:"green",label:"Clean"}, blocked:{dot:"red",label:"Blocked"}, warning:{dot:"amber",label:"Warning"}, review:{dot:"purple",label:"In Review"} };
 function pill(label,val){ return `<span class="pill">${label}${val?` <span class="cv">${val}</span>`:""} <span class="cv">▾</span></span>`; }
 
+// Open any record by policy id — including clean/good records not in the
+// exceptions list — so its Final-record (submission) panel can be reviewed.
+function openLookup(){
+  const el=document.getElementById("lookupInput"); if(!el) return;
+  const v=el.value.trim().toUpperCase();
+  if(!v.startsWith("POL-")){ el.style.borderColor="var(--red)"; return; }
+  const hit=STATE.records.find(r=>r.id===v);
+  STATE.current = hit || {id:v, key:"lookup/"+v, status:"clean", resolved:false,
+    filingId:null, jur:"—", plan:"—", carrier:"—", stage:"Validated",
+    ruleNumber:"", ruleName:"—", severity:"", citation:"—",
+    reason:"", reasonFull:"No violations — clean record, ready for submission."};
+  STATE.selKey=STATE.current.key; STATE.view="detail";
+  EDITKEYS=false; EDITVALS=null; SUBMISSION=null; render();
+}
+
 /* ── dashboard ──────────────────────────────────────────────────────────── */
 function kpiRow(g){
   return `<div class="sect-h">${g.title}</div><div class="sect-sub">${g.sub}</div>
@@ -337,6 +352,11 @@ function renderRecords(){
         <span class="statf sel"><span class="dot red"></span><span class="num">${errors}</span> Errors</span>
         <span class="statf"><span class="dot amber"></span><span class="num">${warns}</span> Warnings</span>
         <span class="statf"><span class="dot purple"></span><span class="num">${flagged}</span> Records flagged</span>
+        <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <span class="lead">View any record</span>
+          <input id="lookupInput" placeholder="POL-0001" onkeydown="if(event.key==='Enter')openLookup()" style="font:inherit;font-size:12.5px;border:1px solid var(--border);border-radius:7px;padding:6px 9px;width:150px">
+          <button class="btn plain" onclick="openLookup()" style="border:1px solid var(--border);border-radius:7px;padding:6px 11px;font-size:12.5px;font-weight:600;color:var(--ink-2)">Open →</button>
+        </span>
       </div>
       <div class="tbl-wrap">
         <div class="tbl-tools">
@@ -368,7 +388,7 @@ function renderRecords(){
       </div>
     </div>`;
   document.querySelectorAll("[data-f]").forEach(b=> b.onclick=()=>{STATE.filter=b.dataset.f;render();});
-  document.querySelectorAll("tbody tr[data-key]").forEach(tr=> tr.onclick=()=>{STATE.view="detail";STATE.selKey=tr.dataset.key;EDITKEYS=false;EDITVALS=null;render();});
+  document.querySelectorAll("tbody tr[data-key]").forEach(tr=> tr.onclick=()=>{STATE.view="detail";STATE.selKey=tr.dataset.key;EDITKEYS=false;EDITVALS=null;SUBMISSION=null;render();});
 }
 
 /* ── resolution (real fix paths, wired to /api/rhs) ─────────────────────── */
@@ -459,6 +479,45 @@ function ekRow(f){
            :(val===""?'<span class="meta">—</span>':val)}</td></tr>`;
 }
 
+/* ── final submission record (the encoded TSPR row that gets filed) ──────── */
+let SUBMISSION=null;
+const SUB_FIELDS=[
+  {k:"naic_company_no",l:"NAIC company #"}, {k:"policy_id",l:"Policy ID"},
+  {k:"record_type",l:"Record type"}, {k:"stat_plan",l:"Stat plan"},
+  {k:"effective_date",l:"Effective date",e:"MMDDY"}, {k:"expiry_date",l:"Expiry date",e:"MMY"},
+  {k:"amt_insurance_dw",l:"Coverage A",e:"$1000s"}, {k:"amt_insurance_pp",l:"Coverage C",e:"$1000s"},
+  {k:"line_of_business",l:"Line of business",e:"coded"}, {k:"policy_form",l:"Policy form",e:"coded"},
+  {k:"construction",l:"Construction",e:"coded"}, {k:"ppc_simple",l:"PPC",e:"coded"},
+  {k:"deductible_1_amt",l:"Deductible"}, {k:"fire_premium",l:"Fire premium"},
+  {k:"ec_premium",l:"EC premium"}, {k:"zip9",l:"Risk ZIP9"},
+];
+async function loadSubmission(policy){
+  try{ SUBMISSION=await api("/api/rhs/submission/"+encodeURIComponent(policy)); }
+  catch(e){ SUBMISSION={found:false,note:"lookup failed: "+e.message}; }
+  if(STATE.view==="detail") render();
+}
+function submissionPanel(){
+  const r=STATE.current;
+  const ready = r && (r.status!=="blocked" || r.resolved);
+  const rows = SUBMISSION===null
+    ? '<tr><td class="k">loading…</td><td class="v"></td></tr>'
+    : (!SUBMISSION.found
+        ? `<tr><td class="k" colspan="2" style="color:var(--muted)">${SUBMISSION.note||"No submission record yet."}</td></tr>`
+        : SUB_FIELDS.map(f=>{const v=SUBMISSION.fields[f.k];const val=(v==null||v==="")?'<span class="meta">—</span>':v;
+            return `<tr><td class="k">${f.l}${f.e?` <span class="meta" style="font-weight:400">· ${f.e}</span>`:""}</td><td class="v mono">${val}</td></tr>`;}).join(""));
+  const F=(SUBMISSION&&SUBMISSION.found)?SUBMISSION.fields:null;
+  const wire = F?`<div class="prov"><span style="color:var(--muted-2)">wire preview</span> &nbsp;<span class="mono" style="color:var(--ink-2)">${
+    [F.stat_plan,F.record_type,F.policy_id,F.effective_date,F.expiry_date,F.amt_insurance_dw,F.line_of_business,F.policy_form,F.construction,F.ppc_simple,F.zip9].map(x=>x==null?"·":x).join("  ")}</span></div>`:"";
+  return `<div class="panel">
+    <div class="panel-h"><h3>Final record — TSPR submission</h3>
+      <span class="tag" style="margin-left:8px;${ready?'color:var(--green);background:var(--green-bg)':'color:var(--amber);background:var(--amber-bg)'}">${ready?'ready to file':'held'}</span></div>
+    <div style="padding:11px 18px;font-size:12.5px;border-bottom:1px solid var(--border-2);border-left:3px solid ${ready?'var(--green)':'var(--amber)'};background:${ready?'var(--green-bg)':'var(--amber-bg)'};color:var(--ink-2)">${
+      ready?'✓ Clean — this is the encoded record that will be submitted to TICO / TDI.':'Held — resolve the blocker(s) before this record can be filed.'}</div>
+    <table class="kv">${rows}</table>
+    ${wire}
+  </div>`;
+}
+
 /* ── record detail ──────────────────────────────────────────────────────── */
 function kvRow(k,v,k2,v2,edit2){
   return `<tr class="${edit2&&EDIT?'editing':''}"><td class="k">${k}</td><td class="v">${v}</td>`+
@@ -501,6 +560,7 @@ function renderDetail(){
           <div class="rmsg" id="keysMsg" style="padding:0 18px 12px">${EDITKEYS?'Change any field, then Save — writes to the source record (Bronze) and re-validates.':''}</div>
           <div class="prov">Editable fields write to the source • re-validates on save</div>
         </div>
+        ${submissionPanel()}
         <div class="panel">
           <div class="panel-h"><h3>Validation</h3><div class="sp"><button class="btn plain"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button></div></div>
           <table class="kv">
@@ -531,6 +591,7 @@ function renderDetail(){
     </div>`;
   loadHistory(r);
   if(EDITVALS===null) loadEditable(r.id);
+  if(SUBMISSION===null) loadSubmission(r.id);
 }
 async function loadHistory(r){
   try{
