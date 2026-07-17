@@ -158,6 +158,9 @@
   .reso input{font:inherit;font-size:13px;border:1px solid var(--primary);border-radius:7px;padding:8px 10px;width:150px;
               outline:none;box-shadow:0 0 0 3px rgba(15,61,56,.08)}
   .reso.resolved{background:var(--green-bg);border-color:#bcdcc7}
+  .fixhint{margin:0;padding:11px 18px;font-size:12.5px;color:var(--ink-2);background:var(--amber-bg);
+           border-bottom:1px solid var(--border-2);border-left:3px solid var(--amber);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .fixhint b{color:var(--ink)} .fixhint .btn{margin-left:auto}
   .rmsg{font-size:12.5px;margin-top:10px;min-height:16px}
   .rmsg.ok{color:var(--green)} .rmsg.err{color:var(--red)} .rmsg.busy{color:var(--muted)}
   .hidden{display:none}
@@ -424,6 +427,19 @@ async function saveFix(){
     render();
   }catch(e){ msg.className="rmsg err"; msg.textContent="Fix failed: "+e.message; }
 }
+async function applySuggestedFix(){
+  const r=STATE.current, spec=fixSpec(r), msg=$("#keysMsg")||{};
+  if(!spec.suggest){ EDITKEYS=true; render(); return; }
+  msg.className="rmsg busy"; msg.textContent=`Setting ${spec.label} → ${spec.suggest} + re-validating…`;
+  try{
+    await apiPost("/api/rhs/bronze/fix",{policy_number:r.id, field:spec.field, new_value:spec.suggest});
+    const viol=await refreshFiling(r.filingId);
+    const still=viol.find(x=>x.policy_number===r.id && x.rule_number===r.ruleNumber);
+    EDITVALS=null; SUBMISSION=null;
+    if(!still){ r.status="clean"; r.resolved=true; r.resolvedBy=`Set ${spec.field} → ${spec.suggest}. Re-validation passed.`; }
+    render();
+  }catch(e){ const m=$("#keysMsg"); if(m){m.className="rmsg err"; m.textContent="Fix failed: "+e.message;} }
+}
 async function applyBulletin(){
   const r=STATE.current, msg=$("#bullMsg")||$("#keysMsg")||{};
   msg.className="rmsg busy"; msg.textContent="Applying bulletin + re-validating every filing…";
@@ -531,7 +547,12 @@ function renderDetail(){
   const blocked = r.status==="blocked" && !resolved;
   const sm=STATE.byFiling[r.filingId]?.summary||{};
   const canBulletin = BULLETIN_RULES.has(ruleBase(r)) && !STATE.bulletin.bulletin_applied;
+  const spec = fixSpec(r);
   const sevTag = s => `<span class="tag" style="color:${s==='ERROR'?'var(--red)':s==='WARNING'?'var(--amber)':'var(--ink-2)'};background:${s==='ERROR'?'var(--red-bg)':s==='WARNING'?'var(--amber-bg)':'#eef1f4'}">${s}</span>`;
+  const fixHint = blocked ? `<div class="fixhint">
+      <b>How to fix:</b> set <b>${spec.label}</b>${spec.suggest?` → <span class="mono">${spec.suggest}</span>`:''} and Save. <span style="color:var(--muted)">${spec.hint}</span>
+      ${spec.suggest?`<button class="btn mini primary" onclick="applySuggestedFix()">Apply fix →</button>`:`<button class="btn mini primary" onclick="EDITKEYS=true;render()">Edit →</button>`}
+    </div>` : "";
   const keyActions = EDITKEYS
     ? `<button class="btn plain" onclick="EDITKEYS=false;render()">Cancel</button><button class="btn primary" onclick="saveKeys()">Save &amp; re-validate</button>`
     : `<button class="btn ghost" onclick="EDITKEYS=true;render()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Edit</button>`;
@@ -552,6 +573,7 @@ function renderDetail(){
       <div>
         <div class="panel">
           <div class="panel-h"><h3>Key details</h3><span class="tag" style="margin-left:8px">editable</span><div class="sp">${keyActions}</div></div>
+          ${fixHint}
           <div class="ctx"><span><b>Jurisdiction</b>${r.jur}</span><span><b>Carrier</b>${r.carrier}</span><span><b>Plan</b>${r.plan}</span><span><b>Filing</b>${r.filingId}</span></div>
           <table class="kv">
             <tr><td class="k">Record / Policy ID</td><td class="v"><span class="tag">${r.id}</span></td></tr>
@@ -596,9 +618,12 @@ function renderDetail(){
 async function loadHistory(r){
   try{
     const a=await api("/api/rhs/audit/"+encodeURIComponent(r.filingId));
-    const acts=(a.actions||[]).filter(x=> !x.target_record || x.target_record===r.id).slice(0,6);
-    if(!acts.length) return;
-    $("#hist").innerHTML = acts.map(x=>`<div class="hrow"><span class="hdot" style="background:var(--purple)"></span><div><div class="ht">${x.summary||x.action_type}</div><div class="hm">${x.actor||"system"} · ${(x.acted_at||"").replace('T',' ').slice(0,16)}</div></div></div>`).join("");
+    // Only THIS record's events — exclude filing-level validation-run entries
+    // ("N rules · N violations"), which aren't record history.
+    const acts=(a.actions||[]).filter(x=> x.target_record===r.id && x.action_type!=="validation_run").slice(0,6);
+    if(!acts.length) return;  // keep the derived per-record timeline
+    const base=$("#hist").innerHTML;
+    $("#hist").innerHTML = acts.map(x=>`<div class="hrow"><span class="hdot" style="background:var(--purple)"></span><div><div class="ht">${x.summary||x.action_type}</div><div class="hm">${x.actor||"system"} · ${(x.acted_at||"").replace('T',' ').slice(0,16)}</div></div></div>`).join("") + base;
   }catch(e){ /* keep the derived history */ }
 }
 

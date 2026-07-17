@@ -186,6 +186,21 @@ def _ensure_filing_batch(filing_id: str, status: str = "draft") -> str:
 # Skip when nothing changed; only real transitions (a fix, a bulletin) persist.
 _last_validation_sig: dict[str, str] = {}
 
+# ── Validation result cache ──────────────────────────────────────────────
+# Each /validate call is many Databricks round trips (rules + policy map + one
+# query per rule), serialized by the connection lock — and the UI validates
+# every filing on load. Cache the HTTP result per filing for a short window so
+# repeated loads/navigation are instant; any write (fix / bulletin) clears it,
+# and internal callers (bulletin apply) always recompute fresh.
+import time as _time
+
+_VALIDATE_CACHE: dict[str, tuple[float, dict]] = {}
+_VALIDATE_TTL = 90.0
+
+
+def _invalidate_validate() -> None:
+    _VALIDATE_CACHE.clear()
+
 
 @_audit_safe
 def _record_validation_run(filing_id: str, rule_results: list[dict], violations: list[dict],
@@ -481,6 +496,15 @@ def validate_cancellations(filing: str | None = None,
     # demo). The reference table carries `jurisdiction_code` per row, so a
     # filing for a future state would automatically use only that state's
     # rules + federal defaults.
+    # Serve a fresh-enough cached result for HTTP callers (background_tasks set).
+    # Internal callers (bulletin apply) pass no background_tasks → always fresh.
+    _cache_key = filing or "__default__"
+    _use_cache = background_tasks is not None
+    if _use_cache:
+        _hit = _VALIDATE_CACHE.get(_cache_key)
+        if _hit and (_time.time() - _hit[0]) < _VALIDATE_TTL:
+            return JSONResponse(_hit[1])
+
     target_jur = "US-TX"
     if filing:
         f_obj = _filing(filing)
@@ -586,12 +610,15 @@ def validate_cancellations(filing: str | None = None,
             # reconciled now, so force past the dedupe.
             run_id = _record_validation_run(filing, rule_results, violations, force=True)
 
-    return JSONResponse({
+    payload = {
         "summary": summary,
         "rules": rule_results,
         "violations": violations,
         "run_id": run_id,
-    })
+    }
+    if _use_cache:
+        _VALIDATE_CACHE[_cache_key] = (_time.time(), payload)
+    return JSONResponse(payload)
 
 
 @router.get("/state")
@@ -872,6 +899,7 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
         "WHERE publicid = %s",
         (set_param, pubid),
     )
+    _invalidate_validate()  # data changed → stale any cached validation
 
     # Coerce DB-returned types into JSON-safe forms (Decimal, datetime, etc.)
     def _safe(v: Any) -> Any:
@@ -1946,6 +1974,7 @@ def anomalies_detect() -> JSONResponse:
 @router.post("/bulletin/apply")
 def bulletin_apply() -> JSONResponse:
     """Apply the credit-score bulletin: materialize → version-bump → reload reference."""
+    _invalidate_validate()  # canon changes → drop cached validation
     steps = []
     if backend_name() == "snowflake":
         # KG-driven canon pipeline: materialize → version-bump → reference → load.
@@ -2053,6 +2082,7 @@ def bulletin_apply() -> JSONResponse:
 @router.post("/bulletin/reset")
 def bulletin_reset() -> JSONResponse:
     """Roll back the bulletin and reload baseline reference."""
+    _invalidate_validate()  # canon changes → drop cached validation
     steps = []
     if backend_name() == "snowflake":
         steps.append({"step": "reset", **_run(
