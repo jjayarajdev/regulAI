@@ -202,6 +202,90 @@ def _invalidate_validate() -> None:
     _VALIDATE_CACHE.clear()
 
 
+# ── Bronze publicid/claimnumber → policy-number map (cached) ──────────────
+# Used to scope violations to a filing. It only changes when Bronze rows are
+# added/removed (never on a reason-code fix), so cache it — one fewer round trip
+# on every /validate.
+_PUBID_MAP_CACHE: tuple[float, dict[str, str]] | None = None
+_PUBID_MAP_TTL = 300.0
+
+
+def _pubid_map() -> dict[str, str]:
+    global _PUBID_MAP_CACHE
+    if _PUBID_MAP_CACHE and (_time.time() - _PUBID_MAP_CACHE[0]) < _PUBID_MAP_TTL:
+        return _PUBID_MAP_CACHE[1]
+    m: dict[str, str] = {}
+    try:
+        for r in query(
+            "SELECT j.publicid AS pid, p.policynumber AS policy "
+            "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j "
+            "LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+            "UNION SELECT j.publicid, p.policynumber "
+            "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICYPERIOD j "
+            "LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+            "UNION SELECT j.claimnumber, p.policynumber "
+            "FROM INSURANCE_REGULATORY.BRONZE.GW_CC_CLAIM j "
+            "LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id"
+        ):
+            m[r["pid"]] = r.get("policy") or r["pid"]
+    except Exception:
+        pass
+    _PUBID_MAP_CACHE = (_time.time(), m)
+    return m
+
+
+def _assemble_rules(rules, by_rule, errors, scope_set, pubid_to_policy):
+    """Turn per-rule violating record_ids into (rule_results, violations)."""
+    violations: list[dict] = []
+    rule_results: list[dict] = []
+    for i, rule in enumerate(rules):
+        if i in errors:
+            rule_results.append({**rule, "status": "error", "error": errors[i], "violation_count": 0})
+            continue
+        recs = by_rule.get(i, [])
+        if scope_set is not None:
+            recs = [rid for rid in recs if pubid_to_policy.get(rid, rid) in scope_set]
+        rule_results.append({**rule, "status": "pass" if not recs else "fail", "violation_count": len(recs)})
+        for pubid in recs:
+            violations.append({
+                "rule_id": rule["rule_id"], "rule_number": rule["rule_number"], "rule_name": rule["rule_name"],
+                "record_id": pubid, "policy_number": pubid_to_policy.get(pubid, pubid),
+                "violation_reason": rule["violation_reason"], "severity": rule["severity"], "citation": rule["citation"],
+            })
+    return rule_results, violations
+
+
+def _run_rules(rules, scope_set, pubid_to_policy):
+    """Evaluate every rule. Fast path: ONE `UNION ALL` query for all rules (one
+    Databricks round trip instead of one per rule). Falls back to per-rule if the
+    combined query errors, so a single bad rule can't break validation."""
+    if not rules:
+        return [], []
+    try:
+        subs = [
+            f"SELECT {i} AS rid, CAST({r['target_id_expr']} AS STRING) AS record_id "
+            f"FROM INSURANCE_REGULATORY.{r['target_table']} j WHERE ({r['violation_sql']})"
+            for i, r in enumerate(rules)
+        ]
+        rows = query(" UNION ALL ".join(subs))
+        by_rule: dict[int, list[str]] = {}
+        for row in rows:
+            by_rule.setdefault(int(row["rid"]), []).append(row["record_id"])
+        return _assemble_rules(rules, by_rule, {}, scope_set, pubid_to_policy)
+    except Exception:
+        by_rule, errors = {}, {}
+        for i, rule in enumerate(rules):
+            try:
+                rows = query(
+                    f"SELECT CAST({rule['target_id_expr']} AS STRING) AS record_id "
+                    f"FROM INSURANCE_REGULATORY.{rule['target_table']} j WHERE ({rule['violation_sql']})"
+                )
+                by_rule[i] = [r["record_id"] for r in rows]
+            except Exception as e:
+                errors[i] = str(e)[:200]
+        return _assemble_rules(rules, by_rule, errors, scope_set, pubid_to_policy)
+
+
 @_audit_safe
 def _record_validation_run(filing_id: str, rule_results: list[dict], violations: list[dict],
                            resolution_action: str | None = None, force: bool = False) -> str | None:
@@ -520,75 +604,11 @@ def validate_cancellations(filing: str | None = None,
         (target_jur,),
     )
     scope_set = _filing_policy_numbers(filing)  # None = no scope filter
-    # Map Bronze record's publicid → friendly policy number.
-    # Single round trip; tiny synthetic dataset.
-    pubid_to_policy: dict[str, str] = {}
-    try:
-        for r in query(
-            """
-            SELECT j.publicid AS pid, p.policynumber AS policy
-            FROM INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j
-            LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id
-            UNION
-            SELECT j.publicid AS pid, p.policynumber AS policy
-            FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICYPERIOD j
-            LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id
-            UNION
-            -- Claims target rules use j.claimnumber as the record_id; map back
-            -- to the parent policy so filing-scope filtering still applies.
-            SELECT j.claimnumber AS pid, p.policynumber AS policy
-            FROM INSURANCE_REGULATORY.BRONZE.GW_CC_CLAIM j
-            LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id
-            """
-        ):
-            pubid_to_policy[r["pid"]] = r.get("policy") or r["pid"]
-    except Exception:
-        pass
+    pubid_to_policy = _pubid_map()              # cached; publicid → policy number
 
-    violations: list[dict] = []
-    rule_results: list[dict] = []
-    for rule in rules:
-        # rules-as-data by design: target_id_expr / violation_sql are SQL
-        # fragments authored in the KG → REFERENCE pipeline, not user input.
-        target = rule["target_table"]
-        sql = (
-            f"SELECT {rule['target_id_expr']} AS record_id "
-            f"FROM INSURANCE_REGULATORY.{target} j "
-            f"WHERE ({rule['violation_sql']})"
-        )
-        try:
-            rows = query(sql)
-        except Exception as e:
-            rule_results.append({
-                **rule,
-                "status": "error",
-                "error": str(e)[:200],
-                "violation_count": 0,
-            })
-            continue
-        # If a filing scope is set, drop violations whose policy isn't in this filing
-        if scope_set is not None:
-            rows = [
-                r for r in rows
-                if pubid_to_policy.get(r["record_id"], r["record_id"]) in scope_set
-            ]
-        rule_results.append({
-            **rule,
-            "status": "pass" if not rows else "fail",
-            "violation_count": len(rows),
-        })
-        for r in rows:
-            pubid = r["record_id"]
-            violations.append({
-                "rule_id": rule["rule_id"],
-                "rule_number": rule["rule_number"],
-                "rule_name": rule["rule_name"],
-                "record_id": pubid,
-                "policy_number": pubid_to_policy.get(pubid, pubid),
-                "violation_reason": rule["violation_reason"],
-                "severity": rule["severity"],
-                "citation": rule["citation"],
-            })
+    # Evaluate every rule in a single round trip (batched UNION ALL).
+    rule_results, violations = _run_rules(rules, scope_set, pubid_to_policy)
+
     summary = {
         "rules_run": len(rule_results),
         "rules_passing": sum(1 for r in rule_results if r["status"] == "pass"),
@@ -618,6 +638,49 @@ def validate_cancellations(filing: str | None = None,
     }
     if _use_cache:
         _VALIDATE_CACHE[_cache_key] = (_time.time(), payload)
+    return JSONResponse(payload)
+
+
+@router.get("/validate/all")
+def validate_all() -> JSONResponse:
+    """Validate EVERY filing in one round trip. The UI loads all filings on the
+    dashboard/records screens; doing it here (rules run once, unscoped, then
+    partitioned by filing in memory) collapses N per-filing calls into one —
+    the big win against Databricks serverless per-query latency. Cached like
+    /validate; write-invalidated the same way."""
+    hit = _VALIDATE_CACHE.get("__ALL__")
+    if hit and (_time.time() - hit[0]) < _VALIDATE_TTL:
+        return JSONResponse(hit[1])
+
+    rules = query(
+        "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
+        "       violation_sql, violation_reason, severity, citation, "
+        "       jurisdiction_code, is_federal_default "
+        "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
+        "WHERE jurisdiction_code = 'US-TX' OR jurisdiction_code = 'US' "
+        "ORDER BY rule_number"
+    )
+    pubid_to_policy = _pubid_map()
+    _, all_violations = _run_rules(rules, None, pubid_to_policy)  # unscoped: every violation
+
+    by_filing: dict[str, dict] = {}
+    for f in _live_filings():
+        scope = _filing_policy_numbers(f["id"])
+        fv = all_violations if scope is None else [v for v in all_violations if v["policy_number"] in scope]
+        failing = {v["rule_id"] for v in fv}
+        by_filing[f["id"]] = {
+            "summary": {
+                "rules_run": len(rules),
+                "rules_passing": len(rules) - len(failing),
+                "rules_failing": len(failing),
+                "rules_errored": 0,
+                "total_violations": len(fv),
+            },
+            "violations": fv,
+            "run_id": None,
+        }
+    payload = {"by_filing": by_filing}
+    _VALIDATE_CACHE["__ALL__"] = (_time.time(), payload)
     return JSONResponse(payload)
 
 

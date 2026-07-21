@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Database, LayoutDashboard, Rows3, Settings } from 'lucide-react';
 import type { Filing, ValidateResponse } from '../../api/types';
-import { ExpRecord, mapViolation, useBackendState, useFilings, useValidations } from './api';
+import { ExpRecord, mapViolation, useBackendState, useFilings, useValidateAll } from './api';
 import { Dashboard } from './Dashboard';
 import { Records } from './Records';
 import { RecordDetail } from './RecordDetail';
@@ -14,23 +14,24 @@ export function ExperienceApp() {
   const filingsQ = useFilings();
   const stateQ = useBackendState();
   const filings = filingsQ.data?.filings ?? [];
-  const validations = useValidations(filings.map((f) => f.id));
+  const valQ = useValidateAll();
 
   const { records, byFiling } = useMemo(() => {
     const recs: ExpRecord[] = [];
     const bf: Record<string, FilingAgg> = {};
-    filings.forEach((f, i) => {
-      const v = validations[i]?.data;
+    const byId = valQ.data?.by_filing ?? {};
+    filings.forEach((f) => {
+      const v = byId[f.id];
       const viol = v?.violations ?? [];
       bf[f.id] = { filing: f, summary: v?.summary ?? {}, count: viol.length, runId: v?.run_id };
       viol.forEach((x) => recs.push(mapViolation(f, x)));
     });
     return { records: recs, byFiling: bf };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filings, validations.map((q) => q.dataUpdatedAt).join(',')]);
+  }, [filings, valQ.dataUpdatedAt]);
 
   const live = !filingsQ.isError && filings.length > 0;
-  const loading = filingsQ.isLoading || validations.some((q) => q.isLoading);
+  const loading = filingsQ.isLoading || valQ.isLoading;
 
   const [screen, setScreen] = useState<Screen>('dashboard');
   const [current, setCurrent] = useState<ExpRecord | null>(null);

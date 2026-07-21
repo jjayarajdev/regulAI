@@ -2,8 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronLeft, Pencil } from 'lucide-react';
 import type { FilingAgg } from './ExperienceApp';
-import type { ValidateResponse } from '../../api/types';
-import { ExpRecord, useApplyBulletin, useAudit, useBronzeFix, usePolicyFields, useSubmission } from './api';
+import { ExpRecord, ValidateAllResponse, useApplyBulletin, useAudit, useBronzeFix, usePolicyFields, useSubmission } from './api';
 
 const FIX: Record<string, { field: string; label: string; suggest: string; hint: string }> = {
   'A.34': { field: 'reason_code', label: 'Reason code', suggest: 'LB', hint: "Reason 'L' (credit-score declination) needs a companion — use LB (credit-score + companion) or LD (+ claims history)." },
@@ -80,9 +79,10 @@ export function RecordDetail({ record, agg, stillFailing, bulletinApplied, bulle
   // fate directly — reliable + fast (one query), no waiting on parent state.
   const settle = async () => {
     if (!r.filingId) return false;
-    await qc.refetchQueries({ queryKey: ['exp', 'validate', r.filingId], type: 'active' });
-    const data = qc.getQueryData<ValidateResponse>(['exp', 'validate', r.filingId]);
-    return (data?.violations ?? []).some((v) => v.policy_number === r.id && v.rule_number === r.ruleNumber);
+    await qc.refetchQueries({ queryKey: ['exp', 'validate-all'], type: 'active' });
+    const data = qc.getQueryData<ValidateAllResponse>(['exp', 'validate-all']);
+    const viol = data?.by_filing?.[r.filingId]?.violations ?? [];
+    return viol.some((v) => v.policy_number === r.id && v.rule_number === r.ruleNumber);
   };
   const applyFixes = async (changes: { field: string; new_value: string }[], label: string) => {
     setMsg({ cls: 'busy', text: `${label} + re-validating…` });

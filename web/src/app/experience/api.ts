@@ -1,9 +1,13 @@
 // Data layer for the CBRE experience — React Query hooks over /api/rhs, plus
 // pure helpers that shape validation violations into the records/KPIs the UI
 // renders. Self-contained (own query keys) so mutations can invalidate cleanly.
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getJson, postJson } from '../../api/client';
 import type { Filing, FilingsResponse, StateResponse, ValidateResponse, Violation } from '../../api/types';
+
+// One-call validation for every filing (collapses N per-filing validates).
+export interface FilingValidation { summary: ValidateResponse['summary']; violations: Violation[]; run_id: string | null }
+export interface ValidateAllResponse { by_filing: Record<string, FilingValidation> }
 
 // ── extra response shapes (not in api/types) ──────────────────────────────
 export interface SubmissionResponse {
@@ -54,15 +58,8 @@ export const useFilings = () =>
 export const useBackendState = () =>
   useQuery({ queryKey: ['exp', 'state'], queryFn: () => getJson<StateResponse>('/state') });
 
-export function useValidations(filingIds: string[]) {
-  return useQueries({
-    queries: filingIds.map((id) => ({
-      queryKey: ['exp', 'validate', id],
-      queryFn: () => getJson<ValidateResponse>('/validate?filing=' + encodeURIComponent(id)),
-      enabled: !!id,
-    })),
-  });
-}
+export const useValidateAll = () =>
+  useQuery({ queryKey: ['exp', 'validate-all'], queryFn: () => getJson<ValidateAllResponse>('/validate/all') });
 
 export const useSubmission = (policy: string | null) =>
   useQuery({
@@ -91,7 +88,7 @@ export function useBronzeFix() {
     mutationFn: (v: { policy_number: string; field: string; new_value: string }) =>
       postJson('/bronze/fix', v),
     onSuccess: (_d, v) => {
-      qc.invalidateQueries({ queryKey: ['exp', 'validate'] });
+      qc.invalidateQueries({ queryKey: ['exp', 'validate-all'] });
       qc.invalidateQueries({ queryKey: ['exp', 'submission', v.policy_number] });
       qc.invalidateQueries({ queryKey: ['exp', 'policy', v.policy_number] });
     },
@@ -103,7 +100,7 @@ export function useApplyBulletin() {
   return useMutation({
     mutationFn: () => postJson('/bulletin/apply'),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['exp', 'validate'] });
+      qc.invalidateQueries({ queryKey: ['exp', 'validate-all'] });
       qc.invalidateQueries({ queryKey: ['exp', 'state'] });
     },
   });
