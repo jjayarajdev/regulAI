@@ -157,6 +157,9 @@ export function WorkstationApp() {
             <a className="rail-link" href="/admin/mapping" target="_blank" rel="noopener noreferrer">
               Source onboarding<span className="count">new</span>
             </a>
+            <a className="rail-link" href="/admin/crawler" target="_blank" rel="noopener noreferrer">
+              Database crawler<span className="count">new</span>
+            </a>
             <div className="rail-link">ShareFile<span className="count">preview</span></div>
           </div>
         </nav>

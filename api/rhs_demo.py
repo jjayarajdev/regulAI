@@ -186,6 +186,21 @@ def _ensure_filing_batch(filing_id: str, status: str = "draft") -> str:
 # Skip when nothing changed; only real transitions (a fix, a bulletin) persist.
 _last_validation_sig: dict[str, str] = {}
 
+# ── Validation result cache ──────────────────────────────────────────────
+# Each /validate call is many Databricks round trips (rules + policy map + one
+# query per rule), serialized by the connection lock — and the UI validates
+# every filing on load. Cache the HTTP result per filing for a short window so
+# repeated loads/navigation are instant; any write (fix / bulletin) clears it,
+# and internal callers (bulletin apply) always recompute fresh.
+import time as _time
+
+_VALIDATE_CACHE: dict[str, tuple[float, dict]] = {}
+_VALIDATE_TTL = 90.0
+
+
+def _invalidate_validate() -> None:
+    _VALIDATE_CACHE.clear()
+
 
 @_audit_safe
 def _record_validation_run(filing_id: str, rule_results: list[dict], violations: list[dict],
@@ -481,6 +496,15 @@ def validate_cancellations(filing: str | None = None,
     # demo). The reference table carries `jurisdiction_code` per row, so a
     # filing for a future state would automatically use only that state's
     # rules + federal defaults.
+    # Serve a fresh-enough cached result for HTTP callers (background_tasks set).
+    # Internal callers (bulletin apply) pass no background_tasks → always fresh.
+    _cache_key = filing or "__default__"
+    _use_cache = background_tasks is not None
+    if _use_cache:
+        _hit = _VALIDATE_CACHE.get(_cache_key)
+        if _hit and (_time.time() - _hit[0]) < _VALIDATE_TTL:
+            return JSONResponse(_hit[1])
+
     target_jur = "US-TX"
     if filing:
         f_obj = _filing(filing)
@@ -586,12 +610,15 @@ def validate_cancellations(filing: str | None = None,
             # reconciled now, so force past the dedupe.
             run_id = _record_validation_run(filing, rule_results, violations, force=True)
 
-    return JSONResponse({
+    payload = {
         "summary": summary,
         "rules": rule_results,
         "violations": violations,
         "run_id": run_id,
-    })
+    }
+    if _use_cache:
+        _VALIDATE_CACHE[_cache_key] = (_time.time(), payload)
+    return JSONResponse(payload)
 
 
 @router.get("/state")
@@ -872,6 +899,7 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
         "WHERE publicid = %s",
         (set_param, pubid),
     )
+    _invalidate_validate()  # data changed → stale any cached validation
 
     # Coerce DB-returned types into JSON-safe forms (Decimal, datetime, etc.)
     def _safe(v: Any) -> Any:
@@ -909,6 +937,104 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
         "field": col,
         "old_value": _safe(old),
         "new_value": new_str,
+    })
+
+
+@router.get("/bronze/policy/{policy}")
+def bronze_policy(policy: str) -> JSONResponse:
+    """Return a policy's current *editable* Bronze fields (the ones `/bronze/fix`
+    can change), so the record-detail Edit panel can show + edit real values."""
+    policy = (policy or "").strip().upper()
+    if not policy.startswith("POL-"):
+        raise HTTPException(400, "policy_number must be like POL-0015")
+
+    def _safe(v: Any) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, (dt.datetime, dt.date, dt.time)):
+            return v.isoformat()[:10]
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
+
+    job = query(
+        "SELECT j.cancellationreason, j.nonrenewalreason, j.declinereason, j.noticedate "
+        "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j "
+        "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+        "WHERE p.policynumber = %s LIMIT 1",
+        (policy,),
+    )
+    pp = query(
+        "SELECT j.naic_number, j.writtenpremium, j.termtype "
+        "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICYPERIOD j "
+        "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+        "WHERE p.policynumber = %s LIMIT 1",
+        (policy,),
+    )
+    jr, pr = (job[0] if job else {}), (pp[0] if pp else {})
+    reason = next(
+        (_g(jr, c) for c in ("cancellationreason", "nonrenewalreason", "declinereason")
+         if _g(jr, c) is not None), None,
+    )
+    return JSONResponse({
+        "policy_number": policy,
+        "fields": {
+            "reason_code": _safe(reason),
+            "naic_number": _safe(_g(pr, "naic_number")),
+            "writtenpremium": _safe(_g(pr, "writtenpremium")),
+            "termtype": _safe(_g(pr, "termtype")),
+            "noticedate": _safe(_g(jr, "noticedate")),
+        },
+    })
+
+
+_SUBMISSION_COLS = [
+    "naic_company_no", "policy_id", "record_type", "stat_plan",
+    "effective_date", "expiry_date", "amt_insurance_dw", "amt_insurance_pp",
+    "line_of_business", "policy_form", "number_of_families", "coverage_occupancy",
+    "construction", "ppc_simple", "deductible_1_amt", "fire_premium", "ec_premium",
+    "zip9", "validation_status",
+]
+
+
+@router.get("/submission/{policy}")
+def submission_record(policy: str) -> JSONResponse:
+    """The final TSPR record that will be submitted for a policy — the encoded
+    canonical row from SILVER.TSPR_PREMIUM_STAGING (MMDDY effective / MMY expiry
+    dates, amounts in $1000s, coded LOB / form / construction / PPC). This is the
+    output the pipeline files, as opposed to the editable Bronze source."""
+    policy = (policy or "").strip().upper()
+    if not policy.startswith("POL-"):
+        raise HTTPException(400, "policy_number must be like POL-0015")
+
+    def _safe(v: Any) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, (dt.datetime, dt.date, dt.time)):
+            return v.isoformat()[:10]
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
+
+    try:
+        rows = query(
+            f"SELECT {', '.join(_SUBMISSION_COLS)} "
+            "FROM INSURANCE_REGULATORY.SILVER.TSPR_PREMIUM_STAGING "
+            "WHERE policy_id = %s LIMIT 1",
+            (policy,),
+        )
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"submission lookup failed: {e}") from e
+
+    if not rows:
+        return JSONResponse({
+            "policy_number": policy, "found": False,
+            "note": "No SILVER.TSPR_PREMIUM_STAGING row — run the Bronze→Silver pipeline.",
+        })
+    r = rows[0]
+    return JSONResponse({
+        "policy_number": policy, "found": True,
+        "fields": {c: _safe(_g(r, c)) for c in _SUBMISSION_COLS},
     })
 
 
@@ -1848,6 +1974,7 @@ def anomalies_detect() -> JSONResponse:
 @router.post("/bulletin/apply")
 def bulletin_apply() -> JSONResponse:
     """Apply the credit-score bulletin: materialize → version-bump → reload reference."""
+    _invalidate_validate()  # canon changes → drop cached validation
     steps = []
     if backend_name() == "snowflake":
         # KG-driven canon pipeline: materialize → version-bump → reference → load.
@@ -1955,6 +2082,7 @@ def bulletin_apply() -> JSONResponse:
 @router.post("/bulletin/reset")
 def bulletin_reset() -> JSONResponse:
     """Roll back the bulletin and reload baseline reference."""
+    _invalidate_validate()  # canon changes → drop cached validation
     steps = []
     if backend_name() == "snowflake":
         steps.append({"step": "reset", **_run(

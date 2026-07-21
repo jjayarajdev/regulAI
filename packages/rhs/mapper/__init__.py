@@ -14,7 +14,18 @@ profile + propose.
 """
 
 from packages.rhs.mapper.agent import SchemaMapper
+from packages.rhs.mapper.catalog import CatalogProfile, CrawlPlan
+from packages.rhs.mapper.crawler import introspect, pull_to_profile
 from packages.rhs.mapper.profiler import profile_file
 from packages.rhs.mapper.schema import MappingSpec, SourceProfile
 
-__all__ = ["SchemaMapper", "profile_file", "MappingSpec", "SourceProfile"]
+__all__ = [
+    "SchemaMapper",
+    "profile_file",
+    "MappingSpec",
+    "SourceProfile",
+    "CatalogProfile",
+    "CrawlPlan",
+    "introspect",
+    "pull_to_profile",
+]
