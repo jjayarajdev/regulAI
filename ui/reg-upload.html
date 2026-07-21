@@ -173,8 +173,26 @@ async function extract(slug,name){
   $("resNodes").innerHTML=""; $("amsg").textContent="";
   $("resPanel").scrollIntoView({behavior:"smooth",block:"start"});
   try{
-    const r=await fetch(`/api/regulations/${slug}/extract`,{method:"POST"});
-    const d=await readJson(r); if(!r.ok)throw new Error(d.detail||r.statusText);
+    // Start the job, then poll — the LLM call takes ~1–2 min, so we never block.
+    const s=await fetch(`/api/regulations/${slug}/extract/start`,{method:"POST"});
+    const sd=await readJson(s); if(!s.ok)throw new Error(sd.detail||s.statusText);
+    let secs=0;
+    const job=await new Promise((resolve,reject)=>{
+      const tick=async()=>{
+        try{
+          const rr=await fetch(`/api/regulations/${slug}/extract/status`);
+          const dd=await readJson(rr);
+          if(dd.status==="done") return resolve(dd);
+          if(dd.status==="error") return reject(new Error(dd.error||"extraction failed"));
+          secs+=3; $("resSummary").innerHTML=`<span class="spin"></span> Sentinel (LLM) reading the document… ${secs}s (~1–2 min)`;
+          setTimeout(tick,3000);
+        }catch(e){ reject(e); }
+      };
+      $("resSummary").innerHTML='<span class="spin"></span> Sentinel (LLM) reading the document… (~1–2 min)';
+      setTimeout(tick,3000);
+    });
+    const d=job.result;
+    if(!d){ $("resSummary").className="ok";$("resSummary").textContent="Extraction ready — approve into the KG below."; loadDocs(); return; }
     $("sNodes").textContent=d.n_nodes ?? "—";
     $("sRels").textContent=d.n_relationships ?? "—";
     $("sCites").textContent=d.n_citations ?? "—";

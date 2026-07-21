@@ -62,6 +62,7 @@ app = FastAPI(title="RegulAI LHS", version="0.1.0")
 # Free-Edition quota). Enable for demo days, disable after.
 import asyncio as _asyncio  # noqa: E402
 import os as _os  # noqa: E402
+import threading as _threading  # noqa: E402
 
 
 def _keep_warm_query() -> None:
@@ -382,68 +383,106 @@ async def upload_regulation(
     })
 
 
-@app.post("/api/regulations/{slug}/extract")
-def run_extraction(slug: str) -> JSONResponse:
-    doc = get_doc(slug)
-    if doc is None or not doc.path.exists():
-        raise HTTPException(status_code=404, detail=f"Document {slug!r} not found")
+# Background extraction jobs: slug → {status: running|done|error, result, error}.
+# The Sentinel LLM call takes ~1–2 min; the UI starts a job and polls /status so
+# it never holds a long request open.
+_EXTRACT_JOBS: dict[str, dict] = {}
 
+
+def _run_extraction(doc) -> dict:
+    """Run Sentinel on a document, persist the extraction + citation rects, and
+    return the result payload. Raises on LLM/parse failure."""
     text = doc.path.read_text(encoding="utf-8")
     llm = OpenAIAdapter()
-    sentinel = Sentinel(llm)
-    try:
-        extraction = sentinel.extract(text, document_label=doc.path.name)
-    except Exception as e:  # noqa: BLE001 — return a clean JSON error, not a 500 HTML page
-        msg = str(e)
-        if "insufficient_quota" in msg or "429" in msg:
-            msg = "OpenAI quota exceeded (429) — check billing, or run this on prod (separate key)."
-        raise HTTPException(status_code=502, detail=f"Sentinel LLM extraction failed: {msg}") from e
+    extraction = Sentinel(llm).extract(text, document_label=doc.path.name)
 
-    # Defense: for parser-owned slugs, drop any RecordLayout / FieldRequirement /
-    # CodeList / CodeValue Sentinel may have emitted. The deterministic parser
-    # owns those; LLM variants of the same content cause phantom layouts.
+    # Defense: for parser-owned slugs, drop RecordLayout / FieldRequirement /
+    # CodeList / CodeValue Sentinel may have emitted — the parser owns those.
     if doc.slug in WIRE_LAYOUTS_FOR_SLUG:
         extraction, filter_stats = strip_parser_owned(extraction)
         if filter_stats["dropped_nodes"]:
-            logger.info(
-                "[extract] %s: filtered out %s parser-owned nodes (%s)",
-                slug, filter_stats["dropped_nodes"], filter_stats["by_type"],
-            )
+            logger.info("[extract] %s: filtered %s parser-owned nodes (%s)",
+                        doc.slug, filter_stats["dropped_nodes"], filter_stats["by_type"])
 
     out_path = extraction_path_for(doc)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(
-        json.dumps(extraction.model_dump(mode="json"), indent=2),
-        encoding="utf-8",
-    )
+    out_path.write_text(json.dumps(extraction.model_dump(mode="json"), indent=2), encoding="utf-8")
 
-    # Pixel-perfect citation rects via PyMuPDF — proves provenance and gives
-    # the UI exact coordinates instead of fragile text-layer matching.
     rects_located = 0
     if doc.pdf_path and doc.pdf_path.exists():
-        bundle = compute_rects_bundle(
-            doc.pdf_path,
-            text,
-            extraction,
-            page_start=doc.pdf_start_page,
-            page_end=doc.pdf_end_page,
-        )
-        rects_path_for(doc).write_text(
-            json.dumps(bundle.model_dump(mode="json"), indent=2),
-            encoding="utf-8",
-        )
+        bundle = compute_rects_bundle(doc.pdf_path, text, extraction,
+                                      page_start=doc.pdf_start_page, page_end=doc.pdf_end_page)
+        rects_path_for(doc).write_text(json.dumps(bundle.model_dump(mode="json"), indent=2), encoding="utf-8")
         rects_located = sum(1 for r in bundle.citation_rects if r)
 
-    return JSONResponse({
-        "slug": slug,
-        "model": llm.model,
+    return {
+        "slug": doc.slug, "model": llm.model,
         "n_nodes": len(extraction.proposed_nodes),
         "n_relationships": len(extraction.proposed_relationships),
         "n_citations": len(extraction.citations),
         "n_citation_rects_located": rects_located,
         "summary": extraction.summary,
         "extraction": extraction.model_dump(mode="json"),
-    })
+    }
+
+
+def _extract_error(e: Exception) -> str:
+    msg = str(e)
+    if "insufficient_quota" in msg or "429" in msg:
+        return "OpenAI quota exceeded (429) — check billing, or run on prod (separate key)."
+    return f"Sentinel LLM extraction failed: {msg}"
+
+
+@app.post("/api/regulations/{slug}/extract")
+def run_extraction(slug: str) -> JSONResponse:
+    """Synchronous extract (compat / CLI). The UI uses start+status below."""
+    doc = get_doc(slug)
+    if doc is None or not doc.path.exists():
+        raise HTTPException(status_code=404, detail=f"Document {slug!r} not found")
+    try:
+        return JSONResponse(_run_extraction(doc))
+    except Exception as e:  # noqa: BLE001 — clean JSON, not a 500 page
+        raise HTTPException(status_code=502, detail=_extract_error(e)) from e
+
+
+@app.post("/api/regulations/{slug}/extract/start")
+def start_extraction(slug: str) -> JSONResponse:
+    """Kick off extraction in the background and return immediately."""
+    doc = get_doc(slug)
+    if doc is None or not doc.path.exists():
+        raise HTTPException(status_code=404, detail=f"Document {slug!r} not found")
+    if (_EXTRACT_JOBS.get(slug) or {}).get("status") == "running":
+        return JSONResponse({"status": "running"})
+    _EXTRACT_JOBS[slug] = {"status": "running", "result": None, "error": None}
+
+    def _work() -> None:
+        try:
+            _EXTRACT_JOBS[slug] = {"status": "done", "result": _run_extraction(doc), "error": None}
+        except Exception as e:  # noqa: BLE001
+            _EXTRACT_JOBS[slug] = {"status": "error", "result": None, "error": _extract_error(e)}
+
+    _threading.Thread(target=_work, daemon=True).start()
+    return JSONResponse({"status": "running"})
+
+
+@app.get("/api/regulations/{slug}/extract/status")
+def extraction_status(slug: str) -> JSONResponse:
+    """Poll target for the background job. Falls back to a cached extraction."""
+    job = _EXTRACT_JOBS.get(slug)
+    if job:
+        return JSONResponse(job)
+    doc = get_doc(slug)
+    if doc and extraction_path_for(doc).exists():
+        ex = json.loads(extraction_path_for(doc).read_text(encoding="utf-8"))
+        return JSONResponse({"status": "done", "cached": True, "result": {
+            "slug": slug, "model": "cached",
+            "n_nodes": len(ex.get("proposed_nodes", [])),
+            "n_relationships": len(ex.get("proposed_relationships", [])),
+            "n_citations": len(ex.get("citations", [])),
+            "summary": ex.get("summary", ""),
+            "extraction": ex,
+        }})
+    return JSONResponse({"status": "idle"})
 
 
 @app.post("/api/regulations/{slug}/approve")
