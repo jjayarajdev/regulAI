@@ -1,0 +1,43 @@
+# Local override — run RegulAI's Docker build on a DISTINCT port block so it
+# never clashes with other local projects (AI gateway, CLM, …), and point it at
+# Databricks (the base compose only wires Snowflake).
+#
+# Use it via run-docker.sh, or directly:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up --build api
+#   # add neo4j for KG features:  ... up --build api neo4j
+#   # full stack (+ dagster):     ... up --build
+#
+# Ports are env-overridable if 8899/3030/7475 are ever taken:
+#   REGULAI_API_PORT=9100 docker compose -f docker-compose.yml -f docker-compose.local.yml up api
+#
+# Databricks + OpenAI creds are read from .env (Compose auto-loads it).
+name: regulai
+
+services:
+  api:
+    ports: !override                             # replace (not append to) the base ports
+      - "${REGULAI_API_PORT:-8899}:8765"        # → http://localhost:8899/app/
+    depends_on: !reset []                        # experience needs only Databricks; skip neo4j wait
+    environment:
+      REGULAI_DB: databricks
+      DATABRICKS_SERVER_HOSTNAME: ${DATABRICKS_SERVER_HOSTNAME:-}
+      DATABRICKS_HTTP_PATH: ${DATABRICKS_HTTP_PATH:-}
+      DATABRICKS_TOKEN: ${DATABRICKS_TOKEN:-}
+      DATABRICKS_CATALOG: ${DATABRICKS_CATALOG:-INSURANCE_REGULATORY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5}
+
+  dagster:
+    ports: !override
+      - "${REGULAI_DAGSTER_PORT:-3030}:3000"     # avoid the AI-gateway's :3000
+    environment:
+      REGULAI_DB: databricks
+      DATABRICKS_SERVER_HOSTNAME: ${DATABRICKS_SERVER_HOSTNAME:-}
+      DATABRICKS_HTTP_PATH: ${DATABRICKS_HTTP_PATH:-}
+      DATABRICKS_TOKEN: ${DATABRICKS_TOKEN:-}
+      DATABRICKS_CATALOG: ${DATABRICKS_CATALOG:-INSURANCE_REGULATORY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5}
+
+  neo4j:
+    ports: !override
+      - "${REGULAI_NEO4J_HTTP:-7475}:7474"
+      - "${REGULAI_NEO4J_BOLT:-7688}:7687"

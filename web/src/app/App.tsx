@@ -7,6 +7,7 @@ import { RuleDetail } from './components/RuleDetail';
 import { AuditLog } from './components/AuditLog';
 import { BulletinDetail } from './components/BulletinDetail';
 import { WorkstationApp } from './ws/WorkstationApp';
+import { ExperienceApp } from './experience/ExperienceApp';
 import { useState } from 'react';
 
 type ViewType =
@@ -20,13 +21,13 @@ type ViewType =
   | 'bulletin';
 
 export default function App() {
-  // The workstation UI (ported from ui/workstation.html) is the product
-  // direction; the Figma wireframe suite stays reachable at ?ui=wireframe
-  // for design reference until the port is complete.
-  if (new URLSearchParams(window.location.search).get('ui') !== 'wireframe') {
-    return <WorkstationApp />;
-  }
-  return <WireframeApp />;
+  // The CBRE-style experience (ported from ui/experience.html) is the product
+  // direction. The previous workstation stays at ?ui=workstation and the Figma
+  // wireframe suite at ?ui=wireframe for reference.
+  const ui = new URLSearchParams(window.location.search).get('ui');
+  if (ui === 'wireframe') return <WireframeApp />;
+  if (ui === 'workstation') return <WorkstationApp />;
+  return <ExperienceApp />;
 }
 
 function WireframeApp() {

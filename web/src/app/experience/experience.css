@@ -1,0 +1,144 @@
+/* CBRE-style compliance workstation — ported from ui/experience.html.
+   All selectors are scoped under .exp so they don't collide with Tailwind /
+   the rest of the app. CSS variables live on :root (harmless globals). */
+:root{
+  --exp-head:#06312c; --exp-canvas:#eef2f6; --exp-card:#ffffff; --exp-border:#e4e9ee; --exp-border-2:#eef1f5;
+  --exp-ink:#1b2733; --exp-ink-2:#3a4652; --exp-muted:#6b7580; --exp-muted-2:#9aa2ab;
+  --exp-sage:#e7efe9; --exp-sage-ink:#1f7a5b; --exp-primary:#0f3d38; --exp-primary-h:#155049;
+  --exp-green:#2e9e5b; --exp-green-bg:#e8f4ec; --exp-red:#e0483d; --exp-red-bg:#fbeceb;
+  --exp-purple:#7b7be0; --exp-purple-bg:#eeeefb; --exp-amber:#c98a1a; --exp-amber-bg:#fbf2e0;
+  --exp-grey:#aeb4ba; --exp-link:#5b5bd6;
+  --exp-shadow:0 1px 2px rgba(16,40,36,.04), 0 2px 10px rgba(16,40,36,.05);
+}
+.exp{font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;background:var(--exp-canvas);color:var(--exp-ink);
+     font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100vh}
+.exp *{box-sizing:border-box;margin:0;padding:0}
+.exp button{font:inherit;cursor:pointer;border:none;background:none}
+.exp a{color:var(--exp-link);text-decoration:none}
+.exp .mono{font-variant-numeric:tabular-nums}
+
+.exp .head{height:52px;background:var(--exp-head);display:flex;align-items:center;padding:0 22px;position:sticky;top:0;z-index:20}
+.exp .head .brand{color:#fff;font-weight:800;font-size:16px;letter-spacing:-.2px}
+.exp .head .brand span{color:#7fd1b9}
+.exp .head .right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.exp .head .env{color:#9fc7bd;font-size:11px;font-weight:600;border:1px solid #235049;border-radius:20px;padding:3px 10px;display:inline-flex;align-items:center;gap:7px}
+.exp .head .env .lv{width:7px;height:7px;border-radius:50%;background:#3ecf8e}
+.exp .head .env .lv.mock{background:#c98a1a}
+.exp .avatar{width:30px;height:30px;border-radius:50%;background:#12463e;color:#cdeee2;display:grid;place-items:center;font-size:12px;font-weight:700}
+
+.exp .shell{display:flex;min-height:calc(100vh - 52px)}
+.exp .rail{width:60px;background:var(--exp-card);border-right:1px solid var(--exp-border);display:flex;flex-direction:column;
+      align-items:center;padding:14px 0;gap:6px;position:sticky;top:52px;height:calc(100vh - 52px)}
+.exp .rail button{width:40px;height:40px;border-radius:9px;display:grid;place-items:center;color:var(--exp-muted-2);transition:.15s}
+.exp .rail button:hover{background:var(--exp-canvas);color:var(--exp-ink-2)}
+.exp .rail button.active{background:var(--exp-sage);color:var(--exp-primary)}
+.exp .rail .ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+.exp .rail .grow{flex:1}
+.exp .main{flex:1;min-width:0}
+
+.exp .pghead{display:flex;align-items:center;gap:14px;padding:16px 26px;background:var(--exp-card);border-bottom:1px solid var(--exp-border)}
+.exp .pghead h1{font-size:20px;font-weight:700}
+.exp .pill{display:inline-flex;align-items:center;gap:6px;background:var(--exp-sage);color:var(--exp-ink-2);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600}
+.exp .pill .cv{opacity:.6;font-size:11px}
+.exp .content{padding:22px 26px 60px}
+
+.exp .sect-h{font-size:17px;font-weight:600;margin:6px 0 2px}
+.exp .sect-sub{color:var(--exp-muted);font-size:13px;margin-bottom:14px}
+.exp .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:26px}
+.exp .kpi{background:var(--exp-card);border:1px solid var(--exp-border);border-radius:11px;padding:18px 20px;box-shadow:var(--exp-shadow)}
+.exp .kpi .n{font-size:26px;font-weight:700;display:flex;align-items:center;gap:9px;letter-spacing:-.5px}
+.exp .kpi .lbl{color:var(--exp-muted);font-size:12.5px;margin-top:5px}
+.exp .dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+.exp .dot.green{background:var(--exp-green)} .exp .dot.red{background:var(--exp-red)} .exp .dot.purple{background:var(--exp-purple)}
+.exp .dot.amber{background:var(--exp-amber)} .exp .dot.grey{background:var(--exp-grey)}
+
+.exp .stagebar{display:flex;align-items:center;gap:2px;border-bottom:1px solid var(--exp-border);margin-bottom:2px;flex-wrap:wrap}
+.exp .stagebar .lead{font-size:12px;color:var(--exp-muted);font-weight:600;margin-right:14px}
+.exp .stage{display:flex;align-items:center;gap:8px;padding:12px 16px;font-size:13.5px;font-weight:600;color:var(--exp-muted);border-bottom:2px solid transparent;background:none}
+.exp .stage:hover{color:var(--exp-ink-2)}
+.exp .stage.active{color:var(--exp-primary);border-bottom-color:var(--exp-primary)}
+.exp .count{font-size:11px;font-weight:700;background:#eef1f4;color:var(--exp-muted);border-radius:20px;padding:2px 8px}
+.exp .stage.active .count{background:var(--exp-sage);color:var(--exp-primary)}
+.exp .filtbar{display:flex;align-items:center;gap:22px;padding:12px 2px}
+.exp .filtbar .lead{font-size:12px;color:var(--exp-muted);font-weight:600;margin-right:2px}
+.exp .statf{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--exp-ink-2);font-weight:600}
+.exp .statf .num{font-weight:700}
+.exp .statf.sel{background:var(--exp-red-bg);border:1px solid #f0c3bf;border-radius:8px;padding:5px 11px}
+
+.exp .tbl-wrap{background:var(--exp-card);border:1px solid var(--exp-border);border-radius:12px;box-shadow:var(--exp-shadow);overflow:hidden}
+.exp .tbl-tools{display:flex;align-items:center;gap:10px;padding:14px 16px;justify-content:flex-end;border-bottom:1px solid var(--exp-border-2)}
+.exp table{width:100%;border-collapse:collapse}
+.exp th{text-align:left;font-size:11px;font-weight:700;color:var(--exp-muted);letter-spacing:.2px;padding:12px 14px;border-bottom:1px solid var(--exp-border);background:#fafbfc}
+.exp td{padding:13px 14px;border-bottom:1px solid var(--exp-border-2);font-size:13px;vertical-align:middle}
+.exp tbody tr:last-child td{border-bottom:none}
+.exp tbody tr.clickable{cursor:pointer;transition:.1s}
+.exp tbody tr.clickable:hover{background:#f7f9fb}
+.exp td.amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.exp .st{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:12.5px}
+.exp .chev{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;color:var(--exp-muted-2)}
+.exp tbody tr:hover .chev{background:var(--exp-sage);color:var(--exp-primary)}
+.exp .tag{font-size:11px;font-weight:600;background:#eef1f4;color:var(--exp-ink-2);border-radius:6px;padding:2px 8px;display:inline-block}
+.exp .cb{width:15px;height:15px;accent-color:var(--exp-primary)}
+.exp .tbl-foot{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--exp-border-2);font-size:12.5px;color:var(--exp-muted)}
+.exp .btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:8px 13px;font-size:13px;font-weight:600;border:1px solid var(--exp-border)}
+.exp .btn .ic{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
+.exp .btn.primary{background:var(--exp-primary);color:#fff;border-color:var(--exp-primary)}
+.exp .btn.primary:hover{background:var(--exp-primary-h)}
+.exp .btn.ghost{background:var(--exp-sage);color:var(--exp-sage-ink);border-color:transparent}
+.exp .btn.plain{background:#fff;color:var(--exp-ink-2)}
+.exp .btn.mini{padding:5px 10px;font-size:11.5px}
+.exp .btn:disabled{opacity:.45;cursor:not-allowed}
+.exp .empty-note{padding:40px;text-align:center;color:var(--exp-muted)}
+
+.exp .dhead{display:flex;align-items:center;gap:22px;padding:14px 26px;background:var(--exp-card);border-bottom:1px solid var(--exp-border);flex-wrap:wrap}
+.exp .back{display:flex;align-items:center;gap:7px;font-weight:700;color:var(--exp-ink);font-size:14px}
+.exp .back .ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+.exp .dh-item{font-size:12.5px;color:var(--exp-muted)}
+.exp .dh-item b{color:var(--exp-ink);font-weight:600;margin-left:6px}
+.exp .stage-pill{background:var(--exp-purple-bg);color:#5555c8;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:600;margin-left:6px}
+.exp .assignee{display:inline-flex;align-items:center;gap:7px;background:var(--exp-sage);border-radius:20px;padding:4px 11px 4px 4px;font-size:12.5px;font-weight:600;color:var(--exp-ink-2)}
+.exp .assignee .av{width:20px;height:20px;border-radius:50%;background:#12463e;color:#cdeee2;display:grid;place-items:center;font-size:10px;font-weight:700}
+.exp .reason{padding:12px 26px;background:#fbfcfd;border-bottom:1px solid var(--exp-border);display:flex;gap:10px;align-items:baseline}
+.exp .reason .lbl{font-size:11px;font-weight:700;color:var(--exp-muted);letter-spacing:.3px;text-transform:uppercase;white-space:nowrap}
+.exp .reason .txt{font-size:13px;color:var(--exp-ink-2)}
+.exp .dgrid{display:grid;grid-template-columns:1fr 380px;gap:20px;padding:22px 26px 60px}
+@media(max-width:1100px){.exp .dgrid{grid-template-columns:1fr}}
+.exp .panel{background:var(--exp-card);border:1px solid var(--exp-border);border-radius:12px;box-shadow:var(--exp-shadow);margin-bottom:18px;overflow:hidden}
+.exp .panel-h{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--exp-border-2)}
+.exp .panel-h h3{font-size:15px;font-weight:600}
+.exp .panel-h .sp{margin-left:auto;display:flex;gap:8px}
+.exp .ctx{display:flex;gap:24px;padding:12px 18px;background:#fafbfc;border-bottom:1px solid var(--exp-border-2);font-size:12.5px;flex-wrap:wrap}
+.exp .ctx b{color:var(--exp-muted);font-weight:600;margin-right:6px}
+.exp .kv{width:100%}
+.exp .kv td{padding:11px 18px;border-bottom:1px solid var(--exp-border-2);font-size:13px}
+.exp .kv tr:last-child td{border-bottom:none}
+.exp .kv .k{color:var(--exp-muted);width:170px;font-weight:500}
+.exp .kv .k2{color:var(--exp-muted);width:150px;font-weight:500;border-left:1px solid var(--exp-border-2)}
+.exp .kv .v{color:var(--exp-ink);font-weight:500}
+.exp .kv input{font:inherit;font-size:13px;border:1px solid var(--exp-primary);border-radius:6px;padding:5px 8px;width:100%;outline:none;box-shadow:0 0 0 3px rgba(15,61,56,.08)}
+.exp .kv tr.editing td{background:#f4f8f7}
+.exp .prov{padding:11px 18px;background:#f6f8fa;color:var(--exp-link);font-size:12px;font-weight:500}
+.exp .rtabs{display:flex;gap:2px;border-bottom:1px solid var(--exp-border-2);padding:0 8px}
+.exp .rtab{padding:13px 14px;font-size:13px;font-weight:600;color:var(--exp-muted);border-bottom:2px solid transparent}
+.exp .rtab.active{color:var(--exp-ink);border-bottom-color:var(--exp-primary)}
+.exp .hist{padding:14px 18px}
+.exp .hrow{display:flex;gap:11px;padding:9px 0;border-bottom:1px solid var(--exp-border-2)}
+.exp .hrow:last-child{border-bottom:none}
+.exp .hdot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;background:var(--exp-grey)}
+.exp .hrow .ht{font-size:13px;color:var(--exp-ink-2)}
+.exp .hrow .hm{font-size:11.5px;color:var(--exp-muted-2);margin-top:2px}
+.exp .actbox{padding:14px 18px}
+.exp .actline{display:flex;justify-content:space-between;padding:9px 12px;background:#f6f8fa;border-radius:8px;margin-bottom:8px;font-size:13px}
+.exp .actline b{font-weight:600}
+.exp .fixhint{margin:0;padding:11px 18px;font-size:12.5px;color:var(--exp-ink-2);background:var(--exp-amber-bg);border-bottom:1px solid var(--exp-border-2);border-left:3px solid var(--exp-amber);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.exp .fixhint b{color:var(--exp-ink)}
+/* ── contextual action bar (below decision reasoning) ─────── */
+.exp .actionbar{display:flex;align-items:center;gap:12px;padding:12px 26px;border-bottom:1px solid var(--exp-border);flex-wrap:wrap}
+.exp .actionbar.blocked{background:var(--exp-red-bg);border-bottom-color:#f0c3bf}
+.exp .actionbar.ready{background:var(--exp-green-bg);border-bottom-color:#bcdcc7}
+.exp .actionbar .lbl{font-size:13px;font-weight:700;color:var(--exp-ink-2)}
+.exp .actionbar .amsg{margin-left:auto;font-size:12.5px}
+.exp .rmsg{font-size:12.5px;margin-top:10px;min-height:16px}
+.exp .rmsg.ok{color:var(--exp-green)} .exp .rmsg.err{color:var(--exp-red)} .exp .rmsg.busy{color:var(--exp-muted)}
+.exp .spin{width:13px;height:13px;border:2px solid #d8d2c4;border-top-color:var(--exp-primary);border-radius:50%;display:inline-block;animation:exp-sp .7s linear infinite;vertical-align:-2px}
+@keyframes exp-sp{to{transform:rotate(360deg)}}
