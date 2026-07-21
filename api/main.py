@@ -468,29 +468,41 @@ def approve_extraction(slug: str) -> JSONResponse:
             json.loads(rects_path.read_text(encoding="utf-8"))
         )
 
-    with Neo4jGREAdapter() as gre:
-        try:
+    try:
+        with Neo4jGREAdapter() as gre:
             result = materialize(
                 extraction, gre, document_label=doc.slug, rects_bundle=rects_bundle
             )
-        except ParserBoundaryViolation as e:
-            # Cluster C: the cached extraction proposes RecordLayout /
-            # FieldRequirement on a parser-owned slug. Return a clean 400
-            # so the UI can surface the boundary violation instead of a
-            # generic 500. The fix is either re-running batch_extract with
-            # strip_parser_owned, or relaxing PARSER_OWNED_SLUGS (rare).
+    except ParserBoundaryViolation as e:
+        # Cluster C: the cached extraction proposes RecordLayout /
+        # FieldRequirement on a parser-owned slug. Return a clean 400
+        # so the UI can surface the boundary violation instead of a
+        # generic 500. The fix is either re-running batch_extract with
+        # strip_parser_owned, or relaxing PARSER_OWNED_SLUGS (rare).
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "parser_boundary_violation",
+                "document_label": e.document_label,
+                "offender_count": len(e.offenders),
+                "first_offenders": [
+                    {"type": t, "name": n} for t, n in e.offenders[:5]
+                ],
+                "message": str(e),
+            },
+        ) from e
+    except Exception as e:  # noqa: BLE001 — Neo4j unreachable / write error → clean JSON, not a 500 page
+        msg = str(e)
+        if "already exists" in msg or "ConstraintValidationFailed" in msg:
             raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": "parser_boundary_violation",
-                    "document_label": e.document_label,
-                    "offender_count": len(e.offenders),
-                    "first_offenders": [
-                        {"type": t, "name": n} for t, n in e.offenders[:5]
-                    ],
-                    "message": str(e),
-                },
-            )
+                status_code=409,
+                detail=f"'{doc.label}' is already approved into the Knowledge Graph.",
+            ) from e
+        raise HTTPException(
+            status_code=502,
+            detail=f"Knowledge Graph write failed: {e}. Is Neo4j running and reachable? "
+                   "(locally: ./run-docker.sh api neo4j)",
+        ) from e
 
     return JSONResponse({
         "slug": slug,
