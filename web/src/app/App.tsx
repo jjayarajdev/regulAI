@@ -8,6 +8,7 @@ import { AuditLog } from './components/AuditLog';
 import { BulletinDetail } from './components/BulletinDetail';
 import { WorkstationApp } from './ws/WorkstationApp';
 import { ExperienceApp } from './experience/ExperienceApp';
+import { StatFileApp } from './statfile/StatFileApp';
 import { useState } from 'react';
 
 type ViewType =
@@ -21,13 +22,14 @@ type ViewType =
   | 'bulletin';
 
 export default function App() {
-  // The CBRE-style experience (ported from ui/experience.html) is the product
-  // direction. The previous workstation stays at ?ui=workstation and the Figma
-  // wireframe suite at ?ui=wireframe for reference.
+  // STATFILE (ported from the Statistical Filing Platform design) is the
+  // product direction. The CBRE experience stays at ?ui=experience, the older
+  // workstation at ?ui=workstation, and the Figma wireframes at ?ui=wireframe.
   const ui = new URLSearchParams(window.location.search).get('ui');
   if (ui === 'wireframe') return <WireframeApp />;
   if (ui === 'workstation') return <WorkstationApp />;
-  return <ExperienceApp />;
+  if (ui === 'experience') return <ExperienceApp />;
+  return <StatFileApp />;
 }
 
 function WireframeApp() {
