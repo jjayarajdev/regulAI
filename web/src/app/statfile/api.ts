@@ -5,10 +5,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { getJson } from '../../api/client';
 import type {
-  Filing, FilingsResponse, KgRulesResponse, PipelineStateResponse, Violation,
+  Filing, FilingsResponse, KgNeighborhoodResponse, KgRulesResponse,
+  PipelineStateResponse, Violation,
 } from '../../api/types';
 import type { ValidateAllResponse } from '../experience/api';
-import { CYCLES, ERRORS, LAYERS, QUEUE, type Cycle, type EditError, type QueueItem } from './data';
+import {
+  CYCLES, ERRORS, LAYERS, MEDALLION, QUEUE,
+  type Cycle, type EditError, type MedallionLayer, type QueueItem,
+} from './data';
 
 // ── hooks ──────────────────────────────────────────────────────────────────
 export const useFilings = () =>
@@ -44,6 +48,35 @@ export const usePolicyFields = (policy: string | null) =>
     queryKey: ['sf', 'policy', policy],
     queryFn: () => getJson<PolicyFieldsResponse>('/bronze/policy/' + encodeURIComponent(policy!)),
     enabled: !!policy,
+  });
+
+export interface SubmissionResponse {
+  policy_number: string; found: boolean; note?: string;
+  fields?: Record<string, string | number | null>;
+}
+export const useSubmission = (policy: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'submission', policy],
+    queryFn: () => getJson<SubmissionResponse>('/submission/' + encodeURIComponent(policy!)),
+    enabled: !!policy,
+  });
+
+export interface CatalogTable { table_name: string; row_count: number; comment: string; last_altered: string | null }
+export interface CatalogSchema {
+  schema: string; description: string; table_count: number;
+  populated_count: number; total_rows: number; tables: CatalogTable[];
+}
+export const useCatalog = () =>
+  useQuery({
+    queryKey: ['sf', 'catalog'],
+    queryFn: () => getJson<{ schemas: CatalogSchema[] }>('/catalog'),
+  });
+
+export const useNeighborhood = (ruleId: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'kg-neighborhood', ruleId],
+    queryFn: () => getJson<KgNeighborhoodResponse>('/kg/neighborhood/' + encodeURIComponent(ruleId!)),
+    enabled: !!ruleId,
   });
 
 // ── mappers ────────────────────────────────────────────────────────────────
@@ -130,6 +163,44 @@ export function groupViolations(val?: ValidateAllResponse): GroupedError[] {
       };
     })
     .sort((a, b) => b.sev - a.sev || b.violations.length - a.violations.length);
+}
+
+// Catalog schemas → the three medallion layer cards. Keeps the design's layer
+// descriptions (they describe the architecture, not the data) but swaps in
+// real tables, row counts and last-run times.
+const abbrev = (n: number) =>
+  n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n);
+
+export function medallionFrom(schemas?: CatalogSchema[]): MedallionLayer[] {
+  const bySchema = new Map((schemas ?? []).map((s) => [s.schema, s]));
+  if (!['BRONZE', 'SILVER', 'GOLD'].some((n) => bySchema.get(n)?.tables.length)) return MEDALLION;
+  return MEDALLION.map((demo) => {
+    const s = bySchema.get(demo.name);
+    if (!s || !s.tables.length) return demo;
+    const last = s.tables.map((t) => t.last_altered).filter(Boolean).sort().at(-1);
+    return {
+      ...demo,
+      status: s.populated_count > 0 ? 'Fresh' : 'Empty',
+      tagClass: s.populated_count > 0 ? 'tag-neutral' : 'tag-outline',
+      latency: `${s.populated_count}/${s.table_count} populated`,
+      last: last ? last.slice(11, 16) || last.slice(0, 10) : '—',
+      tables: [...s.tables]
+        .sort((a, b) => b.row_count - a.row_count)
+        .slice(0, 7)
+        .map((t) => [`${demo.name.toLowerCase()}.${t.table_name.toLowerCase()}`, abbrev(t.row_count)] as [string, string]),
+    };
+  });
+}
+
+// Unique failing policies across every filing — the record inspector's
+// navigable set (the interesting records are the ones with open edits).
+export function policiesFrom(val?: ValidateAllResponse): string[] {
+  if (!val) return [];
+  const seen = new Set<string>();
+  for (const f of Object.values(val.by_filing)) {
+    for (const v of f.violations) seen.add(v.policy_number);
+  }
+  return [...seen].sort();
 }
 
 export function queueFrom(errors: GroupedError[], rulesPending?: number): QueueItem[] {

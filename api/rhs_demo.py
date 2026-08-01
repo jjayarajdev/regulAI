@@ -518,35 +518,51 @@ def pipeline_state() -> JSONResponse:
     return JSONResponse(payload)
 
 
+_CATALOG_CACHE: dict[str, tuple[float, dict]] = {}
+_CATALOG_TTL = 600  # seconds — row totals move slowly; protect the free tier
+
+
 @router.get("/catalog")
 def catalog() -> JSONResponse:
-    """Snowflake catalog: every schema, every table, with row counts.
+    """Warehouse catalog: every schema, every table, with row counts.
 
-    Powers the "what's in Snowflake and where" view. Calls
-    INFORMATION_SCHEMA.TABLES once and falls back to per-table
-    COUNT(*) where row_count is stale.
+    Engine-agnostic: Databricks INFORMATION_SCHEMA has no row_count/bytes
+    columns (those were Snowflake), so rows come from one UNION ALL of
+    COUNT(*) across the listed tables. Cached like /pipeline/state.
     """
+    hit = _CATALOG_CACHE.get("catalog")
+    if hit and (_time.time() - hit[0]) < _CATALOG_TTL:
+        return JSONResponse(hit[1])
+
     rows = query(
         """
         SELECT table_schema AS schema_name,
                table_name,
-               row_count,
-               bytes,
                comment,
                TO_VARCHAR(last_altered, 'YYYY-MM-DD HH24:MI:SS') AS last_altered
         FROM INSURANCE_REGULATORY.INFORMATION_SCHEMA.TABLES
-        WHERE table_type = 'BASE TABLE'
-          AND table_schema IN ('BRONZE','SILVER','GOLD','REFERENCE','STAGING')
+        WHERE table_type IN ('BASE TABLE', 'MANAGED')
+          AND UPPER(table_schema) IN ('BRONZE','SILVER','GOLD','REFERENCE','STAGING')
         ORDER BY table_schema, table_name
         """
     )
+    counts: dict[tuple[str, str], int] = {}
+    if rows:
+        unions = " UNION ALL ".join(
+            f"SELECT '{r['schema_name']}' AS s, '{r['table_name']}' AS t, COUNT(*) AS n "
+            f"FROM INSURANCE_REGULATORY.{r['schema_name']}.{r['table_name']}"
+            for r in rows
+        )
+        for c in query(unions):
+            counts[(c["s"].upper(), c["t"].upper())] = int(c["n"] or 0)
     # Group by schema
     by_schema: dict[str, list] = {}
     for r in rows:
-        by_schema.setdefault(r["schema_name"], []).append({
+        schema = r["schema_name"].upper()
+        by_schema.setdefault(schema, []).append({
             "table_name": r["table_name"],
-            "row_count": r["row_count"] or 0,
-            "bytes": r["bytes"] or 0,
+            "row_count": counts.get((schema, r["table_name"].upper()), 0),
+            "bytes": 0,
             "comment": r["comment"] or "",
             "last_altered": r["last_altered"],
         })
@@ -571,7 +587,9 @@ def catalog() -> JSONResponse:
             "total_rows": sum(t["row_count"] for t in tables),
             "tables": tables,
         })
-    return JSONResponse({"schemas": schemas})
+    payload = {"schemas": schemas}
+    _CATALOG_CACHE["catalog"] = (_time.time(), payload)
+    return JSONResponse(payload)
 
 
 @router.get("/reference/table/{table_name}")

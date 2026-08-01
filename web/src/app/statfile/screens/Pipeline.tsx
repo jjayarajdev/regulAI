@@ -1,13 +1,19 @@
 // Medallion pipeline — Bronze/Silver/Gold layer cards + the Gold
-// transformation contract table.
+// transformation contract table. Live: /catalog for the layer cards (tables,
+// row counts, last-altered); the contract table stays design demo content
+// until a mapping endpoint exists.
 import { Blueprint } from '../Blueprint';
-import { ACC, CONTRACT, MEDALLION } from '../data';
+import { medallionFrom, useCatalog } from '../api';
+import { ACC, CONTRACT } from '../data';
 
 export function PipelineScreen() {
+  const catQ = useCatalog();
+  const medallion = medallionFrom(catQ.data?.schemas);
+
   return (
     <div className="sc">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 22 }}>
-        {MEDALLION.map((m) => (
+        {medallion.map((m) => (
           <Blueprint key={m.name} style={{ padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <div style={{ fontFamily: 'var(--font-heading)', fontSize: 26 }}>{m.name}</div>
@@ -24,8 +30,8 @@ export function PipelineScreen() {
               ))}
             </div>
             <div style={{ marginTop: 14, display: 'flex', gap: 16 }}>
-              <div><div className="k">Latency</div><div className="mono" style={{ fontSize: 13 }}>{m.latency}</div></div>
-              <div><div className="k">Last run</div><div className="mono" style={{ fontSize: 13 }}>{m.last}</div></div>
+              <div><div className="k">Tables</div><div className="mono" style={{ fontSize: 13 }}>{m.latency}</div></div>
+              <div><div className="k">Last altered</div><div className="mono" style={{ fontSize: 13 }}>{m.last}</div></div>
             </div>
           </Blueprint>
         ))}
@@ -34,6 +40,7 @@ export function PipelineScreen() {
       <div style={{ marginTop: 34 }}>
         <h4 style={{ marginBottom: 10 }}>
           Transformation contract — Gold <span className="mono" style={{ fontSize: 13 }}>tx_ho_stat_record</span>
+          {' '}<span className="k">demo — mapping endpoint pending</span>
         </h4>
         <table className="table">
           <thead>
