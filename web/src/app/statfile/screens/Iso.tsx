@@ -8,7 +8,7 @@ export function IsoScreen() {
     <div className="sc">
       <Blueprint style={{ padding: '16px 18px', marginBottom: 26, display: 'flex', gap: 26, alignItems: 'center' }}>
         <div style={{ flex: 1 }}>
-          <div className="k">Standard</div>
+          <div className="k">Standard · vision demo — no second standard in the warehouse yet</div>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: 22 }}>ISO Personal Lines Statistical Plan — Homeowners</div>
           <div style={{ fontSize: 12.5, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>
             The same silver layer, projected through a second standard. Nothing upstream is rebuilt — only the mapping and the edit package differ.

@@ -415,9 +415,24 @@ _EXTRACT_JOBS: dict[str, dict] = {}
 def _run_extraction(doc) -> dict:
     """Run Sentinel on a document, persist the extraction + citation rects, and
     return the result payload. Raises on LLM/parse failure."""
+    import time as _t
+    from api.rhs_demo import record_agent_run
+    _t0 = _t.time()
     text = doc.path.read_text(encoding="utf-8")
     llm = OpenAIAdapter()
-    extraction = Sentinel(llm).extract(text, document_label=doc.path.name)
+    try:
+        extraction = Sentinel(llm).extract(text, document_label=doc.path.name)
+    except Exception:
+        record_agent_run("Rule Extractor", f"Extract {doc.slug}", model=llm.model,
+                         duration_ms=int((_t.time() - _t0) * 1000),
+                         result="LLM/parse failure", status="error")
+        raise
+    record_agent_run(
+        "Rule Extractor", f"Extract {doc.slug}", model=llm.model,
+        duration_ms=int((_t.time() - _t0) * 1000),
+        result=f"{len(extraction.proposed_nodes)} nodes · "
+               f"{len(extraction.proposed_relationships)} rels",
+    )
 
     # Defense: for parser-owned slugs, drop RecordLayout / FieldRequirement /
     # CodeList / CodeValue Sentinel may have emitted — the parser owns those.
@@ -531,10 +546,19 @@ def approve_extraction(slug: str) -> JSONResponse:
         )
 
     try:
+        import time as _t
+        from api.rhs_demo import record_agent_run
+        _t0 = _t.time()
         with Neo4jGREAdapter() as gre:
             result = materialize(
                 extraction, gre, document_label=doc.slug, rects_bundle=rects_bundle
             )
+        record_agent_run(
+            "KG Materializer", f"Approve {doc.slug} → canon",
+            model="graph writer", duration_ms=int((_t.time() - _t0) * 1000),
+            result=f"{len(result.nodes_created)} nodes · "
+                   f"{result.relationships_created} rels",
+        )
     except ParserBoundaryViolation as e:
         # Cluster C: the cached extraction proposes RecordLayout /
         # FieldRequirement on a parser-owned slug. Return a clean 400

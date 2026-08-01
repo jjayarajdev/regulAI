@@ -430,6 +430,61 @@ def _record_action(filing_id: str, action_type: str, *,
     )
 
 
+# ── Agent-run telemetry ──────────────────────────────────────────────
+# Every LLM/engine run (rule extraction, KG materialization, edit-engine
+# validation) records a row in GOLD_AUDIT.AGENT_RUN. Best-effort like the rest
+# of the audit layer — telemetry can't break the live path.
+_AGENT_RUN_DDL_DONE = False
+
+
+@_audit_safe
+def record_agent_run(agent: str, task: str, *,
+                     model: str | None = None,
+                     tokens: int | None = None,
+                     duration_ms: int | None = None,
+                     confidence: float | None = None,
+                     result: str = "Complete",
+                     status: str = "done") -> None:
+    global _AGENT_RUN_DDL_DONE
+    if not _AGENT_RUN_DDL_DONE:
+        query(
+            "CREATE TABLE IF NOT EXISTS INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN (\n"
+            "  run_id STRING, agent STRING, task STRING, model STRING,\n"
+            "  tokens BIGINT, duration_ms BIGINT, confidence DOUBLE,\n"
+            "  result STRING, status STRING, ran_at TIMESTAMP\n)"
+        )
+        _AGENT_RUN_DDL_DONE = True
+    query(
+        "INSERT INTO INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN "
+        "(run_id, agent, task, model, tokens, duration_ms, confidence, result, status, ran_at) "
+        "SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP()",
+        ("run-" + _uuid.uuid4().hex[:14], agent, task[:200], model,
+         tokens, duration_ms, confidence, result[:120], status),
+    )
+
+
+@router.get("/agents/runs")
+def agent_runs() -> JSONResponse:
+    """Run history + aggregate stats for the agent console."""
+    try:
+        rows = query(
+            "SELECT run_id, agent, task, model, tokens, duration_ms, confidence, "
+            "       result, status, TO_VARCHAR(ran_at, 'YYYY-MM-DD HH24:MI:SS') AS ran_at "
+            "FROM INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN "
+            "ORDER BY ran_at DESC LIMIT 50"
+        )
+    except Exception:  # noqa: BLE001 — table not created until the first run
+        rows = []
+    confs = [r["confidence"] for r in rows if r.get("confidence") is not None]
+    stats = {
+        "runs": len(rows),
+        "tokens": sum(int(r["tokens"] or 0) for r in rows),
+        "mean_confidence": (sum(confs) / len(confs)) if confs else None,
+        "escalated": sum(1 for r in rows if r.get("status") == "error"),
+    }
+    return JSONResponse({"runs": _jsonify(rows), "stats": stats})
+
+
 @router.post("/pipeline/silver")
 def pipeline_silver() -> JSONResponse:
     """Run Bronze → Silver and return per-table row counts."""
@@ -693,6 +748,7 @@ def validate_all() -> JSONResponse:
     if hit and (_time.time() - hit[0]) < _VALIDATE_TTL:
         return JSONResponse(hit[1])
 
+    _t0 = _time.time()
     rules = query(
         "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
         "       violation_sql, violation_reason, severity, citation, "
@@ -703,6 +759,11 @@ def validate_all() -> JSONResponse:
     )
     pubid_to_policy = _pubid_map()
     _, all_violations = _run_rules(rules, None, pubid_to_policy)  # unscoped: every violation
+    record_agent_run(
+        "Edit Engine", f"Run {len(rules)} edits across all filings",
+        model="rule engine", duration_ms=int((_time.time() - _t0) * 1000),
+        result=f"{len(all_violations)} violations",
+    )
 
     by_filing: dict[str, dict] = {}
     for f in _live_filings():

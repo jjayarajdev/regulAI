@@ -79,6 +79,28 @@ export const useNeighborhood = (ruleId: string | null) =>
     enabled: !!ruleId,
   });
 
+export interface AgentRunRow {
+  run_id: string; agent: string; task: string; model: string | null;
+  tokens: number | null; duration_ms: number | null; confidence: number | null;
+  result: string; status: string; ran_at: string;
+}
+export interface AgentRunsResponse {
+  runs: AgentRunRow[];
+  stats: { runs: number; tokens: number; mean_confidence: number | null; escalated: number };
+}
+export const useAgentRuns = () =>
+  useQuery({ queryKey: ['sf', 'agent-runs'], queryFn: () => getJson<AgentRunsResponse>('/agents/runs') });
+
+export interface RegDocument {
+  document_id: string; document_type: string; title: string; issuing_body: string;
+  edition: string; effective_date: string; word_count: number; page_count: number; loaded_at: string;
+}
+export const useRegDocuments = () =>
+  useQuery({
+    queryKey: ['sf', 'reg-documents'],
+    queryFn: () => getJson<{ documents: RegDocument[] }>('/reg/documents'),
+  });
+
 // ── mappers ────────────────────────────────────────────────────────────────
 const fmt = (n: number) => n.toLocaleString('en-US');
 
