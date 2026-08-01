@@ -474,25 +474,48 @@ def pipeline_gold() -> JSONResponse:
     })
 
 
+# Databricks INFORMATION_SCHEMA has no row_count column (that was Snowflake),
+# so layer totals need per-table COUNT(*). One list query + one UNION ALL
+# round trip, cached: row totals move slowly and the free-tier warehouse has a
+# daily compute budget we shouldn't spend on a dashboard poll.
+_PIPELINE_STATE_CACHE: dict[str, tuple[float, dict]] = {}
+_PIPELINE_STATE_TTL = 600  # seconds
+
+
+def _layer_tables_and_counts() -> list[dict]:
+    tables = query(
+        "SELECT table_schema AS s, table_name AS t "
+        "FROM INSURANCE_REGULATORY.INFORMATION_SCHEMA.TABLES "
+        "WHERE table_type IN ('BASE TABLE', 'MANAGED') "
+        "  AND LOWER(table_schema) IN ('bronze', 'silver', 'gold')"
+    )
+    if not tables:
+        return []
+    unions = " UNION ALL ".join(
+        f"SELECT '{r['s'].upper()}' AS layer, '{r['t']}' AS table_name, COUNT(*) AS n "
+        f"FROM INSURANCE_REGULATORY.{r['s']}.{r['t']}"
+        for r in tables
+    )
+    return query(unions)
+
+
 @router.get("/pipeline/state")
 def pipeline_state() -> JSONResponse:
-    """Per-layer row counts for the pipeline page."""
-    counts = query(
-        """
-        SELECT 'BRONZE' AS layer, COUNT(*) AS table_count, SUM(row_count) AS row_total
-        FROM INSURANCE_REGULATORY.INFORMATION_SCHEMA.TABLES
-        WHERE table_schema = 'BRONZE' AND table_type = 'BASE TABLE' AND row_count > 0
-        UNION ALL
-        SELECT 'SILVER', COUNT(*), SUM(row_count)
-        FROM INSURANCE_REGULATORY.INFORMATION_SCHEMA.TABLES
-        WHERE table_schema = 'SILVER' AND table_type = 'BASE TABLE' AND row_count > 0
-        UNION ALL
-        SELECT 'GOLD', COUNT(*), SUM(row_count)
-        FROM INSURANCE_REGULATORY.INFORMATION_SCHEMA.TABLES
-        WHERE table_schema = 'GOLD' AND table_type = 'BASE TABLE' AND row_count > 0
-        """
-    )
-    return JSONResponse({"layers": _jsonify(counts)})
+    """Per-layer table + row counts for the pipeline/dashboard pages."""
+    hit = _PIPELINE_STATE_CACHE.get("state")
+    if hit and (_time.time() - hit[0]) < _PIPELINE_STATE_TTL:
+        return JSONResponse(hit[1])
+    rows = _layer_tables_and_counts()
+    layers: dict[str, dict] = {}
+    for r in rows:
+        d = layers.setdefault(r["layer"], {"layer": r["layer"], "table_count": 0, "row_total": 0})
+        if (r["n"] or 0) > 0:
+            d["table_count"] += 1
+            d["row_total"] += int(r["n"])
+    order = ["BRONZE", "SILVER", "GOLD"]
+    payload = {"layers": [layers[k] for k in order if k in layers]}
+    _PIPELINE_STATE_CACHE["state"] = (_time.time(), payload)
+    return JSONResponse(payload)
 
 
 @router.get("/catalog")
@@ -796,8 +819,11 @@ def kg_rules() -> JSONResponse:
         # Derive currently_active: status != superseded AND effective window includes today
         status = (r.get("status") or "").lower()
         def _coerce_date(v):
-            if v is None or hasattr(v, 'year') is False:
-                return v
+            if v is None:
+                return None
+            if isinstance(v, str):  # Neo4j may hand dates back as ISO strings
+                try: return _dt.date.fromisoformat(v[:10])
+                except ValueError: return None
             try: return _dt.date(v.year, v.month, v.day)
             except Exception: return None
         ef = _coerce_date(r.get("effective_from"))

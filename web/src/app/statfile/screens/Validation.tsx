@@ -1,32 +1,60 @@
 // Validation triage — severity facets, edit-exception table, and the selected
-// error's why/rule/sample detail panel.
-import { useState } from 'react';
+// error's why/rule/sample detail panel. Live: /validate/all grouped by rule;
+// the sample panel pulls the first failing policy's bronze fields.
+import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
-import { ACC, ACC9, ERR_DETAIL, ERRORS, NEU } from '../data';
+import { groupViolations, usePolicyFields, useValidateAll, type GroupedError } from '../api';
+import { ACC, ACC9, ERR_DETAIL, NEU } from '../data';
 
 const sevDot = (s: number) => (s === 2 ? ACC9 : s === 1 ? ACC : NEU);
-
-const FACETS = [
-  { name: 'All', count: '3,412', dot: NEU, sev: 'all' },
-  { name: 'Blocking', count: '1,847', dot: ACC9, sev: '2' },
-  { name: 'Warn', count: '500', dot: ACC, sev: '1' },
-  { name: 'Info', count: '1,959', dot: NEU, sev: '0' },
-];
+const fmt = (n: number) => n.toLocaleString('en-US');
 
 export function ValidationScreen() {
-  const [sev, setSev] = useState('all');
-  const [err, setErr] = useState(0);
+  const valQ = useValidateAll();
+  const errors = useMemo(() => groupViolations(valQ.data), [valQ.data]);
+  const live = errors.some((e) => e.violations.length > 0);
 
-  const shown = ERRORS.filter((e) => (sev === 'all' ? true : String(e.sev) === sev));
-  const E = ERRORS[err] ?? ERRORS[0];
-  const D = ERR_DETAIL[E.code] ?? ERR_DETAIL['TX-E118'];
+  const [sev, setSev] = useState('all');
+  const [errCode, setErrCode] = useState<string | null>(null);
+
+  const shown = errors.filter((e) => (sev === 'all' ? true : String(e.sev) === sev));
+  const E: GroupedError = errors.find((e) => e.code === errCode) ?? errors[0];
+  const demo = !live ? ERR_DETAIL[E?.code] ?? ERR_DETAIL['TX-E118'] : null;
+
+  const firstViolation = E?.violations[0];
+  const policyQ = usePolicyFields(firstViolation?.policy_number ?? null);
+
+  const counts = {
+    all: errors.reduce((n, e) => n + (e.violations.length || parseInt(e.count.replace(/,/g, '')) || 0), 0),
+    2: errors.filter((e) => e.sev === 2).reduce((n, e) => n + (e.violations.length || parseInt(e.count.replace(/,/g, '')) || 0), 0),
+    1: errors.filter((e) => e.sev === 1).reduce((n, e) => n + (e.violations.length || parseInt(e.count.replace(/,/g, '')) || 0), 0),
+    0: errors.filter((e) => e.sev === 0).reduce((n, e) => n + (e.violations.length || parseInt(e.count.replace(/,/g, '')) || 0), 0),
+  };
+  const facets = [
+    { name: 'All', count: fmt(counts.all), dot: NEU, sev: 'all' },
+    { name: 'Blocking', count: fmt(counts[2]), dot: ACC9, sev: '2' },
+    { name: 'Warn', count: fmt(counts[1]), dot: ACC, sev: '1' },
+    { name: 'Info', count: fmt(counts[0]), dot: NEU, sev: '0' },
+  ];
+
+  // Sample failing record: live bronze fields when we have them, else the
+  // design's demo sample for the selected code.
+  const sample: Array<[string, string, 0 | 1]> = firstViolation
+    ? [
+        ['policy_number', firstViolation.policy_number, 0],
+        ['record_id', firstViolation.record_id, 0],
+        ...Object.entries(policyQ.data?.fields ?? {})
+          .slice(0, 5)
+          .map(([k, v]) => [k, String(v ?? '∅'), 0] as [string, string, 0 | 1]),
+      ]
+    : demo?.sample ?? [];
 
   return (
     <div className="sc" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: 28, alignItems: 'start' }}>
       <aside style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div>
           <div className="k" style={{ marginBottom: 8 }}>Severity</div>
-          {FACETS.map((f) => (
+          {facets.map((f) => (
             <button
               key={f.sev}
               onClick={() => setSev(f.sev)}
@@ -47,7 +75,7 @@ export function ValidationScreen() {
         <div>
           <div className="k" style={{ marginBottom: 8 }}>Blocking submission</div>
           <Blueprint style={{ padding: '12px 13px' }}>
-            <div style={{ fontFamily: 'var(--font-heading)', fontSize: 31, lineHeight: 1 }}>1,847</div>
+            <div style={{ fontFamily: 'var(--font-heading)', fontSize: 31, lineHeight: 1 }}>{fmt(counts[2])}</div>
             <div style={{ fontSize: 11.5, color: 'color-mix(in srgb,var(--color-text) 58%,transparent)' }}>
               records held from the package until cleared
             </div>
@@ -62,7 +90,7 @@ export function ValidationScreen() {
           </thead>
           <tbody>
             {shown.map((e) => (
-              <tr key={e.code} className="row" style={{ cursor: 'pointer' }} onClick={() => setErr(ERRORS.indexOf(e))}>
+              <tr key={e.code} className="row" style={{ cursor: 'pointer' }} onClick={() => setErrCode(e.code)}>
                 <td><span style={{ display: 'inline-block', width: 8, height: 8, background: sevDot(e.sev) }} /></td>
                 <td className="mono" style={{ fontSize: 11.5, color: 'var(--color-accent-700)' }}>{e.code}</td>
                 <td className="mono" style={{ fontSize: 11.5 }}>{e.field}</td>
@@ -77,40 +105,45 @@ export function ValidationScreen() {
           </tbody>
         </table>
 
-        <Blueprint style={{ marginTop: 26, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <span className="mono" style={{ fontSize: 12, color: 'var(--color-accent-700)' }}>{E.code}</span>
-            <h4>{E.desc}</h4>
-            <span className="tag tag-outline" style={{ marginLeft: 'auto' }}>{E.count} records</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-            <div>
-              <div className="k" style={{ marginBottom: 7 }}>Why it fired</div>
-              <div style={{ fontSize: 13, lineHeight: 1.65, marginBottom: 12 }}>{D.why}</div>
-              <div className="k" style={{ marginBottom: 7 }}>Rule &amp; citation</div>
-              <div className="mono" style={{ fontSize: 11.5, padding: '9px 11px', background: 'color-mix(in srgb,var(--color-text) 5%,transparent)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
-                {D.rule}
+        {E && (
+          <Blueprint style={{ marginTop: 26, padding: '18px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <span className="mono" style={{ fontSize: 12, color: 'var(--color-accent-700)' }}>{E.code}</span>
+              <h4>{E.field}</h4>
+              <span className="tag tag-outline" style={{ marginLeft: 'auto' }}>{E.count} records</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+              <div>
+                <div className="k" style={{ marginBottom: 7 }}>Why it fired</div>
+                <div style={{ fontSize: 13, lineHeight: 1.65, marginBottom: 12 }}>{demo ? demo.why : E.desc}</div>
+                <div className="k" style={{ marginBottom: 7 }}>Rule &amp; citation</div>
+                <div className="mono" style={{ fontSize: 11.5, padding: '9px 11px', background: 'color-mix(in srgb,var(--color-text) 5%,transparent)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                  {demo ? demo.rule : `${E.code} · ${E.field}\n${E.origin}`}
+                </div>
+              </div>
+              <div>
+                <div className="k" style={{ marginBottom: 7 }}>Sample failing record</div>
+                <div className="mono" style={{ fontSize: 11.5, lineHeight: 1.9 }}>
+                  {sample.map(([k, v, bad]) => (
+                    <div key={k} style={{ display: 'flex', gap: 10, borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
+                      <span className="muted" style={{ width: 150, flex: 'none' }}>{k}</span>
+                      <span style={{ color: bad ? ACC9 : 'inherit', overflowWrap: 'anywhere' }}>{v}</span>
+                    </div>
+                  ))}
+                  {firstViolation && policyQ.isLoading && (
+                    <div className="muted" style={{ padding: '4px 0' }}>loading bronze fields…</div>
+                  )}
+                </div>
               </div>
             </div>
-            <div>
-              <div className="k" style={{ marginBottom: 7 }}>Sample failing record</div>
-              <div className="mono" style={{ fontSize: 11.5, lineHeight: 1.9 }}>
-                {D.sample.map(([k, v, bad]) => (
-                  <div key={k} style={{ display: 'flex', gap: 10, borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
-                    <span className="muted" style={{ width: 150 }}>{k}</span>
-                    <span style={{ color: bad ? ACC9 : 'inherit' }}>{v}</span>
-                  </div>
-                ))}
-              </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, paddingTop: 13, borderTop: '1px solid var(--color-divider)' }}>
+              <button className="btn btn-secondary">Trace to Guidewire</button>
+              <button className="btn btn-secondary">Suppress with memo</button>
+              <button className="btn btn-secondary">Assign</button>
+              <button className="btn btn-primary" style={{ marginLeft: 'auto' }}>Apply agent fix to {E.count}</button>
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 16, paddingTop: 13, borderTop: '1px solid var(--color-divider)' }}>
-            <button className="btn btn-secondary">Trace to Guidewire</button>
-            <button className="btn btn-secondary">Suppress with memo</button>
-            <button className="btn btn-secondary">Assign</button>
-            <button className="btn btn-primary" style={{ marginLeft: 'auto' }}>Apply agent fix to {E.count}</button>
-          </div>
-        </Blueprint>
+          </Blueprint>
+        )}
       </section>
     </div>
   );

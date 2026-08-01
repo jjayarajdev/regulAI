@@ -199,7 +199,27 @@ def split_statute_sections(doc_id: str, full_text: str) -> int:
     return inserted
 
 
+def ensure_tables() -> None:
+    """Bootstrap the BRONZE_REGDOCS schema + tables (Databricks never had the
+    Snowflake-era DDL applied; CREATE IF NOT EXISTS is a no-op elsewhere)."""
+    query("CREATE SCHEMA IF NOT EXISTS INSURANCE_REGULATORY.BRONZE_REGDOCS")
+    query(
+        "CREATE TABLE IF NOT EXISTS INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_DOCUMENT (\n"
+        "  document_id STRING, document_type STRING, title STRING,\n"
+        "  issuing_body STRING, effective_date DATE, edition STRING,\n"
+        "  source_path STRING, full_text STRING, page_count INT,\n"
+        "  word_count INT, loaded_at TIMESTAMP\n)"
+    )
+    query(
+        "CREATE TABLE IF NOT EXISTS INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_SECTION (\n"
+        "  section_id STRING, document_id STRING, citation_label STRING,\n"
+        "  citation_pattern STRING, section_heading STRING, section_text STRING,\n"
+        "  page_start INT, page_end INT, seq INT\n)"
+    )
+
+
 def main() -> int:
+    ensure_tables()
     # Idempotent reset
     query("TRUNCATE TABLE INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_SECTION")
     query("TRUNCATE TABLE INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_DOCUMENT")
