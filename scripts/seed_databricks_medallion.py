@@ -22,10 +22,17 @@ Then: REGULAI_DB=databricks uv run python -m scripts.run_silver
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
 from packages.rhs.db import query
+
+# Delta-specific DDL only applies on Databricks. On DuckDB (the free local
+# stopgap) we emit plain CREATE TABLE and skip the Delta column-mapping renames
+# (seed_duckdb already writes the corrected Bronze column names).
+_ENGINE = os.environ.get("REGULAI_DB", "databricks").strip().lower()
+_IS_DELTA = _ENGINE == "databricks"
 
 SNOW_DIR = Path("references/files -Snowflake")
 # The DDL files + the schema each of their CREATE TABLEs belongs to.
@@ -140,8 +147,9 @@ def main() -> int:
                 continue
             col_ddl = ",\n  ".join(f"{n} {t}" for n, t in cols)
             fq = f"INSURANCE_REGULATORY.{schema}.{table.upper()}"
+            using = " USING DELTA" if _IS_DELTA else ""
             try:
-                query(f"CREATE TABLE IF NOT EXISTS {fq} (\n  {col_ddl}\n) USING DELTA")
+                query(f"CREATE TABLE IF NOT EXISTS {fq} (\n  {col_ddl}\n){using}")
                 print(f"  ✓ {schema}.{table.upper()}  ({len(cols)} cols)")
                 created += 1
             except Exception as e:  # noqa: BLE001 — report + continue
@@ -150,15 +158,19 @@ def main() -> int:
     # ── supplemental gold columns (run_gold is ahead of the DDL file) ──────
     for fq, cols in _SUPPLEMENTAL_COLS.items():
         for col in cols:
+            # Databricks: ADD COLUMNS (a T, b T);  DuckDB: ADD COLUMN a T
+            add = f"ADD COLUMNS ({col})" if _IS_DELTA else f"ADD COLUMN {col}"
             try:
-                query(f"ALTER TABLE INSURANCE_REGULATORY.{fq} ADD COLUMNS ({col})")
+                query(f"ALTER TABLE INSURANCE_REGULATORY.{fq} {add}")
                 print(f"  + {fq}.{col.split()[0]}")
             except Exception as e:  # noqa: BLE001 — already-exists is fine on re-run
                 if "already exists" not in str(e).lower():
                     print(f"  ! {fq}.{col.split()[0]}: {str(e)[:100]}")
 
     # ── normalize misspelled Bronze columns from the Parquet fixtures ──────
-    for fq, old, new in _BRONZE_RENAMES:
+    # Delta-only (column mapping). DuckDB's seed_duckdb already writes the
+    # corrected name, so nothing to rename there.
+    for fq, old, new in ([] if not _IS_DELTA else _BRONZE_RENAMES):
         try:
             query(f"ALTER TABLE INSURANCE_REGULATORY.{fq} SET TBLPROPERTIES "
                   "('delta.minReaderVersion'='2','delta.minWriterVersion'='5','delta.columnMapping.mode'='name')")

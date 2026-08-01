@@ -125,6 +125,13 @@ def main() -> None:
             continue
         q(f"CREATE OR REPLACE TABLE {CATALOG}.BRONZE.{tbl} AS "
           f"SELECT * FROM read_parquet('{p.as_posix()}')")
+        # The Parquet fixtures ship a misspelled column; the shared Silver
+        # transform expects the corrected name (Databricks fixes it via Delta
+        # column-mapping). Normalize it here so run_silver's cancellation
+        # staging binds on DuckDB too.
+        if tbl == "GW_PC_JOB":
+            q(f"ALTER TABLE {CATALOG}.BRONZE.{tbl} "
+              "RENAME COLUMN thirdpartydatauseed TO thirdpartydataused")
         n = con.execute(f"SELECT count(*) FROM {CATALOG}.BRONZE.{tbl}").fetchone()[0]
         print(f"  BRONZE.{tbl}: {n} rows")
         loaded += 1

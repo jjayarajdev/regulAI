@@ -19,7 +19,10 @@ export class ApiError extends Error {
 
 export async function getJson<T>(path: string): Promise<T> {
   const r = await fetch(API_BASE + path);
-  if (!r.ok) throw new ApiError(r.status, path);
+  if (!r.ok) {
+    const detail = await r.json().then((j) => j?.detail).catch(() => undefined);
+    throw new ApiError(r.status, path, detail);
+  }
   return r.json() as Promise<T>;
 }
 

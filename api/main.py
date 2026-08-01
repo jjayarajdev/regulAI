@@ -103,6 +103,29 @@ app.add_middleware(
     allow_headers=["Content-Type", "Accept"],
 )
 
+
+# -- Databricks-unavailable handler ------------------------------------------
+# When the warehouse can't start (paused, serverless disabled, cold-start
+# timeout), every query raises. Return a clean 503 with the reason instead of a
+# raw 500, so the UI can show "data unavailable" rather than a mystery error.
+try:
+    from databricks.sql.exc import Error as _DbxError  # type: ignore
+except Exception:  # noqa: BLE001 — databricks extra not installed (e.g. duckdb runs)
+    _DbxError = None
+
+if _DbxError is not None:
+    @app.exception_handler(_DbxError)
+    async def _databricks_unavailable(_request, exc):  # noqa: ANN001
+        msg = str(exc)
+        hint = (" The Databricks serverless warehouse may be disabled — re-enable "
+                "'Serverless compute for SQL' in the account console."
+                if "Cannot start warehouse" in msg or "disabled" in msg else "")
+        return JSONResponse(
+            status_code=503,
+            content={"detail": f"Databricks warehouse unavailable.{hint} ({msg[:160]})"},
+        )
+
+
 UI_DIR = Path("ui")
 MOCK_UI_DIR = Path("mock-ui-v2")
 

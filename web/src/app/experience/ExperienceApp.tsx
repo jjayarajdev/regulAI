@@ -32,6 +32,8 @@ export function ExperienceApp() {
 
   const live = !filingsQ.isError && filings.length > 0;
   const loading = filingsQ.isLoading || valQ.isLoading;
+  const dataError = valQ.isError && !valQ.isLoading;
+  const dataErrorMsg = (valQ.error as Error | undefined)?.message;
 
   const [screen, setScreen] = useState<Screen>('dashboard');
   const [current, setCurrent] = useState<ExpRecord | null>(null);
@@ -64,8 +66,8 @@ export function ExperienceApp() {
         <div className="brand">Regul<span>AI</span></div>
         <div className="right">
           <span className="env">
-            <span className={'lv' + (live ? '' : ' mock')} />
-            {loading ? 'connecting…' : live ? 'live data' : 'offline'} · Lone Star Mutual · Q4 2025
+            <span className={'lv' + (dataError || !live ? ' mock' : '')} />
+            {loading ? 'connecting…' : dataError ? 'warehouse offline' : live ? 'live data' : 'offline'} · Lone Star Mutual · Q4 2025
           </span>
           <div className="avatar">DR</div>
         </div>
@@ -81,6 +83,14 @@ export function ExperienceApp() {
         </nav>
 
         <main className="main">
+          {dataError && (
+            <div className="databanner">
+              <b>Data unavailable</b> — {dataErrorMsg && !/→ \d+$/.test(dataErrorMsg)
+                ? dataErrorMsg
+                : "the Databricks warehouse isn't responding."}{' '}
+              Filings load, but records &amp; validation counts need the warehouse — they show 0 until it recovers.
+            </div>
+          )}
           {current ? (
             <RecordDetail
               key={current.key}

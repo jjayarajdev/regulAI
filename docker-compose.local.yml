@@ -25,9 +25,10 @@ services:
       DATABRICKS_TOKEN: ${DATABRICKS_TOKEN:-}
       DATABRICKS_CATALOG: ${DATABRICKS_CATALOG:-INSURANCE_REGULATORY}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5}
-      # keep the Databricks warehouse warm (ping every 4 min)
-      REGULAI_KEEPWARM: "1"
-      REGULAI_KEEPWARM_SECONDS: "240"
+      # Keep-warm is OFF: on Databricks free-tier it pings ~360 queries/day and
+      # burns the free daily compute limit ("come back tomorrow"). Rely on
+      # cold-start instead (first query after idle is ~15-30s). Re-enable only
+      # on a paid warehouse:  REGULAI_KEEPWARM=1 REGULAI_KEEPWARM_SECONDS=240
 
   dagster:
     ports: !override

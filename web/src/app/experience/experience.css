@@ -35,6 +35,8 @@
 .exp .rail .ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
 .exp .rail .grow{flex:1}
 .exp .main{flex:1;min-width:0}
+.exp .databanner{background:var(--exp-red-bg);border-bottom:1px solid #f0c3bf;color:var(--exp-ink-2);font-size:13px;line-height:1.45;padding:11px 26px}
+.exp .databanner b{color:var(--exp-red)}
 
 .exp .pghead{display:flex;align-items:center;gap:14px;padding:16px 26px;background:var(--exp-card);border-bottom:1px solid var(--exp-border)}
 .exp .pghead h1{font-size:20px;font-weight:700}
