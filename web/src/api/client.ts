@@ -17,8 +17,26 @@ export class ApiError extends Error {
   }
 }
 
+// ── Identity (Phase 1 RBAC) ──────────────────────────────────────────
+// The persona switcher stores the active user_id; every request carries it as
+// X-Actor so the backend can role-gate mutations and stamp the audit trail.
+const ACTOR_KEY = 'regulai-actor';
+export const getActor = (): string | null => {
+  try { return localStorage.getItem(ACTOR_KEY); } catch { return null; }
+};
+export const setActor = (userId: string | null): void => {
+  try {
+    if (userId) localStorage.setItem(ACTOR_KEY, userId);
+    else localStorage.removeItem(ACTOR_KEY);
+  } catch { /* private mode — identity just won't persist */ }
+};
+const actorHeaders = (): Record<string, string> => {
+  const a = getActor();
+  return a ? { 'X-Actor': a } : {};
+};
+
 export async function getJson<T>(path: string): Promise<T> {
-  const r = await fetch(API_BASE + path);
+  const r = await fetch(API_BASE + path, { headers: actorHeaders() });
   if (!r.ok) {
     const detail = await r.json().then((j) => j?.detail).catch(() => undefined);
     throw new ApiError(r.status, path, detail);
@@ -27,7 +45,7 @@ export async function getJson<T>(path: string): Promise<T> {
 }
 
 export async function getText(path: string): Promise<string> {
-  const r = await fetch(API_BASE + path);
+  const r = await fetch(API_BASE + path, { headers: actorHeaders() });
   if (!r.ok) throw new ApiError(r.status, path);
   return r.text();
 }
@@ -35,7 +53,10 @@ export async function getText(path: string): Promise<string> {
 export async function postJson<T>(path: string, body?: unknown): Promise<T> {
   const r = await fetch(API_BASE + path, {
     method: 'POST',
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    headers: {
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...actorHeaders(),
+    },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!r.ok) {

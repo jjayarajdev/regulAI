@@ -4,8 +4,8 @@
 import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
 import {
-  groupViolations, useApplyFix, useAssign, usePolicyFields, useSuppress,
-  useUnsuppress, useValidateAll, type GroupedError,
+  can, groupViolations, useApplyFix, useAssign, usePolicyFields, useSuppress,
+  useUnsuppress, useValidateAll, whoCan, type AppUser, type GroupedError,
 } from '../api';
 import { ApiError } from '../../../api/client';
 import { ACC, ACC9, ERR_DETAIL, NEU } from '../data';
@@ -13,7 +13,10 @@ import { ACC, ACC9, ERR_DETAIL, NEU } from '../data';
 const sevDot = (s: number) => (s === 2 ? ACC9 : s === 1 ? ACC : NEU);
 const fmt = (n: number) => n.toLocaleString('en-US');
 
-export function ValidationScreen({ onTrace }: { onTrace?: (policy: string) => void }) {
+export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string) => void; user?: AppUser }) {
+  const maySuppress = can(user, 'suppress');
+  const mayFix = can(user, 'fix');
+  const mayAssign = can(user, 'assign');
   const valQ = useValidateAll();
   const errors = useMemo(() => groupViolations(valQ.data), [valQ.data]);
   const live = errors.some((e) => e.violations.length > 0);
@@ -173,17 +176,20 @@ export function ValidationScreen({ onTrace }: { onTrace?: (policy: string) => vo
                 Trace to Guidewire
               </button>
               {E.suppressed ? (
-                <button className="btn btn-secondary" disabled={!live || unsuppressMut.isPending}
+                <button className="btn btn-secondary" disabled={!live || !maySuppress || unsuppressMut.isPending}
+                  title={maySuppress ? undefined : `requires ${whoCan('suppress')}`}
                   onClick={() => unsuppressMut.mutate(E.code)}>
                   {unsuppressMut.isPending ? 'Releasing…' : 'Unsuppress'}
                 </button>
               ) : (
-                <button className="btn btn-secondary" disabled={!live}
+                <button className="btn btn-secondary" disabled={!live || !maySuppress}
+                  title={maySuppress ? undefined : `requires ${whoCan('suppress')}`}
                   onClick={() => { setForm(form === 'suppress' ? null : 'suppress'); setMemo(''); }}>
                   Suppress with memo
                 </button>
               )}
-              <button className="btn btn-secondary" disabled={!live}
+              <button className="btn btn-secondary" disabled={!live || !mayAssign}
+                title={mayAssign ? undefined : `requires ${whoCan('assign')}`}
                 onClick={() => { setForm(form === 'assign' ? null : 'assign'); setAssignee(E.assignee ?? ''); }}>
                 {E.assignee ? 'Reassign' : 'Assign'}
               </button>
@@ -200,7 +206,8 @@ export function ValidationScreen({ onTrace }: { onTrace?: (policy: string) => vo
               <button
                 className="btn btn-primary"
                 style={{ marginLeft: fixMut.data || fixMut.error != null ? undefined : 'auto' }}
-                disabled={!live || fixMut.isPending}
+                disabled={!live || !mayFix || fixMut.isPending}
+                title={mayFix ? undefined : `requires ${whoCan('fix')}`}
                 onClick={() => fixMut.mutate(E.code)}
               >
                 {fixMut.isPending ? 'Applying fix…' : `Apply agent fix to ${E.count}`}

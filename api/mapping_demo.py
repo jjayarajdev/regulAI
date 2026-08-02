@@ -11,12 +11,19 @@ import json
 import time as _time
 from pathlib import Path
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
 from packages.rhs.mapper.profiler import profile_file
 
 router = APIRouter(prefix="/api/mapping", tags=["mapping"])
+
+# Spec onboarding is an admin capability — reuse the RHS identity layer.
+from api.rhs_demo import current_user as _user, require as _require  # noqa: E402
+
+
+def _gate(user: dict) -> None:
+    _require(user, "mapping")
 
 
 def _rec(agent: str, task: str, **kw) -> None:
@@ -69,12 +76,13 @@ def preview(source: str, limit: int = 8) -> JSONResponse:
 
 
 @router.post("/propose")
-def propose(body: dict = Body(...)) -> JSONResponse:
+def propose(body: dict = Body(...), user: dict = Depends(_user)) -> JSONResponse:
     """Profile the source and ask the agent for a mapping spec.
 
     Returns {profile, spec}. Persists the raw spec so review/compile can reload
     it. The LLM call is the only slow/keyed part; profiling alone never fails.
     """
+    _gate(user)
     source = (body or {}).get("source")
     if not source:
         raise HTTPException(status_code=400, detail="body.source is required")
@@ -132,8 +140,9 @@ def propose(body: dict = Body(...)) -> JSONResponse:
 
 
 @router.post("/save")
-def save_reviewed(body: dict = Body(...)) -> JSONResponse:
+def save_reviewed(body: dict = Body(...), user: dict = Depends(_user)) -> JSONResponse:
     """Persist a human-reviewed spec (with overrides + accept flags)."""
+    _gate(user)
     label = (body or {}).get("label")
     spec = (body or {}).get("spec")
     if not label or spec is None:
@@ -169,8 +178,9 @@ def _resolve_source(label: str) -> Path:
 
 
 @router.post("/compile")
-def compile_endpoint(body: dict = Body(...)) -> JSONResponse:
+def compile_endpoint(body: dict = Body(...), user: dict = Depends(_user)) -> JSONResponse:
     """Compile the reviewed spec into runnable SQL (accepted rows only)."""
+    _gate(user)
     label = (body or {}).get("label")
     if not label:
         raise HTTPException(status_code=400, detail="body.label is required")
@@ -200,8 +210,9 @@ def compile_endpoint(body: dict = Body(...)) -> JSONResponse:
 
 
 @router.post("/validate")
-def validate_endpoint(body: dict = Body(...)) -> JSONResponse:
+def validate_endpoint(body: dict = Body(...), user: dict = Depends(_user)) -> JSONResponse:
     """Dry-run the compiled load on ephemeral DuckDB and check it fail-closed."""
+    _gate(user)
     label = (body or {}).get("label")
     if not label:
         raise HTTPException(status_code=400, detail="body.label is required")

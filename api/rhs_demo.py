@@ -17,7 +17,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
@@ -44,6 +44,62 @@ def _jsonify(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 router = APIRouter(prefix="/api/rhs", tags=["rhs"])
+
+# ── Identity & RBAC (Phase 1) ────────────────────────────────────────
+# Cooperative identity: the UI's persona switcher sends X-Actor with the
+# user_id; mutations are role-gated and every audit row carries the real
+# actor. This is identity for workflow + audit, not hostile-user security —
+# Phase 2 swaps the header for a session/OIDC without touching the grants.
+# Code-level registry so auth never depends on a warm warehouse.
+APP_USERS: dict[str, dict] = {
+    "u-okonkwo": {"user_id": "u-okonkwo", "name": "M. Okonkwo", "role": "analyst",
+                  "title": "Compliance Analyst"},
+    "u-reyes":   {"user_id": "u-reyes", "name": "D. Reyes", "role": "actuary",
+                  "title": "Actuary"},
+    "u-iyer":    {"user_id": "u-iyer", "name": "S. Iyer", "role": "admin",
+                  "title": "Compliance Officer · Specs & Onboarding"},
+    "u-park":    {"user_id": "u-park", "name": "J. Park", "role": "cco",
+                  "title": "Chief Compliance Officer"},
+}
+_GUEST = {"user_id": "guest", "name": "Guest", "role": "viewer", "title": "Read-only"}
+
+# Permission → roles allowed. Mirrored client-side for button gating; the
+# server check is authoritative.
+ROLE_GRANTS: dict[str, set[str]] = {
+    "rule_decision": {"admin", "cco"},
+    "suppress":      {"admin", "cco"},
+    "assign":        {"analyst", "actuary", "admin", "cco"},
+    "fix":           {"analyst", "actuary", "admin", "cco"},
+    "run_pipeline":  {"analyst", "actuary", "admin", "cco"},
+    "sign_analyst":  {"analyst"},
+    "sign_actuary":  {"actuary"},
+    "sign_officer":  {"cco"},
+    "seal":          {"cco"},
+    "ack":           {"cco"},
+    "mapping":       {"admin", "cco"},
+    "bulletin":      {"admin", "cco"},
+}
+
+
+def current_user(x_actor: str | None = Header(default=None)) -> dict:
+    return APP_USERS.get(x_actor or "", _GUEST)
+
+
+def require(user: dict, perm: str) -> None:
+    allowed = ROLE_GRANTS.get(perm, set())
+    if user["role"] not in allowed:
+        raise HTTPException(
+            status_code=403,
+            detail=f"'{perm}' requires {' / '.join(sorted(allowed))} — "
+                   f"you are {user['name']} ({user['role']})",
+        )
+
+
+@router.get("/auth/users")
+def auth_users() -> JSONResponse:
+    """The persona registry for the header switcher."""
+    return JSONResponse({"users": list(APP_USERS.values()),
+                         "grants": {k: sorted(v) for k, v in ROLE_GRANTS.items()}})
 
 BULLETIN_OVERRIDE_NAME = "Credit Score Declination Reporting Override"
 BULLETIN_PATH = Path("synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md")
@@ -619,8 +675,9 @@ def agent_run_detail(run_id: str) -> JSONResponse:
 
 
 @router.post("/pipeline/silver")
-def pipeline_silver() -> JSONResponse:
+def pipeline_silver(user: dict = Depends(current_user)) -> JSONResponse:
     """Run Bronze → Silver and return per-table row counts."""
+    require(user, "run_pipeline")
     result = _run(["uv", "run", "python", "-m", "scripts.run_silver"])
     counts = query(
         "SELECT 'TSPR_PREMIUM_STAGING' AS table_name, COUNT(*) AS row_count "
@@ -636,8 +693,9 @@ def pipeline_silver() -> JSONResponse:
 
 
 @router.post("/pipeline/gold")
-def pipeline_gold() -> JSONResponse:
+def pipeline_gold(user: dict = Depends(current_user)) -> JSONResponse:
     """Run Silver → Gold and return per-table row counts + transmittal totals."""
+    require(user, "run_pipeline")
     result = _run(["uv", "run", "python", "-m", "scripts.run_gold"])
     counts = query(
         "SELECT 'TSPR_PREMIUM_RECORDS' AS table_name, COUNT(*) AS row_count "
@@ -1127,15 +1185,16 @@ def _triage_state() -> tuple[dict[str, dict], dict[str, dict]]:
 
 
 @router.post("/validate/suppress")
-def validate_suppress(body: dict = Body(...)) -> JSONResponse:
+def validate_suppress(body: dict = Body(...), user: dict = Depends(current_user)) -> JSONResponse:
     """Suppress a rule's exceptions with a mandatory memo.
 
     Suppressed violations remain in /validate/all (flagged, with the memo)
     but no longer count as blocking. Releasable via /validate/unsuppress.
     """
+    require(user, "suppress")
     rule_number = (body.get("rule_number") or "").strip().upper()
     memo = (body.get("memo") or "").strip()
-    actor = body.get("actor") or "analyst"
+    actor = user["name"]
     if not rule_number:
         raise HTTPException(status_code=400, detail="rule_number required")
     if len(memo) < 5:
@@ -1163,10 +1222,11 @@ def validate_suppress(body: dict = Body(...)) -> JSONResponse:
 
 
 @router.post("/validate/unsuppress")
-def validate_unsuppress(body: dict = Body(...)) -> JSONResponse:
+def validate_unsuppress(body: dict = Body(...), user: dict = Depends(current_user)) -> JSONResponse:
     """Release an active suppression — the rule's exceptions block again."""
+    require(user, "suppress")
     rule_number = (body.get("rule_number") or "").strip().upper()
-    actor = body.get("actor") or "analyst"
+    actor = user["name"]
     if not rule_number:
         raise HTTPException(status_code=400, detail="rule_number required")
     _ensure_triage_tables()
@@ -1185,11 +1245,12 @@ def validate_unsuppress(body: dict = Body(...)) -> JSONResponse:
 
 
 @router.post("/validate/assign")
-def validate_assign(body: dict = Body(...)) -> JSONResponse:
+def validate_assign(body: dict = Body(...), user: dict = Depends(current_user)) -> JSONResponse:
     """Assign a rule's exceptions to an owner (empty assignee = unassign)."""
+    require(user, "assign")
     rule_number = (body.get("rule_number") or "").strip().upper()
     assignee = (body.get("assignee") or "").strip()
-    actor = body.get("actor") or "analyst"
+    actor = user["name"]
     if not rule_number:
         raise HTTPException(status_code=400, detail="rule_number required")
     _ensure_triage_tables()
@@ -1215,7 +1276,7 @@ def validate_assign(body: dict = Body(...)) -> JSONResponse:
 
 
 @router.post("/validate/fix")
-def validate_fix(body: dict = Body(...)) -> JSONResponse:
+def validate_fix(body: dict = Body(...), user: dict = Depends(current_user)) -> JSONResponse:
     """Bulk-apply the deterministic remedy for one rule's open violations.
 
     Body: {"rule_number": "A.34"}. Automatable today: the reason-code
@@ -1225,6 +1286,7 @@ def validate_fix(body: dict = Body(...)) -> JSONResponse:
     bronze_fix (same update, audit trail and cache invalidation as a manual
     fix). Rules without a deterministic remedy 400.
     """
+    require(user, "fix")
     rule_number = (body.get("rule_number") or "").strip().upper()
     if not rule_number:
         raise HTTPException(status_code=400, detail="rule_number required")
@@ -1440,7 +1502,8 @@ def kg_rules() -> JSONResponse:
 
 
 @router.post("/kg/rules/{rule_id}/decision")
-def kg_rule_decision(rule_id: str, body: dict = Body(...)) -> JSONResponse:
+def kg_rule_decision(rule_id: str, body: dict = Body(...),
+                     user: dict = Depends(current_user)) -> JSONResponse:
     """Persist a human review decision on a canon rule.
 
     Body: {"decision": "approved" | "rejected", "actor"?: str, "note"?: str}
@@ -1453,10 +1516,11 @@ def kg_rule_decision(rule_id: str, body: dict = Body(...)) -> JSONResponse:
 
     from packages.core.enums import KGAuditAction
 
+    require(user, "rule_decision")
     decision = (body.get("decision") or "").lower()
     if decision not in ("approved", "rejected"):
         raise HTTPException(status_code=400, detail="decision must be 'approved' or 'rejected'")
-    actor = body.get("actor") or "reviewer"
+    actor = user["name"]
     note = body.get("note")
 
     try:
@@ -2027,7 +2091,7 @@ def _render_footer(naic: str, agg: dict, sha256: str) -> str:
 
 
 @router.get("/filing/{filing_id}/file")
-def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
+def filing_file(filing_id: str, persist: bool = False, user: dict = Depends(current_user)) -> JSONResponse:
     """Render the TSPR fixed-width ASCII submission file for a filing.
 
     Pulls every Gold record scoped to this filing, renders 200-char
@@ -2038,6 +2102,8 @@ def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
     """
     import hashlib
 
+    if persist:
+        require(user, "seal")
     f = _filing(filing_id)
     if not f:
         raise HTTPException(404, f"unknown filing {filing_id}")
@@ -2149,7 +2215,7 @@ def filing_file(filing_id: str, persist: bool = False) -> JSONResponse:
             logger.warning("[file] FILING_BATCH status update failed", exc_info=True)
         _record_action(
             filing_id, "file_generated",
-            actor="D. Reyes",
+            actor=user["name"],
             target_record=file_name,
             summary=f"Sealed {response['record_count']} records · {response['byte_count']} bytes · sha256:{sha256[:12]}…",
             details={"sha256": sha256, "record_count": response["record_count"], "submission_id": sub_id},
@@ -2227,7 +2293,7 @@ APPROVAL_CHAIN = {
 
 
 @router.post("/filing/{filing_id}/approve")
-def filing_approve(filing_id: str, body: dict = Body(...)) -> JSONResponse:
+def filing_approve(filing_id: str, body: dict = Body(...), user: dict = Depends(current_user)) -> JSONResponse:
     """Advance the filing one step along the sign-off chain.
 
     Body: {"role": "analyst"|"actuary"|"officer"}.
@@ -2236,7 +2302,9 @@ def filing_approve(filing_id: str, body: dict = Body(...)) -> JSONResponse:
     role = (body.get("role") or "").lower().strip()
     if role not in APPROVAL_CHAIN:
         raise HTTPException(status_code=400, detail=f"unknown role '{role}'; expected one of {list(APPROVAL_CHAIN)}")
-    required, next_state, actor = APPROVAL_CHAIN[role]
+    require(user, f"sign_{role}")
+    required, next_state, _default_actor = APPROVAL_CHAIN[role]
+    actor = f"{user['name']} · {user['title']}"
 
     _ensure_filing_batch(filing_id)
     rows = query(
@@ -2276,13 +2344,14 @@ def filing_approve(filing_id: str, body: dict = Body(...)) -> JSONResponse:
 
 
 @router.post("/filing/{filing_id}/ack")
-def filing_ack(filing_id: str) -> JSONResponse:
+def filing_ack(filing_id: str, user: dict = Depends(current_user)) -> JSONResponse:
     """Record a regulator (TICO) acknowledgment for the most recent submission.
 
     In real life this would be an inbound webhook from TICO ShareFile carrying
     the receipt id. For the demo we synthesize one. Requires the filing to be
     in 'submitted' state.
     """
+    require(user, "ack")
     rows = query(
         "SELECT status FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
         "WHERE filing_batch_id = %s",
@@ -2775,8 +2844,9 @@ def anomalies_detect() -> JSONResponse:
 
 
 @router.post("/bulletin/apply")
-def bulletin_apply() -> JSONResponse:
+def bulletin_apply(user: dict = Depends(current_user)) -> JSONResponse:
     """Apply the credit-score bulletin: materialize → version-bump → reload reference."""
+    require(user, "bulletin")
     _invalidate_validate()  # canon changes → drop cached validation
     steps = []
     if backend_name() == "snowflake":
@@ -2883,8 +2953,9 @@ def bulletin_apply() -> JSONResponse:
 
 
 @router.post("/bulletin/reset")
-def bulletin_reset() -> JSONResponse:
+def bulletin_reset(user: dict = Depends(current_user)) -> JSONResponse:
     """Roll back the bulletin and reload baseline reference."""
+    require(user, "bulletin")
     _invalidate_validate()  # canon changes → drop cached validation
     steps = []
     if backend_name() == "snowflake":

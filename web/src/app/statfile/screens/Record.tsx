@@ -7,8 +7,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
 import {
-  policiesFrom, useAdvanceFiling, useApprovalState, useFilings, usePipelineContract,
-  useReconciliation, useSubmission, useValidateAll,
+  can, policiesFrom, useAdvanceFiling, useApprovalState, useFilings, usePipelineContract,
+  useReconciliation, useSubmission, useValidateAll, whoCan, type AppUser,
 } from '../api';
 import { PKG, REC_FIELDS, RECON, RECORD_IMAGE } from '../data';
 
@@ -48,7 +48,7 @@ function decode(name: string, v: string | number | null): string {
 
 interface FieldRow { pos: string; name: string; val: string; dec: string; src: string; rule: string }
 
-export function RecordScreen({ initialPolicy }: { initialPolicy?: string | null }) {
+export function RecordScreen({ initialPolicy, user }: { initialPolicy?: string | null; user?: AppUser }) {
   const valQ = useValidateAll();
   const filingsQ = useFilings();
   const policies = useMemo(() => policiesFrom(valQ.data), [valQ.data]);
@@ -215,17 +215,28 @@ export function RecordScreen({ initialPolicy }: { initialPolicy?: string | null 
               const roleLabel: Record<string, string> = {
                 analyst: 'Sign off — Analyst', actuary: 'Sign off — Actuary', officer: 'Sign off — Compliance Officer',
               };
+              // Which permission the next action needs, so the button can say
+              // exactly who is allowed when the current persona isn't.
+              const perm =
+                a.status === 'submitted' ? 'ack'
+                : a.can_seal ? 'seal'
+                : a.next_role ? `sign_${a.next_role === 'officer' ? 'officer' : a.next_role}` : null;
+              const allowed = perm == null || can(user, perm);
               const [label, action, disabled]: [string, (() => void) | null, boolean] =
                 a.status === 'acked' ? ['Acknowledged by TICO ✓', null, true]
-                : a.status === 'submitted' ? ['Record TICO acknowledgment', () => adv.ack.mutate(active.id), busy]
-                : a.can_seal ? ['Seal & transmit to statistical agent', () => adv.seal.mutate(active.id), busy]
-                : a.next_role ? [roleLabel[a.next_role], () => adv.approve.mutate({ filingId: active.id, role: a.next_role! }), busy || a.open_blockers > 0]
+                : a.status === 'submitted' ? ['Record TICO acknowledgment', () => adv.ack.mutate(active.id), busy || !allowed]
+                : a.can_seal ? ['Seal & transmit to statistical agent', () => adv.seal.mutate(active.id), busy || !allowed]
+                : a.next_role ? [roleLabel[a.next_role], () => adv.approve.mutate({ filingId: active.id, role: a.next_role! }), busy || a.open_blockers > 0 || !allowed]
                 : [`Blocked — state '${a.status}'`, null, true];
               return (
                 <>
-                  <button className="btn btn-primary btn-block" disabled={disabled} onClick={() => action?.()}>
+                  <button className="btn btn-primary btn-block" disabled={disabled} onClick={() => action?.()}
+                    title={perm != null && !allowed ? `requires ${whoCan(perm)} — you are ${user?.name ?? 'Guest'}` : undefined}>
                     {busy ? 'Working…' : label}
                   </button>
+                  {perm != null && !allowed && (
+                    <div className="k" style={{ marginTop: 6 }}>requires {whoCan(perm)} — switch persona to act</div>
+                  )}
                   <div className="mono" style={{ fontSize: 10.5, marginTop: 7, color: 'color-mix(in srgb,var(--color-text) 55%,transparent)' }}>
                     state {a.status}
                     {a.open_blockers > 0 ? ` · ${a.open_blockers} blocker${a.open_blockers > 1 ? 's' : ''} hold the chain` : ''}

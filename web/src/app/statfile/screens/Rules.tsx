@@ -4,7 +4,7 @@
 // citation to real regulator text. Demo fixtures when the canon is empty.
 import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
-import { useCitation, useKgDiff, useKgRules, useRuleDecision } from '../api';
+import { can, useCitation, useKgDiff, useKgRules, useRuleDecision, whoCan, type AppUser } from '../api';
 import { ACC, ACC9, CLAUSES, RULES } from '../data';
 import type { KgRule } from '../../../api/types';
 
@@ -25,7 +25,8 @@ interface RuleCard {
   preDecided?: Decision;
 }
 
-export function RulesScreen() {
+export function RulesScreen({ user }: { user?: AppUser }) {
+  const mayDecide = can(user, 'rule_decision');
   const rulesQ = useKgRules();
 
   const cards: RuleCard[] = useMemo(() => {
@@ -347,8 +348,16 @@ export function RulesScreen() {
                       <span className={'tag ' + (d === 'approved' ? 'tag-accent' : d === 'rejected' ? 'tag-neutral' : 'tag-outline')}>
                         {d === 'approved' ? 'Approved' : d === 'rejected' ? 'Sent back' : 'Pending'}
                       </span>
-                      <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); decide(r.id, 'rejected'); }}>Reject</button>
-                      <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); decide(r.id, 'approved'); }}>Approve</button>
+                      {mayDecide ? (
+                        <>
+                          <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); decide(r.id, 'rejected'); }}>Reject</button>
+                          <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); decide(r.id, 'approved'); }}>Approve</button>
+                        </>
+                      ) : (
+                        <span className="k" title={`sign in as ${whoCan('rule_decision')} to review`}>
+                          review requires {whoCan('rule_decision')}
+                        </span>
+                      )}
                     </span>
                   </div>
                 </Blueprint>

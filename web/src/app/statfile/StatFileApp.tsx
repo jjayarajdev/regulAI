@@ -2,7 +2,8 @@
 // claude.ai/design mock. Shell: sidebar nav + header; each screen is its own
 // component. Cross-screen navigation goes through `go`.
 import { useState } from 'react';
-import { useFilings, useRunCycle } from './api';
+import { getActor, setActor } from '../../api/client';
+import { can, GUEST, useFilings, useRunCycle, useUsers, whoCan, type AppUser } from './api';
 import { NAV, TITLES, type ScreenId } from './data';
 import { DashboardScreen } from './screens/Dashboard';
 import { RulesScreen } from './screens/Rules';
@@ -30,6 +31,17 @@ export function StatFileApp() {
   const traceTo = (policy: string) => { setTracePolicy(policy); setScreen('record'); };
 
   const cycleMut = useRunCycle();
+
+  // Persona (Phase 1 RBAC): pick who you are; the id rides every request as
+  // X-Actor and gates which actions the screens offer.
+  const usersQ = useUsers();
+  const [actorId, setActorId] = useState<string | null>(getActor());
+  const user: AppUser = usersQ.data?.users.find((u) => u.user_id === actorId) ?? GUEST;
+  const pickUser = (id: string) => {
+    const next = id === 'guest' ? null : id;
+    setActor(next);
+    setActorId(next);
+  };
 
   // Data-source pill: connecting… → live data / demo data. Live means the
   // warehouse answered; a cold/failed warehouse degrades to demo fixtures.
@@ -76,6 +88,21 @@ export function StatFileApp() {
               <h3>{title}</h3>
             </div>
             <div className="actions">
+              <select
+                value={user.user_id}
+                onChange={(e) => pickUser(e.target.value)}
+                title={`${user.title} — role ${user.role}`}
+                style={{
+                  padding: '5px 8px', fontSize: 12, fontFamily: 'var(--font-body)',
+                  border: '1px solid var(--color-divider)', borderRadius: 0,
+                  background: 'transparent', color: 'var(--color-text)', maxWidth: 190,
+                }}
+              >
+                <option value="guest">Guest · read-only</option>
+                {(usersQ.data?.users ?? []).map((u) => (
+                  <option key={u.user_id} value={u.user_id}>{u.name} · {u.role}</option>
+                ))}
+              </select>
               <span className={'tag ' + (live ? 'tag-accent' : 'tag-neutral')}>
                 <span style={{
                   width: 7, height: 7, borderRadius: '50%', marginRight: 6,
@@ -87,9 +114,11 @@ export function StatFileApp() {
               <button className="btn btn-secondary">Export</button>
               <button
                 className="btn btn-primary"
-                disabled={cycleMut.isPending}
+                disabled={cycleMut.isPending || !can(user, 'run_pipeline')}
                 onClick={() => cycleMut.mutate()}
-                title="Bronze→Silver→Gold, then re-validate"
+                title={can(user, 'run_pipeline')
+                  ? 'Bronze→Silver→Gold, then re-validate'
+                  : `requires ${whoCan('run_pipeline')}`}
               >
                 {cycleMut.isPending ? 'Running cycle…'
                   : cycleMut.isError ? 'Run failed — retry'
@@ -100,12 +129,12 @@ export function StatFileApp() {
 
           <div className="content">
             {screen === 'dash' && <DashboardScreen go={go} />}
-            {screen === 'rules' && <RulesScreen />}
+            {screen === 'rules' && <RulesScreen user={user} />}
             {screen === 'graph' && <GraphScreen />}
             {screen === 'pipe' && <PipelineScreen />}
             {screen === 'agents' && <AgentsScreen />}
-            {screen === 'val' && <ValidationScreen onTrace={traceTo} />}
-            {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} />}
+            {screen === 'val' && <ValidationScreen onTrace={traceTo} user={user} />}
+            {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} user={user} />}
             {screen === 'iso' && <IsoScreen />}
             {screen === 'config' && <ConfigScreen />}
           </div>

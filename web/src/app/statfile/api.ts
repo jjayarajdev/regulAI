@@ -14,6 +14,37 @@ import {
   type Cycle, type EditError, type MedallionLayer, type QueueItem,
 } from './data';
 
+// ── identity & RBAC ────────────────────────────────────────────────────────
+export type Role = 'viewer' | 'analyst' | 'actuary' | 'admin' | 'cco';
+export interface AppUser { user_id: string; name: string; role: Role; title: string }
+export const GUEST: AppUser = { user_id: 'guest', name: 'Guest', role: 'viewer', title: 'Read-only' };
+
+// Mirror of the server's ROLE_GRANTS — the server check is authoritative;
+// this only decides what the UI offers.
+const GRANTS: Record<string, Role[]> = {
+  rule_decision: ['admin', 'cco'],
+  suppress:      ['admin', 'cco'],
+  assign:        ['analyst', 'actuary', 'admin', 'cco'],
+  fix:           ['analyst', 'actuary', 'admin', 'cco'],
+  run_pipeline:  ['analyst', 'actuary', 'admin', 'cco'],
+  sign_analyst:  ['analyst'],
+  sign_actuary:  ['actuary'],
+  sign_officer:  ['cco'],
+  seal:          ['cco'],
+  ack:           ['cco'],
+  mapping:       ['admin', 'cco'],
+};
+export const can = (user: AppUser | undefined, perm: string): boolean =>
+  !!user && (GRANTS[perm] ?? []).includes(user.role);
+export const whoCan = (perm: string): string => (GRANTS[perm] ?? []).join(' / ');
+
+export const useUsers = () =>
+  useQuery({
+    queryKey: ['sf', 'users'],
+    queryFn: () => getJson<{ users: AppUser[] }>('/auth/users'),
+    staleTime: Infinity,
+  });
+
 // ── hooks ──────────────────────────────────────────────────────────────────
 export const useFilings = () =>
   useQuery({ queryKey: ['sf', 'filings'], queryFn: () => getJson<FilingsResponse>('/filings') });
