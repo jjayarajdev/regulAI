@@ -8,12 +8,13 @@ export const NEU = '#98989b';
 
 export type ScreenId =
   | 'dash' | 'rules' | 'graph' | 'pipe' | 'agents'
-  | 'val' | 'record' | 'iso' | 'config';
+  | 'val' | 'record' | 'iso' | 'config' | 'users';
 
 export const NAV: Array<[ScreenId, string]> = [
   ['dash', 'Filing dashboard'], ['rules', 'Rulebook & rules'], ['graph', 'Knowledge graph'],
   ['pipe', 'Medallion pipeline'], ['agents', 'Agent console'], ['val', 'Validation triage'],
   ['record', 'TX stat record'], ['iso', 'ISO projection'], ['config', 'States & standards'],
+  ['users', 'Users & access'],   // admin/cco only — filtered in the shell
 ];
 
 export const TITLES: Record<ScreenId, [string, string]> = {
@@ -26,6 +27,7 @@ export const TITLES: Record<ScreenId, [string, string]> = {
   record: ['Record inspector', 'TDI HO statistical record'],
   iso: ['Standard projection', 'ISO Personal Lines Statistical Plan'],
   config: ['Configuration', 'Jurisdictions & reporting standards'],
+  users: ['Access control', 'Users, roles & permissions'],
 };
 
 // ── rules ──────────────────────────────────────────────────────────────────

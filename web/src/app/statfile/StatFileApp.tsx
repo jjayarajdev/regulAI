@@ -14,6 +14,7 @@ import { ValidationScreen } from './screens/Validation';
 import { RecordScreen } from './screens/Record';
 import { IsoScreen } from './screens/Iso';
 import { ConfigScreen } from './screens/Config';
+import { UsersScreen } from './screens/Users';
 import './statfile.css';
 
 // Screens whose data comes from the live API today; the rest still render the
@@ -71,6 +72,12 @@ export function StatFileApp() {
   const active = filingsQ.data?.filings.find((f) => f.is_active);
   const dueDays = active ? Math.max(0, Math.round((+new Date(active.due_date) - Date.now()) / 86400000)) : null;
 
+  // If the admin screen is open when the grant disappears (role change,
+  // sign-out to guest), fall back to the dashboard.
+  if (screen === 'users' && !can(user, 'manage_users') && !meQ.isLoading) {
+    setScreen('dash');
+  }
+
   // Login gate: the app renders only for a signed-in user or an explicit
   // guest (read-only) session. While the token resolves, render nothing to
   // avoid flashing the gate at signed-in users.
@@ -122,7 +129,7 @@ export function StatFileApp() {
             <div className="k" style={{ marginTop: 4 }}>Regulatory reporting fabric</div>
           </div>
           <nav className="side-nav">
-            {NAV.map(([id, label], i) => (
+            {NAV.filter(([id]) => id !== 'users' || can(user, 'manage_users')).map(([id, label], i) => (
               <button key={id} className={'navbtn' + (screen === id ? ' on' : '')} onClick={go(id)}>
                 <span className="num">{String(i + 1).padStart(2, '0')}</span>
                 <span>{label}</span>
@@ -182,7 +189,8 @@ export function StatFileApp() {
             {screen === 'val' && <ValidationScreen onTrace={traceTo} user={user} />}
             {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} user={user} />}
             {screen === 'iso' && <IsoScreen />}
-            {screen === 'config' && <ConfigScreen user={user} />}
+            {screen === 'config' && <ConfigScreen />}
+            {screen === 'users' && <UsersScreen user={user} />}
           </div>
         </main>
       </div>
