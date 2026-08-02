@@ -5,8 +5,8 @@ import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
 import {
   can, groupViolations, useApplyFix, useAssign, useBronzeFix, useClaims,
-  useFilings, usePolicyFields, useSuppress, useUnsuppress, useValidateAll,
-  whoCan, type AppUser, type GroupedError,
+  useFilings, usePolicyFields, useReasonCodes, useSuppress, useUnsuppress,
+  useValidateAll, whoCan, type AppUser, type GroupedError,
 } from '../api';
 import { ApiError } from '../../../api/client';
 import { ACC, ACC9, ERR_DETAIL, NEU } from '../data';
@@ -56,6 +56,16 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
 
   // Inline record editor: which field is being edited + its draft value.
   const bronzeFix = useBronzeFix();
+  // Legal companion pairings for the reason-code editor, from the canon-derived
+  // reference map (e.g. LD = 'Credit score + claims history').
+  const reasonCodesQ = useReasonCodes();
+  const currentReason = String(policyQ.data?.fields?.reason_code ?? '');
+  const reasonRecs = (reasonCodesQ.data?.rows ?? [])
+    .filter((r) => currentReason
+      && r.tspr_reason_code !== currentReason
+      && r.tspr_reason_code.startsWith(currentReason)
+      && !r.credit_score_companion_required)
+    .slice(0, 4);
   const [editField, setEditField] = useState<string | null>(null);
   const [editVal, setEditVal] = useState('');
   const EDITABLE = new Set(['reason_code', 'naic_number', 'writtenpremium', 'termtype', 'noticedate', 'reporteddate', 'lossdate']);
@@ -215,6 +225,19 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
                       <span className="muted" style={{ width: 150, flex: 'none', fontWeight: hot ? 600 : undefined }}>{k}</span>
                       {editField === k ? (
                         <>
+                          {k === 'reason_code' && reasonRecs.length > 0 && (
+                            <span style={{ display: 'flex', gap: 5, flex: 'none' }}>
+                              {reasonRecs.map((r) => (
+                                <button key={r.tspr_reason_code}
+                                  className={'tag ' + (editVal === r.tspr_reason_code ? 'tag-accent' : 'tag-outline')}
+                                  style={{ cursor: 'pointer', border: 'none' }}
+                                  title={r.description}
+                                  onClick={() => setEditVal(r.tspr_reason_code)}>
+                                  {r.tspr_reason_code}
+                                </button>
+                              ))}
+                            </span>
+                          )}
                           <input
                             value={editVal} autoFocus
                             onChange={(e) => setEditVal(e.target.value)}

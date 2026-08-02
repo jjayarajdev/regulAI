@@ -1778,11 +1778,11 @@ def kg_rule_decision(rule_id: str, body: dict = Body(...),
 @router.get("/reference/reason-codes")
 def reference_reason_codes() -> JSONResponse:
     """Read REFERENCE.TSPR_REASON_CODE_MAP — what the regulation currently says."""
+    # The Databricks seed carries only the four core columns (the Snowflake-era
+    # table also had rationale/version metadata).
     rows = query(
         "SELECT tspr_reason_code, description, "
-        "       must_appear_alone, credit_score_companion_required, "
-        "       constraint_rationale, kg_canon_version, "
-        "       TO_VARCHAR(generated_at, 'YYYY-MM-DD HH24:MI:SS') AS generated_at "
+        "       must_appear_alone, credit_score_companion_required "
         "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_REASON_CODE_MAP "
         "ORDER BY tspr_reason_code"
     )

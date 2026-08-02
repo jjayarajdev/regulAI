@@ -292,6 +292,18 @@ export const useAdvanceFiling = () => {
   };
 };
 
+// Reason-code reference — what the regulation currently allows, canon-derived.
+export interface ReasonCode {
+  tspr_reason_code: string; description: string;
+  must_appear_alone: boolean | null; credit_score_companion_required: boolean | null;
+}
+export const useReasonCodes = () =>
+  useQuery({
+    queryKey: ['sf', 'reason-codes'],
+    queryFn: () => getJson<{ rows: ReasonCode[] }>('/reference/reason-codes'),
+    staleTime: 300_000,
+  });
+
 // Manual Bronze correction — the record editor in the validation panel.
 // Policy fields key on policy_number; claim fields (reporteddate/lossdate)
 // key on the claim record_id.
