@@ -232,6 +232,15 @@ export const useKgDiff = (since: string | null) =>
     enabled: !!since,
   });
 
+// Every staged policy — the inspector's full navigable set (clean included).
+export const useSubmissionPolicies = (filing: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'submission-policies', filing],
+    queryFn: () => getJson<{ policies: string[]; total: number }>(
+      '/submission/policies/list' + (filing ? '?filing=' + encodeURIComponent(filing) : '')),
+    staleTime: 300_000,
+  });
+
 // Reconciliation: stat-side gold records tied to the BillingCenter GL ledger.
 export interface ReconLine {
   label: string; stat: number; gl: number; delta: number; money: boolean;

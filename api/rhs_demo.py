@@ -1274,6 +1274,30 @@ def validate_all() -> JSONResponse:
     return JSONResponse(payload)
 
 
+_POLICIES_CACHE: dict[str, tuple[float, dict]] = {}
+_POLICIES_TTL = 600
+
+
+@router.get("/submission/policies/list")
+def submission_policies(filing: str | None = None) -> JSONResponse:
+    """Every policy with a staged submission record (the inspector's full
+    navigable set — clean records included, not just the failing ones)."""
+    key = filing or "__all__"
+    hit = _POLICIES_CACHE.get(key)
+    if hit and (_time.time() - hit[0]) < _POLICIES_TTL:
+        return JSONResponse(hit[1])
+    scope = _scope_clause(filing, "p.id") if filing else ""
+    rows = query(
+        "SELECT DISTINCT g.policy_id FROM INSURANCE_REGULATORY.SILVER.TSPR_PREMIUM_STAGING g "
+        "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.policynumber = g.policy_id "
+        f"WHERE 1=1 {scope} ORDER BY g.policy_id"
+    )
+    policies = [(_g(r, "policy_id") or "") for r in rows]
+    payload = {"filing": filing, "policies": policies, "total": len(policies)}
+    _POLICIES_CACHE[key] = (_time.time(), payload)
+    return JSONResponse(payload)
+
+
 _RECON_CACHE: dict[str, tuple[float, dict]] = {}
 _RECON_TTL = 600  # seconds — ties move only when the pipeline reruns
 

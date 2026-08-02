@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
 import {
   can, policiesFrom, useAdvanceFiling, useApprovalState, useFilings, usePipelineContract,
-  useReconciliation, useSubmission, useValidateAll, whoCan, type AppUser,
+  useReconciliation, useSubmission, useSubmissionPolicies, useValidateAll, whoCan, type AppUser,
 } from '../api';
 import { PKG, REC_FIELDS, RECON, RECORD_IMAGE } from '../data';
 
@@ -48,10 +48,27 @@ function decode(name: string, v: string | number | null): string {
 
 interface FieldRow { pos: string; name: string; val: string; dec: string; src: string; rule: string }
 
+type RecordSet = 'edits' | 'clean' | 'all';
+
 export function RecordScreen({ initialPolicy, user }: { initialPolicy?: string | null; user?: AppUser }) {
   const valQ = useValidateAll();
   const filingsQ = useFilings();
-  const policies = useMemo(() => policiesFrom(valQ.data), [valQ.data]);
+  const withEdits = useMemo(() => policiesFrom(valQ.data), [valQ.data]);
+
+  // Full staged set (scoped to the active filing) → clean = staged − edits.
+  const activeFiling = filingsQ.data?.filings.find((f) => f.is_active);
+  const allQ = useSubmissionPolicies(activeFiling?.id ?? null);
+  const allPolicies = allQ.data?.policies ?? [];
+  const editSet = useMemo(() => new Set(withEdits), [withEdits]);
+  const clean = useMemo(() => allPolicies.filter((p) => !editSet.has(p)), [allPolicies, editSet]);
+
+  const [mode, setMode] = useState<RecordSet | null>(null);
+  // Default: walk the problem records if any exist, else the clean set.
+  const effMode: RecordSet = mode ?? (withEdits.length ? 'edits' : 'clean');
+  const policies = effMode === 'edits' ? withEdits : effMode === 'clean' ? clean : allPolicies;
+  const SET_LABEL: Record<RecordSet, string> = {
+    edits: 'with edits', clean: 'clean — ready to submit', all: 'staged',
+  };
 
   const [idx, setIdx] = useState(0);
   // Search overrides the failing-policy picker — any policy is inspectable.
@@ -60,10 +77,10 @@ export function RecordScreen({ initialPolicy, user }: { initialPolicy?: string |
   // Deep link from the validation screen's "Trace to Guidewire".
   useEffect(() => {
     if (!initialPolicy) return;
-    const i = policies.indexOf(initialPolicy);
-    if (i >= 0) { setIdx(i); setOverride(null); }
+    const i = withEdits.indexOf(initialPolicy);
+    if (i >= 0) { setMode('edits'); setIdx(i); setOverride(null); }
     else setOverride(initialPolicy);
-  }, [initialPolicy, policies]);
+  }, [initialPolicy, withEdits]);
   const policy = override ?? (policies.length ? policies[Math.min(idx, policies.length - 1)] : null);
   const subQ = useSubmission(policy);
 
@@ -138,9 +155,18 @@ export function RecordScreen({ initialPolicy, user }: { initialPolicy?: string |
         <span className="k">Record</span>
         <span className="mono" style={{ fontSize: 13 }}>
           {override ? `${override} · via search`
-            : policy ? `${policy} · ${idx + 1} of ${policies.length} with open edits`
+            : policy ? `${policy} · ${idx + 1} of ${policies.length} ${SET_LABEL[effMode]}`
             : 'HO-TX-0048817-02 · seq 000418,229'}
         </span>
+        <div className="seg">
+          {([['edits', `Edits ${withEdits.length}`], ['clean', `Clean ${clean.length}`], ['all', `All ${allPolicies.length}`]] as Array<[RecordSet, string]>).map(([m, label]) => (
+            <label key={m} className="seg-opt">
+              <input type="radio" name="rset" checked={effMode === m}
+                onChange={() => { setMode(m); setIdx(0); setOverride(null); }} />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
         <button className="btn btn-secondary" disabled={!policies.length || (!override && idx === 0)}
           onClick={() => { setOverride(null); setIdx((i) => Math.max(0, i - 1)); }}>← Prev</button>
         <button className="btn btn-secondary" disabled={!policies.length || (!override && idx >= policies.length - 1)}
