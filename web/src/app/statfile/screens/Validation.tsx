@@ -216,6 +216,11 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
                       )}
                     </div>
                   ))}
+                  {bronzeFix.isSuccess && (
+                    <div className="k" style={{ marginTop: 6, color: 'var(--color-accent-700)' }}>
+                      saved to Bronze ✓ — revalidating (the group updates when the edit engine finishes, ~30s)
+                    </div>
+                  )}
                   {bronzeFix.error != null && (
                     <div className="k" style={{ marginTop: 6, color: 'var(--color-accent-700)' }}>
                       {(bronzeFix.error as Error).message}
