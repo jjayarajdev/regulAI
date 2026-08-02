@@ -79,6 +79,43 @@ def load_documents() -> list[tuple[str, str]]:
             "edition":    f.stem,
             "path":       f,
         })
+    # Florida sources — the documents the FL extraction batch was run against,
+    # so FL rules in the canon resolve to real text like the TX ones do.
+    fl = ROOT / "synthetic_regulations/real/florida"
+    docs += [
+        {
+            "doc_type":  "statute",
+            "title":     "Florida Statute 627.062 — Rate Standards",
+            "issuing":   "Florida Legislature",
+            "effective": "2022-01-01",
+            "edition":   "627.062",
+            "path":      fl / "FL_627_062_rate_standards.txt",
+        },
+        {
+            "doc_type":  "statute",
+            "title":     "Florida Statute 627.351 — Insurance Risk Apportionment Plans",
+            "issuing":   "Florida Legislature",
+            "effective": "2022-01-01",
+            "edition":   "627.351",
+            "path":      fl / "FL_627_351_citizens.txt",
+        },
+        {
+            "doc_type":  "bulletin",
+            "title":     "FL OIR Informational Memorandum OIR-22-04M — Hurricane Ian Data Call",
+            "issuing":   "FL OIR",
+            "effective": "2022-10-05",
+            "edition":   "OIR-22-04M",
+            "path":      fl / "FL_OIR_22_04M_hurricane_data_call.md",
+        },
+        {
+            "doc_type":  "stat_plan",
+            "title":     "FHCF Annual Data Call Form — Personal Lines Residential",
+            "issuing":   "Florida SBA",
+            "effective": "2022-01-01",
+            "edition":   "FHCF-D1A",
+            "path":      fl / "FL_FHCF_data_call_form.md",
+        },
+    ]
 
     loaded: list[tuple[str, str]] = []
     for d in docs:
@@ -199,6 +236,84 @@ def split_statute_sections(doc_id: str, full_text: str) -> int:
     return inserted
 
 
+def split_fl_statute_sections(doc_id: str, full_text: str, statute_no: str) -> int:
+    """Florida statutes mark subsections as top-level "(1)", "(5)" paragraphs.
+
+    One section per subsection, cited as e.g. "627.351(6)" — the same anchor
+    the extracted rule names carry ("Rule 627.351(6)(a) — …").
+    """
+    heading_re = re.compile(r"^\((\d+)\)\s*(.{0,160})$", re.MULTILINE)
+    matches = list(heading_re.finditer(full_text))
+    inserted = 0
+    rows = []
+    for i, m in enumerate(matches):
+        citation = f"{statute_no}({m.group(1)})"
+        heading = (m.group(2) or "").strip().rstrip(".—-").strip()[:200]
+        start = m.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
+        body = full_text[start:end].strip()
+        if len(body) < 60:
+            continue
+        sec_id = _section_id(doc_id, citation, i + 1)
+        pattern = re.escape(citation).replace("\\", "\\\\")
+        rows.append(
+            f"('{sec_id}', '{doc_id}', '{_sql_text(citation)}', '{pattern}', "
+            f" '{_sql_text(heading)}', '{_sql_text(body[:60000])}', NULL, NULL, {i + 1})"
+        )
+        inserted += 1
+    if rows:
+        BATCH = 25
+        for j in range(0, len(rows), BATCH):
+            query(
+                "INSERT INTO INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_SECTION "
+                "(section_id, document_id, citation_label, citation_pattern, "
+                " section_heading, section_text, page_start, page_end, seq) "
+                "VALUES " + ", ".join(rows[j:j + BATCH])
+            )
+    return inserted
+
+
+def split_md_sections(doc_id: str, full_text: str) -> int:
+    """Markdown memos/forms: one section per '##'/'###' heading.
+
+    The citation label is the heading text itself — FL memo rules are named
+    after their headings ("Special Provisions for Citizens Property Insurance
+    Corporation"), so an exact/containment label match resolves them.
+    """
+    heading_re = re.compile(r"^(#{2,3})\s+(.+)$", re.MULTILINE)
+    matches = list(heading_re.finditer(full_text))
+    inserted = 0
+    rows = []
+    for i, m in enumerate(matches):
+        heading = m.group(2).strip()
+        # Letterhead lines aren't content sections
+        if heading.split(":")[0] in ("TO", "FROM", "RE"):
+            continue
+        citation = re.sub(r"\s*\(.*\)$", "", heading)[:200]  # drop trailing "(Cols 35–36)"
+        start = m.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
+        body = full_text[start:end].strip()
+        if len(body) < 40:
+            continue
+        sec_id = _section_id(doc_id, citation, i + 1)
+        pattern = re.escape(citation).replace("\\", "\\\\")
+        rows.append(
+            f"('{sec_id}', '{doc_id}', '{_sql_text(citation)}', '{pattern}', "
+            f" '{_sql_text(heading)}', '{_sql_text(body[:60000])}', NULL, NULL, {i + 1})"
+        )
+        inserted += 1
+    if rows:
+        BATCH = 25
+        for j in range(0, len(rows), BATCH):
+            query(
+                "INSERT INTO INSURANCE_REGULATORY.BRONZE_REGDOCS.RAW_REG_SECTION "
+                "(section_id, document_id, citation_label, citation_pattern, "
+                " section_heading, section_text, page_start, page_end, seq) "
+                "VALUES " + ", ".join(rows[j:j + BATCH])
+            )
+    return inserted
+
+
 def ensure_tables() -> None:
     """Bootstrap the BRONZE_REGDOCS schema + tables (Databricks never had the
     Snowflake-era DDL applied; CREATE IF NOT EXISTS is a no-op elsewhere)."""
@@ -246,6 +361,18 @@ def main() -> int:
             # Coarse split by "Section [A-G]"
             n = split_stat_plan_sections(doc_id, full_text)
             print(f"  ✓ record layout   → {n} sections")
+            total_sections += n
+        elif "FL_627_062" in path:
+            n = split_fl_statute_sections(doc_id, full_text, "627.062")
+            print(f"  ✓ FL 627.062      → {n} sections")
+            total_sections += n
+        elif "FL_627_351" in path:
+            n = split_fl_statute_sections(doc_id, full_text, "627.351")
+            print(f"  ✓ FL 627.351      → {n} sections")
+            total_sections += n
+        elif path.endswith(".md") and "/florida/" in path:
+            n = split_md_sections(doc_id, full_text)
+            print(f"  ✓ FL markdown     → {n} sections ({Path(path).stem})")
             total_sections += n
         # Bulletins: section_id = doc_id (single section)
     print()

@@ -116,6 +116,7 @@ def proposed_to_typed_node(
 
         return Rule(
             **common_kwargs,
+            confidence=p.confidence,
             rule_kind=rule_kind,
             section=p.section if rule_kind == RuleKind.STATUTE else None,
             rule_number=p.rule_number if rule_kind == RuleKind.STATUTE else None,

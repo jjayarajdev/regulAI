@@ -10,6 +10,7 @@ from enum import Enum
 class NodeStatus(str, Enum):
     DRAFT = "draft"
     APPROVED = "approved"
+    REJECTED = "rejected"  # sent back by a human reviewer — never activates
     SUPERSEDED = "superseded"
 
 

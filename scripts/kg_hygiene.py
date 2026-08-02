@@ -89,6 +89,113 @@ def propagate_codelist_citations() -> tuple[int, int]:
         return len(cvs_updated), edges_added
 
 
+def backfill_rule_confidence() -> tuple[int, int]:
+    """Copy Sentinel extraction confidences onto Rule nodes that lack one.
+
+    Sources materialized/extractions/*.extraction.json (the cached proposals
+    that were approved into the canon), matched by exact rule name. Rules with
+    no cached proposal (seeds, manual edits) stay confidence-less. Idempotent:
+    only touches rules where confidence IS NULL.
+    Returns (rules_updated, rules_still_missing).
+    """
+    import json
+    from pathlib import Path
+
+    conf_by_name: dict[str, float] = {}
+    for p in sorted(Path("materialized/extractions").glob("*.extraction.json")):
+        try:
+            d = json.loads(p.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue
+        for n in d.get("proposed_nodes", []):
+            if n.get("type") == "Rule" and n.get("confidence") is not None:
+                conf_by_name.setdefault(n["name"], float(n["confidence"]))
+
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        rows = list(s.run(
+            "MATCH (r:Rule) WHERE r.confidence IS NULL RETURN r.id AS id, r.name AS name"
+        ))
+        updated = 0
+        for r in rows:
+            c = conf_by_name.get(r["name"])
+            if c is None:
+                continue
+            s.run("MATCH (r:Rule {id: $id}) SET r.confidence = $c", id=r["id"], c=c)
+            updated += 1
+        return updated, len(rows) - updated
+
+
+def backfill_rule_cites() -> tuple[int, int]:
+    """Link every CITES-less rule to its source document.
+
+    Two cases:
+      - r.document_id resolves to a RegulationDocument → MERGE the CITES edge.
+      - r.document_id is a phantom (doc never materialized): if any rule in the
+        same phantom group references Insurance Code §551 / HB 2067, re-point
+        the whole group at the loaded H.B. No. 2067 document.
+    Idempotent. Returns (edges_created, rules_repointed).
+    """
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        hb = s.run(
+            "MATCH (d:RegulationDocument) WHERE d.name STARTS WITH 'H.B. No. 2067' "
+            "RETURN d.id AS id LIMIT 1"
+        ).single()
+        hb_id = hb["id"] if hb else None
+
+        rows = list(s.run(
+            "MATCH (r:Rule) WHERE NOT (r)-[:CITES]->() "
+            "RETURN r.id AS id, r.name AS name, r.document_id AS doc"
+        ))
+        # Group by claimed document so phantom groups get one decision.
+        by_doc: dict[str, list] = {}
+        for r in rows:
+            if r["doc"]:
+                by_doc.setdefault(r["doc"], []).append(r)
+
+        linked = repointed = 0
+        for doc_id, group in by_doc.items():
+            exists = s.run(
+                "MATCH (d:RegulationDocument {id: $d}) RETURN d.id AS id", d=doc_id
+            ).single()
+            target = exists["id"] if exists else None
+            if target is None and hb_id and any(
+                "§551" in (g["name"] or "") or "Insurance Code" in (g["name"] or "")
+                for g in group
+            ):
+                target = hb_id
+            if target is None:
+                continue
+            for g in group:
+                s.run(
+                    "MATCH (r:Rule {id: $rid}), (d:RegulationDocument {id: $did}) "
+                    "MERGE (r)-[:CITES]->(d) SET r.document_id = $did",
+                    rid=g["id"], did=target,
+                )
+                linked += 1
+                if target != doc_id:
+                    repointed += 1
+        return linked, repointed
+
+
+def link_supersedes() -> int:
+    """Materialize rule version chains as (new)-[:SUPERSEDES]->(old).
+
+    Pairs a superseded rule with its successor by matching section +
+    rule_number (the stable statute anchor). OVERRIDES stays what it is —
+    a bulletin overlaying a rule — SUPERSEDES is version lineage.
+    Idempotent via MERGE. Returns edges present after the run.
+    """
+    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+        row = s.run("""
+            MATCH (old:Rule {status:'superseded'}), (new:Rule)
+            WHERE new.section = old.section AND new.rule_number = old.rule_number
+              AND new.id <> old.id AND new.status <> 'superseded'
+            MERGE (new)-[e:SUPERSEDES]->(old)
+            RETURN count(e) AS n
+        """).single()
+        return row["n"] if row else 0
+
+
 def main() -> int:
     print("KG hygiene migration\n")
 
@@ -112,6 +219,21 @@ def main() -> int:
         print("  ✓ No CodeValues needed propagation (already covered or no parent citation)")
     print()
 
+    print("Step 3: Backfill Sentinel confidence onto Rule nodes")
+    n_conf, n_missing = backfill_rule_confidence()
+    print(f"  ✓ Set confidence on {n_conf} rule(s); {n_missing} have no cached proposal")
+    print()
+
+    print("Step 4: Backfill CITES edges for citation-less rules")
+    n_cites, n_repointed = backfill_rule_cites()
+    print(f"  ✓ Linked {n_cites} rule(s) to their document ({n_repointed} re-pointed off a phantom doc id)")
+    print()
+
+    print("Step 5: Materialize SUPERSEDES version chains")
+    n_sup = link_supersedes()
+    print(f"  ✓ {n_sup} SUPERSEDES edge(s) in place")
+    print()
+
     # Record the hygiene run in the KG audit log
     try:
         with Neo4jGREAdapter() as gre:
@@ -120,7 +242,9 @@ def main() -> int:
                 summary=(
                     f"KG hygiene: set type on {n_null} NULL-type nodes; "
                     f"propagated CodeList citations to {n_cvs} CodeValues "
-                    f"({n_edges} edges added)"
+                    f"({n_edges} edges added); confidence backfilled on "
+                    f"{n_conf} rules; {n_cites} CITES edges backfilled "
+                    f"({n_repointed} re-pointed); {n_sup} SUPERSEDES edges"
                 ),
                 actor="kg_hygiene_script",
             )

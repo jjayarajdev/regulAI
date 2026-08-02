@@ -97,6 +97,9 @@ class Rule(GRENodeBase):
     """
 
     type: Literal["Rule"] = "Rule"
+    # Sentinel's extraction confidence (0–1); None for rules created outside
+    # the extraction path (seeds, manual edits).
+    confidence: float | None = None
     rule_kind: RuleKind = RuleKind.STATUTE
     section: str | None = None  # statute: "A", "B", "C", ... | provision: None
     rule_number: int | None = None  # statute: 1, 2, ... | provision: None

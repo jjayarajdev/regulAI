@@ -27,6 +27,9 @@ class OpenAIAdapter:
             raise ValueError("OPENAI_API_KEY is not set in environment or .env")
         self.model = model or settings.openai_model
         self._client = OpenAI(api_key=self.api_key)
+        # Usage of the most recent extract_structured call — callers that
+        # record telemetry (e.g. the agent console) read this after the call.
+        self.last_total_tokens: int | None = None
 
     def extract_structured(
         self,
@@ -42,6 +45,8 @@ class OpenAIAdapter:
             ],
             response_format=response_model,
         )
+        usage = getattr(response, "usage", None)
+        self.last_total_tokens = getattr(usage, "total_tokens", None)
         parsed = response.choices[0].message.parsed
         if parsed is None:
             refusal = response.choices[0].message.refusal
