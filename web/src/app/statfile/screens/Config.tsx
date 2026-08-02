@@ -4,9 +4,12 @@
 // standards registry from /reg/documents with jurisdiction inferred from the
 // issuing body; the onboarding panel reflects the real state of the furthest
 // in-progress jurisdiction (today: Florida) instead of the design's fiction.
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
-import { useFilings, useKgRules, useRegDocuments } from '../api';
+import {
+  can, useAdminUsers, useFilings, useKgRules, useRegDocuments, useSaveUser,
+  type AppUser, type Role,
+} from '../api';
 import { ACC9, ONBOARD_STEPS, STANDARDS, STATES } from '../data';
 
 const STATE_NAMES: Record<string, string> = {
@@ -24,7 +27,13 @@ const ISSUER_JUR: Record<string, string> = {
   'Florida Legislature': 'FL', 'FL OIR': 'FL', 'Florida SBA': 'FL',
 };
 
-export function ConfigScreen() {
+const ROLES: Role[] = ['viewer', 'analyst', 'actuary', 'admin', 'cco'];
+
+export function ConfigScreen({ user }: { user?: AppUser }) {
+  const mayManage = can(user, 'manage_users');
+  const adminUsersQ = useAdminUsers(mayManage);
+  const saveUser = useSaveUser();
+  const [nu, setNu] = useState({ name: '', email: '', role: 'analyst' as Role, password: '' });
   const filingsQ = useFilings();
   const docsQ = useRegDocuments();
   const rulesQ = useKgRules();
@@ -210,6 +219,80 @@ export function ConfigScreen() {
           <button className="btn btn-primary">Resume onboarding</button>
         </div>
       </Blueprint>
+
+      {mayManage && (
+        <Blueprint style={{ padding: '20px 22px', gridColumn: '1 / -1' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
+            <h4>Users &amp; access</h4>
+            <span className="k">GOLD_AUDIT.APP_USER · role changes take effect immediately</span>
+          </div>
+          <table className="table">
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Role</th><th>Title</th><th>Status</th><th /></tr>
+            </thead>
+            <tbody>
+              {(adminUsersQ.data?.users ?? []).map((u) => (
+                <tr key={u.user_id} className="row">
+                  <td style={{ fontSize: 13, fontWeight: 500 }}>{u.name}</td>
+                  <td className="mono" style={{ fontSize: 12 }}>{u.email}</td>
+                  <td>
+                    <select
+                      value={u.role}
+                      disabled={saveUser.update.isPending || u.user_id === user?.user_id}
+                      onChange={(e) => saveUser.update.mutate({ userId: u.user_id, role: e.target.value as Role })}
+                      style={{ padding: '4px 6px', fontSize: 12, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}
+                    >
+                      {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </td>
+                  <td style={{ fontSize: 12, color: 'color-mix(in srgb,var(--color-text) 60%,transparent)' }}>{u.title}</td>
+                  <td><span className={'tag ' + (u.active ? 'tag-neutral' : 'tag-outline')}>{u.active ? 'Active' : 'Deactivated'}</span></td>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <button className="btn btn-secondary" disabled={saveUser.update.isPending}
+                      onClick={() => saveUser.update.mutate({ userId: u.user_id, password: 'Regulai#2026' })}
+                      title="Reset password to the default (Regulai#2026)">
+                      Reset pw
+                    </button>{' '}
+                    <button className="btn btn-secondary"
+                      disabled={saveUser.update.isPending || u.user_id === user?.user_id}
+                      onClick={() => saveUser.update.mutate({ userId: u.user_id, active: !u.active })}>
+                      {u.active ? 'Deactivate' : 'Reactivate'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span className="k">Add user</span>
+            <input value={nu.name} onChange={(e) => setNu({ ...nu, name: e.target.value })} placeholder="Name"
+              style={{ padding: '6px 9px', fontSize: 12.5, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }} />
+            <input value={nu.email} onChange={(e) => setNu({ ...nu, email: e.target.value })} placeholder="email@regulai.demo"
+              style={{ padding: '6px 9px', fontSize: 12.5, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)', width: 190 }} />
+            <select value={nu.role} onChange={(e) => setNu({ ...nu, role: e.target.value as Role })}
+              style={{ padding: '6px 8px', fontSize: 12.5, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}>
+              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <input type="password" value={nu.password} onChange={(e) => setNu({ ...nu, password: e.target.value })}
+              placeholder="password (blank = default)"
+              style={{ padding: '6px 9px', fontSize: 12.5, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)', width: 180 }} />
+            <button className="btn btn-primary"
+              disabled={saveUser.create.isPending || !nu.name.trim() || !nu.email.trim()}
+              onClick={() => saveUser.create.mutate(
+                { name: nu.name.trim(), email: nu.email.trim(), role: nu.role, password: nu.password || undefined },
+                { onSuccess: () => setNu({ name: '', email: '', role: 'analyst', password: '' }) },
+              )}>
+              {saveUser.create.isPending ? 'Creating…' : 'Create'}
+            </button>
+            {(saveUser.create.error != null || saveUser.update.error != null) && (
+              <span className="k" style={{ color: 'var(--color-accent-700)' }}>
+                {[(saveUser.create.error as Error | null)?.message, (saveUser.update.error as Error | null)?.message].filter(Boolean).join(' · ')}
+              </span>
+            )}
+          </div>
+        </Blueprint>
+      )}
     </div>
   );
 }

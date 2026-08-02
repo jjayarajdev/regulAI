@@ -45,26 +45,30 @@ def _jsonify(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 router = APIRouter(prefix="/api/rhs", tags=["rhs"])
 
-# ── Identity & RBAC (Phase 1) ────────────────────────────────────────
-# Cooperative identity: the UI's persona switcher sends X-Actor with the
-# user_id; mutations are role-gated and every audit row carries the real
-# actor. This is identity for workflow + audit, not hostile-user security —
-# Phase 2 swaps the header for a session/OIDC without touching the grants.
-# Code-level registry so auth never depends on a warm warehouse.
-APP_USERS: dict[str, dict] = {
-    "u-okonkwo": {"user_id": "u-okonkwo", "name": "M. Okonkwo", "role": "analyst",
-                  "title": "Compliance Analyst"},
-    "u-reyes":   {"user_id": "u-reyes", "name": "D. Reyes", "role": "actuary",
-                  "title": "Actuary"},
-    "u-iyer":    {"user_id": "u-iyer", "name": "S. Iyer", "role": "admin",
-                  "title": "Compliance Officer · Specs & Onboarding"},
-    "u-park":    {"user_id": "u-park", "name": "J. Park", "role": "cco",
-                  "title": "Chief Compliance Officer"},
-}
+# ── Identity & RBAC (Phase 2: DB users + login sessions) ─────────────
+# Users live in GOLD_AUDIT.APP_USER (pbkdf2-hashed passwords), cached in
+# process memory so reads/logins survive a cold warehouse once loaded.
+# Sessions are in-memory tokens (X-Auth-Token) — a server restart signs
+# everyone out, which is fine for the demo tier. The seed users below
+# bootstrap the table on first touch and act as the cold-start fallback.
+import hashlib as _hashlib
+import secrets as _secrets
+
+VALID_ROLES = ("viewer", "analyst", "actuary", "admin", "cco")
+_DEFAULT_PW = "Regulai#2026"
+
+_SEED_USERS = [
+    {"user_id": "u-okonkwo", "name": "M. Okonkwo", "email": "m.okonkwo@regulai.demo",
+     "role": "analyst", "title": "Compliance Analyst"},
+    {"user_id": "u-reyes", "name": "D. Reyes", "email": "d.reyes@regulai.demo",
+     "role": "actuary", "title": "Actuary"},
+    {"user_id": "u-iyer", "name": "S. Iyer", "email": "s.iyer@regulai.demo",
+     "role": "admin", "title": "Compliance Officer · Specs & Onboarding"},
+    {"user_id": "u-park", "name": "J. Park", "email": "j.park@regulai.demo",
+     "role": "cco", "title": "Chief Compliance Officer"},
+]
 _GUEST = {"user_id": "guest", "name": "Guest", "role": "viewer", "title": "Read-only"}
 
-# Permission → roles allowed. Mirrored client-side for button gating; the
-# server check is authoritative.
 ROLE_GRANTS: dict[str, set[str]] = {
     "rule_decision": {"admin", "cco"},
     "suppress":      {"admin", "cco"},
@@ -78,11 +82,101 @@ ROLE_GRANTS: dict[str, set[str]] = {
     "ack":           {"cco"},
     "mapping":       {"admin", "cco"},
     "bulletin":      {"admin", "cco"},
+    "manage_users":  {"admin", "cco"},
 }
 
 
-def current_user(x_actor: str | None = Header(default=None)) -> dict:
-    return APP_USERS.get(x_actor or "", _GUEST)
+def _hash_pw(password: str, salt: str | None = None) -> str:
+    salt = salt or _secrets.token_hex(8)
+    digest = _hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 120_000).hex()
+    return f"pbkdf2${salt}${digest}"
+
+
+def _verify_pw(password: str, stored: str) -> bool:
+    try:
+        _, salt, digest = stored.split("$", 2)
+    except (ValueError, AttributeError):
+        return False
+    check = _hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 120_000).hex()
+    return _secrets.compare_digest(check, digest)
+
+
+_USERS_CACHE: dict[str, dict] = {}            # user_id → row (incl. password_hash)
+_SESSIONS: dict[str, tuple[str, float]] = {}  # token → (user_id, issued_at)
+_SESSION_TTL = 12 * 3600
+_USER_DDL_DONE = False
+
+
+def _ensure_user_table() -> None:
+    global _USER_DDL_DONE
+    if _USER_DDL_DONE:
+        return
+    query(
+        "CREATE TABLE IF NOT EXISTS INSURANCE_REGULATORY.GOLD_AUDIT.APP_USER (\n"
+        "  user_id STRING, name STRING, email STRING, role STRING, title STRING,\n"
+        "  password_hash STRING, active BOOLEAN, created_at TIMESTAMP, updated_at TIMESTAMP\n)"
+    )
+    _USER_DDL_DONE = True
+
+
+def _load_users(force: bool = False) -> dict[str, dict]:
+    """DB users, cached. Seeds the table on first touch; falls back to the
+    in-code seeds (with the default password) if the warehouse is down."""
+    global _USERS_CACHE
+    if _USERS_CACHE and not force:
+        return _USERS_CACHE
+    try:
+        _ensure_user_table()
+        rows = query(
+            "SELECT user_id, name, email, role, title, password_hash, active "
+            "FROM INSURANCE_REGULATORY.GOLD_AUDIT.APP_USER"
+        )
+        if not rows:
+            for u in _SEED_USERS:
+                query(
+                    "INSERT INTO INSURANCE_REGULATORY.GOLD_AUDIT.APP_USER "
+                    "(user_id, name, email, role, title, password_hash, active, created_at, updated_at) "
+                    "SELECT %s, %s, %s, %s, %s, %s, TRUE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()",
+                    (u["user_id"], u["name"], u["email"], u["role"], u["title"],
+                     _hash_pw(_DEFAULT_PW)),
+                )
+            rows = query(
+                "SELECT user_id, name, email, role, title, password_hash, active "
+                "FROM INSURANCE_REGULATORY.GOLD_AUDIT.APP_USER"
+            )
+        cache: dict[str, dict] = {}
+        for r in rows:
+            u = {k.lower(): v for k, v in r.items()}
+            cache[u["user_id"]] = u
+        _USERS_CACHE = cache
+    except Exception:  # warehouse cold — serve the seeds so login still works
+        logger.warning("app_user load failed; using seed users", exc_info=True)
+        if not _USERS_CACHE:
+            _USERS_CACHE = {
+                u["user_id"]: {**u, "password_hash": _hash_pw(_DEFAULT_PW), "active": True}
+                for u in _SEED_USERS
+            }
+    return _USERS_CACHE
+
+
+def _public(u: dict) -> dict:
+    return {k: u.get(k) for k in ("user_id", "name", "email", "role", "title", "active")}
+
+
+def current_user(x_auth_token: str | None = Header(default=None),
+                 x_actor: str | None = Header(default=None)) -> dict:
+    # Session token wins; X-Actor persona stays as a dev/curl convenience.
+    if x_auth_token:
+        sess = _SESSIONS.get(x_auth_token)
+        if sess and (_time.time() - sess[1]) < _SESSION_TTL:
+            u = _load_users().get(sess[0])
+            if u and u.get("active"):
+                return u
+    if x_actor:
+        u = _load_users().get(x_actor)
+        if u and u.get("active"):
+            return u
+    return _GUEST
 
 
 def require(user: dict, perm: str) -> None:
@@ -95,11 +189,114 @@ def require(user: dict, perm: str) -> None:
         )
 
 
+@router.post("/auth/login")
+def auth_login(body: dict = Body(...)) -> JSONResponse:
+    email = (body.get("email") or "").strip().lower()
+    password = body.get("password") or ""
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="email and password required")
+    users = _load_users()
+    u = next((x for x in users.values() if (x.get("email") or "").lower() == email), None)
+    if not u or not u.get("active") or not _verify_pw(password, u.get("password_hash") or ""):
+        raise HTTPException(status_code=401, detail="invalid email or password")
+    token = _secrets.token_urlsafe(24)
+    _SESSIONS[token] = (u["user_id"], _time.time())
+    return JSONResponse({"token": token, "user": _public(u)})
+
+
+@router.post("/auth/logout")
+def auth_logout(x_auth_token: str | None = Header(default=None)) -> JSONResponse:
+    if x_auth_token:
+        _SESSIONS.pop(x_auth_token, None)
+    return JSONResponse({"ok": True})
+
+
+@router.get("/auth/me")
+def auth_me(user: dict = Depends(current_user)) -> JSONResponse:
+    return JSONResponse({"user": _public(user) if user["user_id"] != "guest" else _GUEST,
+                         "grants": {k: sorted(v) for k, v in ROLE_GRANTS.items()}})
+
+
 @router.get("/auth/users")
 def auth_users() -> JSONResponse:
-    """The persona registry for the header switcher."""
-    return JSONResponse({"users": list(APP_USERS.values()),
+    """Minimal directory — names/roles for pickers and assignment dropdowns."""
+    users = [{k: u.get(k) for k in ("user_id", "name", "role", "title")}
+             for u in _load_users().values() if u.get("active")]
+    return JSONResponse({"users": users,
                          "grants": {k: sorted(v) for k, v in ROLE_GRANTS.items()}})
+
+
+@router.get("/auth/admin/users")
+def admin_users(user: dict = Depends(current_user)) -> JSONResponse:
+    require(user, "manage_users")
+    return JSONResponse({"users": [_public(u) for u in _load_users(force=True).values()]})
+
+
+@router.post("/auth/admin/users")
+def admin_create_user(body: dict = Body(...), user: dict = Depends(current_user)) -> JSONResponse:
+    require(user, "manage_users")
+    name = (body.get("name") or "").strip()
+    email = (body.get("email") or "").strip().lower()
+    role = (body.get("role") or "analyst").strip()
+    title = (body.get("title") or "").strip() or role.title()
+    password = body.get("password") or _DEFAULT_PW
+    if not name or not email:
+        raise HTTPException(status_code=400, detail="name and email required")
+    if role not in VALID_ROLES:
+        raise HTTPException(status_code=400, detail=f"role must be one of {VALID_ROLES}")
+    if any((u.get("email") or "").lower() == email for u in _load_users().values()):
+        raise HTTPException(status_code=409, detail=f"a user with email {email} exists")
+    uid = "u-" + _uuid.uuid4().hex[:8]
+    _ensure_user_table()
+    query(
+        "INSERT INTO INSURANCE_REGULATORY.GOLD_AUDIT.APP_USER "
+        "(user_id, name, email, role, title, password_hash, active, created_at, updated_at) "
+        "SELECT %s, %s, %s, %s, %s, %s, TRUE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()",
+        (uid, name, email, role, title, _hash_pw(password)),
+    )
+    _load_users(force=True)
+    f = next(iter(_live_filings()), None)
+    if f:
+        _record_action(f["id"], "user_created", actor=user["name"],
+                       summary=f"Created user {name} ({email}) · role {role}")
+    return JSONResponse({"ok": True, "user": _public(_USERS_CACHE[uid])})
+
+
+@router.patch("/auth/admin/users/{user_id}")
+def admin_update_user(user_id: str, body: dict = Body(...),
+                      user: dict = Depends(current_user)) -> JSONResponse:
+    require(user, "manage_users")
+    target = _load_users().get(user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail=f"no user {user_id}")
+    sets, params, changes = [], [], []
+    for field in ("name", "title"):
+        if body.get(field):
+            sets.append(f"{field} = %s"); params.append(body[field].strip()); changes.append(field)
+    if body.get("role"):
+        if body["role"] not in VALID_ROLES:
+            raise HTTPException(status_code=400, detail=f"role must be one of {VALID_ROLES}")
+        sets.append("role = %s"); params.append(body["role"]); changes.append(f"role→{body['role']}")
+    if body.get("active") is not None:
+        if user_id == user["user_id"] and not body["active"]:
+            raise HTTPException(status_code=400, detail="you cannot deactivate yourself")
+        sets.append("active = %s"); params.append(bool(body["active"])); changes.append(f"active→{body['active']}")
+    if body.get("password"):
+        sets.append("password_hash = %s"); params.append(_hash_pw(body["password"])); changes.append("password reset")
+    if not sets:
+        raise HTTPException(status_code=400, detail="nothing to update")
+    _ensure_user_table()
+    query(
+        f"UPDATE INSURANCE_REGULATORY.GOLD_AUDIT.APP_USER SET {', '.join(sets)}, "
+        "updated_at = CURRENT_TIMESTAMP() WHERE user_id = %s",
+        (*params, user_id),
+    )
+    _load_users(force=True)
+    f = next(iter(_live_filings()), None)
+    if f:
+        _record_action(f["id"], "user_updated", actor=user["name"],
+                       summary=f"Updated {target['name']}: {', '.join(changes)}")
+    return JSONResponse({"ok": True, "user": _public(_USERS_CACHE[user_id])})
 
 BULLETIN_OVERRIDE_NAME = "Credit Score Declination Reporting Override"
 BULLETIN_PATH = Path("synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md")

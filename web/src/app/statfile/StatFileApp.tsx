@@ -2,8 +2,8 @@
 // claude.ai/design mock. Shell: sidebar nav + header; each screen is its own
 // component. Cross-screen navigation goes through `go`.
 import { useState } from 'react';
-import { getActor, setActor } from '../../api/client';
-import { can, GUEST, useFilings, useRunCycle, useUsers, whoCan, type AppUser } from './api';
+import { setToken } from '../../api/client';
+import { can, GUEST, useFilings, useLogin, useLogout, useMe, useRunCycle, whoCan, type AppUser } from './api';
 import { NAV, TITLES, type ScreenId } from './data';
 import { DashboardScreen } from './screens/Dashboard';
 import { RulesScreen } from './screens/Rules';
@@ -32,16 +32,21 @@ export function StatFileApp() {
 
   const cycleMut = useRunCycle();
 
-  // Persona (Phase 1 RBAC): pick who you are; the id rides every request as
-  // X-Actor and gates which actions the screens offer.
-  const usersQ = useUsers();
-  const [actorId, setActorId] = useState<string | null>(getActor());
-  const user: AppUser = usersQ.data?.users.find((u) => u.user_id === actorId) ?? GUEST;
-  const pickUser = (id: string) => {
-    const next = id === 'guest' ? null : id;
-    setActor(next);
-    setActorId(next);
-  };
+  // Session identity: /auth/me resolves the stored token; the login card
+  // below the header signs in; gating flows from the resolved user's role.
+  const meQ = useMe();
+  const user: AppUser = meQ.data?.user ?? GUEST;
+  const signedIn = user.user_id !== 'guest';
+  const [showLogin, setShowLogin] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const loginMut = useLogin();
+  const logoutMut = useLogout();
+  const doLogin = () =>
+    loginMut.mutate({ email: email.trim(), password }, {
+      onSuccess: (r) => { setToken(r.token); setShowLogin(false); setEmail(''); setPassword(''); },
+    });
+  const doLogout = () => logoutMut.mutate(undefined, { onSettled: () => setToken(null) });
 
   // Data-source pill: connecting… → live data / demo data. Live means the
   // warehouse answered; a cold/failed warehouse degrades to demo fixtures.
@@ -88,21 +93,14 @@ export function StatFileApp() {
               <h3>{title}</h3>
             </div>
             <div className="actions">
-              <select
-                value={user.user_id}
-                onChange={(e) => pickUser(e.target.value)}
-                title={`${user.title} — role ${user.role}`}
-                style={{
-                  padding: '5px 8px', fontSize: 12, fontFamily: 'var(--font-body)',
-                  border: '1px solid var(--color-divider)', borderRadius: 0,
-                  background: 'transparent', color: 'var(--color-text)', maxWidth: 190,
-                }}
-              >
-                <option value="guest">Guest · read-only</option>
-                {(usersQ.data?.users ?? []).map((u) => (
-                  <option key={u.user_id} value={u.user_id}>{u.name} · {u.role}</option>
-                ))}
-              </select>
+              {signedIn ? (
+                <>
+                  <span className="tag tag-outline" title={user.title}>{user.name} · {user.role}</span>
+                  <button className="btn btn-secondary" onClick={doLogout}>Sign out</button>
+                </>
+              ) : (
+                <button className="btn btn-secondary" onClick={() => setShowLogin((v) => !v)}>Sign in</button>
+              )}
               <span className={'tag ' + (live ? 'tag-accent' : 'tag-neutral')}>
                 <span style={{
                   width: 7, height: 7, borderRadius: '50%', marginRight: 6,
@@ -126,6 +124,34 @@ export function StatFileApp() {
               </button>
             </div>
           </header>
+          {showLogin && !signedIn && (
+            <div style={{
+              position: 'absolute', right: 28, top: 74, zIndex: 40, width: 280,
+              background: 'var(--color-bg, #fff)', border: '1px solid var(--color-divider)',
+              boxShadow: '0 8px 28px rgba(0,0,0,.14)', padding: '16px 18px',
+            }}>
+              <div className="k" style={{ marginBottom: 10 }}>Sign in</div>
+              <input
+                value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email"
+                autoFocus
+                style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', fontSize: 12.5, marginBottom: 8, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}
+              />
+              <input
+                type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password"
+                onKeyDown={(e) => { if (e.key === 'Enter') doLogin(); }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', fontSize: 12.5, marginBottom: 10, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}
+              />
+              <button className="btn btn-primary btn-block" disabled={loginMut.isPending || !email.trim() || !password}
+                onClick={doLogin}>
+                {loginMut.isPending ? 'Signing in…' : 'Sign in'}
+              </button>
+              {loginMut.error != null && (
+                <div className="k" style={{ marginTop: 8, color: 'var(--color-accent-700)' }}>
+                  {(loginMut.error as Error).message}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="content">
             {screen === 'dash' && <DashboardScreen go={go} />}
@@ -136,7 +162,7 @@ export function StatFileApp() {
             {screen === 'val' && <ValidationScreen onTrace={traceTo} user={user} />}
             {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} user={user} />}
             {screen === 'iso' && <IsoScreen />}
-            {screen === 'config' && <ConfigScreen />}
+            {screen === 'config' && <ConfigScreen user={user} />}
           </div>
         </main>
       </div>

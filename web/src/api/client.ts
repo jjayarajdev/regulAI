@@ -17,22 +17,22 @@ export class ApiError extends Error {
   }
 }
 
-// ── Identity (Phase 1 RBAC) ──────────────────────────────────────────
-// The persona switcher stores the active user_id; every request carries it as
-// X-Actor so the backend can role-gate mutations and stamp the audit trail.
-const ACTOR_KEY = 'regulai-actor';
-export const getActor = (): string | null => {
-  try { return localStorage.getItem(ACTOR_KEY); } catch { return null; }
+// ── Identity (RBAC phase 2: login sessions) ────────────────────────────────
+// Login stores a session token; every request carries it as X-Auth-Token so
+// the backend can role-gate mutations and stamp the audit trail.
+const TOKEN_KEY = 'regulai-token';
+export const getToken = (): string | null => {
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
 };
-export const setActor = (userId: string | null): void => {
+export const setToken = (token: string | null): void => {
   try {
-    if (userId) localStorage.setItem(ACTOR_KEY, userId);
-    else localStorage.removeItem(ACTOR_KEY);
-  } catch { /* private mode — identity just won't persist */ }
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch { /* private mode — session just won't persist */ }
 };
 const actorHeaders = (): Record<string, string> => {
-  const a = getActor();
-  return a ? { 'X-Actor': a } : {};
+  const t = getToken();
+  return t ? { 'X-Auth-Token': t } : {};
 };
 
 export async function getJson<T>(path: string): Promise<T> {
@@ -48,6 +48,19 @@ export async function getText(path: string): Promise<string> {
   const r = await fetch(API_BASE + path, { headers: actorHeaders() });
   if (!r.ok) throw new ApiError(r.status, path);
   return r.text();
+}
+
+export async function patchJson<T>(path: string, body?: unknown): Promise<T> {
+  const r = await fetch(API_BASE + path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...actorHeaders() },
+    body: JSON.stringify(body ?? {}),
+  });
+  if (!r.ok) {
+    const detail = await r.json().then((j) => j?.detail).catch(() => undefined);
+    throw new ApiError(r.status, path, detail);
+  }
+  return r.json() as Promise<T>;
 }
 
 export async function postJson<T>(path: string, body?: unknown): Promise<T> {

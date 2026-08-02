@@ -3,7 +3,7 @@
 // screen keeps the design fixtures as fallback: when the warehouse is cold or
 // a query fails, the UI degrades to demo content instead of breaking.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getJson, postJson } from '../../api/client';
+import { getJson, patchJson, postJson } from '../../api/client';
 import type {
   Filing, FilingsResponse, KgNeighborhoodResponse, KgRulesResponse,
   PipelineStateResponse, Violation,
@@ -16,7 +16,10 @@ import {
 
 // ── identity & RBAC ────────────────────────────────────────────────────────
 export type Role = 'viewer' | 'analyst' | 'actuary' | 'admin' | 'cco';
-export interface AppUser { user_id: string; name: string; role: Role; title: string }
+export interface AppUser {
+  user_id: string; name: string; role: Role; title: string;
+  email?: string | null; active?: boolean;
+}
 export const GUEST: AppUser = { user_id: 'guest', name: 'Guest', role: 'viewer', title: 'Read-only' };
 
 // Mirror of the server's ROLE_GRANTS — the server check is authoritative;
@@ -33,6 +36,7 @@ const GRANTS: Record<string, Role[]> = {
   seal:          ['cco'],
   ack:           ['cco'],
   mapping:       ['admin', 'cco'],
+  manage_users:  ['admin', 'cco'],
 };
 export const can = (user: AppUser | undefined, perm: string): boolean =>
   !!user && (GRANTS[perm] ?? []).includes(user.role);
@@ -44,6 +48,56 @@ export const useUsers = () =>
     queryFn: () => getJson<{ users: AppUser[] }>('/auth/users'),
     staleTime: Infinity,
   });
+
+// Session: who am I (resolved from the stored token server-side).
+export const useMe = () =>
+  useQuery({
+    queryKey: ['sf', 'me'],
+    queryFn: () => getJson<{ user: AppUser }>('/auth/me'),
+    staleTime: 60_000,
+  });
+export const useLogin = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (creds: { email: string; password: string }) =>
+      postJson<{ token: string; user: AppUser }>('/auth/login', creds),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+};
+export const useLogout = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => postJson<{ ok: boolean }>('/auth/logout'),
+    onSettled: () => qc.invalidateQueries(),
+  });
+};
+
+// Admin user management.
+export const useAdminUsers = (enabled: boolean) =>
+  useQuery({
+    queryKey: ['sf', 'admin-users'],
+    queryFn: () => getJson<{ users: AppUser[] }>('/auth/admin/users'),
+    enabled,
+  });
+export const useSaveUser = () => {
+  const qc = useQueryClient();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['sf', 'admin-users'] });
+    qc.invalidateQueries({ queryKey: ['sf', 'users'] });
+  };
+  return {
+    create: useMutation({
+      mutationFn: (u: { name: string; email: string; role: Role; title?: string; password?: string }) =>
+        postJson<{ ok: boolean; user: AppUser }>('/auth/admin/users', u),
+      onSettled: invalidate,
+    }),
+    update: useMutation({
+      mutationFn: ({ userId, ...patch }: { userId: string; role?: Role; active?: boolean; password?: string; name?: string; title?: string }) =>
+        patchJson<{ ok: boolean; user: AppUser }>(`/auth/admin/users/${encodeURIComponent(userId)}`, patch),
+      onSettled: invalidate,
+    }),
+  };
+};
 
 // ── hooks ──────────────────────────────────────────────────────────────────
 export const useFilings = () =>
