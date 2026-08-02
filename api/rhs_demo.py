@@ -2567,7 +2567,7 @@ def filing_ack(filing_id: str, user: dict = Depends(current_user)) -> JSONRespon
     # Update the most recent FILING_SUBMISSION row (the seal we want to ACK)
     query(
         "UPDATE INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
-        "SET acked_at = CURRENT_TIMESTAMP(), acknowledgment = %s, status = 'acked' "
+        "SET acked_at = CURRENT_TIMESTAMP(), receipt = %s "
         "WHERE filing_batch_id = %s "
         "  AND submission_id = (SELECT submission_id FROM INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
         "                       WHERE filing_batch_id = %s "
