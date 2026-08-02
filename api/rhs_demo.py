@@ -444,7 +444,8 @@ def record_agent_run(agent: str, task: str, *,
                      duration_ms: int | None = None,
                      confidence: float | None = None,
                      result: str = "Complete",
-                     status: str = "done") -> None:
+                     status: str = "done",
+                     run_id: str | None = None) -> None:
     global _AGENT_RUN_DDL_DONE
     if not _AGENT_RUN_DDL_DONE:
         query(
@@ -458,9 +459,69 @@ def record_agent_run(agent: str, task: str, *,
         "INSERT INTO INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN "
         "(run_id, agent, task, model, tokens, duration_ms, confidence, result, status, ran_at) "
         "SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP()",
-        ("run-" + _uuid.uuid4().hex[:14], agent, task[:200], model,
+        (run_id or ("run-" + _uuid.uuid4().hex[:14]), agent, task[:200], model,
          tokens, duration_ms, confidence, result[:120], status),
     )
+
+
+_AGENT_STEP_DDL_DONE = False
+
+
+@_audit_safe
+def record_agent_steps(run_id: str, steps: list[dict]) -> None:
+    """Batch-insert a run's step trace — ONE warehouse round trip per run."""
+    global _AGENT_STEP_DDL_DONE
+    if not steps:
+        return
+    if not _AGENT_STEP_DDL_DONE:
+        query(
+            "CREATE TABLE IF NOT EXISTS INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN_STEP (\n"
+            "  run_id STRING, seq INT, step STRING, detail STRING,\n"
+            "  status STRING, duration_ms BIGINT, at TIMESTAMP\n)"
+        )
+        _AGENT_STEP_DDL_DONE = True
+    placeholders = ", ".join(["(%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP())"] * len(steps))
+    params: list = []
+    for i, s in enumerate(steps):
+        params += [run_id, i + 1, str(s.get("step", ""))[:80], str(s.get("detail", ""))[:400],
+                   s.get("status", "done"), s.get("duration_ms")]
+    query(
+        "INSERT INTO INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN_STEP "
+        "(run_id, seq, step, detail, status, duration_ms, at) VALUES " + placeholders,
+        tuple(params),
+    )
+
+
+class AgentTrace:
+    """Collect real step telemetry during an agent run, flush on finish.
+
+    Usage:
+        tr = AgentTrace()
+        ... do phase 1 ...
+        tr.step("Load rules", "4 rules")           # duration = since previous mark
+        ... do phase 2 ...
+        tr.step("Evaluate", "6 violations")
+        tr.finish("Edit Engine", "Run 4 edits", result="6 violations")
+
+    Both writes are best-effort (@_audit_safe) — telemetry can't break the run.
+    """
+
+    def __init__(self) -> None:
+        self.run_id = "run-" + _uuid.uuid4().hex[:14]
+        self.steps: list[dict] = []
+        self._t0 = _time.time()
+        self._mark = self._t0
+
+    def step(self, step: str, detail: str = "", status: str = "done") -> None:
+        now = _time.time()
+        self.steps.append({"step": step, "detail": detail, "status": status,
+                           "duration_ms": int((now - self._mark) * 1000)})
+        self._mark = now
+
+    def finish(self, agent: str, task: str, **kw) -> None:
+        kw.setdefault("duration_ms", int((_time.time() - self._t0) * 1000))
+        record_agent_run(agent, task, run_id=self.run_id, **kw)
+        record_agent_steps(self.run_id, self.steps)
 
 
 @router.get("/agents/runs")
@@ -483,6 +544,78 @@ def agent_runs() -> JSONResponse:
         "escalated": sum(1 for r in rows if r.get("status") == "error"),
     }
     return JSONResponse({"runs": _jsonify(rows), "stats": stats})
+
+
+@router.get("/agents/runs/{run_id}")
+def agent_run_detail(run_id: str) -> JSONResponse:
+    """One run + the evidence it left behind.
+
+    Correlates by what's reliable per source:
+      - GOLD_AUDIT.USER_ACTION — same warehouse clock, so a time window around
+        the run (its duration + 2min slack) is precise. Catches the per-policy
+        fixes a Fix Agent run made, validation-run markers, etc.
+      - KGAuditEntry (Neo4j) — clocks differ, so match by content instead: the
+        run's task names the document/rule it touched.
+    """
+    rows = query(
+        "SELECT run_id, agent, task, model, tokens, duration_ms, confidence, "
+        "       result, status, TO_VARCHAR(ran_at, 'YYYY-MM-DD HH24:MI:SS') AS ran_at "
+        "FROM INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN WHERE run_id = %s",
+        (run_id,),
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"run {run_id} not found")
+    run = _jsonify(rows)[0]
+
+    try:
+        steps = _jsonify(query(
+            "SELECT seq, step, detail, status, duration_ms "
+            "FROM INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN_STEP "
+            "WHERE run_id = %s ORDER BY seq",
+            (run_id,),
+        ))
+    except Exception:  # noqa: BLE001 — table appears with the first traced run
+        steps = []
+
+    slack_before = int((run.get("duration_ms") or 0) / 1000) + 120
+    try:
+        actions = _jsonify(query(
+            "SELECT action_id, filing_batch_id, action_type, actor, target_record, "
+            "       target_rule, summary, TO_VARCHAR(acted_at, 'YYYY-MM-DD HH24:MI:SS') AS acted_at "
+            "FROM INSURANCE_REGULATORY.GOLD_AUDIT.USER_ACTION "
+            "WHERE acted_at BETWEEN "
+            "  DATEADD(SECOND, -%s, (SELECT ran_at FROM INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN WHERE run_id = %s)) "
+            "  AND DATEADD(SECOND, 120, (SELECT ran_at FROM INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN WHERE run_id = %s)) "
+            "ORDER BY acted_at DESC LIMIT 20",
+            (slack_before, run_id, run_id),
+        ))
+    except Exception:
+        actions = []
+
+    # Content-match KG audit entries for canon-touching agents.
+    kg_entries: list[dict] = []
+    task = run.get("task") or ""
+    needle = None
+    if run.get("agent") in ("KG Materializer", "Rule Extractor"):
+        # "Approve fl-627-351 → canon" / "Extract fl-627-351" → the slug
+        parts = task.replace("→ canon", "").strip().split()
+        needle = parts[-1] if parts else None
+    if needle:
+        try:
+            with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+                kg_entries = [dict(r) for r in s.run(
+                    """
+                    MATCH (a:KGAuditEntry)
+                    WHERE a.summary CONTAINS $needle OR a.name CONTAINS $needle
+                    RETURN a.id AS id, a.action AS action, a.actor AS actor,
+                           toString(a.occurred_at) AS occurred_at, a.summary AS summary,
+                           a.affected_count AS affected_count
+                    ORDER BY a.occurred_at DESC LIMIT 5
+                    """, needle=needle)]
+        except Exception:
+            kg_entries = []
+
+    return JSONResponse({"run": run, "steps": steps, "actions": actions, "kg_entries": kg_entries})
 
 
 @router.post("/pipeline/silver")
@@ -573,6 +706,90 @@ def pipeline_state() -> JSONResponse:
     return JSONResponse(payload)
 
 
+# Bronze→Silver provenance for the built-in Guidewire feed, keyed by target
+# column — mirrors the INSERT…SELECT in scripts/run_silver.py::silver_premium.
+# If that SQL changes, change this map with it.
+_CONTRACT_PROVENANCE: dict[str, dict] = {
+    "NAIC_COMPANY_NO":     {"source": "GW_PC_POLICYPERIOD.naic_number", "transform": "direct copy", "rule": None},
+    "POLICY_ID":           {"source": "GW_PC_POLICY.policynumber", "transform": "direct copy", "rule": None},
+    "EFFECTIVE_DATE":      {"source": "GW_PC_POLICYPERIOD.periodstart", "transform": "TSPR MMDDY encoding — MMDD + last digit of year", "rule": "Rule 8"},
+    "EXPIRY_DATE":         {"source": "GW_PC_POLICYPERIOD.periodend", "transform": "TSPR MMY encoding — MM + last digit of year", "rule": "Rule 8"},
+    "AMT_INSURANCE_DW":    {"source": "GW_PC_HOCOVERAGE.coverageamount", "transform": "Coverage A in $1000s, rounded", "rule": None},
+    "AMT_INSURANCE_PP":    {"source": "GW_PC_HOCOVERAGE.personalpropertylimit", "transform": "Coverage C in $1000s, rounded", "rule": None},
+    "AMT_INSURANCE_ALU":   {"source": "GW_PC_HOCOVERAGE.lossofuselimit", "transform": "$1000s, rounded", "rule": None},
+    "LINE_OF_BUSINESS":    {"source": "constant", "transform": "'1' — Homeowners", "rule": None},
+    "POLICY_FORM":         {"source": "GW_PC_HOPOLICYLINE.holineform", "transform": "direct copy", "rule": None},
+    "NUMBER_OF_FAMILIES":  {"source": "GW_PC_HODWELLING.numberoffamilies", "transform": "cast to varchar", "rule": None},
+    "COVERAGE_OCCUPANCY":  {"source": "constant", "transform": "'1' — owner-occupied", "rule": None},
+    "CONSTRUCTION":        {"source": "GW_PC_HODWELLING.constructiontype", "transform": "direct copy", "rule": None},
+    "PPC_SIMPLE":          {"source": "GW_PC_HODWELLING.ppccode", "transform": "direct copy", "rule": None},
+    "PPC_SPLIT":           {"source": "GW_PC_HODWELLING.ppccodesplit", "transform": "direct copy", "rule": None},
+    "DEDUCTIBLE_1_AMT":    {"source": "GW_PC_HOCOVERAGE.allperilsdeductible", "transform": "direct copy, whole dollars", "rule": None},
+    "FIRE_PREMIUM":        {"source": "GW_PC_HOCOVERAGE.writtenpremium", "transform": "70% fire split, rounded", "rule": None},
+    "EC_PREMIUM":          {"source": "GW_PC_HOCOVERAGE.writtenpremium", "transform": "30% extended-coverage split, rounded", "rule": None},
+    "ROOF_COVERING":       {"source": "GW_PC_HOPOLICYLINE.roofcoveringtype", "transform": "direct copy", "rule": None},
+    "ROOF_INSTALL_YEAR":   {"source": "GW_PC_HOPOLICYLINE.roofinstallationyear", "transform": "direct copy", "rule": None},
+    "ZIP9":                {"source": "GW_PC_HODWELLING.zip + ziplus4", "transform": "concatenate ZIP and plus-4", "rule": None},
+    "YEAR_OF_CONSTRUCTION": {"source": "GW_PC_HODWELLING.yearbuilt", "transform": "direct copy", "rule": None},
+    "TENURE_CODE":         {"source": "GW_PC_HOPOLICYLINE.tenurewithinsurer", "transform": "years with insurer → tier code 1–7", "rule": None},
+}
+
+_CONTRACT_CACHE: dict[str, tuple[float, dict]] = {}
+_CONTRACT_TTL = 600  # seconds — coverage moves only when the pipeline reruns
+
+
+@router.get("/pipeline/contract")
+def pipeline_contract() -> JSONResponse:
+    """The Bronze→Silver transformation contract with live column coverage.
+
+    Contract semantics come from packages.rhs.mapper.target_schema (the same
+    machine-readable contract the mapping agent consumes); source + transform
+    from the provenance map above; coverage is the live non-null percentage
+    per column in SILVER.TSPR_PREMIUM_STAGING (one cached round trip).
+    """
+    hit = _CONTRACT_CACHE.get("contract")
+    if hit and (_time.time() - hit[0]) < _CONTRACT_TTL:
+        return JSONResponse(hit[1])
+
+    from packages.rhs.mapper.target_schema import TSPR_PREMIUM_STAGING
+
+    mappable = [c for c in TSPR_PREMIUM_STAGING if not c.system_populated]
+    counts_sql = ", ".join(f"COUNT({c.name}) AS {c.name}" for c in mappable)
+    row_count = 0
+    coverage: dict[str, Any] = {}
+    try:
+        rows = query(
+            f"SELECT COUNT(*) AS TOTAL, {counts_sql} "
+            "FROM INSURANCE_REGULATORY.SILVER.TSPR_PREMIUM_STAGING"
+        )
+        r0 = {k.upper(): v for k, v in rows[0].items()}
+        row_count = int(r0.get("TOTAL") or 0)
+        if row_count:
+            coverage = {c.name: round(int(r0.get(c.name) or 0) * 100 / row_count, 1)
+                        for c in mappable}
+    except Exception:
+        logger.warning("pipeline_contract: coverage query failed", exc_info=True)
+
+    payload = {
+        "target": "SILVER.TSPR_PREMIUM_STAGING",
+        "row_count": row_count,
+        "columns": [
+            {
+                "name": c.name,
+                "dtype": c.dtype,
+                "description": c.description,
+                "required": c.required,
+                "domain_encoded": c.domain_encoded,
+                **_CONTRACT_PROVENANCE.get(c.name, {"source": None, "transform": None, "rule": None}),
+                "coverage_pct": coverage.get(c.name),
+            }
+            for c in mappable
+        ],
+    }
+    _CONTRACT_CACHE["contract"] = (_time.time(), payload)
+    return JSONResponse(payload)
+
+
 _CATALOG_CACHE: dict[str, tuple[float, dict]] = {}
 _CATALOG_TTL = 600  # seconds — row totals move slowly; protect the free tier
 
@@ -654,7 +871,11 @@ def reference_table(table_name: str) -> JSONResponse:
     if not safe or len(safe) > 64:
         raise HTTPException(status_code=400, detail="invalid table name")
     try:
-        rows = query(f"SELECT * FROM INSURANCE_REGULATORY.REFERENCE.{safe} ORDER BY tspr_code LIMIT 200")
+        # Not every reference table has tspr_code — fall back to natural order.
+        try:
+            rows = query(f"SELECT * FROM INSURANCE_REGULATORY.REFERENCE.{safe} ORDER BY tspr_code LIMIT 200")
+        except Exception:
+            rows = query(f"SELECT * FROM INSURANCE_REGULATORY.REFERENCE.{safe} LIMIT 200")
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     return JSONResponse({"table": safe, "rows": _jsonify(rows), "count": len(rows)})
@@ -748,7 +969,7 @@ def validate_all() -> JSONResponse:
     if hit and (_time.time() - hit[0]) < _VALIDATE_TTL:
         return JSONResponse(hit[1])
 
-    _t0 = _time.time()
+    tr = AgentTrace()
     rules = query(
         "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
         "       violation_sql, violation_reason, severity, citation, "
@@ -757,33 +978,310 @@ def validate_all() -> JSONResponse:
         "WHERE jurisdiction_code = 'US-TX' OR jurisdiction_code = 'US' "
         "ORDER BY rule_number"
     )
+    tr.step("Load edit rules", f"{len(rules)} rules · REFERENCE.TSPR_VALIDATION_RULES")
     pubid_to_policy = _pubid_map()
     _, all_violations = _run_rules(rules, None, pubid_to_policy)  # unscoped: every violation
-    record_agent_run(
-        "Edit Engine", f"Run {len(rules)} edits across all filings",
-        model="rule engine", duration_ms=int((_time.time() - _t0) * 1000),
-        result=f"{len(all_violations)} violations",
-    )
+    tr.step("Evaluate", f"one batched UNION ALL round trip · {len(all_violations)} violations")
+
+    # Analyst triage state: suppressed rules stay visible but stop blocking.
+    try:
+        sups, asgs = _triage_state()
+    except Exception:  # noqa: BLE001 — triage tables are optional infrastructure
+        sups, asgs = {}, {}
+    for v in all_violations:
+        v["suppressed"] = (v.get("rule_number") or "").upper() in sups
 
     by_filing: dict[str, dict] = {}
     for f in _live_filings():
         scope = _filing_policy_numbers(f["id"])
         fv = all_violations if scope is None else [v for v in all_violations if v["policy_number"] in scope]
-        failing = {v["rule_id"] for v in fv}
+        active = [v for v in fv if not v["suppressed"]]
+        failing = {v["rule_id"] for v in active}
         by_filing[f["id"]] = {
             "summary": {
                 "rules_run": len(rules),
                 "rules_passing": len(rules) - len(failing),
                 "rules_failing": len(failing),
                 "rules_errored": 0,
-                "total_violations": len(fv),
+                "total_violations": len(active),
+                "suppressed_violations": len(fv) - len(active),
             },
             "violations": fv,
             "run_id": None,
         }
-    payload = {"by_filing": by_filing}
+    tr.step("Partition by filing",
+            " · ".join(f"{fid}: {d['summary']['total_violations']}" for fid, d in by_filing.items()))
+    tr.finish("Edit Engine", f"Run {len(rules)} edits across all filings",
+              model="rule engine", result=f"{len(all_violations)} violations")
+
+    payload = {"by_filing": by_filing, "suppressions": sups, "assignments": asgs}
     _VALIDATE_CACHE["__ALL__"] = (_time.time(), payload)
     return JSONResponse(payload)
+
+
+_RECON_CACHE: dict[str, tuple[float, dict]] = {}
+_RECON_TTL = 600  # seconds — ties move only when the pipeline reruns
+
+
+@router.get("/reconciliation/{filing_id}")
+def reconciliation(filing_id: str) -> JSONResponse:
+    """Tie the stat-side Gold records to the BillingCenter GL ledger.
+
+    The stat plan requires reported premium to reconcile to the carrier's
+    financials. Stat side: GOLD.TSPR_PREMIUM_RECORDS (fire + EC + allied).
+    GL side: BRONZE.GW_BC_POLICYPERIODPREMIUM written premium. Both scoped to
+    the filing's policy ranges. One cached round trip.
+    """
+    f = _filing(filing_id)
+    if not f:
+        raise HTTPException(status_code=404, detail=f"unknown filing {filing_id}")
+    hit = _RECON_CACHE.get(filing_id)
+    if hit and (_time.time() - hit[0]) < _RECON_TTL:
+        return JSONResponse(hit[1])
+
+    scope = _scope_clause(filing_id, "p.id")
+    rows = query(
+        "WITH scope_p AS ("
+        "  SELECT p.id, p.policynumber FROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p "
+        f"  WHERE 1=1 {scope}"
+        ") "
+        "SELECT "
+        "  (SELECT SUM(g.fire_premium + g.ec_premium + COALESCE(g.allied_premium, 0)) "
+        "     FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS g "
+        "     JOIN scope_p sp ON sp.policynumber = g.policy_id) AS stat_premium, "
+        "  (SELECT COUNT(*) FROM INSURANCE_REGULATORY.GOLD.TSPR_PREMIUM_RECORDS g "
+        "     JOIN scope_p sp ON sp.policynumber = g.policy_id) AS stat_records, "
+        "  (SELECT SUM(b.writtenpremium) FROM INSURANCE_REGULATORY.BRONZE.GW_BC_POLICYPERIODPREMIUM b "
+        "     JOIN scope_p sp ON sp.id = b.policy_id) AS gl_premium, "
+        "  (SELECT COUNT(DISTINCT b.policy_id) FROM INSURANCE_REGULATORY.BRONZE.GW_BC_POLICYPERIODPREMIUM b "
+        "     JOIN scope_p sp ON sp.id = b.policy_id) AS gl_policies"
+    )
+    r = {k.lower(): v for k, v in rows[0].items()} if rows else {}
+    stat_p = float(r.get("stat_premium") or 0)
+    gl_p = float(r.get("gl_premium") or 0)
+    stat_n = int(r.get("stat_records") or 0)
+    gl_n = int(r.get("gl_policies") or 0)
+
+    def _line(label: str, stat: float, gl: float, money: bool) -> dict:
+        delta = stat - gl
+        # Tie within 0.5% of GL (rounding to whole dollars is expected).
+        tie = abs(delta) <= max(0.005 * abs(gl), 1.0)
+        return {"label": label, "stat": stat, "gl": gl, "delta": delta,
+                "money": money, "status": "Tie" if tie else "Variance"}
+
+    payload = {
+        "filing_id": filing_id,
+        "lines": [
+            _line("Written premium — stat vs GL", stat_p, gl_p, True),
+            _line("Premium records vs billed policies", stat_n, gl_n, False),
+        ],
+    }
+    _RECON_CACHE[filing_id] = (_time.time(), payload)
+    return JSONResponse(payload)
+
+
+# ── Triage state: suppressions + assignments ─────────────────────────
+# Analyst decisions about exception groups. Suppressed violations stay in the
+# payload (visible, auditable) but stop counting as blocking; assignments tag
+# a rule's exceptions with an owner. Both are rule-scoped and releasable.
+_TRIAGE_DDL_DONE = False
+
+
+def _ensure_triage_tables() -> None:
+    global _TRIAGE_DDL_DONE
+    if _TRIAGE_DDL_DONE:
+        return
+    query(
+        "CREATE TABLE IF NOT EXISTS INSURANCE_REGULATORY.GOLD_AUDIT.EDIT_SUPPRESSION (\n"
+        "  suppression_id STRING, rule_number STRING, memo STRING, actor STRING,\n"
+        "  created_at TIMESTAMP, released_at TIMESTAMP, released_by STRING\n)"
+    )
+    query(
+        "CREATE TABLE IF NOT EXISTS INSURANCE_REGULATORY.GOLD_AUDIT.EDIT_ASSIGNMENT (\n"
+        "  assignment_id STRING, rule_number STRING, assignee STRING, actor STRING,\n"
+        "  assigned_at TIMESTAMP, released_at TIMESTAMP\n)"
+    )
+    _TRIAGE_DDL_DONE = True
+
+
+def _triage_state() -> tuple[dict[str, dict], dict[str, dict]]:
+    """Active suppressions + assignments, keyed by rule_number."""
+    _ensure_triage_tables()
+    sups: dict[str, dict] = {}
+    for r in query(
+        "SELECT rule_number, memo, actor, TO_VARCHAR(created_at, 'YYYY-MM-DD HH24:MI') AS created_at "
+        "FROM INSURANCE_REGULATORY.GOLD_AUDIT.EDIT_SUPPRESSION WHERE released_at IS NULL"
+    ):
+        sups[_g(r, "rule_number")] = {
+            "memo": _g(r, "memo"), "actor": _g(r, "actor"), "created_at": _g(r, "created_at"),
+        }
+    asgs: dict[str, dict] = {}
+    for r in query(
+        "SELECT rule_number, assignee, actor, TO_VARCHAR(assigned_at, 'YYYY-MM-DD HH24:MI') AS assigned_at "
+        "FROM INSURANCE_REGULATORY.GOLD_AUDIT.EDIT_ASSIGNMENT WHERE released_at IS NULL"
+    ):
+        asgs[_g(r, "rule_number")] = {
+            "assignee": _g(r, "assignee"), "actor": _g(r, "actor"), "assigned_at": _g(r, "assigned_at"),
+        }
+    return sups, asgs
+
+
+@router.post("/validate/suppress")
+def validate_suppress(body: dict = Body(...)) -> JSONResponse:
+    """Suppress a rule's exceptions with a mandatory memo.
+
+    Suppressed violations remain in /validate/all (flagged, with the memo)
+    but no longer count as blocking. Releasable via /validate/unsuppress.
+    """
+    rule_number = (body.get("rule_number") or "").strip().upper()
+    memo = (body.get("memo") or "").strip()
+    actor = body.get("actor") or "analyst"
+    if not rule_number:
+        raise HTTPException(status_code=400, detail="rule_number required")
+    if len(memo) < 5:
+        raise HTTPException(status_code=400, detail="a memo justifying the suppression is required")
+    _ensure_triage_tables()
+    existing = query(
+        "SELECT suppression_id FROM INSURANCE_REGULATORY.GOLD_AUDIT.EDIT_SUPPRESSION "
+        "WHERE rule_number = %s AND released_at IS NULL",
+        (rule_number,),
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail=f"{rule_number} is already suppressed")
+    query(
+        "INSERT INTO INSURANCE_REGULATORY.GOLD_AUDIT.EDIT_SUPPRESSION "
+        "(suppression_id, rule_number, memo, actor, created_at, released_at, released_by) "
+        "SELECT %s, %s, %s, %s, CURRENT_TIMESTAMP(), NULL, NULL",
+        ("sup-" + _uuid.uuid4().hex[:14], rule_number, memo[:1000], actor),
+    )
+    _invalidate_validate()
+    f = next(iter(_live_filings()), None)
+    if f:
+        _record_action(f["id"], "suppress_edit", actor=actor, target_rule=rule_number,
+                       summary=f"Suppressed {rule_number}: {memo[:160]}")
+    return JSONResponse({"ok": True, "rule_number": rule_number, "memo": memo, "actor": actor})
+
+
+@router.post("/validate/unsuppress")
+def validate_unsuppress(body: dict = Body(...)) -> JSONResponse:
+    """Release an active suppression — the rule's exceptions block again."""
+    rule_number = (body.get("rule_number") or "").strip().upper()
+    actor = body.get("actor") or "analyst"
+    if not rule_number:
+        raise HTTPException(status_code=400, detail="rule_number required")
+    _ensure_triage_tables()
+    query(
+        "UPDATE INSURANCE_REGULATORY.GOLD_AUDIT.EDIT_SUPPRESSION "
+        "SET released_at = CURRENT_TIMESTAMP(), released_by = %s "
+        "WHERE rule_number = %s AND released_at IS NULL",
+        (actor, rule_number),
+    )
+    _invalidate_validate()
+    f = next(iter(_live_filings()), None)
+    if f:
+        _record_action(f["id"], "unsuppress_edit", actor=actor, target_rule=rule_number,
+                       summary=f"Released suppression on {rule_number}")
+    return JSONResponse({"ok": True, "rule_number": rule_number})
+
+
+@router.post("/validate/assign")
+def validate_assign(body: dict = Body(...)) -> JSONResponse:
+    """Assign a rule's exceptions to an owner (empty assignee = unassign)."""
+    rule_number = (body.get("rule_number") or "").strip().upper()
+    assignee = (body.get("assignee") or "").strip()
+    actor = body.get("actor") or "analyst"
+    if not rule_number:
+        raise HTTPException(status_code=400, detail="rule_number required")
+    _ensure_triage_tables()
+    query(
+        "UPDATE INSURANCE_REGULATORY.GOLD_AUDIT.EDIT_ASSIGNMENT "
+        "SET released_at = CURRENT_TIMESTAMP() "
+        "WHERE rule_number = %s AND released_at IS NULL",
+        (rule_number,),
+    )
+    if assignee:
+        query(
+            "INSERT INTO INSURANCE_REGULATORY.GOLD_AUDIT.EDIT_ASSIGNMENT "
+            "(assignment_id, rule_number, assignee, actor, assigned_at, released_at) "
+            "SELECT %s, %s, %s, %s, CURRENT_TIMESTAMP(), NULL",
+            ("asg-" + _uuid.uuid4().hex[:14], rule_number, assignee[:80], actor),
+        )
+    _invalidate_validate()
+    f = next(iter(_live_filings()), None)
+    if f:
+        _record_action(f["id"], "assign_edit", actor=actor, target_rule=rule_number,
+                       summary=f"{rule_number} → {assignee or 'unassigned'}")
+    return JSONResponse({"ok": True, "rule_number": rule_number, "assignee": assignee or None})
+
+
+@router.post("/validate/fix")
+def validate_fix(body: dict = Body(...)) -> JSONResponse:
+    """Bulk-apply the deterministic remedy for one rule's open violations.
+
+    Body: {"rule_number": "A.34"}. Automatable today: the reason-code
+    companion rule — a bare credit-score 'L' declination gets the
+    claims-history companion appended ('L' → 'LD'), the same first
+    suggestion the workstation fix editor offers. Each record goes through
+    bronze_fix (same update, audit trail and cache invalidation as a manual
+    fix). Rules without a deterministic remedy 400.
+    """
+    rule_number = (body.get("rule_number") or "").strip().upper()
+    if not rule_number:
+        raise HTTPException(status_code=400, detail="rule_number required")
+    if not rule_number.startswith("A.34"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"no automated fix for rule {rule_number} — "
+                   "the fix agent only knows the reason-code companion remedy (A.34)",
+        )
+
+    tr = AgentTrace()
+    payload = json.loads(validate_all().body)
+    targets: list[str] = []
+    for f in payload["by_filing"].values():
+        for v in f["violations"]:
+            p = v.get("policy_number")
+            if (v.get("rule_number") or "").upper() == rule_number and p and p not in targets:
+                targets.append(p)
+    tr.step("Collect targets", f"{len(targets)} policies with open {rule_number} edits")
+
+    fixed, skipped = [], []
+    for policy in sorted(targets):
+        rows = query(
+            "SELECT j.cancellationreason, j.nonrenewalreason, j.declinereason "
+            "FROM INSURANCE_REGULATORY.BRONZE.GW_PC_JOB j "
+            "JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = j.policy_id "
+            "WHERE p.policynumber = %s",
+            (policy,),
+        )
+        cur = ""
+        if rows:
+            r0 = rows[0]
+            cur = (_g(r0, "cancellationreason") or _g(r0, "nonrenewalreason")
+                   or _g(r0, "declinereason") or "").strip().upper()
+        if "L" not in cur:
+            skipped.append({"policy_number": policy, "reason": f"code '{cur}' carries no credit-score L"})
+            tr.step(f"Skip {policy}", f"code '{cur}' carries no credit-score L", status="skipped")
+            continue
+        if "D" in cur:
+            skipped.append({"policy_number": policy, "reason": f"'{cur}' already has the companion"})
+            tr.step(f"Skip {policy}", f"'{cur}' already has the companion", status="skipped")
+            continue
+        try:
+            bronze_fix({"policy_number": policy, "field": "reason_code", "new_value": cur + "D"})
+            fixed.append({"policy_number": policy, "old": cur, "new": cur + "D"})
+            tr.step(f"Fix {policy}", f"reason code {cur} → {cur}D (claims-history companion)")
+        except HTTPException as e:
+            skipped.append({"policy_number": policy, "reason": str(e.detail)[:120]})
+            tr.step(f"Fix {policy}", str(e.detail)[:120], status="error")
+
+    tr.finish(
+        "Fix Agent", f"Apply companion fix — rule {rule_number}",
+        model="heuristics",
+        result=f"{len(fixed)} fixed · {len(skipped)} skipped",
+        status="done" if fixed or not skipped else "error",
+    )
+    return JSONResponse({"ok": True, "rule_number": rule_number, "fixed": fixed, "skipped": skipped})
 
 
 @router.get("/state")
@@ -868,11 +1366,21 @@ def kg_rules() -> JSONResponse:
         result = s.run(
             """
             MATCH (r:Rule)
-            OPTIONAL MATCH (r)-[:CITES]->(c:Citation)
-            WITH r, head(collect(c)) AS c
+            // The canon links rules to their source via CITES → RegulationDocument
+            // (there is no separate Citation node type); executable rules also
+            // carry a citation property directly.
+            OPTIONAL MATCH (r)-[:CITES]->(c)
+            WITH r, head([x IN collect(c) WHERE x IS NOT NULL]) AS c
             RETURN
               r.id              AS id,
               r.name            AS name,
+              r.confidence      AS confidence,
+              r.title           AS short_title,
+              r.jurisdiction_code AS jurisdiction_code,
+              r.rule_kind       AS rule_kind,
+              r.section         AS clause_ref,
+              r.created_by      AS created_by,
+              r.created_at      AS created_at,
               r.target_table    AS target_table,
               r.violation_sql   AS violation_sql,
               r.severity        AS severity,
@@ -880,10 +1388,11 @@ def kg_rules() -> JSONResponse:
               r.status          AS status,
               r.effective_from  AS effective_from,
               r.effective_until AS effective_until,
-              CASE
-                WHEN c IS NOT NULL THEN coalesce(c.full_citation, c.text, c.name)
-                ELSE NULL
-              END               AS citation
+              coalesce(r.citation, c.full_citation, c.text, c.name, c.title)
+                                AS citation,
+              c.name            AS source_doc,
+              c.kind            AS source_kind,
+              c.source_url      AS source_url
             ORDER BY r.name, r.version
             """
         )
@@ -894,6 +1403,11 @@ def kg_rules() -> JSONResponse:
     for r in rules:
         m = re.match(r"Rule\s+([A-Z])\.", r.get("name") or "")
         r["section"] = m.group(1) if m else "Other"
+        r["created_at"] = (r.get("created_at") or "")[:10] or None
+        try:  # adapter may have stringified the float
+            r["confidence"] = float(r["confidence"]) if r.get("confidence") is not None else None
+        except (TypeError, ValueError):
+            r["confidence"] = None
         r["executable"] = bool(r.get("target_table"))
         # Derive currently_active: status != superseded AND effective window includes today
         status = (r.get("status") or "").lower()
@@ -910,7 +1424,7 @@ def kg_rules() -> JSONResponse:
         r["effective_from"] = ef.isoformat() if ef else None
         r["effective_until"] = eu.isoformat() if eu else None
         r["currently_active"] = (
-            status != "superseded"
+            status not in ("superseded", "rejected")
             and (ef is None or ef <= today)
             and (eu is None or eu >= today)
         )
@@ -923,6 +1437,57 @@ def kg_rules() -> JSONResponse:
         "descriptive": sum(1 for r in rules if not r["executable"]),
     }
     return JSONResponse({"rules": rules, "counts": counts})
+
+
+@router.post("/kg/rules/{rule_id}/decision")
+def kg_rule_decision(rule_id: str, body: dict = Body(...)) -> JSONResponse:
+    """Persist a human review decision on a canon rule.
+
+    Body: {"decision": "approved" | "rejected", "actor"?: str, "note"?: str}
+
+    Sets Rule.status in the KG and records a KGAuditEntry (MANUAL_EDIT) linked
+    to the rule via MUTATED_BY — same trail the seeding/bulletin scripts leave.
+    Rejected ("sent back") rules stop counting as currently_active.
+    """
+    from uuid import UUID
+
+    from packages.core.enums import KGAuditAction
+
+    decision = (body.get("decision") or "").lower()
+    if decision not in ("approved", "rejected"):
+        raise HTTPException(status_code=400, detail="decision must be 'approved' or 'rejected'")
+    actor = body.get("actor") or "reviewer"
+    note = body.get("note")
+
+    try:
+        with Neo4jGREAdapter() as gre:
+            with gre.driver.session(database=gre.database) as s:
+                rec = s.run(
+                    """
+                    MATCH (r:Rule {id: $rid})
+                    SET r.status = $status
+                    RETURN r.id AS id, r.name AS name, r.status AS status, r.version AS version
+                    """,
+                    rid=rule_id, status=decision,
+                ).single()
+            if rec is None:
+                raise HTTPException(status_code=404, detail=f"rule {rule_id} not found in the canon")
+            try:  # audit is best-effort — never fail the decision over it
+                gre.record_audit_entry(
+                    KGAuditAction.MANUAL_EDIT,
+                    f"Rule {'approved' if decision == 'approved' else 'sent back'}: {rec['name']}",
+                    actor=actor,
+                    affected_node_ids=[UUID(rule_id)],
+                    details_json=json.dumps({"decision": decision, "note": note}),
+                )
+            except Exception:
+                logger.warning("kg_rule_decision: audit entry failed for %s", rule_id, exc_info=True)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"KG unreachable: {e}") from e
+
+    return JSONResponse({"ok": True, "rule": dict(rec)})
 
 
 @router.get("/reference/reason-codes")
@@ -2007,22 +2572,39 @@ def kg_audit(limit: int = 50, node_id: str | None = None) -> JSONResponse:
         raise HTTPException(status_code=503, detail=f"KG unreachable: {e}") from e
 
 
-@router.get("/kg/neighborhood/{rule_id}")
-def kg_neighborhood(rule_id: str, depth: int = 1) -> JSONResponse:
-    """Return a graph slice centered on `rule_id` for vis-network rendering.
+# Hub labels: connected to nearly everything, so traversal must not pass
+# THROUGH them (they're fine as 1-hop terminals). Jurisdiction alone carries
+# 1,686 APPLIES_IN edges — depth-2 through it would return the whole canon.
+_KG_HUB_LABELS = ("Jurisdiction", "Organization", "Regulator", "StatisticalAgent")
+# Per-label display caps: keep the slice renderable. Root's direct (1-hop)
+# neighbors are always kept.
+_KG_LABEL_CAP = {"CodeValue": 12, "Rule": 8, "FieldRequirement": 10, "CodeList": 6}
+_KG_DEFAULT_CAP = 8
+_KG_TOTAL_CAP = 56
 
-    Pulls the rule's immediate neighbors: cited Citation, parent Section,
-    companion Rules, and any KG nodes connected by named relationships.
-    Output shape is {nodes: [{id,label,group,...}], edges: [{from,to,label}]}.
+
+@router.get("/kg/neighborhood/{rule_id}")
+def kg_neighborhood(rule_id: str, depth: int = 2) -> JSONResponse:
+    """Return a graph slice centered on `rule_id` for the lineage view.
+
+    Depth-2 by default, but hub-aware: paths never traverse THROUGH
+    Jurisdiction / Organization / Regulator (they appear only as direct
+    neighbors), so the slice shows the rule's actual world — its document,
+    section siblings, code lists, code values and field requirements —
+    without pulling the entire canon. Per-label caps keep it renderable;
+    dropped counts are reported in `truncated`.
+    Output shape is {nodes: [{id,label,group,...}], edges, center, truncated}.
     """
     if depth < 1 or depth > 3:
         raise HTTPException(status_code=400, detail="depth must be 1..3")
+    hub_filter = " AND ".join(f"NOT x:{l}" for l in _KG_HUB_LABELS)
     with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
-        # Variable-length match to grab the 1-2 hop neighborhood
         cypher = f"""
             MATCH (r:Rule)
             WHERE r.id = $rid OR elementId(r) = $rid
             OPTIONAL MATCH path = (r)-[*1..{depth}]-(n)
+            WHERE NOT n:KGAuditEntry
+              AND ALL(x IN nodes(path)[1..-1] WHERE ({hub_filter}) AND NOT x:KGAuditEntry)
             WITH r, collect(DISTINCT n) AS neighbors, collect(DISTINCT path) AS paths
             RETURN r,
                    [x IN neighbors WHERE x IS NOT NULL] AS neighbors,
@@ -2036,41 +2618,89 @@ def kg_neighborhood(rule_id: str, depth: int = 1) -> JSONResponse:
         rel_lists = res["rel_lists"]
 
         def node_dict(node, is_root=False):
-            labels = list(node.labels)
+            # Prefer the specific label — every node also carries :GRENode, and
+            # Neo4j doesn't guarantee label order.
+            labels = [l for l in node.labels if l != "GRENode"] or list(node.labels)
             label = labels[0] if labels else "Node"
-            display = node.get("name") or node.get("text") or node.get("title") or node.get("citation") or label
+            name = (node.get("name") or node.get("text") or node.get("title")
+                    or node.get("citation") or label)
+            # Node names share long boilerplate prefixes/suffixes per type
+            # ("DEDUCTIBLE TYPE OR AMOUNT (DED) — Homeowners Premium Record…"
+            # ×70), so a front-truncated name collapses whole groups into one
+            # visual. Split on the em-dash and put the distinguishing part in
+            # the label, the boilerplate in the sublabel.
+            parts = [p.strip() for p in name.split(" — ")] if isinstance(name, str) else [str(name)]
+            head, tail = parts[0], (parts[-1] if len(parts) > 1 else "")
+            display, sub = name, label
+            if label == "CodeValue":
+                code = node.get("code")
+                if code is not None and str(code) not in head:
+                    display = f"[{code}] {head}"      # the code IS the identity
+                else:
+                    display = head
+                if tail and tail != head:
+                    sub = tail[:40]
+            elif label == "FieldRequirement":
+                display = node.get("field_name") or head
+                if tail and tail != head:
+                    sub = tail[:40]                    # parent record layout
+            elif label == "CodeList":
+                display = head
+                if tail and tail != head:
+                    sub = tail[:40]
+            elif label == "RegulationDocument" and tail.startswith("Section "):
+                display = tail                          # TICO per-section docs
+                sub = head[:40]
             return {
-                "id":     str(node.element_id),
-                "label":  display[:55] if isinstance(display, str) else label,
-                "group":  ("root" if is_root else label),
-                "title":  f"{label}\n{(display or '')[:200]}" if isinstance(display, str) else label,
-                "shape":  ("box" if is_root else ("ellipse" if label == "Rule" else "dot")),
+                "id":       str(node.element_id),
+                "label":    display[:55] if isinstance(display, str) else label,
+                "group":    ("root" if is_root else label),
+                "sublabel": sub,
+                "title":    f"{label}\n{(name or '')[:200]}" if isinstance(name, str) else label,
+                "shape":    ("box" if is_root else ("ellipse" if label == "Rule" else "dot")),
             }
 
-        nodes_by_id: dict[str, dict] = {}
-        nodes_by_id[str(rule.element_id)] = node_dict(rule, is_root=True)
-        for n in neighbors:
-            if n is None:
-                continue
+        root_id = str(rule.element_id)
+        # Direct neighbors are always kept; 2-hop nodes obey per-label caps.
+        direct_ids = {str(rel.start_node.element_id) if str(rel.end_node.element_id) == root_id
+                      else str(rel.end_node.element_id)
+                      for rels in rel_lists for rel in rels[:1]}
+
+        nodes_by_id: dict[str, dict] = {root_id: node_dict(rule, is_root=True)}
+        label_counts: dict[str, int] = {}
+        truncated: dict[str, int] = {}
+        for n in sorted((x for x in neighbors if x is not None),
+                        key=lambda x: str(x.element_id) not in direct_ids):
             nid = str(n.element_id)
-            if nid not in nodes_by_id:
-                nodes_by_id[nid] = node_dict(n)
+            if nid in nodes_by_id:
+                continue
+            d = node_dict(n)
+            grp = d["group"]
+            if nid not in direct_ids:
+                cap = _KG_LABEL_CAP.get(grp, _KG_DEFAULT_CAP)
+                if label_counts.get(grp, 0) >= cap or len(nodes_by_id) >= _KG_TOTAL_CAP:
+                    truncated[grp] = truncated.get(grp, 0) + 1
+                    continue
+            label_counts[grp] = label_counts.get(grp, 0) + 1
+            nodes_by_id[nid] = d
 
         edges: list[dict] = []
         edge_keys = set()
         for rels in rel_lists:
             for rel in rels:
-                k = (str(rel.start_node.element_id), str(rel.end_node.element_id), rel.type)
+                a, b = str(rel.start_node.element_id), str(rel.end_node.element_id)
+                if a not in nodes_by_id or b not in nodes_by_id:
+                    continue
+                k = (a, b, rel.type)
                 if k in edge_keys:
                     continue
                 edge_keys.add(k)
-                edges.append({
-                    "from":  str(rel.start_node.element_id),
-                    "to":    str(rel.end_node.element_id),
-                    "label": rel.type,
-                })
+                edges.append({"from": a, "to": b, "label": rel.type})
 
-    return JSONResponse({"nodes": list(nodes_by_id.values()), "edges": edges, "center": rule_id})
+    # center must be a node id the client can find — node ids are element_ids,
+    # not the rule's UUID property, so return the root's element_id.
+    return JSONResponse({"nodes": list(nodes_by_id.values()), "edges": edges,
+                         "center": root_id, "truncated": truncated})
 
 
 @router.get("/reg/citation")
@@ -2093,10 +2723,15 @@ def reg_citation(q: str) -> JSONResponse:
         "WHERE LOWER(s.citation_label) = LOWER(%s) "
         "   OR s.citation_label ILIKE %s "
         "   OR s.section_heading ILIKE %s "
+        # Reverse containment: a rule name like 'Authority — Hurricane Ian…'
+        # contains its section's label ('Authority'). Length guard keeps
+        # short labels from matching everything.
+        "   OR (LENGTH(s.citation_label) >= 6 AND %s ILIKE CONCAT('%%', s.citation_label, '%%')) "
         "ORDER BY (CASE WHEN LOWER(s.citation_label) = LOWER(%s) THEN 0 ELSE 1 END), "
+        "         LENGTH(s.citation_label) DESC, "
         "         s.document_id, s.seq "
         "LIMIT 5",
-        (q, like_q, like_q, q),
+        (q, like_q, like_q, q, q),
     )
     return JSONResponse({"q": q, "matches": _jsonify(rows), "count": len(rows)})
 

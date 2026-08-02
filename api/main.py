@@ -415,22 +415,31 @@ _EXTRACT_JOBS: dict[str, dict] = {}
 def _run_extraction(doc) -> dict:
     """Run Sentinel on a document, persist the extraction + citation rects, and
     return the result payload. Raises on LLM/parse failure."""
-    import time as _t
-    from api.rhs_demo import record_agent_run
-    _t0 = _t.time()
+    from api.rhs_demo import AgentTrace
+    tr = AgentTrace()
     text = doc.path.read_text(encoding="utf-8")
+    tr.step("Read document", f"{doc.path.name} · {len(text.split()):,} words")
     llm = OpenAIAdapter()
     try:
         extraction = Sentinel(llm).extract(text, document_label=doc.path.name)
-    except Exception:
-        record_agent_run("Rule Extractor", f"Extract {doc.slug}", model=llm.model,
-                         duration_ms=int((_t.time() - _t0) * 1000),
-                         result="LLM/parse failure", status="error")
+    except Exception as e:
+        tr.step("LLM extract", str(e)[:200], status="error")
+        tr.finish("Rule Extractor", f"Extract {doc.slug}", model=llm.model,
+                  tokens=getattr(llm, "last_total_tokens", None),
+                  result="LLM/parse failure", status="error")
         raise
-    record_agent_run(
+    tokens = getattr(llm, "last_total_tokens", None)
+    tr.step("LLM extract", f"model {llm.model}" + (f" · {tokens:,} tokens" if tokens else ""))
+    nodes = extraction.proposed_nodes
+    conf = (sum(n.confidence for n in nodes) / len(nodes)) if nodes else None
+    low = sum(1 for n in nodes if n.confidence < 0.9)
+    tr.step("Parse proposals",
+            f"{len(nodes)} nodes · {len(extraction.proposed_relationships)} rels"
+            + (f" · {low} below 90% confidence" if low else ""))
+    tr.finish(
         "Rule Extractor", f"Extract {doc.slug}", model=llm.model,
-        duration_ms=int((_t.time() - _t0) * 1000),
-        result=f"{len(extraction.proposed_nodes)} nodes · "
+        tokens=tokens, confidence=conf,
+        result=f"{len(nodes)} nodes · "
                f"{len(extraction.proposed_relationships)} rels",
     )
 
@@ -546,16 +555,22 @@ def approve_extraction(slug: str) -> JSONResponse:
         )
 
     try:
-        import time as _t
-        from api.rhs_demo import record_agent_run
-        _t0 = _t.time()
+        from api.rhs_demo import AgentTrace
+        tr = AgentTrace()
+        n_props = len(extraction.proposed_nodes)
+        tr.step("Load cached extraction",
+                f"{doc.slug} · {n_props} proposed nodes · "
+                f"{len(extraction.proposed_relationships)} proposed rels")
         with Neo4jGREAdapter() as gre:
             result = materialize(
                 extraction, gre, document_label=doc.slug, rects_bundle=rects_bundle
             )
-        record_agent_run(
+        tr.step("Materialize to canon",
+                f"{len(result.nodes_created)} nodes · {result.relationships_created} rels written"
+                + (f" · {n_props - len(result.nodes_created)} deduped" if n_props > len(result.nodes_created) else ""))
+        tr.finish(
             "KG Materializer", f"Approve {doc.slug} → canon",
-            model="graph writer", duration_ms=int((_t.time() - _t0) * 1000),
+            model="graph writer",
             result=f"{len(result.nodes_created)} nodes · "
                    f"{result.relationships_created} rels",
         )
