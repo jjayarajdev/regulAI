@@ -37,16 +37,26 @@ export function StatFileApp() {
   const meQ = useMe();
   const user: AppUser = meQ.data?.user ?? GUEST;
   const signedIn = user.user_id !== 'guest';
-  const [showLogin, setShowLogin] = useState(false);
+  const [guest, setGuest] = useState(() => {
+    try { return sessionStorage.getItem('regulai-guest') === '1'; } catch { return false; }
+  });
+  const browseAsGuest = () => {
+    try { sessionStorage.setItem('regulai-guest', '1'); } catch { /* fine */ }
+    setGuest(true);
+  };
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const loginMut = useLogin();
   const logoutMut = useLogout();
   const doLogin = () =>
     loginMut.mutate({ email: email.trim(), password }, {
-      onSuccess: (r) => { setToken(r.token); setShowLogin(false); setEmail(''); setPassword(''); },
+      onSuccess: (r) => { setToken(r.token); setEmail(''); setPassword(''); },
     });
-  const doLogout = () => logoutMut.mutate(undefined, { onSettled: () => setToken(null) });
+  const doLogout = () => {
+    try { sessionStorage.removeItem('regulai-guest'); } catch { /* fine */ }
+    setGuest(false);
+    logoutMut.mutate(undefined, { onSettled: () => setToken(null) });
+  };
 
   // Data-source pill: connecting… → live data / demo data. Live means the
   // warehouse answered; a cold/failed warehouse degrades to demo fixtures.
@@ -60,6 +70,48 @@ export function StatFileApp() {
   // Sidebar cycle: first active live filing, else the design's fiction.
   const active = filingsQ.data?.filings.find((f) => f.is_active);
   const dueDays = active ? Math.max(0, Math.round((+new Date(active.due_date) - Date.now()) / 86400000)) : null;
+
+  // Login gate: the app renders only for a signed-in user or an explicit
+  // guest (read-only) session. While the token resolves, render nothing to
+  // avoid flashing the gate at signed-in users.
+  if (meQ.isLoading) return <div className="sf" />;
+  if (!signedIn && !guest) {
+    return (
+      <div className="sf" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+        <div style={{ width: 340, border: '1px solid var(--color-divider)', padding: '30px 32px', background: 'var(--color-bg, #fff)' }}>
+          <div className="wordmark" style={{ fontSize: 26 }}>STATFILE</div>
+          <div className="k" style={{ margin: '4px 0 22px' }}>Regulatory reporting fabric · sign in</div>
+          <input
+            value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" autoFocus
+            style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', fontSize: 13, marginBottom: 10, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}
+          />
+          <input
+            type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password"
+            onKeyDown={(e) => { if (e.key === 'Enter') doLogin(); }}
+            style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', fontSize: 13, marginBottom: 14, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}
+          />
+          <button className="btn btn-primary btn-block" disabled={loginMut.isPending || !email.trim() || !password}
+            onClick={doLogin}>
+            {loginMut.isPending ? 'Signing in…' : 'Sign in'}
+          </button>
+          {loginMut.error != null && (
+            <div className="k" style={{ marginTop: 10, color: 'var(--color-accent-700)' }}>
+              {(loginMut.error as Error).message}
+            </div>
+          )}
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--color-divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="k">no account? ask your admin</span>
+            <button
+              onClick={browseAsGuest}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, color: 'var(--color-accent-700)', textDecoration: 'underline' }}
+            >
+              browse as guest
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sf">
@@ -93,14 +145,10 @@ export function StatFileApp() {
               <h3>{title}</h3>
             </div>
             <div className="actions">
-              {signedIn ? (
-                <>
-                  <span className="tag tag-outline" title={user.title}>{user.name} · {user.role}</span>
-                  <button className="btn btn-secondary" onClick={doLogout}>Sign out</button>
-                </>
-              ) : (
-                <button className="btn btn-secondary" onClick={() => setShowLogin((v) => !v)}>Sign in</button>
-              )}
+              <span className="tag tag-outline" title={user.title}>{user.name} · {user.role}</span>
+              <button className="btn btn-secondary" onClick={doLogout}>
+                {signedIn ? 'Sign out' : 'Sign in'}
+              </button>
               <span className={'tag ' + (live ? 'tag-accent' : 'tag-neutral')}>
                 <span style={{
                   width: 7, height: 7, borderRadius: '50%', marginRight: 6,
@@ -124,34 +172,6 @@ export function StatFileApp() {
               </button>
             </div>
           </header>
-          {showLogin && !signedIn && (
-            <div style={{
-              position: 'absolute', right: 28, top: 74, zIndex: 40, width: 280,
-              background: 'var(--color-bg, #fff)', border: '1px solid var(--color-divider)',
-              boxShadow: '0 8px 28px rgba(0,0,0,.14)', padding: '16px 18px',
-            }}>
-              <div className="k" style={{ marginBottom: 10 }}>Sign in</div>
-              <input
-                value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email"
-                autoFocus
-                style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', fontSize: 12.5, marginBottom: 8, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}
-              />
-              <input
-                type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password"
-                onKeyDown={(e) => { if (e.key === 'Enter') doLogin(); }}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', fontSize: 12.5, marginBottom: 10, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}
-              />
-              <button className="btn btn-primary btn-block" disabled={loginMut.isPending || !email.trim() || !password}
-                onClick={doLogin}>
-                {loginMut.isPending ? 'Signing in…' : 'Sign in'}
-              </button>
-              {loginMut.error != null && (
-                <div className="k" style={{ marginTop: 8, color: 'var(--color-accent-700)' }}>
-                  {(loginMut.error as Error).message}
-                </div>
-              )}
-            </div>
-          )}
 
           <div className="content">
             {screen === 'dash' && <DashboardScreen go={go} />}
