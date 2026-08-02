@@ -59,6 +59,21 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
   const [editField, setEditField] = useState<string | null>(null);
   const [editVal, setEditVal] = useState('');
   const EDITABLE = new Set(['reason_code', 'naic_number', 'writtenpremium', 'termtype', 'noticedate', 'reporteddate', 'lossdate']);
+  // Which field each rule actually fires on — the one to edit.
+  const CULPRIT: Record<string, string[]> = {
+    'A.34': ['reason_code'], 'A.10': ['writtenpremium'], 'A.22': ['noticedate'], 'B.10': ['reporteddate'],
+  };
+  const culprits = new Set(CULPRIT[E?.code ?? ''] ?? []);
+  // Prefill a sensible correction when opening the editor on the culprit.
+  const suggest = (field: string, current: string): string => {
+    if (field === 'reason_code' && current === 'L') return 'LD';
+    if (field === 'writtenpremium' && Number(current) <= 0) return String(Math.abs(Number(current)) || 1500);
+    if (field === 'reporteddate' && claim?.loss_date) {
+      const d = new Date(claim.loss_date); d.setDate(d.getDate() + 45);
+      return d.toISOString().slice(0, 10);
+    }
+    return current;
+  };
   const CLAIM_FIELDS = new Set(['reporteddate', 'lossdate']);
   const saveEdit = (field: string) => {
     const body = CLAIM_FIELDS.has(field)
@@ -186,9 +201,18 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
               <div>
                 <div className="k" style={{ marginBottom: 7 }}>Sample failing record</div>
                 <div className="mono" style={{ fontSize: 11.5, lineHeight: 1.9 }}>
-                  {sample.map(([k, v, bad]) => (
-                    <div key={k} style={{ display: 'flex', gap: 10, alignItems: 'center', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
-                      <span className="muted" style={{ width: 150, flex: 'none' }}>{k}</span>
+                  {sample.map(([k, v, bad]) => {
+                    const hot = culprits.has(k);
+                    return (
+                    <div key={k} style={{
+                      display: 'flex', gap: 10, alignItems: 'center',
+                      borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)',
+                      ...(hot ? {
+                        background: 'color-mix(in srgb,var(--color-accent) 9%,transparent)',
+                        borderLeft: '3px solid ' + ACC9, paddingLeft: 7, marginLeft: -10,
+                      } : {}),
+                    }}>
+                      <span className="muted" style={{ width: 150, flex: 'none', fontWeight: hot ? 600 : undefined }}>{k}</span>
                       {editField === k ? (
                         <>
                           <input
@@ -205,7 +229,14 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
                       ) : (
                         <>
                           <span style={{ color: bad ? ACC9 : 'inherit', overflowWrap: 'anywhere', flex: 1 }}>{v}</span>
-                          {live && mayFix && EDITABLE.has(k) && (
+                          {hot && live && mayFix && (
+                            <button className="btn btn-primary" style={{ padding: '1px 8px', fontSize: 10.5 }}
+                              onClick={() => { setEditField(k); setEditVal(suggest(k, v === '∅' ? '' : v)); }}
+                              title={`this is the field ${E.code} fires on — suggested correction prefilled`}>
+                              fix here
+                            </button>
+                          )}
+                          {!hot && live && mayFix && EDITABLE.has(k) && (
                             <button
                               onClick={() => { setEditField(k); setEditVal(v === '∅' ? '' : v); }}
                               title={`edit ${k} in Bronze (CDC correction)`}
@@ -215,7 +246,7 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
                         </>
                       )}
                     </div>
-                  ))}
+                  ); })}
                   {bronzeFix.isSuccess && (
                     <div className="k" style={{ marginTop: 6, color: 'var(--color-accent-700)' }}>
                       saved to Bronze ✓ — revalidating (the group updates when the edit engine finishes, ~30s)
