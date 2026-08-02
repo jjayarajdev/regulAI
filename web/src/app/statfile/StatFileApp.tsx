@@ -2,7 +2,6 @@
 // claude.ai/design mock. Shell: sidebar nav + header; each screen is its own
 // component. Cross-screen navigation goes through `go`.
 import { useState } from 'react';
-import { setToken } from '../../api/client';
 import { can, GUEST, useFilings, useLogin, useLogout, useMe, useRunCycle, whoCan, type AppUser } from './api';
 import { NAV, TITLES, type ScreenId } from './data';
 import { DashboardScreen } from './screens/Dashboard';
@@ -51,12 +50,12 @@ export function StatFileApp() {
   const logoutMut = useLogout();
   const doLogin = () =>
     loginMut.mutate({ email: email.trim(), password }, {
-      onSuccess: (r) => { setToken(r.token); setEmail(''); setPassword(''); },
+      onSuccess: () => { setEmail(''); setPassword(''); },
     });
   const doLogout = () => {
     try { sessionStorage.removeItem('regulai-guest'); } catch { /* fine */ }
     setGuest(false);
-    logoutMut.mutate(undefined, { onSettled: () => setToken(null) });
+    logoutMut.mutate();
   };
 
   // Data-source pill: connecting… → live data / demo data. Live means the

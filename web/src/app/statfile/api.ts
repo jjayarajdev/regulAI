@@ -3,7 +3,7 @@
 // screen keeps the design fixtures as fallback: when the warehouse is cold or
 // a query fails, the UI degrades to demo content instead of breaking.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getJson, patchJson, postJson } from '../../api/client';
+import { getJson, patchJson, postJson, setToken } from '../../api/client';
 import type {
   Filing, FilingsResponse, KgNeighborhoodResponse, KgRulesResponse,
   PipelineStateResponse, Violation,
@@ -61,14 +61,15 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (creds: { email: string; password: string }) =>
       postJson<{ token: string; user: AppUser }>('/auth/login', creds),
-    onSuccess: () => qc.invalidateQueries(),
+    // Store the token BEFORE invalidating — /auth/me must refetch with it.
+    onSuccess: (r) => { setToken(r.token); qc.invalidateQueries(); },
   });
 };
 export const useLogout = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => postJson<{ ok: boolean }>('/auth/logout'),
-    onSettled: () => qc.invalidateQueries(),
+    onSettled: () => { setToken(null); qc.invalidateQueries(); },
   });
 };
 
