@@ -292,6 +292,36 @@ export const useAdvanceFiling = () => {
   };
 };
 
+// Manual Bronze correction — the record editor in the validation panel.
+// Policy fields key on policy_number; claim fields (reporteddate/lossdate)
+// key on the claim record_id.
+export const useBronzeFix = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: { policy_number?: string; record_id?: string; field: string; new_value: string }) =>
+      postJson<{ ok?: boolean }>('/bronze/fix', p),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['sf', 'validate-all'] });
+      qc.invalidateQueries({ queryKey: ['sf', 'policy'] });
+      qc.invalidateQueries({ queryKey: ['sf', 'claims'] });
+      qc.invalidateQueries({ queryKey: ['sf', 'submission'] });
+    },
+  });
+};
+
+// Claims list (for claim-rule context in the validation panel).
+export interface ClaimRow {
+  claim_number: string; policy: string; loss_cause: string | null;
+  loss_date: string | null; reported_date: string | null; reporting_lag_days: number | null;
+}
+export const useClaims = (filing: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'claims', filing],
+    queryFn: () => getJson<{ claims?: ClaimRow[]; rows?: ClaimRow[] }>(
+      '/bronze/claims' + (filing ? '?filing=' + encodeURIComponent(filing) : '')),
+    staleTime: 120_000,
+  });
+
 // Analyst triage: suppress (with memo) / release / assign a rule's exceptions.
 export const useSuppress = () => {
   const qc = useQueryClient();

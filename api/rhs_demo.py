@@ -1796,6 +1796,9 @@ _FIX_FIELDS: dict[str, dict] = {
     "naic_number":   {"table": "BRONZE.GW_PC_POLICYPERIOD", "col": "naic_number",    "kind": "text"},
     "writtenpremium":{"table": "BRONZE.GW_PC_POLICYPERIOD", "col": "writtenpremium", "kind": "number"},
     "termtype":      {"table": "BRONZE.GW_PC_POLICYPERIOD", "col": "termtype",       "kind": "text"},
+    # Claim-level corrections (B.10 late-loss) — located by claim number, not policy.
+    "reporteddate":  {"table": "BRONZE.GW_CC_CLAIM",        "col": "reporteddate",   "kind": "date"},
+    "lossdate":      {"table": "BRONZE.GW_CC_CLAIM",        "col": "lossdate",       "kind": "date"},
 }
 
 
@@ -1822,15 +1825,20 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
     field=reason_code).
     """
     policy = (body.get("policy_number") or "").strip().upper()
+    record_id = (body.get("record_id") or "").strip().upper()
     field  = (body.get("field") or "reason_code").strip().lower()
     raw_val = body.get("new_value")
     if raw_val is None:
         raw_val = body.get("new_code")  # backward compat
 
-    if not policy or not policy.startswith("POL-"):
-        raise HTTPException(400, "policy_number must be like POL-0015")
     if field not in _FIX_FIELDS:
         raise HTTPException(400, f"unknown field '{field}'; one of {list(_FIX_FIELDS)}")
+    is_claim = _FIX_FIELDS[field]["table"] == "BRONZE.GW_CC_CLAIM"
+    if is_claim:
+        if not record_id.startswith("CLM-"):
+            raise HTTPException(400, "claim fields need record_id like CLM-102")
+    elif not policy or not policy.startswith("POL-"):
+        raise HTTPException(400, "policy_number must be like POL-0015")
 
     spec = _FIX_FIELDS[field]
     kind = spec["kind"]
@@ -1874,7 +1882,17 @@ def bronze_fix(body: dict = Body(...)) -> JSONResponse:
         raise HTTPException(500, f"unknown field kind {kind}")
 
     # ── Find the target row ─────────────────────────────────────────
-    if spec["table"] == "BRONZE.GW_PC_JOB":
+    if is_claim:
+        rows = query(
+            "SELECT c.publicid, c.reporteddate, c.lossdate, p.policynumber "
+            "FROM INSURANCE_REGULATORY.BRONZE.GW_CC_CLAIM c "
+            "LEFT JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p ON p.id = c.policy_id "
+            "WHERE c.claimnumber = %s",
+            (record_id,),
+        )
+        if rows:
+            policy = policy or (_g(rows[0], "policynumber") or "")
+    elif spec["table"] == "BRONZE.GW_PC_JOB":
         rows = query(
             "SELECT j.publicid, j.cancellationreason, j.nonrenewalreason, "
             "       j.declinereason, j.noticedate "

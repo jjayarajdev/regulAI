@@ -4,8 +4,9 @@
 import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
 import {
-  can, groupViolations, useApplyFix, useAssign, usePolicyFields, useSuppress,
-  useUnsuppress, useValidateAll, whoCan, type AppUser, type GroupedError,
+  can, groupViolations, useApplyFix, useAssign, useBronzeFix, useClaims,
+  useFilings, usePolicyFields, useSuppress, useUnsuppress, useValidateAll,
+  whoCan, type AppUser, type GroupedError,
 } from '../api';
 import { ApiError } from '../../../api/client';
 import { ACC, ACC9, ERR_DETAIL, NEU } from '../data';
@@ -44,6 +45,28 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
   const firstViolation = E?.violations[0];
   const policyQ = usePolicyFields(firstViolation?.policy_number ?? null);
 
+  // Claim context when the rule targets claims (record_id CLM-…).
+  const filingsQ = useFilings();
+  const activeF = filingsQ.data?.filings.find((f) => f.is_active);
+  const isClaimRule = !!firstViolation?.record_id?.startsWith('CLM-');
+  const claimsQ = useClaims(isClaimRule ? activeF?.id ?? null : null);
+  const claim = isClaimRule
+    ? (claimsQ.data?.rows ?? []).find((c) => c.claim_number === firstViolation!.record_id)
+    : undefined;
+
+  // Inline record editor: which field is being edited + its draft value.
+  const bronzeFix = useBronzeFix();
+  const [editField, setEditField] = useState<string | null>(null);
+  const [editVal, setEditVal] = useState('');
+  const EDITABLE = new Set(['reason_code', 'naic_number', 'writtenpremium', 'termtype', 'noticedate', 'reporteddate', 'lossdate']);
+  const CLAIM_FIELDS = new Set(['reporteddate', 'lossdate']);
+  const saveEdit = (field: string) => {
+    const body = CLAIM_FIELDS.has(field)
+      ? { record_id: firstViolation!.record_id, field, new_value: editVal.trim() }
+      : { policy_number: firstViolation!.policy_number, field, new_value: editVal.trim() };
+    bronzeFix.mutate(body, { onSuccess: () => setEditField(null) });
+  };
+
   const size = (e: GroupedError) => e.violations.length || parseInt(e.count.replace(/,/g, '')) || 0;
   const activeErrors = errors.filter((e) => !e.suppressed);
   const counts = {
@@ -70,6 +93,11 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
         ...Object.entries(policyQ.data?.fields ?? {})
           .slice(0, 5)
           .map(([k, v]) => [k, String(v ?? '∅'), 0] as [string, string, 0 | 1]),
+        ...(claim ? [
+          ['lossdate', claim.loss_date ?? '∅', 0],
+          ['reporteddate', claim.reported_date ?? '∅', 1],
+          ['reporting_lag_days', String(claim.reporting_lag_days ?? '—'), 1],
+        ] as Array<[string, string, 0 | 1]> : []),
       ]
     : demo?.sample ?? [];
 
@@ -159,11 +187,40 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
                 <div className="k" style={{ marginBottom: 7 }}>Sample failing record</div>
                 <div className="mono" style={{ fontSize: 11.5, lineHeight: 1.9 }}>
                   {sample.map(([k, v, bad]) => (
-                    <div key={k} style={{ display: 'flex', gap: 10, borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
+                    <div key={k} style={{ display: 'flex', gap: 10, alignItems: 'center', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
                       <span className="muted" style={{ width: 150, flex: 'none' }}>{k}</span>
-                      <span style={{ color: bad ? ACC9 : 'inherit', overflowWrap: 'anywhere' }}>{v}</span>
+                      {editField === k ? (
+                        <>
+                          <input
+                            value={editVal} autoFocus
+                            onChange={(e) => setEditVal(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(k); if (e.key === 'Escape') setEditField(null); }}
+                            style={{ flex: 1, padding: '2px 6px', fontSize: 11.5, fontFamily: 'inherit', border: '1px solid var(--color-accent)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}
+                          />
+                          <button className="btn btn-primary" disabled={bronzeFix.isPending} style={{ padding: '2px 8px', fontSize: 11 }}
+                            onClick={() => saveEdit(k)}>{bronzeFix.isPending ? '…' : 'Save'}</button>
+                          <button className="btn btn-secondary" style={{ padding: '2px 8px', fontSize: 11 }}
+                            onClick={() => setEditField(null)}>✕</button>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ color: bad ? ACC9 : 'inherit', overflowWrap: 'anywhere', flex: 1 }}>{v}</span>
+                          {live && mayFix && EDITABLE.has(k) && (
+                            <button
+                              onClick={() => { setEditField(k); setEditVal(v === '∅' ? '' : v); }}
+                              title={`edit ${k} in Bronze (CDC correction)`}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--color-accent-700)', padding: 0 }}
+                            >✎</button>
+                          )}
+                        </>
+                      )}
                     </div>
                   ))}
+                  {bronzeFix.error != null && (
+                    <div className="k" style={{ marginTop: 6, color: 'var(--color-accent-700)' }}>
+                      {(bronzeFix.error as Error).message}
+                    </div>
+                  )}
                   {firstViolation && policyQ.isLoading && (
                     <div className="muted" style={{ padding: '4px 0' }}>loading bronze fields…</div>
                   )}
