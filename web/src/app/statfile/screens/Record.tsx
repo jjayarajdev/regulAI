@@ -4,47 +4,81 @@
 // SILVER.TSPR_PREMIUM_STAGING row (/submission/{policy}); the record image and
 // positions are assembled from the encoded field values. Demo record when the
 // warehouse is cold.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
-import { policiesFrom, useFilings, useSubmission, useValidateAll } from '../api';
+import {
+  policiesFrom, useAdvanceFiling, useApprovalState, useFilings, usePipelineContract,
+  useReconciliation, useSubmission, useValidateAll,
+} from '../api';
 import { PKG, REC_FIELDS, RECON, RECORD_IMAGE } from '../data';
 
-// Bronze/Guidewire provenance for each TSPR staging column — mirrors the
-// Bronze→Silver transform in the pipeline.
+// Provenance for the staging columns the contract endpoint doesn't carry
+// (system-populated ones the mapping agent must not touch).
 const SRC: Record<string, string> = {
-  naic_company_no: 'GW_PC_POLICYPERIOD.naic_number',
-  policy_id: 'GW_PC_POLICY.policynumber',
   record_type: 'transform (fixed)',
   stat_plan: 'transform (fixed)',
-  effective_date: 'GW_PC_POLICYPERIOD.startdate',
-  expiry_date: 'GW_PC_POLICYPERIOD.enddate',
-  amt_insurance_dw: 'GW_PC_COVERAGE.dwelling_limit',
-  amt_insurance_pp: 'GW_PC_COVERAGE.contents_limit',
-  line_of_business: 'GW_PC_POLICYPERIOD.termtype',
-  policy_form: 'GW_PC_POLICYLINE.policyformtype',
-  number_of_families: 'GW_PC_DWELLING.families',
-  coverage_occupancy: 'GW_PC_DWELLING.occupancy',
-  construction: 'GW_PC_DWELLING.construction',
-  ppc_simple: 'GW_PC_LOCATION.ppc',
-  deductible_1_amt: 'GW_PC_COVERAGE.deductible',
-  fire_premium: 'GW_PC_TRANSACTION.amount',
-  ec_premium: 'GW_PC_TRANSACTION.amount',
-  zip9: 'GW_PC_LOCATION.postalcode',
   validation_status: 'rule engine',
 };
 
+// Decode the TSPR-encoded value back to something a human can read. Only the
+// deterministic encodings — dates (Rule 8), $1000s amounts, ZIP+4, constants.
+const fmtUsd = (v: unknown) => '$' + Number(v).toLocaleString('en-US');
+function decode(name: string, v: string | number | null): string {
+  if (v == null) return '∅ null';
+  const s = String(v);
+  switch (name) {
+    case 'effective_date':
+      return s.length === 5 ? `MMDDY → ${s.slice(0, 2)}/${s.slice(2, 4)} · yr …${s[4]}` : '';
+    case 'expiry_date':
+      return s.length === 3 ? `MMY → ${s.slice(0, 2)} · yr …${s[2]}` : '';
+    case 'amt_insurance_dw': return `Dwelling ${fmtUsd(Number(v) * 1000)}`;
+    case 'amt_insurance_pp': return `Contents ${fmtUsd(Number(v) * 1000)}`;
+    case 'amt_insurance_alu': return `ALE ${fmtUsd(Number(v) * 1000)}`;
+    case 'fire_premium': return `Fire ${fmtUsd(v)}`;
+    case 'ec_premium': return `Ext. coverage ${fmtUsd(v)}`;
+    case 'deductible_1_amt': return fmtUsd(v);
+    case 'zip9': return s.length >= 9 ? `${s.slice(0, 5)}-${s.slice(5)}` : s;
+    case 'line_of_business': return s === '1' ? 'Homeowners' : '';
+    case 'record_type': return s === '01' ? 'Premium record' : '';
+    case 'stat_plan': return s === '4' ? 'TX stat plan' : '';
+    case 'number_of_families': return `${s}-family`;
+    default: return '';
+  }
+}
+
 interface FieldRow { pos: string; name: string; val: string; dec: string; src: string; rule: string }
 
-export function RecordScreen() {
+export function RecordScreen({ initialPolicy }: { initialPolicy?: string | null }) {
   const valQ = useValidateAll();
   const filingsQ = useFilings();
   const policies = useMemo(() => policiesFrom(valQ.data), [valQ.data]);
 
   const [idx, setIdx] = useState(0);
-  const policy = policies.length ? policies[Math.min(idx, policies.length - 1)] : null;
+  // Search overrides the failing-policy picker — any policy is inspectable.
+  const [override, setOverride] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  // Deep link from the validation screen's "Trace to Guidewire".
+  useEffect(() => {
+    if (!initialPolicy) return;
+    const i = policies.indexOf(initialPolicy);
+    if (i >= 0) { setIdx(i); setOverride(null); }
+    else setOverride(initialPolicy);
+  }, [initialPolicy, policies]);
+  const policy = override ?? (policies.length ? policies[Math.min(idx, policies.length - 1)] : null);
   const subQ = useSubmission(policy);
 
   const live = !!(policy && subQ.data?.found && subQ.data.fields);
+
+  // Real Bronze→Silver provenance per column, from the same contract endpoint
+  // the pipeline screen renders.
+  const conQ = usePipelineContract();
+  const contractBy = useMemo(() => {
+    const m = new Map<string, { source: string | null; rule: string | null }>();
+    for (const c of conQ.data?.columns ?? []) {
+      m.set(c.name.toLowerCase(), { source: c.source, rule: c.rule });
+    }
+    return m;
+  }, [conQ.data]);
 
   // Assemble the encoded record image + per-field character positions from
   // the staging row (the SDF layout metadata isn't served yet, so positions
@@ -57,15 +91,16 @@ export function RecordScreen() {
       const val = v == null ? '·' : String(v).replace(/\s+/g, '');
       const pos = `${cursor}–${cursor + val.length - 1}`;
       cursor += val.length;
+      const con = contractBy.get(name);
       return {
         pos, name, val,
-        dec: v == null ? '∅ null' : '',
-        src: SRC[name] ?? 'SILVER.TSPR_PREMIUM_STAGING',
-        rule: name === 'validation_status' ? 'all edits' : '—',
+        dec: decode(name, v),
+        src: con?.source ?? SRC[name] ?? 'SILVER.TSPR_PREMIUM_STAGING',
+        rule: con?.rule ?? (name === 'validation_status' ? 'all edits' : '—'),
       };
     });
     return { image: rows.map((r) => r.val).join(''), fields: rows };
-  }, [live, subQ.data]);
+  }, [live, subQ.data, contractBy]);
 
   const violations = useMemo(() => {
     if (!policy || !valQ.data) return [];
@@ -74,6 +109,9 @@ export function RecordScreen() {
   }, [policy, valQ.data]);
 
   const active = filingsQ.data?.filings.find((f) => f.is_active);
+  const approvalQ = useApprovalState(live && active ? active.id : null);
+  const adv = useAdvanceFiling();
+  const reconQ = useReconciliation(live && active ? active.id : null);
   const pkg = live
     ? [
         { k: 'Cycle', v: active?.id ?? '—' },
@@ -99,12 +137,27 @@ export function RecordScreen() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <span className="k">Record</span>
         <span className="mono" style={{ fontSize: 13 }}>
-          {policy ? `${policy} · ${idx + 1} of ${policies.length} with open edits` : 'HO-TX-0048817-02 · seq 000418,229'}
+          {override ? `${override} · via search`
+            : policy ? `${policy} · ${idx + 1} of ${policies.length} with open edits`
+            : 'HO-TX-0048817-02 · seq 000418,229'}
         </span>
-        <button className="btn btn-secondary" disabled={!policies.length || idx === 0}
-          onClick={() => setIdx((i) => Math.max(0, i - 1))}>← Prev</button>
-        <button className="btn btn-secondary" disabled={!policies.length || idx >= policies.length - 1}
-          onClick={() => setIdx((i) => Math.min(policies.length - 1, i + 1))}>Next →</button>
+        <button className="btn btn-secondary" disabled={!policies.length || (!override && idx === 0)}
+          onClick={() => { setOverride(null); setIdx((i) => Math.max(0, i - 1)); }}>← Prev</button>
+        <button className="btn btn-secondary" disabled={!policies.length || (!override && idx >= policies.length - 1)}
+          onClick={() => { setOverride(null); setIdx((i) => Math.min(policies.length - 1, i + 1)); }}>Next →</button>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && search.trim()) { setOverride(search.trim().toUpperCase()); setSearch(''); }
+          }}
+          placeholder="POL-…  ⏎"
+          style={{
+            width: 110, padding: '5px 9px', fontSize: 12, fontFamily: 'ui-monospace, Menlo, monospace',
+            border: '1px solid var(--color-divider)', borderRadius: 0,
+            background: 'transparent', color: 'var(--color-text)',
+          }}
+        />
         <span className={'tag ' + (live && violations.length ? 'tag-outline' : 'tag-accent')} style={{ marginLeft: 'auto' }}>
           {passTag}
         </span>
@@ -153,12 +206,47 @@ export function RecordScreen() {
                 <span className="mono" style={{ fontSize: 12 }}>{p.v}</span>
               </div>
             ))}
-            <button className="btn btn-primary btn-block">Seal &amp; transmit to statistical agent</button>
+            {(() => {
+              const a = approvalQ.data;
+              if (!live || !active || !a) {
+                return <button className="btn btn-primary btn-block" disabled={live}>Seal &amp; transmit to statistical agent</button>;
+              }
+              const busy = adv.approve.isPending || adv.seal.isPending || adv.ack.isPending;
+              const roleLabel: Record<string, string> = {
+                analyst: 'Sign off — Analyst', actuary: 'Sign off — Actuary', officer: 'Sign off — Compliance Officer',
+              };
+              const [label, action, disabled]: [string, (() => void) | null, boolean] =
+                a.status === 'acked' ? ['Acknowledged by TICO ✓', null, true]
+                : a.status === 'submitted' ? ['Record TICO acknowledgment', () => adv.ack.mutate(active.id), busy]
+                : a.can_seal ? ['Seal & transmit to statistical agent', () => adv.seal.mutate(active.id), busy]
+                : a.next_role ? [roleLabel[a.next_role], () => adv.approve.mutate({ filingId: active.id, role: a.next_role! }), busy || a.open_blockers > 0]
+                : [`Blocked — state '${a.status}'`, null, true];
+              return (
+                <>
+                  <button className="btn btn-primary btn-block" disabled={disabled} onClick={() => action?.()}>
+                    {busy ? 'Working…' : label}
+                  </button>
+                  <div className="mono" style={{ fontSize: 10.5, marginTop: 7, color: 'color-mix(in srgb,var(--color-text) 55%,transparent)' }}>
+                    state {a.status}
+                    {a.open_blockers > 0 ? ` · ${a.open_blockers} blocker${a.open_blockers > 1 ? 's' : ''} hold the chain` : ''}
+                    {a.acked_at ? ` · acked ${a.acked_at.slice(0, 16)}` : a.submitted_at ? ` · submitted ${a.submitted_at.slice(0, 16)}` : ''}
+                  </div>
+                  {(adv.approve.error != null || adv.seal.error != null || adv.ack.error != null) && (
+                    <div className="k" style={{ marginTop: 6, color: 'var(--color-accent-700)' }}>
+                      {[adv.approve.error, adv.seal.error, adv.ack.error]
+                        .filter((e): e is Error => e != null).map((e) => e.message).join(' · ')}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
             <div style={{ fontSize: 11, color: 'color-mix(in srgb,var(--color-text) 52%,transparent)', marginTop: 8, lineHeight: 1.55 }}>
-              Sealing writes an immutable manifest: rulebook hash, approved-rule set, agent run ids and the gold table snapshot version.
+              Sign-off chain: analyst → actuary → compliance officer, each gated on zero open
+              blockers. Sealing renders the fixed-width TSPR file and writes the SHA-256-sealed
+              submission row to the audit chain.
             </div>
           </Blueprint>
-          {live && violations.length > 0 ? (
+          {live && violations.length > 0 && (
             <Blueprint style={{ padding: '16px 18px' }}>
               <div className="k" style={{ marginBottom: 8 }}>Open edits on this record</div>
               {violations.map((v, i) => (
@@ -168,18 +256,32 @@ export function RecordScreen() {
                 </div>
               ))}
             </Blueprint>
-          ) : (
-            <Blueprint style={{ padding: '16px 18px' }}>
-              <div className="k" style={{ marginBottom: 8 }}>Reconciliation to financials</div>
-              {RECON.map((r) => (
-                <div key={r.k} style={{ display: 'flex', gap: 10, padding: '6px 0', fontSize: 12.5, borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
-                  <span className="muted" style={{ flex: 1 }}>{r.k}</span>
-                  <span className="mono" style={{ fontSize: 12 }}>{r.v}</span>
-                  <span className={'tag ' + r.tagClass}>{r.d}</span>
-                </div>
-              ))}
-            </Blueprint>
           )}
+          <Blueprint style={{ padding: '16px 18px' }}>
+            <div className="k" style={{ marginBottom: 8 }}>
+              Reconciliation to financials
+              {live && reconQ.data ? ' — GL tie-out' : reconQ.isLoading ? ' · loading…' : !live ? '' : ' · unavailable'}
+            </div>
+            {live && reconQ.data ? reconQ.data.lines.map((l) => (
+              <div key={l.label} style={{ display: 'flex', gap: 10, padding: '6px 0', fontSize: 12.5, borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
+                <span className="muted" style={{ flex: 1 }}>{l.label}</span>
+                <span className="mono" style={{ fontSize: 12 }}>
+                  {l.money ? '$' + Math.round(l.stat).toLocaleString('en-US') : l.stat.toLocaleString('en-US')}
+                  {' / '}
+                  {l.money ? '$' + Math.round(l.gl).toLocaleString('en-US') : l.gl.toLocaleString('en-US')}
+                </span>
+                <span className={'tag ' + (l.status === 'Tie' ? 'tag-neutral' : 'tag-accent')}>
+                  {l.status === 'Tie' ? 'Tie' : `Δ ${l.money ? '$' : ''}${Math.round(l.delta).toLocaleString('en-US')}`}
+                </span>
+              </div>
+            )) : RECON.map((r) => (
+              <div key={r.k} style={{ display: 'flex', gap: 10, padding: '6px 0', fontSize: 12.5, borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
+                <span className="muted" style={{ flex: 1 }}>{r.k}</span>
+                <span className="mono" style={{ fontSize: 12 }}>{r.v}</span>
+                <span className={'tag ' + r.tagClass}>{r.d}</span>
+              </div>
+            ))}
+          </Blueprint>
         </div>
       </div>
     </div>

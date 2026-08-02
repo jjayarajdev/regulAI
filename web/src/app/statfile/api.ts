@@ -2,8 +2,8 @@
 // that shape API responses into the structures the screens render. Every
 // screen keeps the design fixtures as fallback: when the warehouse is cold or
 // a query fails, the UI degrades to demo content instead of breaking.
-import { useQuery } from '@tanstack/react-query';
-import { getJson } from '../../api/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getJson, postJson } from '../../api/client';
 import type {
   Filing, FilingsResponse, KgNeighborhoodResponse, KgRulesResponse,
   PipelineStateResponse, Violation,
@@ -66,11 +66,157 @@ export interface CatalogSchema {
   schema: string; description: string; table_count: number;
   populated_count: number; total_rows: number; tables: CatalogTable[];
 }
+export interface ContractColumn {
+  name: string; dtype: string; description: string; required: boolean;
+  domain_encoded: boolean; source: string | null; transform: string | null;
+  rule: string | null; coverage_pct: number | null;
+}
+export interface PipelineContractResponse { target: string; row_count: number; columns: ContractColumn[] }
+export const usePipelineContract = () =>
+  useQuery({
+    queryKey: ['sf', 'pipeline-contract'],
+    queryFn: () => getJson<PipelineContractResponse>('/pipeline/contract'),
+  });
+
 export const useCatalog = () =>
   useQuery({
     queryKey: ['sf', 'catalog'],
     queryFn: () => getJson<{ schemas: CatalogSchema[] }>('/catalog'),
   });
+
+// Persist an approve/reject decision on a canon rule, then refetch the queue
+// (and the dashboard's rules-pending KPI, which reads the same query).
+export const useRuleDecision = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ruleId, decision }: { ruleId: string; decision: 'approved' | 'rejected' }) =>
+      postJson<{ ok: boolean; rule: { id: string; status: string } }>(
+        `/kg/rules/${encodeURIComponent(ruleId)}/decision`, { decision },
+      ),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['sf', 'kg-rules'] }),
+  });
+};
+
+// Run the full cycle: Bronze→Silver, Silver→Gold, then let every query
+// refetch (validation re-runs on the fresh gold). Long-running — Databricks.
+export const useRunCycle = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const silver = await postJson<{ ok: boolean }>('/pipeline/silver');
+      const gold = await postJson<{ ok: boolean }>('/pipeline/gold');
+      return { ok: silver.ok && gold.ok };
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['sf'] }),
+  });
+};
+
+// Canon diff — every node mutated since the given ISO time.
+export interface KgDiffNode { id: string; type: string; name: string; created_at?: string; change_summary?: string; effective_until?: string }
+export interface KgDiffResponse {
+  scope: string; from: string; total_changes: number;
+  added_nodes: KgDiffNode[]; modified_nodes: KgDiffNode[]; superseded_nodes: KgDiffNode[];
+  added_edges: Array<{ src_name: string; dst_name: string; type: string }>;
+  audit_entries: Array<{ id: string; action: string; actor: string; summary: string; occurred_at: string; affected_count: number }>;
+}
+export const useKgDiff = (since: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'kg-diff', since],
+    queryFn: () => getJson<KgDiffResponse>('/kg/diff?since=' + encodeURIComponent(since!)),
+    enabled: !!since,
+  });
+
+// Reconciliation: stat-side gold records tied to the BillingCenter GL ledger.
+export interface ReconLine {
+  label: string; stat: number; gl: number; delta: number; money: boolean;
+  status: 'Tie' | 'Variance';
+}
+export const useReconciliation = (filingId: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'recon', filingId],
+    queryFn: () => getJson<{ filing_id: string; lines: ReconLine[] }>(
+      '/reconciliation/' + encodeURIComponent(filingId!)),
+    enabled: !!filingId,
+  });
+
+// Sign-off chain: approval state + advancing actions for the active filing.
+export interface ApprovalState {
+  filing_id: string; status: string; open_blockers: number;
+  next_role: 'analyst' | 'actuary' | 'officer' | null; can_seal: boolean;
+  submitted_at: string | null; acked_at: string | null;
+}
+export const useApprovalState = (filingId: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'approval', filingId],
+    queryFn: () => getJson<ApprovalState>('/filing/' + encodeURIComponent(filingId!) + '/approval-state'),
+    enabled: !!filingId,
+  });
+export const useAdvanceFiling = () => {
+  const qc = useQueryClient();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['sf', 'approval'] });
+    qc.invalidateQueries({ queryKey: ['sf', 'filings'] });
+  };
+  return {
+    approve: useMutation({
+      mutationFn: ({ filingId, role }: { filingId: string; role: string }) =>
+        postJson<{ ok: boolean }>(`/filing/${encodeURIComponent(filingId)}/approve`, { role }),
+      onSettled: invalidate,
+    }),
+    // Sealing renders + persists the submission file (state → submitted).
+    seal: useMutation({
+      mutationFn: (filingId: string) =>
+        getJson<{ sha256?: string }>(`/filing/${encodeURIComponent(filingId)}/file?persist=true`),
+      onSettled: invalidate,
+    }),
+    ack: useMutation({
+      mutationFn: (filingId: string) =>
+        postJson<{ receipt_id?: string }>(`/filing/${encodeURIComponent(filingId)}/ack`),
+      onSettled: invalidate,
+    }),
+  };
+};
+
+// Analyst triage: suppress (with memo) / release / assign a rule's exceptions.
+export const useSuppress = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ruleNumber, memo }: { ruleNumber: string; memo: string }) =>
+      postJson<{ ok: boolean }>('/validate/suppress', { rule_number: ruleNumber, memo }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['sf', 'validate-all'] }),
+  });
+};
+export const useUnsuppress = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ruleNumber: string) =>
+      postJson<{ ok: boolean }>('/validate/unsuppress', { rule_number: ruleNumber }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['sf', 'validate-all'] }),
+  });
+};
+export const useAssign = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ruleNumber, assignee }: { ruleNumber: string; assignee: string }) =>
+      postJson<{ ok: boolean }>('/validate/assign', { rule_number: ruleNumber, assignee }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['sf', 'validate-all'] }),
+  });
+};
+
+// Bulk-apply the server's deterministic remedy for one rule's violations.
+// 400 when the rule has no automated fix — the UI surfaces the detail.
+export interface FixResult {
+  ok: boolean; rule_number: string;
+  fixed: Array<{ policy_number: string; old: string; new: string }>;
+  skipped: Array<{ policy_number: string; reason: string }>;
+}
+export const useApplyFix = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ruleNumber: string) => postJson<FixResult>('/validate/fix', { rule_number: ruleNumber }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['sf', 'validate-all'] }),
+  });
+};
 
 export const useNeighborhood = (ruleId: string | null) =>
   useQuery({
@@ -89,7 +235,38 @@ export interface AgentRunsResponse {
   stats: { runs: number; tokens: number; mean_confidence: number | null; escalated: number };
 }
 export const useAgentRuns = () =>
-  useQuery({ queryKey: ['sf', 'agent-runs'], queryFn: () => getJson<AgentRunsResponse>('/agents/runs') });
+  useQuery({
+    queryKey: ['sf', 'agent-runs'],
+    queryFn: () => getJson<AgentRunsResponse>('/agents/runs'),
+    // A transient warehouse hiccup must not swap real telemetry for the demo
+    // fixture mid-session — keep showing the last good data.
+    placeholderData: (prev) => prev,
+    staleTime: 30_000,
+  });
+
+// One run + its correlated evidence: warehouse audit actions in the run's
+// time window, KG audit entries matched by the run's task content.
+export interface AgentRunAction {
+  action_id: string; filing_batch_id: string; action_type: string; actor: string;
+  target_record: string | null; target_rule: string | null; summary: string | null; acted_at: string;
+}
+export interface AgentRunKgEntry {
+  id: string; action: string; actor: string; occurred_at: string;
+  summary: string; affected_count: number | null;
+}
+export interface AgentRunStep {
+  seq: number; step: string; detail: string; status: string; duration_ms: number | null;
+}
+export interface AgentRunDetail {
+  run: AgentRunRow; steps: AgentRunStep[];
+  actions: AgentRunAction[]; kg_entries: AgentRunKgEntry[];
+}
+export const useAgentRunDetail = (runId: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'agent-run', runId],
+    queryFn: () => getJson<AgentRunDetail>('/agents/runs/' + encodeURIComponent(runId!)),
+    enabled: !!runId,
+  });
 
 export interface RegDocument {
   document_id: string; document_type: string; title: string; issuing_body: string;
@@ -132,7 +309,9 @@ export function kpisFrom(
   filings: Filing[], val?: ValidateAllResponse, pipe?: PipelineStateResponse, rulesPending?: number,
 ): Kpi[] {
   const gold = pipe?.layers.find((l) => l.layer === 'GOLD');
-  const violations = val ? Object.values(val.by_filing).flatMap((f) => f.violations) : [];
+  const violations = val
+    ? Object.values(val.by_filing).flatMap((f) => f.violations).filter((v) => !v.suppressed)
+    : [];
   const blocking = violations.filter((v) => v.severity === 'ERROR').length;
   const due = filings.filter((f) => f.is_active).map((f) => f.due_date).sort()[0];
   const days = due ? Math.max(0, Math.round((+new Date(due) - Date.now()) / 86400000)) : null;
@@ -158,7 +337,12 @@ export function layersFrom(pipe?: PipelineStateResponse) {
 }
 
 // Group violations by rule → the triage table rows.
-export interface GroupedError extends EditError { violations: Violation[] }
+export interface GroupedError extends EditError {
+  violations: Violation[];
+  suppressed?: boolean;
+  memo?: string;
+  assignee?: string;
+}
 export function groupViolations(val?: ValidateAllResponse): GroupedError[] {
   if (!val) return ERRORS.map((e) => ({ ...e, violations: [] }));
   const all = Object.values(val.by_filing).flatMap((f) => f.violations);
@@ -173,6 +357,7 @@ export function groupViolations(val?: ValidateAllResponse): GroupedError[] {
     .map(([code, vs]) => {
       const v = vs[0];
       const sev = v.severity === 'ERROR' ? 2 : v.severity === 'WARNING' ? 1 : 0;
+      const suppressed = !!val.suppressions?.[code];
       return {
         code,
         field: v.rule_name,
@@ -180,11 +365,15 @@ export function groupViolations(val?: ValidateAllResponse): GroupedError[] {
         count: fmt(vs.length),
         origin: v.citation || 'Rule engine',
         sev: sev as 0 | 1 | 2,
-        status: sev === 2 ? 'Blocking' : sev === 1 ? 'Warn' : 'Info',
+        status: suppressed ? 'Suppressed' : sev === 2 ? 'Blocking' : sev === 1 ? 'Warn' : 'Info',
         violations: vs,
+        suppressed,
+        memo: val.suppressions?.[code]?.memo,
+        assignee: val.assignments?.[code]?.assignee,
       };
     })
-    .sort((a, b) => b.sev - a.sev || b.violations.length - a.violations.length);
+    .sort((a, b) => Number(!!a.suppressed) - Number(!!b.suppressed)
+      || b.sev - a.sev || b.violations.length - a.violations.length);
 }
 
 // Catalog schemas → the three medallion layer cards. Keeps the design's layer
@@ -228,7 +417,7 @@ export function policiesFrom(val?: ValidateAllResponse): string[] {
 export function queueFrom(errors: GroupedError[], rulesPending?: number): QueueItem[] {
   if (!errors.some((e) => e.violations.length)) return QUEUE;
   const items: QueueItem[] = errors
-    .filter((e) => e.sev === 2)
+    .filter((e) => e.sev === 2 && !e.suppressed)
     .slice(0, 3)
     .map((e) => ({
       kicker: 'Exception',

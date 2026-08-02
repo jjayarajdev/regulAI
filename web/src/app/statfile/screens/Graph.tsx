@@ -32,7 +32,11 @@ const DEMO_SATS: Box[] = [
 const H = 34;
 const COL_X = [40, 300, 560, 820];
 const COL_W = [230, 230, 230, 230];
-const COL_LABEL: Record<string, number> = { Citation: 0, Section: 0, root: 1, Rule: 1, CodeValue: 2 };
+const COL_LABEL: Record<string, number> = {
+  Citation: 0, Section: 0, RegulationDocument: 0, StatPlanEdition: 0,
+  root: 1, Rule: 1, EndorsementRule: 1, HITLTriggerRule: 1, BulletinOverride: 1,
+  CodeList: 2, CodeValue: 2, FieldRequirement: 2, RecordLayout: 2,
+};
 
 function Edge({ x1, y1, x2, y2, on }: { x1: number; y1: number; x2: number; y2: number; on?: boolean }) {
   return (
@@ -51,7 +55,8 @@ function NodeBox({ n, active, onSelect }: { n: Box; active: boolean; onSelect?: 
         {n.t.length > 28 ? n.t.slice(0, 27) + '…' : n.t}
       </text>
       <text x={9} y={27} fontSize={9.5} letterSpacing=".06em" fill={active ? 'rgba(242,242,243,.8)' : 'rgba(29,31,32,.5)'}>
-        {n.s.length > 34 ? n.s.slice(0, 33) + '…' : n.s}
+        {/* tail-truncate: the distinguishing part (col ref, layout) is at the end */}
+        {n.s.length > 34 ? '…' + n.s.slice(-33) : n.s}
       </text>
     </g>
   );
@@ -59,12 +64,15 @@ function NodeBox({ n, active, onSelect }: { n: Box; active: boolean; onSelect?: 
 
 export function GraphScreen() {
   const rulesQ = useKgRules();
-  const executable = useMemo(
-    () => (rulesQ.data?.rules ?? []).filter((r) => r.executable && r.currently_active),
+  // Every rule in the canon — executable edits first, then by name — so the
+  // whole rulebook's lineage is explorable, not just the 11 edits.
+  const pickable = useMemo(
+    () => [...(rulesQ.data?.rules ?? [])].sort((a, b) =>
+      Number(b.executable) - Number(a.executable) || a.name.localeCompare(b.name)),
     [rulesQ.data],
   );
   const [ruleIdx, setRuleIdx] = useState(0);
-  const centerRule = executable[Math.min(ruleIdx, Math.max(0, executable.length - 1))];
+  const centerRule = pickable[Math.min(ruleIdx, Math.max(0, pickable.length - 1))];
   const nbQ = useNeighborhood(centerRule?.id ?? null);
   const live = !!(nbQ.data && nbQ.data.nodes.length > 0);
 
@@ -86,7 +94,7 @@ export function GraphScreen() {
         boxes.set(n.id, {
           id: n.id, x: COL_X[ci], y: top + ri * 56, w: COL_W[ci],
           t: n.label,
-          s: n.group === 'root' ? 'Rule · canon' : n.group,
+          s: n.group === 'root' ? 'Rule · canon' : (n.sublabel ?? n.group),
         });
       });
     });
@@ -97,23 +105,44 @@ export function GraphScreen() {
   const detail = useMemo(() => {
     if (!live) {
       const n = GRAPH_NODES[selId ?? 'fld-terr'] ?? GRAPH_NODES['fld-terr'];
-      return n;
+      return { ...n, rels: [] as string[] };
     }
-    const node = nbQ.data!.nodes.find((n) => n.id === selId) ?? nbQ.data!.nodes.find((n) => n.group === 'root')!;
-    const degree = nbQ.data!.edges.filter((e) => e.from === node.id || e.to === node.id).length;
+    const nodes = nbQ.data!.nodes;
+    const node = nodes.find((n) => n.id === selId) ?? nodes.find((n) => n.group === 'root')!;
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    // The selected node's relationships, with direction and type spelled out.
+    const rels = nbQ.data!.edges
+      .filter((e) => e.from === node.id || e.to === node.id)
+      .map((e) => {
+        const out = e.from === node.id;
+        const other = byId.get(out ? e.to : e.from);
+        return other ? `${out ? '→' : '←'} ${e.label} · ${other.label}` : null;
+      })
+      .filter((s): s is string => s != null);
+    const isRoot = node.group === 'root';
+    const desc = node.title.split('\n').slice(1).join('\n');
+    const props: Array<[string, string | null | undefined]> = isRoot && centerRule
+      ? [
+          ['Rule id', centerRule.id.slice(0, 8)],
+          ['Jurisdiction', centerRule.jurisdiction_code],
+          ['Kind', centerRule.rule_kind],
+          ['Confidence', centerRule.confidence != null ? Math.round(centerRule.confidence * 100) + '%' : null],
+          ['Severity', centerRule.severity],
+          ['Version', String(centerRule.version)],
+          ['Status', centerRule.status],
+          ['Connections', String(rels.length)],
+        ]
+      : [
+          ['Type', node.group],
+          ['Connections', String(rels.length)],
+        ];
     return {
-      kind: node.group === 'root' ? 'Derived rule' : node.group,
+      kind: isRoot ? 'Derived rule' : node.group,
       title: node.label,
-      desc: node.title.split('\n').slice(1).join('\n') || node.label,
-      props: [
-        ['Node id', node.id.slice(-12)],
-        ['Group', node.group],
-        ['Connections', String(degree)],
-        ...(centerRule && node.group === 'root'
-          ? [['Severity', centerRule.severity], ['Version', String(centerRule.version)], ['Status', centerRule.status]]
-          : []),
-      ] as Array<[string, string]>,
-      impact: `Connected to ${degree} node${degree === 1 ? '' : 's'} in the canon. ` +
+      desc: desc && desc !== node.label ? desc : '',
+      props: props.filter((p): p is [string, string] => p[1] != null && p[1] !== ''),
+      rels: rels.slice(0, 10),
+      impact: `Connected to ${rels.length} node${rels.length === 1 ? '' : 's'} in the canon. ` +
         'A change here re-versions the rule and re-opens the approval gate.',
     };
   }, [live, nbQ.data, selId, centerRule]);
@@ -121,23 +150,43 @@ export function GraphScreen() {
   return (
     <div className="sc" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 30, alignItems: 'start' }}>
       <div>
-        {executable.length > 0 && (
+        {pickable.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span className="k">Rule</span>
-            <span className="mono" style={{ fontSize: 12 }}>{centerRule?.name}</span>
-            <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+            <select
+              value={ruleIdx}
+              onChange={(e) => { setRuleIdx(Number(e.target.value)); setSelId(null); }}
+              style={{
+                flex: 1, minWidth: 0, padding: '5px 8px', fontSize: 12,
+                fontFamily: 'ui-monospace, Menlo, monospace',
+                border: '1px solid var(--color-divider)', borderRadius: 0,
+                background: 'transparent', color: 'var(--color-text)',
+              }}
+            >
+              {pickable.map((r, i) => (
+                <option key={r.id} value={i}>
+                  {(r.executable ? '⚙ ' : '') + (r.jurisdiction_code ? r.jurisdiction_code.replace('US-', '') + ' · ' : '') + r.name}
+                </option>
+              ))}
+            </select>
+            <span style={{ display: 'flex', gap: 6 }}>
               <button className="btn btn-secondary" disabled={ruleIdx === 0}
-                onClick={() => { setRuleIdx((i) => i - 1); setSelId(null); }}>← Prev rule</button>
-              <button className="btn btn-secondary" disabled={ruleIdx >= executable.length - 1}
-                onClick={() => { setRuleIdx((i) => i + 1); setSelId(null); }}>Next rule →</button>
+                onClick={() => { setRuleIdx((i) => i - 1); setSelId(null); }}>← Prev</button>
+              <button className="btn btn-secondary" disabled={ruleIdx >= pickable.length - 1}
+                onClick={() => { setRuleIdx((i) => i + 1); setSelId(null); }}>Next →</button>
             </span>
           </div>
         )}
         <Blueprint className="gridwash" style={{ padding: 20 }}>
           <div style={{ display: 'flex', gap: 14, marginBottom: 10 }}>
             {live
-              ? ['Clause / Section', '→ Rule', '→ Code value', '→ Related'].map((l) => <span key={l} className="k">{l}</span>)
+              ? ['Source document', '→ Rule', '→ Codes & fields', '→ Related'].map((l) => <span key={l} className="k">{l}</span>)
               : ['Clause', '→ Rule', '→ Stat field', '→ Silver column', '→ Guidewire source'].map((l) => <span key={l} className="k">{l}</span>)}
+            {live && nbQ.data?.truncated && Object.keys(nbQ.data.truncated).length > 0 && (
+              <span className="k" style={{ marginLeft: 'auto', opacity: 0.7 }}>
+                capped: {Object.entries(nbQ.data.truncated).map(([l, n]) => `+${n} ${l}`).join(' · ')}
+              </span>
+            )}
           </div>
           {live && layout ? (
             <svg viewBox={`0 0 1140 ${layout.height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
@@ -147,8 +196,9 @@ export function GraphScreen() {
                   const b = layout.boxes.get(e.to);
                   if (!a || !b) return null;
                   const [l, r] = a.x <= b.x ? [a, b] : [b, a];
+                  const focus = selId ?? nbQ.data!.center;
                   return <Edge key={i} x1={l.x + l.w} y1={l.y + H / 2} x2={r.x} y2={r.y + H / 2}
-                    on={e.from === nbQ.data!.center || e.to === nbQ.data!.center} />;
+                    on={e.from === focus || e.to === focus} />;
                 })}
               </g>
               <g>
@@ -187,7 +237,9 @@ export function GraphScreen() {
         <Blueprint style={{ padding: '15px 17px' }}>
           <div className="k">{detail.kind}</div>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: 21, margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{detail.title}</div>
-          <div style={{ fontSize: 13, lineHeight: 1.6, color: 'color-mix(in srgb,var(--color-text) 78%,transparent)', whiteSpace: 'pre-wrap' }}>{detail.desc}</div>
+          {detail.desc && (
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: 'color-mix(in srgb,var(--color-text) 78%,transparent)', whiteSpace: 'pre-wrap' }}>{detail.desc}</div>
+          )}
         </Blueprint>
         <Blueprint style={{ padding: '15px 17px' }}>
           <div className="k" style={{ marginBottom: 9 }}>Properties</div>
@@ -198,6 +250,16 @@ export function GraphScreen() {
             </div>
           ))}
         </Blueprint>
+        {detail.rels.length > 0 && (
+          <Blueprint style={{ padding: '15px 17px' }}>
+            <div className="k" style={{ marginBottom: 9 }}>Relationships</div>
+            {detail.rels.map((r, i) => (
+              <div key={i} className="mono" style={{ fontSize: 11, padding: '4px 0', lineHeight: 1.5, borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)', overflowWrap: 'anywhere' }}>
+                {r}
+              </div>
+            ))}
+          </Blueprint>
+        )}
         <Blueprint style={{ padding: '15px 17px' }}>
           <div className="k" style={{ marginBottom: 9 }}>Impact if changed</div>
           <div style={{ fontSize: 12.5, lineHeight: 1.6 }}>{detail.impact}</div>

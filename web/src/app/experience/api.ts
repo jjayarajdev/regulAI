@@ -3,11 +3,18 @@
 // renders. Self-contained (own query keys) so mutations can invalidate cleanly.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getJson, postJson } from '../../api/client';
-import type { Filing, FilingsResponse, StateResponse, ValidateResponse, Violation } from '../../api/types';
+import type {
+  EditAssignment, EditSuppression, Filing, FilingsResponse, StateResponse,
+  ValidateResponse, Violation,
+} from '../../api/types';
 
 // One-call validation for every filing (collapses N per-filing validates).
 export interface FilingValidation { summary: ValidateResponse['summary']; violations: Violation[]; run_id: string | null }
-export interface ValidateAllResponse { by_filing: Record<string, FilingValidation> }
+export interface ValidateAllResponse {
+  by_filing: Record<string, FilingValidation>;
+  suppressions?: Record<string, EditSuppression>;
+  assignments?: Record<string, EditAssignment>;
+}
 
 // ── extra response shapes (not in api/types) ──────────────────────────────
 export interface SubmissionResponse {

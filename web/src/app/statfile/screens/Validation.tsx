@@ -3,38 +3,59 @@
 // the sample panel pulls the first failing policy's bronze fields.
 import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
-import { groupViolations, usePolicyFields, useValidateAll, type GroupedError } from '../api';
+import {
+  groupViolations, useApplyFix, useAssign, usePolicyFields, useSuppress,
+  useUnsuppress, useValidateAll, type GroupedError,
+} from '../api';
+import { ApiError } from '../../../api/client';
 import { ACC, ACC9, ERR_DETAIL, NEU } from '../data';
 
 const sevDot = (s: number) => (s === 2 ? ACC9 : s === 1 ? ACC : NEU);
 const fmt = (n: number) => n.toLocaleString('en-US');
 
-export function ValidationScreen() {
+export function ValidationScreen({ onTrace }: { onTrace?: (policy: string) => void }) {
   const valQ = useValidateAll();
   const errors = useMemo(() => groupViolations(valQ.data), [valQ.data]);
   const live = errors.some((e) => e.violations.length > 0);
 
   const [sev, setSev] = useState('all');
   const [errCode, setErrCode] = useState<string | null>(null);
+  const fixMut = useApplyFix();
+  const suppressMut = useSuppress();
+  const unsuppressMut = useUnsuppress();
+  const assignMut = useAssign();
+  // Inline forms for suppress-memo / assignee entry.
+  const [form, setForm] = useState<'suppress' | 'assign' | null>(null);
+  const [memo, setMemo] = useState('');
+  const [assignee, setAssignee] = useState('');
+  const pickError = (code: string) => {
+    setErrCode(code); setForm(null);
+    fixMut.reset(); suppressMut.reset(); unsuppressMut.reset(); assignMut.reset();
+  };
 
-  const shown = errors.filter((e) => (sev === 'all' ? true : String(e.sev) === sev));
+  const shown = errors.filter((e) =>
+    sev === 'all' ? true : sev === 'sup' ? !!e.suppressed : String(e.sev) === sev && !e.suppressed);
   const E: GroupedError = errors.find((e) => e.code === errCode) ?? errors[0];
   const demo = !live ? ERR_DETAIL[E?.code] ?? ERR_DETAIL['TX-E118'] : null;
 
   const firstViolation = E?.violations[0];
   const policyQ = usePolicyFields(firstViolation?.policy_number ?? null);
 
+  const size = (e: GroupedError) => e.violations.length || parseInt(e.count.replace(/,/g, '')) || 0;
+  const activeErrors = errors.filter((e) => !e.suppressed);
   const counts = {
-    all: errors.reduce((n, e) => n + (e.violations.length || parseInt(e.count.replace(/,/g, '')) || 0), 0),
-    2: errors.filter((e) => e.sev === 2).reduce((n, e) => n + (e.violations.length || parseInt(e.count.replace(/,/g, '')) || 0), 0),
-    1: errors.filter((e) => e.sev === 1).reduce((n, e) => n + (e.violations.length || parseInt(e.count.replace(/,/g, '')) || 0), 0),
-    0: errors.filter((e) => e.sev === 0).reduce((n, e) => n + (e.violations.length || parseInt(e.count.replace(/,/g, '')) || 0), 0),
+    all: activeErrors.reduce((n, e) => n + size(e), 0),
+    2: activeErrors.filter((e) => e.sev === 2).reduce((n, e) => n + size(e), 0),
+    1: activeErrors.filter((e) => e.sev === 1).reduce((n, e) => n + size(e), 0),
+    0: activeErrors.filter((e) => e.sev === 0).reduce((n, e) => n + size(e), 0),
+    sup: errors.filter((e) => e.suppressed).reduce((n, e) => n + size(e), 0),
   };
   const facets = [
     { name: 'All', count: fmt(counts.all), dot: NEU, sev: 'all' },
     { name: 'Blocking', count: fmt(counts[2]), dot: ACC9, sev: '2' },
     { name: 'Warn', count: fmt(counts[1]), dot: ACC, sev: '1' },
     { name: 'Info', count: fmt(counts[0]), dot: NEU, sev: '0' },
+    ...(counts.sup > 0 ? [{ name: 'Suppressed', count: fmt(counts.sup), dot: NEU, sev: 'sup' }] : []),
   ];
 
   // Sample failing record: live bronze fields when we have them, else the
@@ -90,15 +111,19 @@ export function ValidationScreen() {
           </thead>
           <tbody>
             {shown.map((e) => (
-              <tr key={e.code} className="row" style={{ cursor: 'pointer' }} onClick={() => setErrCode(e.code)}>
+              <tr key={e.code} className="row" style={{ cursor: 'pointer' }} onClick={() => pickError(e.code)}>
                 <td><span style={{ display: 'inline-block', width: 8, height: 8, background: sevDot(e.sev) }} /></td>
                 <td className="mono" style={{ fontSize: 11.5, color: 'var(--color-accent-700)' }}>{e.code}</td>
                 <td className="mono" style={{ fontSize: 11.5 }}>{e.field}</td>
                 <td style={{ fontSize: 12.5 }}>{e.desc}</td>
                 <td className="mono" style={{ fontSize: 12, textAlign: 'right' }}>{e.count}</td>
                 <td style={{ fontSize: 11.5, color: 'color-mix(in srgb,var(--color-text) 58%,transparent)' }}>{e.origin}</td>
-                <td style={{ textAlign: 'right' }}>
-                  <span className={'tag ' + (e.sev === 2 ? 'tag-accent' : e.sev === 1 ? 'tag-outline' : 'tag-neutral')}>{e.status}</span>
+                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  {e.assignee && <span className="tag tag-outline" style={{ marginRight: 5 }}>{e.assignee}</span>}
+                  <span className={'tag ' + (e.suppressed ? 'tag-neutral' : e.sev === 2 ? 'tag-accent' : e.sev === 1 ? 'tag-outline' : 'tag-neutral')}
+                    style={e.suppressed ? { opacity: 0.65 } : undefined}>
+                    {e.status}
+                  </span>
                 </td>
               </tr>
             ))}
@@ -110,8 +135,14 @@ export function ValidationScreen() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <span className="mono" style={{ fontSize: 12, color: 'var(--color-accent-700)' }}>{E.code}</span>
               <h4>{E.field}</h4>
+              {E.assignee && <span className="tag tag-outline">assigned · {E.assignee}</span>}
               <span className="tag tag-outline" style={{ marginLeft: 'auto' }}>{E.count} records</span>
             </div>
+            {E.suppressed && E.memo && (
+              <div style={{ fontSize: 12.5, lineHeight: 1.6, padding: '9px 12px', marginBottom: 12, background: 'color-mix(in srgb,var(--color-text) 5%,transparent)', borderLeft: '2px solid var(--color-neutral-500, #999)' }}>
+                <span className="k" style={{ marginRight: 8 }}>Suppressed</span>{E.memo}
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
               <div>
                 <div className="k" style={{ marginBottom: 7 }}>Why it fired</div>
@@ -136,12 +167,89 @@ export function ValidationScreen() {
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16, paddingTop: 13, borderTop: '1px solid var(--color-divider)' }}>
-              <button className="btn btn-secondary">Trace to Guidewire</button>
-              <button className="btn btn-secondary">Suppress with memo</button>
-              <button className="btn btn-secondary">Assign</button>
-              <button className="btn btn-primary" style={{ marginLeft: 'auto' }}>Apply agent fix to {E.count}</button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, paddingTop: 13, borderTop: '1px solid var(--color-divider)', alignItems: 'center' }}>
+              <button className="btn btn-secondary" disabled={!firstViolation}
+                onClick={() => firstViolation && onTrace?.(firstViolation.policy_number)}>
+                Trace to Guidewire
+              </button>
+              {E.suppressed ? (
+                <button className="btn btn-secondary" disabled={!live || unsuppressMut.isPending}
+                  onClick={() => unsuppressMut.mutate(E.code)}>
+                  {unsuppressMut.isPending ? 'Releasing…' : 'Unsuppress'}
+                </button>
+              ) : (
+                <button className="btn btn-secondary" disabled={!live}
+                  onClick={() => { setForm(form === 'suppress' ? null : 'suppress'); setMemo(''); }}>
+                  Suppress with memo
+                </button>
+              )}
+              <button className="btn btn-secondary" disabled={!live}
+                onClick={() => { setForm(form === 'assign' ? null : 'assign'); setAssignee(E.assignee ?? ''); }}>
+                {E.assignee ? 'Reassign' : 'Assign'}
+              </button>
+              {fixMut.data && (
+                <span className="k" style={{ marginLeft: 'auto' }}>
+                  {fixMut.data.fixed.length} fixed · {fixMut.data.skipped.length} skipped — revalidating
+                </span>
+              )}
+              {fixMut.error != null && (
+                <span className="k" style={{ marginLeft: 'auto', color: 'var(--color-accent-700)' }}>
+                  {fixMut.error instanceof ApiError ? fixMut.error.message : 'fix failed'}
+                </span>
+              )}
+              <button
+                className="btn btn-primary"
+                style={{ marginLeft: fixMut.data || fixMut.error != null ? undefined : 'auto' }}
+                disabled={!live || fixMut.isPending}
+                onClick={() => fixMut.mutate(E.code)}
+              >
+                {fixMut.isPending ? 'Applying fix…' : `Apply agent fix to ${E.count}`}
+              </button>
             </div>
+
+            {form === 'suppress' && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'flex-start' }}>
+                <textarea
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  placeholder={`Why is ${E.code} being suppressed? (required — lands in the audit trail)`}
+                  rows={2}
+                  style={{
+                    flex: 1, padding: '8px 10px', fontSize: 12.5, fontFamily: 'var(--font-body)',
+                    border: '1px solid var(--color-divider)', borderRadius: 0,
+                    background: 'transparent', color: 'var(--color-text)', resize: 'vertical',
+                  }}
+                />
+                <button className="btn btn-primary" disabled={memo.trim().length < 5 || suppressMut.isPending}
+                  onClick={() => suppressMut.mutate({ ruleNumber: E.code, memo: memo.trim() }, { onSuccess: () => setForm(null) })}>
+                  {suppressMut.isPending ? 'Suppressing…' : 'Suppress'}
+                </button>
+              </div>
+            )}
+            {form === 'assign' && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <input
+                  value={assignee}
+                  onChange={(e) => setAssignee(e.target.value)}
+                  placeholder="Assignee (empty to unassign)"
+                  style={{
+                    flex: 1, padding: '7px 10px', fontSize: 12.5, fontFamily: 'var(--font-body)',
+                    border: '1px solid var(--color-divider)', borderRadius: 0,
+                    background: 'transparent', color: 'var(--color-text)',
+                  }}
+                />
+                <button className="btn btn-primary" disabled={assignMut.isPending}
+                  onClick={() => assignMut.mutate({ ruleNumber: E.code, assignee: assignee.trim() }, { onSuccess: () => setForm(null) })}>
+                  {assignMut.isPending ? 'Saving…' : assignee.trim() ? 'Assign' : 'Unassign'}
+                </button>
+              </div>
+            )}
+            {(suppressMut.error != null || assignMut.error != null || unsuppressMut.error != null) && (
+              <div className="k" style={{ marginTop: 8, color: 'var(--color-accent-700)' }}>
+                {[suppressMut.error, assignMut.error, unsuppressMut.error]
+                  .filter((e): e is ApiError => e instanceof ApiError).map((e) => e.message).join(' · ') || 'action failed'}
+              </div>
+            )}
           </Blueprint>
         )}
       </section>

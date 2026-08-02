@@ -2,7 +2,7 @@
 // claude.ai/design mock. Shell: sidebar nav + header; each screen is its own
 // component. Cross-screen navigation goes through `go`.
 import { useState } from 'react';
-import { useFilings } from './api';
+import { useFilings, useRunCycle } from './api';
 import { NAV, TITLES, type ScreenId } from './data';
 import { DashboardScreen } from './screens/Dashboard';
 import { RulesScreen } from './screens/Rules';
@@ -23,6 +23,13 @@ export function StatFileApp() {
   const [screen, setScreen] = useState<ScreenId>('dash');
   const go = (s: ScreenId) => () => setScreen(s);
   const [crumb, title] = TITLES[screen];
+
+  // "Trace to Guidewire" on the validation screen lands the record inspector
+  // on that policy.
+  const [tracePolicy, setTracePolicy] = useState<string | null>(null);
+  const traceTo = (policy: string) => { setTracePolicy(policy); setScreen('record'); };
+
+  const cycleMut = useRunCycle();
 
   // Data-source pill: connecting… → live data / demo data. Live means the
   // warehouse answered; a cold/failed warehouse degrades to demo fixtures.
@@ -78,7 +85,16 @@ export function StatFileApp() {
               </span>
               <span className="tag tag-outline">TDI Stat Plan v2026.1</span>
               <button className="btn btn-secondary">Export</button>
-              <button className="btn btn-primary">Run cycle</button>
+              <button
+                className="btn btn-primary"
+                disabled={cycleMut.isPending}
+                onClick={() => cycleMut.mutate()}
+                title="Bronze→Silver→Gold, then re-validate"
+              >
+                {cycleMut.isPending ? 'Running cycle…'
+                  : cycleMut.isError ? 'Run failed — retry'
+                  : 'Run cycle'}
+              </button>
             </div>
           </header>
 
@@ -88,8 +104,8 @@ export function StatFileApp() {
             {screen === 'graph' && <GraphScreen />}
             {screen === 'pipe' && <PipelineScreen />}
             {screen === 'agents' && <AgentsScreen />}
-            {screen === 'val' && <ValidationScreen />}
-            {screen === 'record' && <RecordScreen />}
+            {screen === 'val' && <ValidationScreen onTrace={traceTo} />}
+            {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} />}
             {screen === 'iso' && <IsoScreen />}
             {screen === 'config' && <ConfigScreen />}
           </div>

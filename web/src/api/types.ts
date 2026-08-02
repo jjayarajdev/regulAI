@@ -56,7 +56,11 @@ export interface Violation {
   violation_reason: string;
   severity: Severity;
   citation: string;
+  suppressed?: boolean; // analyst-suppressed: visible but not blocking
 }
+
+export interface EditSuppression { memo: string; actor: string; created_at: string }
+export interface EditAssignment { assignee: string; actor: string; assigned_at: string }
 
 export interface ValidateResponse {
   summary: {
@@ -133,15 +137,25 @@ export interface PipelineStateResponse {
 export interface KgRule {
   id: string;
   name: string;
+  confidence: number | null; // Sentinel extraction confidence 0–1
+  short_title: string | null;
+  jurisdiction_code: string | null;
+  rule_kind: string | null;
+  clause_ref: string | null;       // the node's own section ref, e.g. "627.351(6)"
+  created_by: string | null;
+  created_at: string | null;
   severity: Severity;
   version: number;
-  status: 'active' | 'superseded' | 'draft';
+  status: 'active' | 'superseded' | 'draft' | 'approved' | 'rejected';
   effective_from: string | null;
   effective_until: string | null;
-  citation: string;
+  citation: string | null;
   section: string;
   executable: boolean;
   currently_active: boolean;
+  source_doc: string | null;
+  source_kind: string | null;
+  source_url: string | null;
 }
 
 export interface KgRulesResponse {
@@ -244,7 +258,8 @@ export interface KgAuditResponse {
 export interface KgGraphNode {
   id: string;
   label: string;
-  group: 'root' | 'Rule' | 'Citation' | 'Section' | 'CodeValue' | 'Node';
+  group: string; // 'root' or the node's KG label (Rule, CodeList, FieldRequirement, …)
+  sublabel?: string; // distinguishing context (parent layout, code meaning) or the label
   title: string;
   shape: 'box' | 'ellipse' | 'dot';
 }
@@ -259,6 +274,7 @@ export interface KgNeighborhoodResponse {
   nodes: KgGraphNode[];
   edges: KgGraphEdge[];
   center: string;
+  truncated?: Record<string, number>; // label → count of nodes dropped by display caps
 }
 
 // ── mutations ─────────────────────────────────────────────────────
