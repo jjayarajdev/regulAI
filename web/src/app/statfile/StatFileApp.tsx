@@ -2,7 +2,7 @@
 // claude.ai/design mock. Shell: sidebar nav + header; each screen is its own
 // component. Cross-screen navigation goes through `go`.
 import { useState } from 'react';
-import { can, GUEST, useFilings, useLogin, useLogout, useMe, useRunCycle, whoCan, type AppUser } from './api';
+import { can, canSee, GUEST, useFilings, useLogin, useLogout, useMe, useRunCycle, whoCan, type AppUser } from './api';
 import { NAV, TITLES, type ScreenId } from './data';
 import { DashboardScreen } from './screens/Dashboard';
 import { RulesScreen } from './screens/Rules';
@@ -71,9 +71,9 @@ export function StatFileApp() {
   const active = filingsQ.data?.filings.find((f) => f.is_active);
   const dueDays = active ? Math.max(0, Math.round((+new Date(active.due_date) - Date.now()) / 86400000)) : null;
 
-  // If the admin screen is open when the grant disappears (role change,
-  // sign-out to guest), fall back to the dashboard.
-  if (screen === 'users' && !can(user, 'manage_users') && !meQ.isLoading) {
+  // If the open screen isn't visible to this role (sign-out, role change),
+  // fall back to the dashboard.
+  if (!canSee(user, screen) && !meQ.isLoading) {
     setScreen('dash');
   }
 
@@ -128,7 +128,7 @@ export function StatFileApp() {
             <div className="k" style={{ marginTop: 4 }}>Regulatory reporting fabric</div>
           </div>
           <nav className="side-nav">
-            {NAV.filter(([id]) => id !== 'users' || can(user, 'manage_users')).map(([id, label], i) => (
+            {NAV.filter(([id]) => canSee(user, id)).map(([id, label], i) => (
               <button key={id} className={'navbtn' + (screen === id ? ' on' : '')} onClick={go(id)}>
                 <span className="num">{String(i + 1).padStart(2, '0')}</span>
                 <span>{label}</span>

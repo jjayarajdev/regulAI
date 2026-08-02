@@ -42,6 +42,26 @@ export const can = (user: AppUser | undefined, perm: string): boolean =>
   !!user && (GRANTS[perm] ?? []).includes(user.role);
 export const whoCan = (perm: string): string => (GRANTS[perm] ?? []).join(' / ');
 
+// Which nav screens each role sees. Spec/canon management (rulebook, KG,
+// standards, ISO) is the admin's world; the agent console is oversight;
+// validation + record are the preparer/reviewer workbenches; the dashboard
+// is the shared status board.
+import type { ScreenId } from './data';
+export const SCREEN_ACCESS: Record<ScreenId, Role[]> = {
+  dash:   ['viewer', 'analyst', 'actuary', 'admin', 'cco'],
+  val:    ['analyst', 'actuary', 'admin', 'cco'],
+  record: ['analyst', 'actuary', 'admin', 'cco'],
+  pipe:   ['analyst', 'admin', 'cco'],
+  agents: ['admin', 'cco'],
+  rules:  ['admin', 'cco'],
+  graph:  ['admin', 'cco'],
+  iso:    ['admin', 'cco'],
+  config: ['admin', 'cco'],
+  users:  ['admin', 'cco'],
+};
+export const canSee = (user: AppUser | undefined, screen: ScreenId): boolean =>
+  (SCREEN_ACCESS[screen] ?? []).includes(user?.role ?? 'viewer');
+
 export const useUsers = () =>
   useQuery({
     queryKey: ['sf', 'users'],
