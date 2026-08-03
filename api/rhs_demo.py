@@ -398,6 +398,20 @@ def filings_list() -> JSONResponse:
 
 import uuid as _uuid
 
+import threading as _threading
+
+
+def _async_audit(fn, *args, **kwargs):
+    """Run a best-effort audit write off the request thread. Telemetry adds
+    0.7–2s per warehouse round trip; none of it should block the response."""
+    def _run():
+        try:
+            fn(*args, **kwargs)
+        except Exception:  # noqa: BLE001 — audit must never surface
+            logger.warning("async audit write failed (%s)", getattr(fn, "__name__", fn), exc_info=True)
+    _threading.Thread(target=_run, daemon=True).start()
+
+
 def _audit_safe(fn):
     """Decorator: swallow exceptions from audit writes so the live path never fails."""
     def wrapper(*args, **kwargs):
@@ -665,7 +679,11 @@ def _record_validation_run(filing_id: str, rule_results: list[dict], violations:
 
 
 @_audit_safe
-def _record_action(filing_id: str, action_type: str, *,
+def _record_action(filing_id: str, action_type: str, **kw) -> None:
+    _async_audit(_record_action_sync, filing_id, action_type, **kw)
+
+
+def _record_action_sync(filing_id: str, action_type: str, *,
                    actor: str = "system",
                    target_record: str | None = None,
                    target_rule: str | None = None,
@@ -690,8 +708,12 @@ def _record_action(filing_id: str, action_type: str, *,
 _AGENT_RUN_DDL_DONE = False
 
 
+def record_agent_run(agent: str, task: str, **kw) -> None:
+    _async_audit(_record_agent_run_sync, agent, task, **kw)
+
+
 @_audit_safe
-def record_agent_run(agent: str, task: str, *,
+def _record_agent_run_sync(agent: str, task: str, *,
                      model: str | None = None,
                      tokens: int | None = None,
                      duration_ms: int | None = None,
@@ -720,8 +742,12 @@ def record_agent_run(agent: str, task: str, *,
 _AGENT_STEP_DDL_DONE = False
 
 
-@_audit_safe
 def record_agent_steps(run_id: str, steps: list[dict]) -> None:
+    _async_audit(_record_agent_steps_sync, run_id, steps)
+
+
+@_audit_safe
+def _record_agent_steps_sync(run_id: str, steps: list[dict]) -> None:
     """Batch-insert a run's step trace — ONE warehouse round trip per run."""
     global _AGENT_STEP_DDL_DONE
     if not steps:
