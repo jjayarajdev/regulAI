@@ -88,11 +88,16 @@ def test_filings_endpoint_serves_kg_view():
     body = r.json()
     assert "filings" in body
     codes = {f["id"] for f in body["filings"]}
-    assert codes == {"TPA-Q4-2025", "RES-M03-2026", "CL-Q4-2025"}
-    # Each filing carries jurisdiction_code in the response
+    assert codes == {"TPA-Q4-2025", "RES-M03-2026", "CL-Q4-2025", "FHCF-A-2026"}
+    # Each filing carries its jurisdiction_code in the response
+    expected_jur = {
+        "TPA-Q4-2025": "US-TX", "RES-M03-2026": "US-TX",
+        "CL-Q4-2025": "US-TX", "FHCF-A-2026": "US-FL",
+    }
     for f in body["filings"]:
-        assert f.get("jurisdiction_code") == "US-TX", (
-            f"{f['id']} should be US-TX-scoped, got {f.get('jurisdiction_code')}"
+        assert f.get("jurisdiction_code") == expected_jur[f["id"]], (
+            f"{f['id']} should be {expected_jur[f['id']]}-scoped, "
+            f"got {f.get('jurisdiction_code')}"
         )
 
 

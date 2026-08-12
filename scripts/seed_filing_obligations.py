@@ -25,6 +25,17 @@ from packages.rhs.filings import FILINGS
 CARRIER_ID = "org:lone-star-mutual"
 CARRIER_NAME = "Lone Star Mutual"
 
+# Statistical agents that receive submissions. TICO is created by
+# seed_jurisdictions; FHCF (Florida Hurricane Catastrophe Fund) is created
+# here so the FL obligation always has a receiving agent.
+FHCF_AGENT = {
+    "id": "agent:FHCF",
+    "code": "FHCF",
+    "name": "FL Hurricane Catastrophe Fund",
+    "submission_channel": "FHCF Email Submission",
+    "jurisdiction_code": "US-FL",
+}
+
 
 def seed() -> dict:
     summary = {
@@ -33,6 +44,7 @@ def seed() -> dict:
         "obligations_updated": 0,
         "obligates_edges": 0,
         "receives_edges": 0,
+        "agents_created": 0,
     }
     now_iso = dt.datetime.now(dt.UTC).isoformat()
 
@@ -61,10 +73,41 @@ def seed() -> dict:
         if r and r["is_new"]:
             summary["carriers_created"] += 1
 
+        # ── 1b. FHCF StatisticalAgent (idempotent; TICO comes from
+        #        seed_jurisdictions) ─────────────────────────────────────────
+        r = s.run(
+            """
+            MERGE (n:GRENode:StatisticalAgent {id: $id})
+            ON CREATE SET
+                n.type = 'StatisticalAgent',
+                n.name = $name,
+                n.agent_code = $code,
+                n.agent_name = $name,
+                n.submission_channel = $chan,
+                n.jurisdiction_code = $jur,
+                n.version = 1,
+                n.status = 'approved',
+                n.created_at = $now,
+                n.created_by = 'seed_filing_obligations'
+            WITH n
+            OPTIONAL MATCH (j:Jurisdiction {jurisdiction_code: $jur})
+            FOREACH (_ IN CASE WHEN j IS NULL THEN [] ELSE [1] END |
+                MERGE (n)-[:APPLIES_IN]->(j))
+            RETURN CASE WHEN n.created_at = $now THEN 1 ELSE 0 END AS is_new
+            """,
+            id=FHCF_AGENT["id"], code=FHCF_AGENT["code"], name=FHCF_AGENT["name"],
+            chan=FHCF_AGENT["submission_channel"], jur=FHCF_AGENT["jurisdiction_code"],
+            now=now_iso,
+        ).single()
+        if r and r["is_new"]:
+            summary["agents_created"] += 1
+
         # ── 2. FilingObligation nodes ───────────────────────────────────────
         for f in FILINGS:
             obligation_id = f"fo:{f['id']}"
             ranges_json = json.dumps(f["policy_id_ranges"])
+            jurisdiction = f.get("jurisdiction_code") or "US-TX"
+            agent_code = "FHCF" if f.get("plan_code") == "FHCF" else "TICO"
             r = s.run(
                 """
                 MERGE (fo:GRENode:FilingObligation {id: $id})
@@ -80,7 +123,7 @@ def seed() -> dict:
                     fo.due_date = date($due_date),
                     fo.policy_id_ranges_json = $ranges,
                     fo.is_active = $is_active,
-                    fo.jurisdiction_code = 'US-TX',
+                    fo.jurisdiction_code = $jurisdiction,
                     fo.version = 1,
                     fo.status = 'approved',
                     fo.created_at = $now,
@@ -98,6 +141,7 @@ def seed() -> dict:
                 due_date=f["due_date"],
                 ranges=ranges_json,
                 is_active=f["is_active"],
+                jurisdiction=jurisdiction,
                 now=now_iso,
             ).single()
             if r and r["is_new"]:
@@ -117,26 +161,26 @@ def seed() -> dict:
             ).single()
             summary["obligates_edges"] += (e["n"] if e else 0)
 
-            # RECEIVES_SUBMISSION → TICO StatisticalAgent
+            # RECEIVES_SUBMISSION → the plan's StatisticalAgent (TICO or FHCF)
             e = s.run(
                 """
-                MATCH (fo:FilingObligation {id: $fo_id}), (a:StatisticalAgent {agent_code: 'TICO'})
+                MATCH (fo:FilingObligation {id: $fo_id}), (a:StatisticalAgent {agent_code: $agent_code})
                 WHERE NOT (fo)-[:RECEIVES_SUBMISSION]->(a)
                 MERGE (fo)-[:RECEIVES_SUBMISSION]->(a)
                 RETURN count(*) AS n
                 """,
-                fo_id=obligation_id,
+                fo_id=obligation_id, agent_code=agent_code,
             ).single()
             summary["receives_edges"] += (e["n"] if e else 0)
 
-            # APPLIES_IN → US-TX (also via Jurisdiction node)
+            # APPLIES_IN → the filing's Jurisdiction node
             s.run(
                 """
-                MATCH (fo:FilingObligation {id: $fo_id}), (j:Jurisdiction {jurisdiction_code: 'US-TX'})
+                MATCH (fo:FilingObligation {id: $fo_id}), (j:Jurisdiction {jurisdiction_code: $jurisdiction})
                 WHERE NOT (fo)-[:APPLIES_IN]->(j)
                 MERGE (fo)-[:APPLIES_IN]->(j)
                 """,
-                fo_id=obligation_id,
+                fo_id=obligation_id, jurisdiction=jurisdiction,
             )
 
     # Audit
@@ -161,9 +205,10 @@ def main() -> int:
     print("P2.4 — seeding FilingObligation nodes from packages/rhs/filings.py\n")
     summary = seed()
     print(f"  ✓ Carrier Organization created:      {summary['carriers_created']}")
+    print(f"  ✓ StatisticalAgents created (FHCF):  {summary['agents_created']}")
     print(f"  ✓ FilingObligations created:         {summary['obligations_created']}")
     print(f"  ✓ OBLIGATES edges (FO → carrier):    {summary['obligates_edges']}")
-    print(f"  ✓ RECEIVES_SUBMISSION edges (→ TICO): {summary['receives_edges']}")
+    print(f"  ✓ RECEIVES_SUBMISSION edges (→ agent): {summary['receives_edges']}")
     print()
     print("Re-run is idempotent.")
     return 0

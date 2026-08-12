@@ -10,6 +10,7 @@ does.
 from __future__ import annotations
 
 import datetime as dt
+import io
 import json
 import logging
 import subprocess
@@ -79,6 +80,7 @@ ROLE_GRANTS: dict[str, set[str]] = {
     "sign_actuary":  {"actuary"},
     "sign_officer":  {"cco"},
     "seal":          {"cco"},
+    "send":          {"cco"},
     "ack":           {"cco"},
     "mapping":       {"admin", "cco"},
     "bulletin":      {"admin", "cco"},
@@ -518,6 +520,7 @@ def _assemble_rules(rules, by_rule, errors, scope_set, pubid_to_policy):
                 "rule_id": rule["rule_id"], "rule_number": rule["rule_number"], "rule_name": rule["rule_name"],
                 "record_id": pubid, "policy_number": pubid_to_policy.get(pubid, pubid),
                 "violation_reason": rule["violation_reason"], "severity": rule["severity"], "citation": rule["citation"],
+                "jurisdiction_code": rule.get("jurisdiction_code"),
             })
     return rule_results, violations
 
@@ -662,7 +665,7 @@ def _record_validation_run(filing_id: str, rule_results: list[dict], violations:
         "SET last_validated_at = CURRENT_TIMESTAMP(), "
         "    last_validation_run_id = %s, "
         "    open_blockers = %s, "
-        "    status = CASE WHEN status IN ('analyst_signed','actuary_approved','officer_approved','submitted','acked') "
+        "    status = CASE WHEN status IN ('analyst_signed','actuary_approved','officer_approved','submitted','sealed','sent','acked') "
         "              THEN status ELSE %s END "
         "WHERE filing_batch_id = %s",
         (run_id, error_blockers, auto_status, batch),
@@ -1188,20 +1191,31 @@ def validate_cancellations(filing: str | None = None,
             return JSONResponse(_hit[1])
 
     target_jur = "US-TX"
+    plan_code = None
     if filing:
         f_obj = _filing(filing)
         if f_obj:
-            target_jur = f_obj.get("jurisdiction_code", "US-TX")
+            target_jur = f_obj.get("jurisdiction_code") or "US-TX"
+            plan_code = f_obj.get("plan_code")
+    if plan_code == "FHCF":
+        # FL data call: self-contained rule set against
+        # GOLD.FHCF_EXPOSURE_RECORDS (the rules' target_table drives this).
+        # No federal-default union (those target the TX Guidewire tables) and
+        # no policy-id-range scope (FHCF has none — every FL row is in scope).
+        jur_clause = "jurisdiction_code = %s"
+        scope_set = None
+    else:
+        jur_clause = "(jurisdiction_code = %s OR jurisdiction_code = 'US')"
+        scope_set = _filing_policy_numbers(filing)  # None = no scope filter
     rules = query(
         "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
         "       violation_sql, violation_reason, severity, citation, "
         "       jurisdiction_code, is_federal_default "
         "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
-        "WHERE jurisdiction_code = %s OR jurisdiction_code = 'US' "
+        f"WHERE {jur_clause} "
         "ORDER BY rule_number",
         (target_jur,),
     )
-    scope_set = _filing_policy_numbers(filing)  # None = no scope filter
     pubid_to_policy = _pubid_map()              # cached; publicid → policy number
 
     # Evaluate every rule in a single round trip (batched UNION ALL).
@@ -1251,13 +1265,18 @@ def validate_all() -> JSONResponse:
         return JSONResponse(hit[1])
 
     tr = AgentTrace()
+    filings = _live_filings()
+    # Every jurisdiction that has an active filing, plus federal defaults.
+    jurs = sorted({(f.get("jurisdiction_code") or "US-TX") for f in filings} | {"US"})
+    placeholders = ", ".join(["%s"] * len(jurs))
     rules = query(
         "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
         "       violation_sql, violation_reason, severity, citation, "
         "       jurisdiction_code, is_federal_default "
         "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
-        "WHERE jurisdiction_code = 'US-TX' OR jurisdiction_code = 'US' "
-        "ORDER BY rule_number"
+        f"WHERE jurisdiction_code IN ({placeholders}) "
+        "ORDER BY rule_number",
+        tuple(jurs),
     )
     tr.step("Load edit rules", f"{len(rules)} rules · REFERENCE.TSPR_VALIDATION_RULES")
     pubid_to_policy = _pubid_map()
@@ -1273,15 +1292,25 @@ def validate_all() -> JSONResponse:
         v["suppressed"] = (v.get("rule_number") or "").upper() in sups
 
     by_filing: dict[str, dict] = {}
-    for f in _live_filings():
-        scope = _filing_policy_numbers(f["id"])
-        fv = all_violations if scope is None else [v for v in all_violations if v["policy_number"] in scope]
+    for f in filings:
+        jur = f.get("jurisdiction_code") or "US-TX"
+        if (f.get("plan_code") or "").upper() == "FHCF":
+            # FHCF has no Guidewire policy-id ranges — its scope is every row
+            # of GOLD.FHCF_EXPOSURE_RECORDS, i.e. every US-FL rule violation.
+            applicable = [r for r in rules if r.get("jurisdiction_code") == jur]
+            fv = [v for v in all_violations if v.get("jurisdiction_code") == jur]
+        else:
+            applicable = [r for r in rules if r.get("jurisdiction_code") in (jur, "US")]
+            scope = _filing_policy_numbers(f["id"])
+            fv = [v for v in all_violations
+                  if v.get("jurisdiction_code") in (jur, "US")
+                  and (scope is None or v["policy_number"] in scope)]
         active = [v for v in fv if not v["suppressed"]]
         failing = {v["rule_id"] for v in active}
         by_filing[f["id"]] = {
             "summary": {
-                "rules_run": len(rules),
-                "rules_passing": len(rules) - len(failing),
+                "rules_run": len(applicable),
+                "rules_passing": len(applicable) - len(failing),
                 "rules_failing": len(failing),
                 "rules_errored": 0,
                 "total_violations": len(active),
@@ -2199,7 +2228,34 @@ def bulletin_text() -> PlainTextResponse:
 
 
 def _run(cmd: list[str]) -> dict:
-    """Run a script, capture status."""
+    """Run a script, capture status.
+
+    DuckDB is single-writer: the API process holds the file lock, so a
+    subprocess transform would fail with a conflicting-lock IOException.
+    For `python -m scripts.X` commands on the duckdb backend, import and
+    run the module's main() in-process instead (same connection, no lock).
+    """
+    if backend_name() == "duckdb" and "-m" in cmd:
+        mod_name = cmd[cmd.index("-m") + 1]
+        try:
+            import importlib
+            import contextlib
+            import sys as _sys
+            buf = io.StringIO()
+            mod = importlib.import_module(mod_name)
+            argv_extra = cmd[cmd.index("-m") + 2:]  # flags after the module
+            saved_argv = _sys.argv
+            _sys.argv = [mod_name, *argv_extra]  # scripts' argparse reads sys.argv
+            try:
+                with contextlib.redirect_stdout(buf):
+                    rc = int(mod.main() or 0)
+            finally:
+                _sys.argv = saved_argv
+            return {"ok": rc == 0, "stdout": buf.getvalue()[-2000:],
+                    "stderr": "", "returncode": rc}
+        except Exception as e:  # noqa: BLE001 — surface as a failed run
+            return {"ok": False, "stdout": "", "stderr": str(e)[-2000:],
+                    "returncode": 1}
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     return {
         "ok": result.returncode == 0,
@@ -2355,23 +2411,93 @@ def _render_footer(naic: str, agg: dict, sha256: str) -> str:
     return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
 
 
-@router.get("/filing/{filing_id}/file")
-def filing_file(filing_id: str, persist: bool = False, user: dict = Depends(current_user)) -> JSONResponse:
-    """Render the TSPR fixed-width ASCII submission file for a filing.
+def _build_fhcf_csv(f: dict) -> dict:
+    """Render the FHCF Annual Data Call submission as CSV.
 
-    Pulls every Gold record scoped to this filing, renders 200-char
-    P/L/C records, prefixes a header, appends an SHA-256-sealed footer.
+    Header row from GOLD.FHCF_EXPOSURE_RECORDS' filing columns, one row per
+    policy, plus a trailing comment line `# sha256=<hash> records=<n>`. Same
+    return shape as the TSPR renderer so downstream (seal / send / archive)
+    is agnostic.
+    """
+    import csv
+    import hashlib
+    import io
 
-    Set ?persist=true to also write a FILING_SUBMISSION row + USER_ACTION
-    so the audit chain captures who generated this file when.
+    from scripts.run_fhcf import FHCF_COLUMNS
+
+    filing_id = f["id"]
+    columns = list(FHCF_COLUMNS) + ["filing_batch_id"]
+    try:
+        rows = _jsonify(query(
+            f"SELECT {', '.join(columns)} "
+            "FROM INSURANCE_REGULATORY.GOLD.FHCF_EXPOSURE_RECORDS "
+            "WHERE filing_batch_id = %s "
+            "ORDER BY policy_number",
+            (filing_id,),
+        ))
+    except Exception:
+        logger.warning("[file] FHCF_EXPOSURE_RECORDS read failed", exc_info=True)
+        rows = []
+
+    naic = next(
+        (str(r.get("insurer_naic")) for r in rows
+         if r.get("insurer_naic") and str(r["insurer_naic"]).isdigit()
+         and len(str(r["insurer_naic"])) == 10),
+        "0000000000",
+    )
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(columns)
+    for r in rows:
+        writer.writerow(["" if r.get(c) is None else r.get(c) for c in columns])
+    body = buf.getvalue().rstrip("\n")
+    sha256 = hashlib.sha256(body.encode("utf-8", errors="replace")).hexdigest()
+    footer_line = f"# sha256={sha256} records={len(rows)}"
+    file_text = body + "\n" + footer_line + "\n"
+    file_name = f"FHCF_{naic}_{filing_id.replace('-', '')}.csv"
+    warning = None if rows else (
+        f"No GOLD.FHCF_EXPOSURE_RECORDS rows found for filing {filing_id}. "
+        f"Run `uv run python -m scripts.seed_fl_fhcf` (seed + transform) "
+        f"or `uv run python -m scripts.run_fhcf` to build them."
+    )
+
+    return {
+        "filing_id":    filing_id,
+        "filing":       f,
+        "file_name":    file_name,
+        "file_text":    file_text,
+        "naic":         naic,
+        "record_count": len(rows),
+        "byte_count":   len(file_text.encode("utf-8", errors="replace")),
+        "sha256":       sha256,
+        "header":       body.split("\n", 1)[0],
+        "footer":       footer_line,
+        "p_count":      len(rows),
+        "l_count":      0,
+        "c_count":      0,
+        "warning":      warning,
+    }
+
+
+def _build_filing_file(filing_id: str) -> dict:
+    """Build the submission file package for a filing.
+
+    TX plans (TPA/RES/CL) render the TSPR 200-char fixed-width file from the
+    Gold record tables; the FL FHCF plan renders a CSV from
+    GOLD.FHCF_EXPOSURE_RECORDS. Both return the same dict shape:
+      file_name, file_text, sha256, naic, record_count, byte_count,
+      p_count/l_count/c_count, header, footer, warning, filing.
+    Raises HTTPException(404) for unknown filings.
     """
     import hashlib
 
-    if persist:
-        require(user, "seal")
     f = _filing(filing_id)
     if not f:
         raise HTTPException(404, f"unknown filing {filing_id}")
+
+    if (f.get("plan_code") or "").upper() == "FHCF":
+        return _build_fhcf_csv(f)
 
     # Resolve NAIC from the first policyperiod row in scope
     naic_rows = query(
@@ -2416,14 +2542,15 @@ def filing_file(filing_id: str, persist: bool = False, user: dict = Depends(curr
     file_name = f"TSPR_{naic}_{f['plan_code']}_{filing_id.replace('-', '')}.txt"
 
     record_total = len(p_lines) + len(l_lines) + len(c_lines)
-    response = {
+    return {
         "filing_id":    filing_id,
+        "filing":       f,
         "file_name":    file_name,
+        "file_text":    file_text,
         "naic":         naic,
         "record_count": record_total,
         "byte_count":   len(file_text.encode("ascii", errors="replace")),
         "sha256":       sha256,
-        "preview":      file_text[:2400],   # first ~12 lines
         "header":       header_line,
         "footer":       footer_line,
         "p_count":      len(p_lines),
@@ -2437,6 +2564,24 @@ def filing_file(filing_id: str, persist: bool = False, user: dict = Depends(curr
             f"Run `make run-pipeline` to promote Bronze → Silver → Gold."
         ),
     }
+
+
+@router.get("/filing/{filing_id}/file")
+def filing_file(filing_id: str, persist: bool = False, user: dict = Depends(current_user)) -> JSONResponse:
+    """Render the submission file for a filing (TSPR fixed-width for TX plans,
+    CSV for the FL FHCF data call).
+
+    Set ?persist=true to also write a FILING_SUBMISSION row + USER_ACTION
+    so the audit chain captures who generated this file when.
+    """
+    if persist:
+        require(user, "seal")
+
+    built = _build_filing_file(filing_id)
+    f = built["filing"]
+    file_name, file_text, sha256 = built["file_name"], built["file_text"], built["sha256"]
+    response = {k: v for k, v in built.items() if k not in ("file_text", "filing")}
+    response["preview"] = file_text[:2400]   # first ~12 lines
 
     if persist:
         # Gate sealing on the approval chain: only an officer-approved filing
@@ -2468,7 +2613,17 @@ def filing_file(filing_id: str, persist: bool = False, user: dict = Depends(curr
                  file_name, sha256, response["byte_count"], response["record_count"]),
             )
         except Exception:
-            logger.warning("[file] FILING_SUBMISSION insert failed", exc_info=True)
+            # Older seeds (seed_duckdb / seed_databricks) create the legacy
+            # column shape — fall back so the seal always leaves a row.
+            try:
+                query(
+                    "INSERT INTO INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
+                    "(submission_id, filing_batch_id, sha256, submitted_at) "
+                    "SELECT %s, %s, %s, CURRENT_TIMESTAMP()",
+                    (sub_id, filing_id, sha256),
+                )
+            except Exception:
+                logger.warning("[file] FILING_SUBMISSION insert failed", exc_info=True)
         try:
             query(
                 "UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
@@ -2489,6 +2644,299 @@ def filing_file(filing_id: str, persist: bool = False, user: dict = Depends(curr
         response["submission_id"] = sub_id
 
     return JSONResponse(response)
+
+
+# ── Filing SEND — email + SFTP stub + immutable archive ────────────────────
+# The sealed file is dispatched to the plan's statistical agent: a real
+# RFC-5322 email (SMTP when REGULAI_SMTP_HOST is set — Mailpit-style, no
+# auth/TLS — and always a raw .eml in materialized/outbox/), a copy dropped
+# in the agent's SFTP dropbox stub, and a read-only archive with a manifest.
+# Every dispatch writes one row to GOLD.FILING_DISPATCH.
+
+_OUTBOX_DIR = Path("materialized/outbox")
+_INBOX_DIR = Path("materialized/inbox")
+_SFTP_DIR = Path("materialized/sftp_dropbox")
+_ARCHIVE_DIR = Path("materialized/archive")
+
+_CARRIER_NAME = "Lone Star Mutual"
+_CCO_FROM = "J. Park <j.park@regulai.demo>"
+_CCO_EMAIL = "j.park@regulai.demo"
+
+_STAT_AGENTS = {
+    "TICO": {"code": "TICO", "name": "Texas Insurance Checking Office",
+             "email": "stat.submissions@tico.example"},
+    "FHCF": {"code": "FHCF", "name": "FL Hurricane Catastrophe Fund",
+             "email": "datacall@fhcf.example"},
+}
+
+
+def _agent_for_filing(f: dict) -> dict:
+    if (f.get("plan_code") or "").upper() == "FHCF":
+        return _STAT_AGENTS["FHCF"]
+    return _STAT_AGENTS["TICO"]
+
+
+_DISPATCH_DDL_DONE = False
+
+
+def _ensure_dispatch_table() -> None:
+    """FILING_DISPATCH is created lazily (CREATE TABLE IF NOT EXISTS is
+    portable; the databricks client maps bare VARCHAR → STRING)."""
+    global _DISPATCH_DDL_DONE
+    if _DISPATCH_DDL_DONE:
+        return
+    query(
+        "CREATE TABLE IF NOT EXISTS INSURANCE_REGULATORY.GOLD.FILING_DISPATCH (\n"
+        "  dispatch_id VARCHAR, filing_batch_id VARCHAR, submission_id VARCHAR,\n"
+        "  message_id VARCHAR, mail_to VARCHAR, mail_subject VARCHAR,\n"
+        "  transport VARCHAR, eml_path VARCHAR, sftp_path VARCHAR,\n"
+        "  archive_path VARCHAR, sent_at TIMESTAMP\n)"
+    )
+    _DISPATCH_DDL_DONE = True
+
+
+def _latest_submission(filing_id: str) -> dict | None:
+    """Most recent FILING_SUBMISSION row, tolerant of both column shapes
+    (legacy: sha256; current: file_sha256/file_name/record_count/...)."""
+    try:
+        rows = query(
+            "SELECT * FROM INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
+            "WHERE filing_batch_id = %s ORDER BY submitted_at DESC LIMIT 1",
+            (filing_id,),
+        )
+    except Exception:
+        return None
+    return _jsonify(rows)[0] if rows else None
+
+
+def _latest_dispatch(filing_id: str) -> dict | None:
+    try:
+        rows = query(
+            "SELECT * FROM INSURANCE_REGULATORY.GOLD.FILING_DISPATCH "
+            "WHERE filing_batch_id = %s ORDER BY sent_at DESC LIMIT 1",
+            (filing_id,),
+        )
+    except Exception:
+        return None
+    return _jsonify(rows)[0] if rows else None
+
+
+def _write_readonly(path: Path, data: bytes) -> None:
+    """Write an archive artifact and chmod 0o444. Re-sends overwrite cleanly."""
+    import os
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        os.chmod(path, 0o644)
+    path.write_bytes(data)
+    os.chmod(path, 0o444)
+
+
+def _default_send_body(f: dict, agent: dict, built: dict) -> str:
+    counts = (f"{built['record_count']} records "
+              f"(P: {built['p_count']} · L: {built['l_count']} · C: {built['c_count']})")
+    return (
+        f"Dear {agent['name']},\n"
+        f"\n"
+        f"Please find attached the {f.get('plan_name')} statistical submission "
+        f"for filing {f['id']}, covering the reporting period "
+        f"{f.get('period_start')} through {f.get('period_end')} "
+        f"(due {f.get('due_date')}).\n"
+        f"\n"
+        f"  Carrier:       {_CARRIER_NAME}\n"
+        f"  NAIC number:   {built['naic']}\n"
+        f"  File:          {built['file_name']}\n"
+        f"  Record counts: {counts}\n"
+        f"  SHA-256:       {built['sha256']}\n"
+        f"\n"
+        f"The file was validated against the current edition of the plan and "
+        f"sealed under our internal sign-off chain. Please confirm receipt.\n"
+        f"\n"
+        f"Kind regards,\n"
+        f"\n"
+        f"J. Park\n"
+        f"Chief Compliance Officer, {_CARRIER_NAME}\n"
+        f"{_CCO_EMAIL}\n"
+    )
+
+
+@router.post("/filing/{filing_id}/send")
+def filing_send(filing_id: str, body: dict | None = Body(default=None),
+                user: dict = Depends(current_user)) -> JSONResponse:
+    """Dispatch the sealed submission file to the statistical agent.
+
+    Body (all optional): {"subject": str, "body": str, "to": [str, ...]}.
+    Requires the filing to be sealed first (FILING_BATCH status
+    'submitted'/'sealed'). Transport: SMTP when REGULAI_SMTP_HOST is set;
+    the raw message is always written to materialized/outbox/.
+    """
+    import os
+    import shutil
+    import smtplib
+    from email.message import EmailMessage
+    from email.utils import formatdate, make_msgid
+
+    require(user, "send")
+    body = body or {}
+
+    f = _filing(filing_id)
+    if not f:
+        raise HTTPException(404, f"unknown filing {filing_id}")
+
+    rows = query(
+        "SELECT status FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+        "WHERE filing_batch_id = %s",
+        (filing_id,),
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"no filing batch for {filing_id}")
+    current = (rows[0].get("status") or rows[0].get("STATUS") or "").lower()
+    if current not in ("submitted", "sealed"):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"cannot send in state '{current}' — the filing must be sealed first "
+                f"(seal via GET /filing/{filing_id}/file?persist=true after officer approval)"
+            ),
+        )
+
+    sub = _latest_submission(filing_id)
+    if not sub:
+        raise HTTPException(
+            status_code=409,
+            detail="no sealed FILING_SUBMISSION on file — seal the filing before sending",
+        )
+    submission_id = sub.get("submission_id") or ("sub-" + _uuid.uuid4().hex[:14])
+
+    built = _build_filing_file(filing_id)
+    agent = _agent_for_filing(f)
+
+    to = body.get("to") or [agent["email"]]
+    if isinstance(to, str):
+        to = [to]
+    to = [str(t).strip() for t in to if str(t).strip()]
+    subject = (body.get("subject") or "").strip() or (
+        f"{f.get('plan_code')} statistical filing — {filing_id} — "
+        f"period {f.get('period_start')}..{f.get('period_end')}"
+    )
+    mail_body = body.get("body") or _default_send_body(f, agent, built)
+
+    msg = EmailMessage()
+    msg["From"] = _CCO_FROM
+    msg["To"] = ", ".join(to)
+    msg["Subject"] = subject
+    msg["Date"] = formatdate(localtime=True)
+    message_id = make_msgid(domain="regulai.demo")
+    msg["Message-ID"] = message_id
+    msg.set_content(mail_body)
+    msg.add_attachment(
+        built["file_text"].encode("utf-8", errors="replace"),
+        maintype="text", subtype="plain", filename=built["file_name"],
+    )
+
+    # Transport — Mailpit-style SMTP if configured; the outbox .eml always.
+    transport = "outbox"
+    smtp_host = os.environ.get("REGULAI_SMTP_HOST")
+    if smtp_host:
+        try:
+            smtp_port = int(os.environ.get("REGULAI_SMTP_PORT", "1025"))
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as smtp:
+                smtp.send_message(msg)
+            transport = "smtp"
+        except Exception:
+            logger.warning("[send] SMTP relay failed — falling back to outbox only",
+                           exc_info=True)
+
+    _OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
+    eml_path = _OUTBOX_DIR / f"{filing_id}--{submission_id}.eml"
+    eml_path.write_bytes(bytes(msg))
+
+    # SFTP stub — the agent's dropbox directory.
+    sftp_dir = _SFTP_DIR / agent["code"]
+    sftp_dir.mkdir(parents=True, exist_ok=True)
+    sftp_path = sftp_dir / built["file_name"]
+    sftp_path.write_text(built["file_text"], encoding="utf-8")
+
+    # Immutable archive: the exact file sent + a manifest, both read-only.
+    sent_at = dt.datetime.now(dt.UTC).isoformat()
+    archive_dir = _ARCHIVE_DIR / filing_id / submission_id
+    _write_readonly(archive_dir / built["file_name"],
+                    built["file_text"].encode("utf-8", errors="replace"))
+    manifest = {
+        "filing_id": filing_id,
+        "submission_id": submission_id,
+        "file_name": built["file_name"],
+        "sha256": built["sha256"],
+        "record_counts": {
+            "total": built["record_count"],
+            "premium": built["p_count"],
+            "loss": built["l_count"],
+            "cancellation": built["c_count"],
+        },
+        "file_size_bytes": built["byte_count"],
+        "sent_at": sent_at,
+        "archived_at": sent_at,
+        "message_id": message_id,
+        "to": to,
+        "subject": subject,
+    }
+    _write_readonly(archive_dir / "manifest.json",
+                    json.dumps(manifest, indent=2).encode("utf-8"))
+
+    # Persist the dispatch + advance the filing state.
+    dispatch_id = "disp-" + _uuid.uuid4().hex[:14]
+    try:
+        _ensure_dispatch_table()
+        query(
+            "INSERT INTO INSURANCE_REGULATORY.GOLD.FILING_DISPATCH "
+            "(dispatch_id, filing_batch_id, submission_id, message_id, mail_to, "
+            " mail_subject, transport, eml_path, sftp_path, archive_path, sent_at) "
+            "SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP()",
+            (dispatch_id, filing_id, submission_id, message_id, ",".join(to),
+             subject, transport, str(eml_path), str(sftp_path), str(archive_dir)),
+        )
+    except Exception:
+        logger.warning("[send] FILING_DISPATCH insert failed", exc_info=True)
+    try:
+        query(
+            "UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
+            "SET status = 'sent' WHERE filing_batch_id = %s",
+            (filing_id,),
+        )
+    except Exception:
+        logger.warning("[send] FILING_BATCH status update failed", exc_info=True)
+    _record_action(
+        filing_id, "submission_sent",
+        actor=user["name"],
+        target_record=built["file_name"],
+        summary=(f"Sent to {agent['name']} ({', '.join(to)}) via {transport} · "
+                 f"{built['record_count']} records · sha256:{built['sha256'][:12]}…"),
+        details={"submission_id": submission_id, "dispatch_id": dispatch_id,
+                 "message_id": message_id, "to": to, "transport": transport,
+                 "sha256": built["sha256"]},
+    )
+
+    return JSONResponse({
+        "filing_id": filing_id,
+        "status": "sent",
+        "email": {
+            "message_id": message_id,
+            "from": _CCO_FROM,
+            "to": to,
+            "subject": subject,
+            "body": mail_body,
+            "attachment": {"name": built["file_name"], "bytes": built["byte_count"]},
+            "sent_at": sent_at,
+            "eml_path": str(eml_path),
+            "transport": transport,
+        },
+        "sftp_path": str(sftp_path),
+        "archive": {
+            "path": str(archive_dir),
+            "sha256": built["sha256"],
+            "archived_at": sent_at,
+        },
+    })
 
 
 @router.get("/audit/{filing_id}")
@@ -2610,12 +3058,16 @@ def filing_approve(filing_id: str, body: dict = Body(...), user: dict = Depends(
 
 @router.post("/filing/{filing_id}/ack")
 def filing_ack(filing_id: str, user: dict = Depends(current_user)) -> JSONResponse:
-    """Record a regulator (TICO) acknowledgment for the most recent submission.
+    """Record the statistical agent's acknowledgment for the sent submission.
 
-    In real life this would be an inbound webhook from TICO ShareFile carrying
-    the receipt id. For the demo we synthesize one. Requires the filing to be
-    in 'submitted' state.
+    In real life this would be an inbound webhook / reply email from the
+    agent carrying the receipt id. For the demo we synthesize both: the
+    receipt AND the inbound ack email (written to materialized/inbox/,
+    threaded onto the original Message-ID). Requires state 'sent'.
     """
+    from email.message import EmailMessage
+    from email.utils import formatdate, make_msgid
+
     require(user, "ack")
     rows = query(
         "SELECT status FROM INSURANCE_REGULATORY.GOLD.FILING_BATCH "
@@ -2625,13 +3077,16 @@ def filing_ack(filing_id: str, user: dict = Depends(current_user)) -> JSONRespon
     if not rows:
         raise HTTPException(status_code=404, detail=f"no filing batch for {filing_id}")
     current = (rows[0].get("status") or rows[0].get("STATUS") or "").lower()
-    if current != "submitted":
+    if current != "sent":
         raise HTTPException(
             status_code=409,
-            detail=f"cannot ACK in state '{current}' — filing must be 'submitted'",
+            detail=f"cannot ACK in state '{current}' — filing must be 'sent' "
+                   f"(dispatch it via POST /filing/{filing_id}/send first)",
         )
 
-    receipt = "TICO-ACK-" + _uuid.uuid4().hex[:8].upper()
+    f = _filing(filing_id) or {}
+    agent = _agent_for_filing(f)
+    receipt = f"{agent['code']}-ACK-" + _uuid.uuid4().hex[:8].upper()
     # Update the most recent FILING_SUBMISSION row (the seal we want to ACK)
     query(
         "UPDATE INSURANCE_REGULATORY.GOLD.FILING_SUBMISSION "
@@ -2648,19 +3103,57 @@ def filing_ack(filing_id: str, user: dict = Depends(current_user)) -> JSONRespon
         "WHERE filing_batch_id = %s",
         (filing_id,),
     )
+
+    # Simulated inbound ack email from the agent, threaded on the dispatch.
+    ack_eml_path = None
+    try:
+        dispatch = _latest_dispatch(filing_id) or {}
+        orig_subject = dispatch.get("mail_subject") or (
+            f"{f.get('plan_code', '')} statistical filing — {filing_id}"
+        )
+        orig_message_id = dispatch.get("message_id")
+        ack = EmailMessage()
+        ack["From"] = f"{agent['name']} <{agent['email']}>"
+        ack["To"] = _CCO_FROM
+        ack["Subject"] = f"RE: {orig_subject} — Receipt {receipt}"
+        ack["Date"] = formatdate(localtime=True)
+        ack["Message-ID"] = make_msgid(domain=agent["email"].split("@", 1)[-1])
+        if orig_message_id:
+            ack["In-Reply-To"] = orig_message_id
+            ack["References"] = orig_message_id
+        ack.set_content(
+            f"Dear {_CARRIER_NAME},\n"
+            f"\n"
+            f"This confirms receipt of your statistical submission for filing "
+            f"{filing_id}. The file passed intake checks and has been queued "
+            f"for processing.\n"
+            f"\n"
+            f"  Receipt: {receipt}\n"
+            f"\n"
+            f"Regards,\n"
+            f"{agent['name']}\n"
+        )
+        _INBOX_DIR.mkdir(parents=True, exist_ok=True)
+        ack_path = _INBOX_DIR / f"{filing_id}--{receipt}.eml"
+        ack_path.write_bytes(bytes(ack))
+        ack_eml_path = str(ack_path)
+    except Exception:
+        logger.warning("[ack] inbound ack email synthesis failed", exc_info=True)
+
     _record_action(
         filing_id, "regulator_ack",
-        actor="TICO ShareFile",
+        actor=f.get("channel") or agent["name"],
         target_record=receipt,
-        summary=f"Regulator acknowledged · receipt {receipt}",
-        details={"receipt_id": receipt, "prev_state": "submitted", "new_state": "acked"},
+        summary=f"{agent['name']} acknowledged · receipt {receipt}",
+        details={"receipt_id": receipt, "prev_state": "sent", "new_state": "acked",
+                 "ack_eml_path": ack_eml_path},
     )
-    return JSONResponse({"filing_id": filing_id, "receipt_id": receipt, "new_state": "acked"})
+    return JSONResponse({"filing_id": filing_id, "receipt_id": receipt,
+                         "new_state": "acked", "ack_eml_path": ack_eml_path})
 
 
-@router.get("/filing/{filing_id}/approval-state")
-def filing_approval_state(filing_id: str) -> JSONResponse:
-    """Compact state useful for rendering the sign-off chain widget."""
+def _approval_state_payload(filing_id: str) -> dict:
+    """Compact sign-off-chain state (shared by /approval-state and /submission)."""
     _ensure_filing_batch(filing_id)
     rows = query(
         "SELECT status, open_blockers, last_validated_at, submitted_at, acked_at "
@@ -2680,7 +3173,7 @@ def filing_approval_state(filing_id: str) -> JSONResponse:
             break
     # Can_seal: officer-approved + zero ERROR blockers
     can_seal = current == "officer_approved" and int(r.get("open_blockers") or 0) == 0
-    return JSONResponse({
+    return {
         "filing_id":     filing_id,
         "status":        current,
         "open_blockers": int(r.get("open_blockers") or 0),
@@ -2688,6 +3181,124 @@ def filing_approval_state(filing_id: str) -> JSONResponse:
         "can_seal":      can_seal,
         "submitted_at":  r.get("submitted_at"),
         "acked_at":      r.get("acked_at"),
+    }
+
+
+@router.get("/filing/{filing_id}/approval-state")
+def filing_approval_state(filing_id: str) -> JSONResponse:
+    """Compact state useful for rendering the sign-off chain widget."""
+    return JSONResponse(_approval_state_payload(filing_id))
+
+
+@router.get("/filing/{filing_id}/submission")
+def filing_submission(filing_id: str, user: dict = Depends(current_user)) -> JSONResponse:
+    """The full submission journey for a filing: approval chain → seal →
+    email dispatch → agent acknowledgment → archive.
+
+    Every section degrades to null on a fresh database (missing tables /
+    no rows) — this endpoint never 500s for a known filing.
+    """
+    from email import policy as _email_policy
+    from email.parser import BytesParser
+
+    if not _filing(filing_id):
+        raise HTTPException(404, f"unknown filing {filing_id}")
+
+    # Batch status + approval-chain state
+    status = "validated"
+    approval = None
+    try:
+        approval = _approval_state_payload(filing_id)
+        status = approval.get("status") or "validated"
+    except HTTPException:
+        approval = None
+    except Exception:
+        logger.warning("[submission] approval-state read failed", exc_info=True)
+
+    # Seal (latest FILING_SUBMISSION row — tolerant of legacy column shape)
+    sub = _latest_submission(filing_id)
+    submission = None
+    if sub:
+        submission = {
+            "submission_id":   sub.get("submission_id"),
+            "sha256":          sub.get("file_sha256") or sub.get("sha256"),
+            "file_name":       sub.get("file_name"),
+            "record_count":    sub.get("record_count"),
+            "file_size_bytes": sub.get("file_size_bytes"),
+            "sealed_at":       sub.get("submitted_at"),
+        }
+
+    # Email dispatch (latest FILING_DISPATCH row, enriched from the .eml)
+    email_info = None
+    archive = None
+    dispatch = _latest_dispatch(filing_id)
+    if dispatch:
+        to = [t for t in (dispatch.get("mail_to") or "").split(",") if t]
+        email_info = {
+            "message_id": dispatch.get("message_id"),
+            "from":       _CCO_FROM,
+            "to":         to,
+            "subject":    dispatch.get("mail_subject"),
+            "body":       None,
+            "attachment": None,
+            "sent_at":    dispatch.get("sent_at"),
+            "eml_path":   dispatch.get("eml_path"),
+            "transport":  dispatch.get("transport"),
+        }
+        try:  # recover body + attachment details from the raw message
+            eml_file = Path(dispatch.get("eml_path") or "")
+            if eml_file.exists():
+                msg = BytesParser(policy=_email_policy.default).parsebytes(
+                    eml_file.read_bytes())
+                text_part = msg.get_body(preferencelist=("plain",))
+                if text_part is not None:
+                    email_info["body"] = text_part.get_content()
+                for part in msg.iter_attachments():
+                    payload = part.get_payload(decode=True) or b""
+                    email_info["attachment"] = {
+                        "name": part.get_filename(),
+                        "bytes": len(payload),
+                    }
+                    break
+        except Exception:
+            logger.warning("[submission] eml parse failed", exc_info=True)
+
+        # Archive manifest
+        try:
+            manifest_path = Path(dispatch.get("archive_path") or "") / "manifest.json"
+            if manifest_path.exists():
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                archive = {
+                    "path":        dispatch.get("archive_path"),
+                    "sha256":      manifest.get("sha256"),
+                    "archived_at": manifest.get("archived_at") or manifest.get("sent_at"),
+                }
+            else:
+                archive = {"path": dispatch.get("archive_path"), "sha256": None,
+                           "archived_at": None}
+        except Exception:
+            logger.warning("[submission] manifest read failed", exc_info=True)
+
+    # Agent acknowledgment
+    ack = None
+    receipt = (sub or {}).get("receipt")
+    if receipt:
+        ack_path = _INBOX_DIR / f"{filing_id}--{receipt}.eml"
+        ack = {
+            "receipt":  receipt,
+            "acked_at": (sub or {}).get("acked_at"),
+            "eml_path": str(ack_path) if ack_path.exists() else None,
+        }
+
+    return JSONResponse({
+        "filing_id":  filing_id,
+        "status":     status,
+        "approval":   approval,
+        "submission": submission,
+        "email":      email_info,
+        "sftp_path":  (dispatch or {}).get("sftp_path"),
+        "ack":        ack,
+        "archive":    archive,
     })
 
 
@@ -3106,6 +3717,274 @@ def anomalies_detect() -> JSONResponse:
     """Re-run anomaly detection (TRUNCATEs + re-detects)."""
     result = _run(["uv", "run", "python", "-m", "scripts.detect_anomalies", "--month", "2026-03"])
     return JSONResponse(result)
+
+
+# ── Amendments (BulletinOverride) — list + impact analysis ─────────────────
+
+_BULLETIN_SUMMARY_CACHE: dict[str, str] | None = None
+
+
+def _bulletin_doc_summaries() -> dict[str, str]:
+    """Map RegulationDocument name → Sentinel extraction summary, from the
+    materialized artifacts in materialized/approved/. Cached per process."""
+    global _BULLETIN_SUMMARY_CACHE
+    if _BULLETIN_SUMMARY_CACHE is not None:
+        return _BULLETIN_SUMMARY_CACHE
+    out: dict[str, str] = {}
+    try:
+        for p in Path("materialized/approved").glob("*.materialized.json"):
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            summary = data.get("extraction_summary")
+            if not summary:
+                continue
+            for n in (data.get("nodes_created") or []) + (data.get("nodes_reused") or []):
+                if n.get("type") == "RegulationDocument" and n.get("name"):
+                    out.setdefault(n["name"], summary)
+    except Exception:
+        logger.warning("bulletin summaries scan failed", exc_info=True)
+    _BULLETIN_SUMMARY_CACHE = out
+    return out
+
+
+@router.get("/bulletins")
+def bulletins_list() -> JSONResponse:
+    """List every BulletinOverride in the KG with its applied/pending status.
+
+    'applied' = all of its OVERRIDES targets (Rules/CodeValues/CodeLists —
+    the same set apply_bulletin supersedes) carry status='superseded'.
+    Returns {"bulletins": [], "kg_offline": true} when Neo4j is unreachable.
+    """
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+            rows = s.run(
+                """
+                MATCH (b:BulletinOverride)
+                OPTIONAL MATCH (b)-[:OVERRIDES]->(t)
+                  WHERE NOT t:RecordLayout AND NOT t:FieldRequirement
+                    AND NOT t:RegulationDocument
+                WITH b, count(t) AS targets,
+                     sum(CASE WHEN t.status = 'superseded' THEN 1 ELSE 0 END) AS superseded
+                OPTIONAL MATCH (b)-[:CITES]->(d:RegulationDocument)
+                WITH b, targets, superseded, collect(DISTINCT d)[0] AS doc
+                RETURN b.name AS name,
+                       coalesce(doc.title, doc.name, b.name) AS title,
+                       toString(b.effective_date) AS effective_date,
+                       b.jurisdiction_code AS jurisdiction_code,
+                       coalesce(b.notes, '') AS summary,
+                       doc.name AS doc_name,
+                       targets, superseded
+                ORDER BY b.effective_date
+                """
+            ).data()
+    except Exception:
+        logger.warning("/bulletins: KG unreachable", exc_info=True)
+        return JSONResponse({"bulletins": [], "kg_offline": True})
+
+    summaries = _bulletin_doc_summaries()
+    bulletins = []
+    for r in rows:
+        applied = r["targets"] > 0 and r["superseded"] == r["targets"]
+        bulletins.append({
+            "name": r["name"],
+            "title": r["title"],
+            "effective_date": r["effective_date"],
+            "status": "applied" if applied else "pending",
+            "targets": r["targets"],
+            "summary": r["summary"] or summaries.get(r["doc_name"] or "", ""),
+            "jurisdiction_code": r["jurisdiction_code"],
+        })
+    return JSONResponse({"bulletins": bulletins})
+
+
+def _rule_props(r: dict | None) -> dict | None:
+    """The before/after view of a Rule node for impact analysis."""
+    if not r:
+        return None
+    return {
+        "rule_id":          r.get("id"),
+        "name":             r.get("name"),
+        "rule_number":      r.get("rule_number"),
+        "violation_sql":    r.get("violation_sql"),
+        "severity":         r.get("severity"),
+        "violation_reason": r.get("violation_reason"),
+        "status":           r.get("status"),
+        "effective_from":   str(r["effective_from"]) if r.get("effective_from") else None,
+        "effective_to":     str(r["effective_to"]) if r.get("effective_to") else None,
+        "target_table":     r.get("target_table"),
+        "target_id_expr":   r.get("target_id_expr"),
+    }
+
+
+def _rule_violating_ids(rule: dict | None) -> tuple[set[str] | None, str | None]:
+    """Run a rule's violation predicate; (ids, None) or (None, error)."""
+    if not rule or not rule.get("violation_sql"):
+        return set(), None
+    try:
+        rows = query(
+            f"SELECT CAST({rule.get('target_id_expr') or 'j.publicid'} AS STRING) AS record_id "
+            f"FROM INSURANCE_REGULATORY.{rule['target_table']} j "
+            f"WHERE ({rule['violation_sql']})"
+        )
+        return {r["record_id"] for r in rows}, None
+    except Exception as e:
+        return None, str(e)[:200]
+
+
+@router.get("/bulletin/{name}/impact")
+def bulletin_impact(name: str) -> JSONResponse:
+    """What-if analysis for a bulletin — NO writes.
+
+    For every Rule the bulletin OVERRIDES, find the replacement rule the
+    bulletin introduces (Rules CONTAINED_IN the bulletin's cited
+    RegulationDocument, matched old↔new by rule_number then name), then run
+    both predicates against the live warehouse to compute the record-level
+    delta (newly failing / newly passing, samples capped at 10).
+    """
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+            brow = s.run(
+                """
+                MATCH (b:BulletinOverride)
+                WHERE b.name = $name OR b.id = $name OR b.bulletin_ref = $name
+                OPTIONAL MATCH (b)-[:CITES]->(d:RegulationDocument)
+                RETURN b.id AS id, b.name AS name,
+                       toString(b.effective_date) AS effective_date,
+                       b.jurisdiction_code AS jurisdiction_code,
+                       coalesce(b.notes, '') AS summary,
+                       collect(DISTINCT d.id)[0] AS doc_id,
+                       collect(DISTINCT coalesce(d.title, d.name))[0] AS doc_title,
+                       collect(DISTINCT d.name)[0] AS doc_name
+                LIMIT 1
+                """, name=name,
+            ).single()
+            if not brow:
+                raise HTTPException(status_code=404, detail=f"no bulletin named {name!r}")
+            old_rules = [dict(r["r"]) for r in s.run(
+                """
+                MATCH (b:BulletinOverride {id: $bid})-[:OVERRIDES]->(old:Rule)
+                RETURN properties(old) AS r
+                """, bid=brow["id"],
+            )]
+            new_rules = []
+            if brow["doc_id"]:
+                new_rules = [dict(r["r"]) for r in s.run(
+                    """
+                    MATCH (new:Rule)-[:CONTAINED_IN]->(d:RegulationDocument {id: $did})
+                    RETURN properties(new) AS r
+                    """, did=brow["doc_id"],
+                )]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("/bulletin/impact: KG unreachable", exc_info=True)
+        raise HTTPException(status_code=503, detail="knowledge graph offline") from e
+
+    def _match_new(old: dict) -> dict | None:
+        num = old.get("rule_number")
+        if num is not None:
+            for n in new_rules:
+                if str(n.get("rule_number")) == str(num) and n.get("id") != old.get("id"):
+                    return n
+        for n in new_rules:
+            if n.get("name") == old.get("name") and n.get("id") != old.get("id"):
+                return n
+        return None
+
+    rule_changes: list[dict] = []
+    matched_new_ids: set = set()
+    affected_tables: set[str] = set()
+
+    def _records_block(old: dict | None, new: dict | None) -> tuple[dict | None, str | None]:
+        if not ((old and old.get("violation_sql")) or (new and new.get("violation_sql"))):
+            return None, None  # nothing executable on either side
+        old_ids, old_err = _rule_violating_ids(old)
+        new_ids, new_err = _rule_violating_ids(new)
+        err = old_err or new_err
+        if err is not None:
+            return None, err
+        newly_failing = sorted((new_ids or set()) - (old_ids or set()))
+        newly_passing = sorted((old_ids or set()) - (new_ids or set()))
+        return {
+            "newly_failing": len(newly_failing),
+            "newly_passing": len(newly_passing),
+            "sample_newly_failing": newly_failing[:10],
+            "sample_newly_passing": newly_passing[:10],
+        }, None
+
+    for old in old_rules:
+        new = _match_new(old)
+        if new:
+            matched_new_ids.add(new.get("id"))
+        for side in (old, new):
+            if side and side.get("target_table"):
+                affected_tables.add(side["target_table"])
+        records, sql_error = _records_block(old, new)
+        change = {
+            "rule_number": old.get("rule_number"),
+            "name": old.get("name"),
+            "change_kind": "modified" if new else "retired",
+            "before": _rule_props(old),
+            "after": _rule_props(new),
+            "records": records,
+        }
+        if sql_error:
+            change["sql_error"] = sql_error
+        rule_changes.append(change)
+
+    # Rules the bulletin introduces that don't replace an overridden one.
+    for new in new_rules:
+        if new.get("id") in matched_new_ids or not new.get("violation_sql"):
+            continue
+        if new.get("target_table"):
+            affected_tables.add(new["target_table"])
+        records, sql_error = _records_block(None, new)
+        change = {
+            "rule_number": new.get("rule_number"),
+            "name": new.get("name"),
+            "change_kind": "added",
+            "before": None,
+            "after": _rule_props(new),
+            "records": records,
+        }
+        if sql_error:
+            change["sql_error"] = sql_error
+        rule_changes.append(change)
+
+    # Filings whose plan reads an affected target table.
+    filings_affected: list[str] = []
+    def _is_fhcf_table(t: str) -> bool:
+        up = t.upper()
+        return "FL_FHCF" in up or "FHCF_EXPOSURE" in up
+
+    fhcf_hit = any(_is_fhcf_table(t) for t in affected_tables)
+    tx_hit = any(not _is_fhcf_table(t) for t in affected_tables)
+    for f in _live_filings():
+        is_fhcf = (f.get("plan_code") or "").upper() == "FHCF"
+        if (is_fhcf and fhcf_hit) or (not is_fhcf and tx_hit):
+            filings_affected.append(f["id"])
+
+    summaries = _bulletin_doc_summaries()
+    return JSONResponse({
+        "bulletin": {
+            "name": brow["name"],
+            "title": brow["doc_title"] or brow["name"],
+            "effective_date": brow["effective_date"],
+            "jurisdiction_code": brow["jurisdiction_code"],
+            "summary": brow["summary"] or summaries.get(brow["doc_name"] or "", ""),
+        },
+        "rule_changes": rule_changes,
+        "totals": {
+            "rules_affected": len(rule_changes),
+            "newly_failing": sum((c.get("records") or {}).get("newly_failing", 0)
+                                 for c in rule_changes),
+            "newly_passing": sum((c.get("records") or {}).get("newly_passing", 0)
+                                 for c in rule_changes),
+            "filings_affected": filings_affected,
+        },
+    })
 
 
 @router.post("/bulletin/apply")

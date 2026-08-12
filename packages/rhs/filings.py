@@ -37,6 +37,7 @@ FILINGS: list[dict] = [
         "due_date":     "2026-03-31",
         "channel":      "TICO ShareFile",
         "is_active":    True,
+        "jurisdiction_code": "US-TX",
     },
     {
         "id":           "RES-M03-2026",
@@ -50,6 +51,7 @@ FILINGS: list[dict] = [
         "due_date":     "2026-04-15",
         "channel":      "TICO ShareFile",
         "is_active":    True,
+        "jurisdiction_code": "US-TX",
     },
     {
         "id":           "CL-Q4-2025",
@@ -63,6 +65,24 @@ FILINGS: list[dict] = [
         "due_date":     "2026-05-15",
         "channel":      "TICO ShareFile",
         "is_active":    True,
+        "jurisdiction_code": "US-TX",
+    },
+    {
+        "id":           "FHCF-A-2026",
+        "plan_name":    "Florida Hurricane Catastrophe Fund — Annual Data Call",
+        "plan_code":    "FHCF",
+        # FL exposures land in GOLD.FHCF_EXPOSURE_RECORDS (policy_number
+        # keyed, built by scripts.run_fhcf from the FL rows in the Guidewire
+        # Bronze) — no Guidewire policy-id ranges apply. Scoping is
+        # plan_code-driven; run_fhcf stamps every FL row with this filing.
+        "policy_id_ranges": [],
+        "cadence":      "Annual",
+        "period_start": "2025-07-01",
+        "period_end":   "2026-06-30",
+        "due_date":     "2026-09-01",
+        "channel":      "FHCF Email Submission",
+        "is_active":    True,
+        "jurisdiction_code": "US-FL",
     },
 ]
 
@@ -82,6 +102,8 @@ def policy_id_to_filing_case(column: str = "j.policy_id") -> str:
     """
     branches = []
     for f in FILINGS:
+        if not f["policy_id_ranges"]:
+            continue  # e.g. FHCF — scoped by plan_code, not Guidewire id ranges
         conds = " OR ".join(f"{column} BETWEEN {lo} AND {hi}" for lo, hi in f["policy_id_ranges"])
         branches.append(f"WHEN {conds} THEN '{f['id']}'")
     return "CASE " + " ".join(branches) + " ELSE NULL END"
@@ -97,6 +119,8 @@ def policy_number_to_filing_case(column: str = "s.POLICY_ID") -> str:
         pns = []
         for lo, hi in f["policy_id_ranges"]:
             pns.extend(f"'POL-{(pid - 2000):04d}'" for pid in range(lo, hi + 1))
+        if not pns:
+            continue  # e.g. FHCF — scoped by plan_code, not policy-number ranges
         in_list = ",".join(pns)
         branches.append(f"WHEN {column} IN ({in_list}) THEN '{f['id']}'")
     return "CASE " + " ".join(branches) + " ELSE NULL END"
