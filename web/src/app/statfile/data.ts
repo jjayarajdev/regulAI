@@ -41,7 +41,7 @@ export const TITLES: Record<ScreenId, [string, string]> = {
   filing: ['Submission journey', 'Seal · transmit · acknowledge · archive'],
   amend: ['Regulatory amendments', 'Bulletin impact on the executable canon'],
   iso: ['Standard projection', 'ISO Personal Lines Statistical Plan'],
-  config: ['Administration — States & standards', 'Jurisdictions & reporting standards'],
+  config: ['Administration — Jurisdictions', 'Jurisdictions & reporting standards'],
   users: ['Administration — Users & access', 'Users, roles & permissions'],
 };
 

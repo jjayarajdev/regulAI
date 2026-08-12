@@ -129,6 +129,22 @@
 .sf .table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
 .sf .row:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
 
+/* — underline tabs (Registry | Add a jurisdiction) — */
+.sf .tabs-underline {
+  display: flex; gap: 24px; border-bottom: 1px solid var(--color-divider);
+  margin-bottom: 24px;
+}
+.sf .tab-underline {
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; padding: 6px 2px 10px; cursor: pointer;
+  font-family: var(--font-body); font-size: 13.5px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.sf .tab-underline:hover { color: var(--color-text); }
+.sf .tab-underline.on {
+  color: var(--color-text); border-bottom-color: var(--color-accent); font-weight: 500;
+}
+
 /* — segmented control — */
 .sf .seg { display: inline-flex; overflow: hidden; border: 1px solid var(--color-divider); border-radius: 0; }
 .sf .seg-opt {

@@ -8,8 +8,9 @@ import { API_BASE } from '../api/client';
 import * as fx from './fixtures';
 import { mappingDetail, mappingsList } from './mappings';
 import {
-  ack, applyBulletin, approve, bulletinImpact, db, fixBronze, neighborhood,
-  renderFile, resetBulletin, sendFiling, submissionState,
+  ack, applyBulletin, approve, approveRegulationMock, bulletinImpact, db,
+  extractionStatusMock, fixBronze, neighborhood, renderFile, resetBulletin,
+  sendFiling, startExtractionMock, submissionState, uploadRegulationMock,
 } from './db';
 import type { ApprovalRole } from '../api/types';
 
@@ -171,6 +172,55 @@ export const handlers = [
   http.get(`${API_BASE}/kg/audit`, async () => {
     await delay();
     return HttpResponse.json(db.kgAudit);
+  }),
+
+  // Regulator document store — backs the standards registry.
+  http.get(`${API_BASE}/reg/documents`, async () => {
+    await delay();
+    return HttpResponse.json(db.regDocuments);
+  }),
+
+  // ── regulation store (/api/regulations — NOT under /api/rhs) ─────
+  // The jurisdiction-onboarding wizard: upload → background extract
+  // (start + status poll) → approve-to-canon, mirroring api/main.py.
+  http.get('/api/regulations', async () => {
+    await delay();
+    return HttpResponse.json(db.regulations);
+  }),
+
+  http.post('/api/regulations/upload', async ({ request }) => {
+    await delay(900); // PDF parse feels like work
+    const fd = await request.formData().catch(() => null);
+    const file = fd?.get('file');
+    if (!(file instanceof File)) {
+      return HttpResponse.json({ detail: 'Only PDF uploads are supported.' }, { status: 400 });
+    }
+    if (!/\.pdf$/i.test(file.name)) {
+      return HttpResponse.json({ detail: 'Only PDF uploads are supported.' }, { status: 400 });
+    }
+    const label = fd?.get('label');
+    const category = fd?.get('category');
+    return HttpResponse.json(uploadRegulationMock(
+      file.name,
+      typeof label === 'string' ? label : null,
+      typeof category === 'string' ? category : null,
+    ));
+  }),
+
+  http.post('/api/regulations/:slug/extract/start', async ({ params }) => {
+    await delay(200);
+    return HttpResponse.json(startExtractionMock(String(params.slug)));
+  }),
+
+  http.get('/api/regulations/:slug/extract/status', async ({ params }) => {
+    await delay(150);
+    return HttpResponse.json(extractionStatusMock(String(params.slug)));
+  }),
+
+  http.post('/api/regulations/:slug/approve', async ({ params }) => {
+    await delay(700); // materializing to the KG is a real write
+    const { status, body } = approveRegulationMock(String(params.slug));
+    return HttpResponse.json(body as Record<string, unknown>, { status });
   }),
 
   // ── mutations ───────────────────────────────────────────────────

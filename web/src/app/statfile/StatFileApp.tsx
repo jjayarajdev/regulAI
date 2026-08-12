@@ -252,9 +252,9 @@ export function StatFileApp() {
             {screen === 'iso' && <IsoScreen />}
             {(screen === 'config' || screen === 'users') && (
               <>
-                <ScreenTabs tabs={[['config', 'States & standards'], ['users', 'Users & access']]}
+                <ScreenTabs tabs={[['config', 'Jurisdictions'], ['users', 'Users & access']]}
                   screen={screen} go={go} user={user} />
-                {screen === 'config' ? <ConfigScreen /> : <UsersScreen user={user} />}
+                {screen === 'config' ? <ConfigScreen go={go} user={user} /> : <UsersScreen user={user} />}
               </>
             )}
           </div>

@@ -3,7 +3,7 @@
 // screen keeps the design fixtures as fallback: when the warehouse is cold or
 // a query fails, the UI degrades to demo content instead of breaking.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getJson, patchJson, postJson, setToken } from '../../api/client';
+import { ApiError, getJson, getToken, patchJson, postJson, setToken } from '../../api/client';
 import type {
   BulletinApplyResponse, BulletinImpact, BulletinsResponse,
   Filing, FilingFileResponse, FilingsResponse, KgNeighborhoodResponse, KgRulesResponse,
@@ -502,6 +502,90 @@ export const useAgentRunDetail = (runId: string | null) =>
     queryFn: () => getJson<AgentRunDetail>('/agents/runs/' + encodeURIComponent(runId!)),
     enabled: !!runId,
   });
+
+// ── Regulation store (jurisdiction onboarding wizard) ──────────────────────
+// Document upload → Sentinel extract → approve-to-canon. These endpoints live
+// under /api (see api/main.py), NOT /api/rhs — so they bypass the client
+// helper's prefix. Same auth header, same error shape.
+const REG_API_BASE = '/api';
+const regHeaders = (): Record<string, string> => {
+  const t = getToken();
+  return t ? { 'X-Auth-Token': t } : {};
+};
+async function regJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const r = await fetch(REG_API_BASE + path, {
+    ...init,
+    headers: { ...regHeaders(), ...(init?.headers ?? {}) },
+  });
+  if (!r.ok) {
+    const detail = await r.json().then((j) => {
+      const d = j?.detail;
+      return typeof d === 'string' ? d : d ? JSON.stringify(d) : undefined;
+    }).catch(() => undefined);
+    throw new ApiError(r.status, path, detail);
+  }
+  return r.json() as Promise<T>;
+}
+
+export interface RegulationDoc {
+  slug: string; label: string; category: string; blurb: string;
+  size_bytes: number; exists: boolean; has_extraction: boolean; has_pdf: boolean;
+}
+export const useRegulations = () =>
+  useQuery({
+    queryKey: ['sf', 'regulations'],
+    queryFn: () => regJson<{ documents: RegulationDoc[] }>('/regulations'),
+    staleTime: 60_000,
+  });
+
+export interface UploadRegulationResponse {
+  slug: string; label: string; category: string; pages: number; chars: number; next: string;
+}
+// Multipart upload — the one call the JSON helpers can't make.
+export async function uploadRegulation(
+  file: File, label?: string, category?: string,
+): Promise<UploadRegulationResponse> {
+  const fd = new FormData();
+  fd.append('file', file);
+  if (label) fd.append('label', label);
+  if (category) fd.append('category', category);
+  const r = await fetch(REG_API_BASE + '/regulations/upload', {
+    method: 'POST', body: fd, headers: regHeaders(),
+  });
+  if (!r.ok) {
+    const detail = await r.json().then((j) => j?.detail).catch(() => undefined);
+    throw new ApiError(r.status, '/regulations/upload',
+      typeof detail === 'string' ? detail : undefined);
+  }
+  return r.json() as Promise<UploadRegulationResponse>;
+}
+
+// Background extraction: POST …/extract/start kicks Sentinel off server-side,
+// GET …/extract/status is the poll target (same mechanism the legacy
+// ui/reg-upload.html uses). Never call the synchronous /extract from the UI.
+export const startExtraction = (slug: string) =>
+  regJson<{ status: string }>(`/regulations/${encodeURIComponent(slug)}/extract/start`, { method: 'POST' });
+
+export interface ExtractStatus {
+  status: 'idle' | 'running' | 'done' | 'error';
+  cached?: boolean;
+  error?: string | null;
+  result?: {
+    slug: string; model: string; n_nodes: number; n_relationships: number;
+    n_citations: number; summary: string;
+  } | null;
+}
+export const useExtractStatus = (slug: string | null, active: boolean) =>
+  useQuery({
+    queryKey: ['sf', 'extract-status', slug],
+    queryFn: () => regJson<ExtractStatus>(`/regulations/${encodeURIComponent(slug!)}/extract/status`),
+    enabled: !!slug && active,
+    refetchInterval: (q) => (q.state.data?.status === 'running' ? 2500 : false),
+  });
+
+export const approveRegulation = (slug: string) =>
+  regJson<{ ok?: boolean; nodes_created?: unknown; relationships_created?: number }>(
+    `/regulations/${encodeURIComponent(slug)}/approve`, { method: 'POST' });
 
 export interface RegDocument {
   document_id: string; document_type: string; title: string; issuing_body: string;

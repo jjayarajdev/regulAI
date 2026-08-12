@@ -23,7 +23,141 @@ export const db = {
   bronze: clone(fx.bronzeByFiling),
   subExtras: clone(fx.submissionExtrasByFiling),
   bulletins: clone(fx.bulletins),
+  regDocuments: clone(fx.regDocuments),
+  regulations: clone(fx.regulations),
 };
+
+// ── regulation store (jurisdiction onboarding wizard) ───────────────
+// Upload → extract (background job) → approve, mirroring api/main.py.
+// Approve materializes draft rules into the mock KG, so the Jurisdictions
+// registry picks the new state up as "Onboarding" — the story advances.
+
+interface ExtractJob {
+  status: 'running' | 'done' | 'error';
+  cached?: boolean;
+  result: {
+    slug: string; model: string; n_nodes: number; n_relationships: number;
+    n_citations: number; summary: string;
+  } | null;
+  error: string | null;
+}
+const extractJobs: Record<string, ExtractJob> = {};
+
+// Which jurisdiction an uploaded document belongs to, guessed from its name —
+// enough for the demo's story (the real backend gets this from the canon).
+const JUR_HINTS: Array<[RegExp, string]> = [
+  [/california|\bcdi\b/i, 'US-CA'], [/florida|fhcf|\boir\b/i, 'US-FL'],
+  [/texas|tico|tdi/i, 'US-TX'], [/oklahoma|\boid\b/i, 'US-OK'],
+];
+const guessJur = (s: string): string =>
+  JUR_HINTS.find(([re]) => re.test(s))?.[1] ?? 'US-CA';
+
+export function uploadRegulationMock(fileName: string, label?: string | null, category?: string | null) {
+  const stem = fileName.replace(/\.pdf$/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'regulation';
+  const slug = `uploaded-${stem}`;
+  const pages = 188;
+  const chars = 412_308;
+  const entry: fx.MockRegulation = {
+    slug,
+    label: label || fileName.replace(/\.pdf$/i, ''),
+    category: category || 'Uploaded regulations & bulletins',
+    blurb: `Uploaded ${fileName} · ${pages} pages · ${chars.toLocaleString('en-US')} chars extracted.`,
+    size_bytes: 14_890_000,
+    exists: true,
+    has_extraction: false,
+    has_pdf: true,
+  };
+  const i = db.regulations.documents.findIndex((d) => d.slug === slug);
+  if (i >= 0) db.regulations.documents[i] = entry;
+  else db.regulations.documents.push(entry);
+  delete extractJobs[slug];
+  return {
+    slug, label: entry.label, category: entry.category, pages, chars,
+    next: `POST /api/regulations/${slug}/extract  (Sentinel → KG)`,
+  };
+}
+
+export function startExtractionMock(slug: string): { status: string } {
+  if (extractJobs[slug]?.status === 'running') return { status: 'running' };
+  extractJobs[slug] = { status: 'running', result: null, error: null };
+  // Sentinel "runs" for a few seconds, then the cached extraction appears.
+  setTimeout(() => {
+    extractJobs[slug] = {
+      status: 'done',
+      result: {
+        slug, model: 'mock-sentinel',
+        n_nodes: 9, n_relationships: 14, n_citations: 12,
+        summary: 'Statistical plan for residential property: territory assignment, '
+          + 'mitigation-discount reporting and residual-market cross-references. '
+          + '9 candidate rules with clause citations.',
+      },
+      error: null,
+    };
+    const doc = db.regulations.documents.find((d) => d.slug === slug);
+    if (doc) doc.has_extraction = true;
+  }, 2600);
+  return { status: 'running' };
+}
+
+export function extractionStatusMock(slug: string): ExtractJob | { status: 'idle' } {
+  const job = extractJobs[slug];
+  if (job) return job;
+  const doc = db.regulations.documents.find((d) => d.slug === slug);
+  if (doc?.has_extraction) {
+    return {
+      status: 'done', cached: true, error: null,
+      result: {
+        slug, model: 'cached', n_nodes: 9, n_relationships: 14, n_citations: 12,
+        summary: 'Cached extraction — 9 candidate rules with clause citations.',
+      },
+    };
+  }
+  return { status: 'idle' };
+}
+
+export function approveRegulationMock(slug: string): { status: number; body: unknown } {
+  const doc = db.regulations.documents.find((d) => d.slug === slug);
+  if (!doc) return { status: 404, body: { detail: `Document '${slug}' not found` } };
+  if (!doc.has_extraction) {
+    return { status: 400, body: { detail: 'No cached extraction. POST /api/regulations/{slug}/extract first.' } };
+  }
+  // Materialize: land three draft rules for the document's jurisdiction in
+  // the KG (idempotent per slug), so the registry card + onboarding panel
+  // pick the new state up immediately.
+  const jur = guessJur(`${doc.label} ${slug}`);
+  const created: string[] = [];
+  for (let n = 1; n <= 3; n++) {
+    const id = `RULE-${slug.toUpperCase().slice(0, 24)}-${String(n).padStart(3, '0')}`;
+    if (db.kgRules.rules.some((r) => r.id === id)) continue;
+    db.kgRules.rules.push({
+      id,
+      name: `${doc.label} — extracted rule ${n}`,
+      confidence: [0.94, 0.88, 0.71][n - 1],
+      short_title: null,
+      jurisdiction_code: jur,
+      rule_kind: 'reporting requirement',
+      clause_ref: null,
+      created_by: 'sentinel',
+      created_at: now(),
+      severity: n === 3 ? 'WARNING' : 'ERROR',
+      version: 1,
+      status: 'draft',
+      effective_from: null,
+      effective_until: null,
+      citation: `${doc.label} — extracted clause ${n}`,
+      section: jur.replace('US-', ''),
+      executable: false,
+      currently_active: false,
+    });
+    created.push(id);
+  }
+  db.kgRules.counts.total = db.kgRules.rules.length;
+  db.kgRules.counts.descriptive = db.kgRules.rules.filter((r) => !r.executable).length;
+  return {
+    status: 200,
+    body: { ok: true, nodes_created: created, relationships_created: created.length * 2 },
+  };
+}
 
 const now = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
 
