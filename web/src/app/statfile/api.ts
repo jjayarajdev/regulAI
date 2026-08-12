@@ -7,6 +7,7 @@ import { getJson, patchJson, postJson, setToken } from '../../api/client';
 import type {
   BulletinApplyResponse, BulletinImpact, BulletinsResponse,
   Filing, FilingFileResponse, FilingsResponse, KgNeighborhoodResponse, KgRulesResponse,
+  MappingDetail, MappingsResponse,
   PipelineStateResponse, SendFilingResponse, SubmissionState, Violation,
 } from '../../api/types';
 import type { ValidateAllResponse } from '../experience/api';
@@ -57,6 +58,7 @@ export const SCREEN_ACCESS: Record<ScreenId, Role[]> = {
   filing: ['analyst', 'actuary', 'admin', 'cco'],
   amend:  ['analyst', 'actuary', 'admin', 'cco'],
   pipe:   ['analyst', 'admin', 'cco'],
+  mapping: ['admin', 'cco'],
   agents: ['admin', 'cco'],
   rules:  ['admin', 'cco'],
   graph:  ['admin', 'cco'],
@@ -350,6 +352,23 @@ export const useApplyBulletin = () => {
     onSettled: () => qc.invalidateQueries({ queryKey: ['sf'] }),
   });
 };
+
+// Mapping review — the schema-mapper agent's proposals with the human review
+// verdicts (accepted vs overridden, both SQL versions where they differ).
+export const useMappings = () =>
+  useQuery({
+    queryKey: ['sf', 'mappings'],
+    queryFn: () => getJson<MappingsResponse>('/mappings'),
+    staleTime: 300_000, // file-backed on the server — changes only when a review lands
+  });
+
+export const useMappingDetail = (name: string | null, enabled = true) =>
+  useQuery({
+    queryKey: ['sf', 'mapping', name],
+    queryFn: () => getJson<MappingDetail>('/mapping/' + encodeURIComponent(name!)),
+    enabled: !!name && enabled,
+    staleTime: 300_000,
+  });
 
 // Reason-code reference — what the regulation currently allows, canon-derived.
 export interface ReasonCode {

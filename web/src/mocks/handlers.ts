@@ -6,6 +6,7 @@
 import { http, HttpResponse } from 'msw';
 import { API_BASE } from '../api/client';
 import * as fx from './fixtures';
+import { mappingDetail, mappingsList } from './mappings';
 import {
   ack, applyBulletin, approve, bulletinImpact, db, fixBronze, neighborhood,
   renderFile, resetBulletin, sendFiling, submissionState,
@@ -133,6 +134,20 @@ export const handlers = [
     await delay(persist ? 1100 : 500); // sealing renders + hashes — let it feel real
     const { status, body } = renderFile(String(params.filingId), persist);
     return HttpResponse.json(body, { status });
+  }),
+
+  // Mapping review — the schema-mapper proposals + human review verdicts.
+  http.get(`${API_BASE}/mappings`, async () => {
+    await delay();
+    return HttpResponse.json(mappingsList);
+  }),
+
+  http.get(`${API_BASE}/mapping/:name`, async ({ params }) => {
+    await delay(400);
+    if (String(params.name) !== mappingDetail.name) {
+      return HttpResponse.json({ detail: `unknown mapping '${String(params.name)}'` }, { status: 404 });
+    }
+    return HttpResponse.json(mappingDetail);
   }),
 
   http.get(`${API_BASE}/bulletins`, async () => {

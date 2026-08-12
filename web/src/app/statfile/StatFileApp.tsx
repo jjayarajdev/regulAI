@@ -13,6 +13,7 @@ import { ValidationScreen } from './screens/Validation';
 import { RecordScreen } from './screens/Record';
 import { FilingScreen } from './screens/Filing';
 import { AmendmentsScreen } from './screens/Amendments';
+import { MappingReviewScreen } from './screens/MappingReview';
 import { IsoScreen } from './screens/Iso';
 import { ConfigScreen } from './screens/Config';
 import { UsersScreen } from './screens/Users';
@@ -21,7 +22,7 @@ import './statfile.css';
 
 // Screens whose data comes from the live API today; the rest still render the
 // design's demo content until their endpoints land.
-const LIVE_SCREENS: ScreenId[] = ['dash', 'rules', 'val', 'pipe', 'record', 'graph', 'agents', 'config', 'filing', 'amend'];
+const LIVE_SCREENS: ScreenId[] = ['dash', 'rules', 'val', 'pipe', 'mapping', 'record', 'graph', 'agents', 'config', 'filing', 'amend'];
 
 export function StatFileApp() {
   const [screen, setScreen] = useState<ScreenId>('dash');
@@ -195,6 +196,7 @@ export function StatFileApp() {
             {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} user={user} />}
             {screen === 'filing' && <FilingScreen user={user} go={go} />}
             {screen === 'amend' && <AmendmentsScreen user={user} />}
+            {screen === 'mapping' && <MappingReviewScreen />}
             {screen === 'iso' && <IsoScreen />}
             {screen === 'config' && <ConfigScreen />}
             {screen === 'users' && <UsersScreen user={user} />}

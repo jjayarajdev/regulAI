@@ -3749,6 +3749,109 @@ def _bulletin_doc_summaries() -> dict[str, str]:
     return out
 
 
+# ── mapping review: the schema-mapper agent's proposals + human review ─────
+# File-based (materialized/mappings/*.{mapping,reviewed,compiled}.json) — no
+# KG or warehouse dependency, so the screen works on any backend.
+
+_MAPPINGS_DIR = Path("materialized/mappings")
+
+
+def _load_mapping_bundle(name: str) -> dict | None:
+    """Load raw proposal + reviewed spec + compiled artifact for one mapping."""
+    reviewed_path = _MAPPINGS_DIR / f"{name}.reviewed.json"
+    if not reviewed_path.exists():
+        return None
+    bundle = {"reviewed": json.loads(reviewed_path.read_text(encoding="utf-8"))}
+    for kind in ("mapping", "compiled"):
+        p = _MAPPINGS_DIR / f"{name}.{kind}.json"
+        bundle[kind] = json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+    return bundle
+
+
+def _mapping_summary(name: str, bundle: dict) -> dict:
+    reviewed = bundle["reviewed"]
+    prov = reviewed.get("provenance") or {}
+    cols = reviewed.get("mappings") or []
+    overrides = prov.get("overrides") or []
+    confs = [m.get("confidence") for m in cols if isinstance(m.get("confidence"), (int, float))]
+    return {
+        "name": name,
+        "source_label": reviewed.get("source_label"),
+        "target": reviewed.get("target"),
+        "target_table": reviewed.get("target_table"),
+        "columns": len(cols),
+        "overridden": len(overrides),
+        "needs_review_flags": sum(1 for m in cols if m.get("needs_review")),
+        "avg_confidence": round(sum(confs) / len(confs), 3) if confs else None,
+        "proposed_by": prov.get("proposed_by"),
+        "tokens": prov.get("tokens"),
+        "reviewed_by": prov.get("reviewed_by"),
+        "review_summary": prov.get("review_summary"),
+        "compiled": bundle.get("compiled") is not None,
+        "compiled_at": (bundle.get("compiled") or {}).get("compiled_at"),
+    }
+
+
+@router.get("/mappings")
+def mappings_list() -> JSONResponse:
+    """Every reviewed mapping spec on disk, newest first."""
+    out = []
+    try:
+        for p in sorted(_MAPPINGS_DIR.glob("*.reviewed.json")):
+            name = p.name[: -len(".reviewed.json")]
+            bundle = _load_mapping_bundle(name)
+            if bundle:
+                out.append(_mapping_summary(name, bundle))
+    except Exception:
+        logger.warning("mappings scan failed", exc_info=True)
+    return JSONResponse({"mappings": out})
+
+
+@router.get("/mapping/{name}")
+def mapping_detail(name: str) -> JSONResponse:
+    """One mapping, per-column: the agent's proposal, the human review verdict,
+    and — where review overrode the agent — both SQL versions plus the reason."""
+    bundle = _load_mapping_bundle(name)
+    if bundle is None:
+        raise HTTPException(status_code=404, detail=f"unknown mapping '{name}'")
+    reviewed = bundle["reviewed"]
+    raw = bundle.get("mapping") or {}
+    prov = reviewed.get("provenance") or {}
+    proposed_by_col = {m.get("target_column"): m for m in (raw.get("mappings") or [])}
+    override_by_col = {o.get("target_column"): o for o in (prov.get("overrides") or [])}
+
+    columns = []
+    for m in reviewed.get("mappings") or []:
+        col = m.get("target_column")
+        proposal = proposed_by_col.get(col) or {}
+        override = override_by_col.get(col)
+        columns.append({
+            "target_column": col,
+            "source_column": m.get("source_column"),
+            "transform_type": m.get("transform_type"),
+            "confidence": m.get("confidence"),
+            "needs_review": bool(m.get("needs_review")),
+            "accepted": bool(m.get("accepted", True)),
+            "overridden": override is not None,
+            "accepted_sql": m.get("transform_sql"),
+            "proposed_sql": (override or {}).get("proposed") or proposal.get("transform_sql"),
+            "override_reason": (override or {}).get("reason"),
+            "rationale": m.get("rationale") or proposal.get("rationale"),
+            "review_note": m.get("review_note"),
+        })
+
+    compiled = bundle.get("compiled")
+    return JSONResponse({
+        **_mapping_summary(name, bundle),
+        "source_relation": reviewed.get("source_relation"),
+        "source_filter": reviewed.get("source_filter"),
+        "notes": reviewed.get("notes"),
+        "unmapped_source_columns": reviewed.get("unmapped_source_columns") or [],
+        "columns": columns,
+        "compiled_sql": (compiled or {}).get("select_sql"),
+    })
+
+
 @router.get("/bulletins")
 def bulletins_list() -> JSONResponse:
     """List every BulletinOverride in the KG with its applied/pending status.

@@ -449,3 +449,58 @@ export interface BronzeFixResponse {
   old_value: string | null;
   new_value: string | null;
 }
+
+// ── mapping review: schema-mapper proposals + human review ─────────
+export type MappingTransformType = 'direct' | 'composite' | 'lookup';
+
+export interface MappingSummary {
+  name: string;                     // e.g. "guidewire_fl_fhcf"
+  source_label: string;
+  target: string;                   // e.g. "FHCF_EXPOSURE"
+  target_table: string;             // e.g. "…SILVER.FHCF_EXPOSURE_STAGING"
+  columns: number;
+  overridden: number;               // human overrides recorded in review
+  needs_review_flags: number;       // proposals the agent itself flagged
+  avg_confidence: number | null;
+  proposed_by: string | null;       // e.g. "openai:gpt-5.5"
+  tokens: number | null;
+  reviewed_by: string | null;
+  review_summary: string | null;
+  compiled: boolean;
+  compiled_at: string | null;
+}
+
+export interface MappingsResponse {
+  mappings: MappingSummary[];
+}
+
+export interface MappingColumn {
+  target_column: string;
+  source_column: string | null;     // null for per-cycle constants
+  transform_type: MappingTransformType;
+  confidence: number;
+  needs_review: boolean;            // the agent's own flag on the proposal
+  accepted: boolean;
+  overridden: boolean;              // human review replaced the proposed SQL
+  accepted_sql: string;
+  proposed_sql: string | null;      // the agent's original expression
+  override_reason: string | null;
+  rationale: string | null;
+  review_note: string | null;
+}
+
+export interface UnmappedSourceColumn {
+  name: string;
+  reason?: string;
+}
+
+// NB: in the detail response `columns` is the per-column array — the server
+// spreads the summary then overwrites the numeric count with the array.
+export interface MappingDetail extends Omit<MappingSummary, 'columns'> {
+  source_relation: string;
+  source_filter: string;
+  notes: string | null;
+  unmapped_source_columns: Array<string | UnmappedSourceColumn>;
+  columns: MappingColumn[];
+  compiled_sql: string | null;      // the compiled select_sql
+}

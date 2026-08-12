@@ -7,13 +7,14 @@ export const ACC9 = '#1d2d3d';
 export const NEU = '#98989b';
 
 export type ScreenId =
-  | 'dash' | 'rules' | 'amend' | 'graph' | 'pipe' | 'agents'
+  | 'dash' | 'rules' | 'amend' | 'graph' | 'pipe' | 'mapping' | 'agents'
   | 'val' | 'record' | 'filing' | 'iso' | 'config' | 'users';
 
 // 'iso' stays routable (direct state) but is no longer in the nav.
 export const NAV: Array<[ScreenId, string]> = [
   ['dash', 'Filing dashboard'], ['rules', 'Rulebook & rules'], ['amend', 'Amendments & impact'],
-  ['graph', 'Knowledge graph'], ['pipe', 'Medallion pipeline'], ['agents', 'Agent console'],
+  ['graph', 'Knowledge graph'], ['pipe', 'Medallion pipeline'], ['mapping', 'Mapping review'],
+  ['agents', 'Agent console'],
   ['val', 'Validation triage'], ['record', 'TX stat record'], ['filing', 'Filing & submission'],
   ['config', 'States & standards'],
   ['users', 'Users & access'],   // admin/cco only — filtered in the shell
@@ -24,6 +25,7 @@ export const TITLES: Record<ScreenId, [string, string]> = {
   rules: ['Rulebook ingestion', 'TDI Residential Property Statistical Plan'],
   graph: ['Lineage', 'Clause → rule → field → source'],
   pipe: ['Medallion pipeline', 'Bronze · Silver · Gold'],
+  mapping: ['Mapping review', 'Agent-proposed field mappings · human governed'],
   agents: ['Agent console', 'Extraction, mapping and validation runs'],
   val: ['Validation triage', 'Edit-package exceptions'],
   record: ['Record inspector', 'TDI HO statistical record'],
