@@ -6,7 +6,9 @@
 import * as fx from './fixtures';
 import type {
   ApprovalRole, ApproveResponse, BronzeFixResponse, BulletinApplyResponse,
-  FilingStatus, KgNeighborhoodResponse, ValidateResponse,
+  BulletinImpact, FilingFileResponse, FilingStatus, KgNeighborhoodResponse,
+  SendFilingResponse, SubmissionArchive, SubmissionEmail, SubmissionState,
+  ValidateResponse,
 } from '../api/types';
 
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -19,7 +21,11 @@ export const db = {
   kgAudit: clone(fx.kgAudit),
   kgRules: clone(fx.kgRules),
   bronze: clone(fx.bronzeByFiling),
+  subExtras: clone(fx.submissionExtrasByFiling),
+  bulletins: clone(fx.bulletins),
 };
+
+const now = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
 
 let actionSeq = 100;
 function recordAction(filingId: string, type: string, actor: string, summary: string) {
@@ -81,6 +87,9 @@ export function applyBulletin(): BulletinApplyResponse {
     }
   }
   db.state.bulletin_applied = true;
+  for (const b of db.bulletins.bulletins) {
+    if (b.name === db.state.bulletin_id) b.status = 'applied';
+  }
   db.kgAudit.entries.unshift({
     id: `audit-mock-${actionSeq++}`,
     action: 'bulletin_apply',
@@ -107,6 +116,8 @@ export function resetBulletin() {
   db.validate = clone(fx.validateByFiling);
   db.approval = clone(fx.approvalByFiling);
   db.bronze = clone(fx.bronzeByFiling);
+  db.subExtras = clone(fx.submissionExtrasByFiling);
+  db.bulletins = clone(fx.bulletins);
   db.kgAudit.entries.unshift({
     id: `audit-mock-${actionSeq++}`,
     action: 'bulletin_reset',
@@ -161,9 +172,13 @@ export function ack(filingId: string) {
     return { status: 409, body: { detail: `cannot ACK in state '${ap.status}' — filing must be 'submitted'` } };
   }
   ap.status = 'acked';
-  ap.acked_at = new Date().toISOString();
+  ap.acked_at = now();
   if (db.audit[filingId]) db.audit[filingId].batch.status = 'acked';
-  const receipt = 'TICO-ACK-MOCK0001';
+  const receipt = `TICO-ACK-2026-${String(actionSeq++).padStart(6, '0')}`;
+  const ex = db.subExtras[filingId];
+  if (ex) {
+    ex.ack = { receipt, acked_at: ap.acked_at, eml_path: `inbox/${filingId}/ack.eml` };
+  }
   recordAction(filingId, 'regulator_ack', 'TICO ShareFile', `ACK received · receipt ${receipt}`);
   return { status: 200, body: { filing_id: filingId, receipt, new_state: 'acked' as const } };
 }
@@ -264,4 +279,198 @@ export function fixBronze(policyNumber: string, field: string, newValue: string)
       new_value: newValue || null,
     },
   };
+}
+
+// ── submission journey (mirrors GET /filing/{id}/submission etc.) ──
+const EMPTY_EXTRAS = { submission: null, email: null, ack: null, archive: null };
+
+export function submissionState(filingId: string): SubmissionState {
+  const ap = db.approval[filingId] ?? db.approval['TPA-Q4-2025'];
+  const ex = db.subExtras[filingId] ?? EMPTY_EXTRAS;
+  const raw = ap.status as string;
+  const status = (
+    raw === 'submitted' && ex.email ? 'sent'
+    : raw === 'draft' || raw === 'validating' ? 'validated'
+    : raw
+  ) as SubmissionState['status'];
+  return {
+    filing_id: filingId,
+    status,
+    approval: { ...ap },
+    submission: ex.submission,
+    email: ex.email,
+    sftp_path: ex.email && ex.submission ? sftpPathFor(filingId, ex.submission.file_name) : null,
+    ack: ex.ack,
+    archive: ex.archive,
+  };
+}
+
+const sftpPathFor = (filingId: string, fileName: string) =>
+  `/sftp/${filingId.startsWith('FHCF') ? 'fhcf' : 'tico'}/inbound/${fileName}`;
+
+// Deterministic fake SHA-256 — the mock can't hash synchronously, but the
+// value must be stable per filing so seal/preview/archive all agree.
+const pseudoSha = (seed: string): string => {
+  let h = 2166136261 >>> 0;
+  let out = '';
+  for (let i = 0; out.length < 64; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i % seed.length) ^ i, 16777619) >>> 0;
+    out += h.toString(16).padStart(8, '0');
+  }
+  return out.slice(0, 64);
+};
+
+const pad = (v: string | number, n: number) => String(v).padEnd(n).slice(0, n);
+const num = (v: number, n: number) => String(v).padStart(n, '0').slice(-n);
+
+// Render a plausible fixed-width TSPR file for a filing (mirrors
+// GET /filing/{id}/file). persist=true seals: gates on the approval chain,
+// then advances the filing to 'submitted' and stores the submission row.
+const FILE_COUNTS: Record<string, [number, number, number]> = {
+  'TPA-Q4-2025': [18, 6, 3],
+  'RES-M03-2026': [96, 24, 12],
+  'CL-Q4-2025': [11, 4, 2],
+  'FHCF-A-2026': [42, 17, 0],
+};
+
+export function renderFile(filingId: string, persist: boolean):
+  { status: number; body: FilingFileResponse | { detail: string } } {
+  const f = fx.filings.filings.find((x) => x.id === filingId);
+  if (!f) return { status: 404, body: { detail: `unknown filing ${filingId}` } };
+
+  const naic = '10639';
+  const [pc, lc, cc] = FILE_COUNTS[filingId] ?? [12, 4, 2];
+  const header =
+    `H${naic}${pad(f.plan_code, 5)}${pad(filingId, 14)}` +
+    `${f.period_start.replace(/-/g, '')}${f.period_end.replace(/-/g, '')}` +
+    `P${num(pc, 5)}L${num(lc, 5)}C${num(cc, 5)}`.padEnd(60);
+  const line = (kind: string, i: number) =>
+    `${kind}${naic}${pad(`POL-${2001 + i}`, 12)}1${num(19 + (i % 7), 2)}${num(140000 + i * 1735, 9)}` +
+    `${num(2500 + (i % 4) * 500, 6)}${num(1, 2)}${'0'.repeat(8)}${pad('TX', 2)}${num(75001 + (i % 40), 9)}`.padEnd(70);
+  const pLines = Array.from({ length: pc }, (_, i) => line('P', i));
+  const lLines = Array.from({ length: lc }, (_, i) => line('L', i + 200));
+  const cLines = Array.from({ length: cc }, (_, i) => line('C', i + 400));
+  const body = [header, ...pLines, ...lLines, ...cLines].join('\n');
+  // An already-sealed filing keeps its recorded hash — preview must agree
+  // with the submission row and the archive.
+  const sha256 = db.subExtras[filingId]?.submission?.sha256
+    ?? pseudoSha(filingId + ':' + body.length);
+  const footer = `T${naic}RECORDS${num(pc + lc + cc, 7)}SHA256:${sha256}`.padEnd(80);
+  const fileText = body + '\n' + footer + '\n';
+  const fileName = `TSPR_${naic}_${f.plan_code}_${filingId.replace(/-/g, '')}.txt`;
+
+  const response: FilingFileResponse = {
+    filing_id: filingId,
+    file_name: fileName,
+    naic,
+    record_count: pc + lc + cc,
+    byte_count: fileText.length,
+    sha256,
+    preview: fileText.slice(0, 2400),
+    header,
+    footer,
+    p_count: pc,
+    l_count: lc,
+    c_count: cc,
+    warning: null,
+  };
+
+  if (persist) {
+    const ap = db.approval[filingId];
+    if (!ap) return { status: 404, body: { detail: `no filing batch for ${filingId}` } };
+    if (ap.status !== 'officer_approved' || ap.open_blockers > 0) {
+      return {
+        status: 409,
+        body: {
+          detail: `cannot seal: status is '${ap.status}' with ${ap.open_blockers} open blocker(s); ` +
+            'filing must be officer_approved with 0 ERROR blockers',
+        },
+      };
+    }
+    ap.status = 'submitted';
+    ap.can_seal = false;
+    ap.submitted_at = now();
+    if (db.audit[filingId]) {
+      db.audit[filingId].batch.status = 'submitted';
+      db.audit[filingId].batch.submitted_at = ap.submitted_at;
+    }
+    if (!db.subExtras[filingId]) db.subExtras[filingId] = { ...EMPTY_EXTRAS };
+    db.subExtras[filingId].submission = {
+      submission_id: 'sub-mock-' + pseudoSha(filingId).slice(0, 14),
+      sha256,
+      file_name: fileName,
+      record_count: response.record_count,
+      file_size_bytes: response.byte_count,
+      sealed_at: ap.submitted_at,
+    };
+    recordAction(filingId, 'file_generated', 'J. Park · Compliance Officer',
+      `Sealed ${response.record_count} records · ${response.byte_count} bytes · sha256:${sha256.slice(0, 12)}…`);
+    response.persisted = true;
+    response.submission_id = db.subExtras[filingId].submission!.submission_id;
+  }
+
+  return { status: 200, body: response };
+}
+
+// Transmit the sealed package (mirrors POST /filing/{id}/send): composes the
+// email, drops the file on the regulator's channel and archives it.
+export function sendFiling(
+  filingId: string,
+  draft: { subject?: string; body?: string; to?: string[] },
+): { status: number; body: SendFilingResponse | { detail: string } } {
+  const f = fx.filings.filings.find((x) => x.id === filingId);
+  const ap = db.approval[filingId];
+  const ex = db.subExtras[filingId];
+  if (!f || !ap) return { status: 404, body: { detail: `unknown filing ${filingId}` } };
+  if (!ex?.submission) return { status: 409, body: { detail: 'seal the package before sending' } };
+  if (ex.email) return { status: 409, body: { detail: 'already sent — see the outbox message' } };
+  if (ap.status !== 'submitted') {
+    return { status: 409, body: { detail: `cannot send in state '${ap.status}' — filing must be sealed` } };
+  }
+
+  const sentAt = now();
+  const s = ex.submission;
+  const email: SubmissionEmail = {
+    message_id: `<${Date.now()}.${filingId}@regulai.demo>`,
+    from: 'filings@regulai.demo',
+    to: draft.to?.length ? draft.to
+      : [f.jurisdiction_code === 'US-FL' ? 'datacall@fhcf.example' : 'stat.submissions@tico.example'],
+    subject: draft.subject || `${f.plan_code} statistical submission — ${filingId}`,
+    body: draft.body || `Please find attached the sealed ${f.plan_code} submission for ${filingId}.`,
+    attachment: { name: s.file_name, bytes: s.file_size_bytes },
+    sent_at: sentAt,
+    eml_path: `outbox/${filingId}/submission.eml`,
+    transport: 'outbox',
+  };
+  const archive: SubmissionArchive = {
+    path: `archive/2026/${filingId}/${s.file_name}`,
+    sha256: s.sha256,
+    archived_at: sentAt,
+  };
+  ex.email = email;
+  ex.archive = archive;
+  recordAction(filingId, 'submission_sent', 'J. Park · Compliance Officer',
+    `Submission emailed to ${email.to.join(', ')} · ${s.file_name}`);
+
+  return {
+    status: 200,
+    body: {
+      filing_id: filingId,
+      status: 'sent',
+      email,
+      sftp_path: sftpPathFor(filingId, s.file_name),
+      archive,
+    },
+  };
+}
+
+// Bulletin impact — fixture analysis with the bulletin's live status merged in
+// (so applying flips the header + apply bar without a reload).
+export function bulletinImpact(name: string): BulletinImpact | null {
+  const imp = fx.bulletinImpacts[name];
+  if (!imp) return null;
+  const b = db.bulletins.bulletins.find((x) => x.name === name);
+  const out = clone(imp);
+  if (b) out.bulletin = { ...b };
+  return out;
 }

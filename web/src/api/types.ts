@@ -312,6 +312,133 @@ export interface BulletinResetResponse {
   steps: BulletinStepResult[];
 }
 
+// ── filing submission journey (GET /filing/{id}/submission) ──────
+export type SubmissionJourneyStatus =
+  | 'validated' | 'analyst_signed' | 'actuary_approved' | 'officer_approved'
+  | 'submitted' | 'sent' | 'acked';
+
+export interface SubmissionApproval {
+  filing_id: string;
+  status: string;
+  open_blockers: number;
+  next_role: 'analyst' | 'actuary' | 'officer' | null;
+  can_seal: boolean;
+  submitted_at: string | null;
+  acked_at: string | null;
+}
+
+export interface SealedSubmission {
+  submission_id: string;
+  sha256: string;
+  file_name: string;
+  record_count: number;
+  file_size_bytes: number;
+  sealed_at: string;
+}
+
+export interface SubmissionEmail {
+  message_id: string;
+  from: string;
+  to: string[];
+  subject: string;
+  body: string | null;
+  attachment: { name: string; bytes: number } | null;
+  sent_at: string;
+  eml_path: string;
+  transport: 'outbox' | 'smtp';
+}
+
+export interface SubmissionAck { receipt: string; acked_at: string; eml_path: string }
+export interface SubmissionArchive { path: string; sha256: string; archived_at: string }
+
+export interface SubmissionState {
+  filing_id: string;
+  status: SubmissionJourneyStatus;
+  approval: SubmissionApproval;
+  submission: SealedSubmission | null;
+  email: SubmissionEmail | null;
+  sftp_path?: string | null;
+  ack: SubmissionAck | null;
+  archive: SubmissionArchive | null;
+}
+
+export interface SendFilingResponse {
+  filing_id: string;
+  status: 'sent';
+  email: SubmissionEmail;
+  sftp_path: string;
+  archive: SubmissionArchive;
+}
+
+// GET /filing/{id}/file — the rendered fixed-width TSPR package.
+export interface FilingFileResponse {
+  filing_id: string;
+  file_name: string;
+  naic: string;
+  record_count: number;
+  byte_count: number;
+  sha256: string;
+  preview: string;
+  header: string;
+  footer: string;
+  p_count: number;
+  l_count: number;
+  c_count: number;
+  warning: string | null;
+  persisted?: boolean;
+  submission_id?: string;
+}
+
+// ── bulletins & amendment impact ──────────────────────────────────
+export interface Bulletin {
+  name: string;
+  title: string;
+  effective_date: string;
+  status: 'pending' | 'applied';
+  targets: number;
+  summary: string;
+  jurisdiction_code: string;
+}
+
+export interface BulletinsResponse {
+  bulletins: Bulletin[];
+  kg_offline?: boolean;
+}
+
+export interface RuleChangeSide {
+  violation_sql: string;
+  severity: Severity;
+  violation_reason: string;
+}
+
+export interface RuleChangeRecords {
+  newly_failing: number;
+  newly_passing: number;
+  sample_newly_failing: string[];
+  sample_newly_passing: string[];
+}
+
+export interface RuleChange {
+  rule_number: string;
+  name: string;
+  change_kind: 'modified' | 'added' | 'retired';
+  before: RuleChangeSide | null;
+  after: RuleChangeSide | null;
+  records: RuleChangeRecords | null;
+  sql_error?: string;
+}
+
+export interface BulletinImpact {
+  bulletin: Bulletin;
+  rule_changes: RuleChange[];
+  totals: {
+    rules_affected: number;
+    newly_failing: number;
+    newly_passing: number;
+    filings_affected: string[];
+  };
+}
+
 export type BronzeFixField = 'reason_code' | 'naic_number' | 'writtenpremium' | 'termtype' | 'noticedate';
 
 export interface BronzeFixResponse {

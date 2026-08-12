@@ -5,8 +5,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getJson, patchJson, postJson, setToken } from '../../api/client';
 import type {
-  Filing, FilingsResponse, KgNeighborhoodResponse, KgRulesResponse,
-  PipelineStateResponse, Violation,
+  BulletinApplyResponse, BulletinImpact, BulletinsResponse,
+  Filing, FilingFileResponse, FilingsResponse, KgNeighborhoodResponse, KgRulesResponse,
+  PipelineStateResponse, SendFilingResponse, SubmissionState, Violation,
 } from '../../api/types';
 import type { ValidateAllResponse } from '../experience/api';
 import {
@@ -35,7 +36,9 @@ const GRANTS: Record<string, Role[]> = {
   sign_officer:  ['cco'],
   seal:          ['cco'],
   ack:           ['cco'],
+  send:          ['cco'],
   mapping:       ['admin', 'cco'],
+  bulletin:      ['admin', 'cco'],
   manage_users:  ['admin', 'cco'],
 };
 export const can = (user: AppUser | undefined, perm: string): boolean =>
@@ -51,6 +54,8 @@ export const SCREEN_ACCESS: Record<ScreenId, Role[]> = {
   dash:   ['viewer', 'analyst', 'actuary', 'admin', 'cco'],
   val:    ['analyst', 'actuary', 'admin', 'cco'],
   record: ['analyst', 'actuary', 'admin', 'cco'],
+  filing: ['analyst', 'actuary', 'admin', 'cco'],
+  amend:  ['analyst', 'actuary', 'admin', 'cco'],
   pipe:   ['analyst', 'admin', 'cco'],
   agents: ['admin', 'cco'],
   rules:  ['admin', 'cco'],
@@ -271,6 +276,8 @@ export const useAdvanceFiling = () => {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['sf', 'approval'] });
     qc.invalidateQueries({ queryKey: ['sf', 'filings'] });
+    qc.invalidateQueries({ queryKey: ['sf', 'submission-state'] });
+    qc.invalidateQueries({ queryKey: ['sf', 'filing-file'] });
   };
   return {
     approve: useMutation({
@@ -290,6 +297,58 @@ export const useAdvanceFiling = () => {
       onSettled: invalidate,
     }),
   };
+};
+
+// Submission journey: the whole seal → send → ack → archive story for one
+// filing. Polled at the default refetchInterval so a regulator ACK landing
+// server-side shows up without a reload.
+export const useSubmissionState = (filingId: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'submission-state', filingId],
+    queryFn: () => getJson<SubmissionState>('/filing/' + encodeURIComponent(filingId!) + '/submission'),
+    enabled: !!filingId,
+  });
+
+// Rendered fixed-width package (read-only; sealing goes through
+// useAdvanceFiling().seal which hits the same endpoint with persist=true).
+export const useFilingFile = (filingId: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'filing-file', filingId],
+    queryFn: () => getJson<FilingFileResponse>('/filing/' + encodeURIComponent(filingId!) + '/file'),
+    enabled: !!filingId,
+    staleTime: 60_000,
+  });
+
+// Transmit the sealed package to the regulator (email + SFTP drop + archive).
+export const useSendFiling = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ filingId, subject, body, to }: { filingId: string; subject?: string; body?: string; to?: string[] }) =>
+      postJson<SendFilingResponse>(`/filing/${encodeURIComponent(filingId)}/send`, { subject, body, to }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['sf'] }),
+  });
+};
+
+// Regulatory bulletins + per-bulletin impact analysis (KG-computed diff of
+// the executable canon plus a dry-run against the warehouse).
+export const useBulletins = () =>
+  useQuery({ queryKey: ['sf', 'bulletins'], queryFn: () => getJson<BulletinsResponse>('/bulletins') });
+
+export const useBulletinImpact = (name: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'bulletin-impact', name],
+    queryFn: () => getJson<BulletinImpact>('/bulletin/' + encodeURIComponent(name!) + '/impact'),
+    enabled: !!name,
+    retry: false, // 503 = knowledge graph offline — don't hammer it
+  });
+
+export const useApplyBulletin = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => postJson<BulletinApplyResponse>('/bulletin/apply'),
+    // The apply reruns validation and rewrites the canon — refetch everything.
+    onSettled: () => qc.invalidateQueries({ queryKey: ['sf'] }),
+  });
 };
 
 // Reason-code reference — what the regulation currently allows, canon-derived.

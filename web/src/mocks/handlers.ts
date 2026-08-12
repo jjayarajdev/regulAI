@@ -6,7 +6,10 @@
 import { http, HttpResponse } from 'msw';
 import { API_BASE } from '../api/client';
 import * as fx from './fixtures';
-import { ack, applyBulletin, approve, db, fixBronze, neighborhood, resetBulletin } from './db';
+import {
+  ack, applyBulletin, approve, bulletinImpact, db, fixBronze, neighborhood,
+  renderFile, resetBulletin, sendFiling, submissionState,
+} from './db';
 import type { ApprovalRole } from '../api/types';
 
 // Small artificial latency so loading states are visible in mock mode.
@@ -15,7 +18,44 @@ const delay = (ms = 250) => new Promise((r) => setTimeout(r, ms));
 const byFiling = <T,>(table: Record<string, T>, id: string | null): T =>
   table[id ?? ''] ?? table['TPA-Q4-2025'];
 
+// Mock identity — mirrors _SEED_USERS in api/rhs_demo.py so the RBAC-gated
+// screens are reachable in mock mode. Any password signs in.
+const MOCK_USERS = [
+  { user_id: 'u-okonkwo', name: 'M. Okonkwo', email: 'm.okonkwo@regulai.demo', role: 'analyst', title: 'Compliance Analyst', active: true },
+  { user_id: 'u-reyes', name: 'D. Reyes', email: 'd.reyes@regulai.demo', role: 'actuary', title: 'Actuary', active: true },
+  { user_id: 'u-iyer', name: 'S. Iyer', email: 's.iyer@regulai.demo', role: 'admin', title: 'Compliance Officer · Specs & Onboarding', active: true },
+  { user_id: 'u-park', name: 'J. Park', email: 'j.park@regulai.demo', role: 'cco', title: 'Chief Compliance Officer', active: true },
+];
+const MOCK_GUEST = { user_id: 'guest', name: 'Guest', role: 'viewer', title: 'Read-only' };
+
 export const handlers = [
+  // ── identity (mock sessions: token encodes the user id) ─────────
+  http.get(`${API_BASE}/auth/users`, async () => {
+    await delay(120);
+    return HttpResponse.json({ users: MOCK_USERS });
+  }),
+
+  http.get(`${API_BASE}/auth/me`, async ({ request }) => {
+    await delay(120);
+    const token = request.headers.get('X-Auth-Token');
+    const uid = token?.startsWith('mock-') ? token.slice(5) : null;
+    const user = MOCK_USERS.find((u) => u.user_id === uid) ?? MOCK_GUEST;
+    return HttpResponse.json({ user });
+  }),
+
+  http.post(`${API_BASE}/auth/login`, async ({ request }) => {
+    await delay(300);
+    const body = (await request.json().catch(() => ({}))) as { email?: string } | null;
+    const user = MOCK_USERS.find((u) => u.email.toLowerCase() === (body?.email ?? '').toLowerCase());
+    if (!user) return HttpResponse.json({ detail: 'unknown user (mock accepts the four seed personas)' }, { status: 401 });
+    return HttpResponse.json({ token: 'mock-' + user.user_id, user });
+  }),
+
+  http.post(`${API_BASE}/auth/logout`, async () => {
+    await delay(120);
+    return HttpResponse.json({ ok: true });
+  }),
+
   http.get(`${API_BASE}/filings`, async () => {
     await delay();
     return HttpResponse.json(fx.filings);
@@ -81,6 +121,32 @@ export const handlers = [
     return HttpResponse.json(byFiling(db.approval, String(params.filingId)));
   }),
 
+  // Full submission journey: approval + sealed package + email + ack + archive.
+  http.get(`${API_BASE}/filing/:filingId/submission`, async ({ params }) => {
+    await delay();
+    return HttpResponse.json(submissionState(String(params.filingId)));
+  }),
+
+  // Fixed-width package render; ?persist=true seals (gated on the chain).
+  http.get(`${API_BASE}/filing/:filingId/file`, async ({ params, request }) => {
+    const persist = new URL(request.url).searchParams.get('persist') === 'true';
+    await delay(persist ? 1100 : 500); // sealing renders + hashes — let it feel real
+    const { status, body } = renderFile(String(params.filingId), persist);
+    return HttpResponse.json(body, { status });
+  }),
+
+  http.get(`${API_BASE}/bulletins`, async () => {
+    await delay();
+    return HttpResponse.json(db.bulletins);
+  }),
+
+  http.get(`${API_BASE}/bulletin/:name/impact`, async ({ params }) => {
+    await delay(700); // the real impact runs KG diff + warehouse dry-run
+    const imp = bulletinImpact(String(params.name));
+    if (!imp) return HttpResponse.json({ detail: `unknown bulletin ${String(params.name)}` }, { status: 404 });
+    return HttpResponse.json(imp);
+  }),
+
   http.get(`${API_BASE}/anomalies`, async ({ request }) => {
     await delay();
     const filing = new URL(request.url).searchParams.get('filing');
@@ -107,6 +173,14 @@ export const handlers = [
     await delay(400);
     const body = (await request.json()) as { role?: string };
     const { status, body: payload } = approve(String(params.filingId), (body.role ?? '') as ApprovalRole);
+    return HttpResponse.json(payload, { status });
+  }),
+
+  http.post(`${API_BASE}/filing/:filingId/send`, async ({ params, request }) => {
+    await delay(900);
+    const draft = (await request.json().catch(() => ({}))) as
+      { subject?: string; body?: string; to?: string[] } | null;
+    const { status, body: payload } = sendFiling(String(params.filingId), draft ?? {});
     return HttpResponse.json(payload, { status });
   }),
 

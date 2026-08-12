@@ -7,13 +7,15 @@ export const ACC9 = '#1d2d3d';
 export const NEU = '#98989b';
 
 export type ScreenId =
-  | 'dash' | 'rules' | 'graph' | 'pipe' | 'agents'
-  | 'val' | 'record' | 'iso' | 'config' | 'users';
+  | 'dash' | 'rules' | 'amend' | 'graph' | 'pipe' | 'agents'
+  | 'val' | 'record' | 'filing' | 'iso' | 'config' | 'users';
 
+// 'iso' stays routable (direct state) but is no longer in the nav.
 export const NAV: Array<[ScreenId, string]> = [
-  ['dash', 'Filing dashboard'], ['rules', 'Rulebook & rules'], ['graph', 'Knowledge graph'],
-  ['pipe', 'Medallion pipeline'], ['agents', 'Agent console'], ['val', 'Validation triage'],
-  ['record', 'TX stat record'], ['iso', 'ISO projection'], ['config', 'States & standards'],
+  ['dash', 'Filing dashboard'], ['rules', 'Rulebook & rules'], ['amend', 'Amendments & impact'],
+  ['graph', 'Knowledge graph'], ['pipe', 'Medallion pipeline'], ['agents', 'Agent console'],
+  ['val', 'Validation triage'], ['record', 'TX stat record'], ['filing', 'Filing & submission'],
+  ['config', 'States & standards'],
   ['users', 'Users & access'],   // admin/cco only — filtered in the shell
 ];
 
@@ -25,6 +27,8 @@ export const TITLES: Record<ScreenId, [string, string]> = {
   agents: ['Agent console', 'Extraction, mapping and validation runs'],
   val: ['Validation triage', 'Edit-package exceptions'],
   record: ['Record inspector', 'TDI HO statistical record'],
+  filing: ['Submission journey', 'Seal · transmit · acknowledge · archive'],
+  amend: ['Regulatory amendments', 'Bulletin impact on the executable canon'],
   iso: ['Standard projection', 'ISO Personal Lines Statistical Plan'],
   config: ['Configuration', 'Jurisdictions & reporting standards'],
   users: ['Access control', 'Users, roles & permissions'],

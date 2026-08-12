@@ -11,14 +11,17 @@ import { PipelineScreen } from './screens/Pipeline';
 import { AgentsScreen } from './screens/Agents';
 import { ValidationScreen } from './screens/Validation';
 import { RecordScreen } from './screens/Record';
+import { FilingScreen } from './screens/Filing';
+import { AmendmentsScreen } from './screens/Amendments';
 import { IsoScreen } from './screens/Iso';
 import { ConfigScreen } from './screens/Config';
 import { UsersScreen } from './screens/Users';
+import { Toaster } from 'sonner';
 import './statfile.css';
 
 // Screens whose data comes from the live API today; the rest still render the
 // design's demo content until their endpoints land.
-const LIVE_SCREENS: ScreenId[] = ['dash', 'rules', 'val', 'pipe', 'record', 'graph', 'agents', 'config'];
+const LIVE_SCREENS: ScreenId[] = ['dash', 'rules', 'val', 'pipe', 'record', 'graph', 'agents', 'config', 'filing', 'amend'];
 
 export function StatFileApp() {
   const [screen, setScreen] = useState<ScreenId>('dash');
@@ -121,6 +124,9 @@ export function StatFileApp() {
 
   return (
     <div className="sf">
+      <Toaster position="bottom-right" toastOptions={{
+        style: { borderRadius: 0, fontFamily: 'var(--font-body)', fontSize: 13 },
+      }} />
       <div className="shell">
         <aside className="side">
           <div className="side-brand">
@@ -187,6 +193,8 @@ export function StatFileApp() {
             {screen === 'agents' && <AgentsScreen />}
             {screen === 'val' && <ValidationScreen onTrace={traceTo} user={user} />}
             {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} user={user} />}
+            {screen === 'filing' && <FilingScreen user={user} go={go} />}
+            {screen === 'amend' && <AmendmentsScreen user={user} />}
             {screen === 'iso' && <IsoScreen />}
             {screen === 'config' && <ConfigScreen />}
             {screen === 'users' && <UsersScreen user={user} />}

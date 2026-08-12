@@ -51,7 +51,11 @@ export function DashboardScreen({ go }: { go: (s: ScreenId) => () => void }) {
             <tbody>
               {cycles.map((c, i) => (
                 <tr key={i} className="row" style={{ cursor: 'pointer' }} onClick={go(c.goTo)}>
-                  <td style={{ fontFamily: 'var(--font-heading)', fontSize: 16 }}>{c.state}</td>
+                  <td>
+                    <span className="tag tag-outline" style={{ fontFamily: 'var(--font-heading)', fontSize: 13 }}>
+                      {c.state}
+                    </span>
+                  </td>
                   <td>{c.line}</td>
                   <td className="mono" style={{ fontSize: 12 }}>{c.std}</td>
                   <td className="mono" style={{ fontSize: 12 }}>{c.period}</td>

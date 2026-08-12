@@ -14,7 +14,12 @@ const API_MODE = import.meta.env.VITE_API_MODE ?? 'mock';
 async function prepare() {
   if (API_MODE !== 'live') {
     const { worker } = await import('./mocks/browser');
-    await worker.start({ onUnhandledRequest: 'bypass' });
+    await worker.start({
+      onUnhandledRequest: 'bypass',
+      // Respect the Vite base path — under the FastAPI /app mount the worker
+      // script lives at /app/mockServiceWorker.js, not the site root.
+      serviceWorker: { url: `${import.meta.env.BASE_URL}mockServiceWorker.js` },
+    });
     console.info('[regulAI] running in MOCK mode — set VITE_API_MODE=live for the real API');
   } else {
     console.info('[regulAI] running in LIVE mode against /api/rhs');
