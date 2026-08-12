@@ -10,30 +10,39 @@ export type ScreenId =
   | 'dash' | 'rules' | 'amend' | 'graph' | 'pipe' | 'mapping' | 'agents'
   | 'val' | 'record' | 'filing' | 'iso' | 'config' | 'users';
 
-// 'iso' stays routable (direct state) but is no longer in the nav.
-export const NAV: Array<[ScreenId, string]> = [
-  ['dash', 'Filing dashboard'], ['rules', 'Rulebook & rules'], ['amend', 'Amendments & impact'],
-  ['graph', 'Knowledge graph'], ['pipe', 'Medallion pipeline'], ['mapping', 'Mapping review'],
-  ['agents', 'Agent console'],
-  ['val', 'Validation triage'], ['record', 'TX stat record'], ['filing', 'Filing & submission'],
-  ['config', 'States & standards'],
-  ['users', 'Users & access'],   // admin/cco only — filtered in the shell
+// Sidebar navigation: 8 items in 3 labeled sections. Every ScreenId stays
+// routable — 'record', 'graph', 'agents' and 'users' are drill-ins reached
+// from their parent nav item ('iso' stays routable by direct state too).
+export const NAV_SECTIONS: Array<{ title: string; items: Array<[ScreenId, string]> }> = [
+  { title: 'Filing work', items: [
+    ['dash', 'Filing dashboard'], ['val', 'Validation triage'],
+    ['filing', 'Filing & submission'], ['amend', 'Amendments & impact'],
+  ] },
+  { title: 'Regulatory knowledge', items: [
+    ['rules', 'Rulebook & rules'], ['mapping', 'Mapping review'],
+  ] },
+  { title: 'System', items: [
+    ['pipe', 'Operations'], ['config', 'Administration'],
+  ] },
 ];
+
+// Flat view of the sectioned nav, for anything that just wants the items.
+export const NAV: Array<[ScreenId, string]> = NAV_SECTIONS.flatMap((s) => s.items);
 
 export const TITLES: Record<ScreenId, [string, string]> = {
   dash: ['Cycle overview', 'Texas residential property — 2026 annual call'],
-  rules: ['Rulebook ingestion', 'TDI Residential Property Statistical Plan'],
-  graph: ['Lineage', 'Clause → rule → field → source'],
-  pipe: ['Medallion pipeline', 'Bronze · Silver · Gold'],
+  rules: ['Rulebook — ingestion', 'TDI Residential Property Statistical Plan'],
+  graph: ['Rulebook — Knowledge graph', 'Clause → rule → field → source'],
+  pipe: ['Operations — Medallion pipeline', 'Bronze · Silver · Gold'],
   mapping: ['Mapping review', 'Agent-proposed field mappings · human governed'],
-  agents: ['Agent console', 'Extraction, mapping and validation runs'],
+  agents: ['Operations — Agent console', 'Extraction, mapping and validation runs'],
   val: ['Validation triage', 'Edit-package exceptions'],
   record: ['Record inspector', 'TDI HO statistical record'],
   filing: ['Submission journey', 'Seal · transmit · acknowledge · archive'],
   amend: ['Regulatory amendments', 'Bulletin impact on the executable canon'],
   iso: ['Standard projection', 'ISO Personal Lines Statistical Plan'],
-  config: ['Configuration', 'Jurisdictions & reporting standards'],
-  users: ['Access control', 'Users, roles & permissions'],
+  config: ['Administration — States & standards', 'Jurisdictions & reporting standards'],
+  users: ['Administration — Users & access', 'Users, roles & permissions'],
 };
 
 // ── rules ──────────────────────────────────────────────────────────────────

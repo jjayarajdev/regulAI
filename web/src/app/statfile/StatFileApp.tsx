@@ -3,7 +3,7 @@
 // component. Cross-screen navigation goes through `go`.
 import { useState } from 'react';
 import { can, canSee, GUEST, useFilings, useLogin, useLogout, useMe, useRunCycle, whoCan, type AppUser } from './api';
-import { NAV, TITLES, type ScreenId } from './data';
+import { NAV_SECTIONS, TITLES, type ScreenId } from './data';
 import { DashboardScreen } from './screens/Dashboard';
 import { RulesScreen } from './screens/Rules';
 import { GraphScreen } from './screens/Graph';
@@ -23,6 +23,34 @@ import './statfile.css';
 // Screens whose data comes from the live API today; the rest still render the
 // design's demo content until their endpoints land.
 const LIVE_SCREENS: ScreenId[] = ['dash', 'rules', 'val', 'pipe', 'mapping', 'record', 'graph', 'agents', 'config', 'filing', 'amend'];
+
+// Drill-in screens highlight their parent nav item: the record inspector is
+// reached from Validation, the knowledge graph is the Rulebook's second tab,
+// the agent console lives under Operations, users under Administration.
+const NAV_PARENT: Partial<Record<ScreenId, ScreenId>> = {
+  record: 'val', graph: 'rules', agents: 'pipe', users: 'config',
+};
+
+// Segmented tab strip for screens that share a nav item. The tab state IS the
+// screen id, so deep links and existing go('agents')-style calls keep working.
+// Tabs the role can't see are hidden; a lone tab renders no control at all.
+function ScreenTabs({ tabs, screen, go, user }: {
+  tabs: Array<[ScreenId, string]>; screen: ScreenId;
+  go: (s: ScreenId) => () => void; user: AppUser;
+}) {
+  const visible = tabs.filter(([id]) => canSee(user, id));
+  if (visible.length < 2) return null;
+  return (
+    <div className="seg" style={{ marginBottom: 18 }}>
+      {visible.map(([id, label]) => (
+        <label key={id} className="seg-opt">
+          <input type="radio" name="screen-tabs" checked={screen === id} onChange={go(id)} />
+          {label}
+        </label>
+      ))}
+    </div>
+  );
+}
 
 export function StatFileApp() {
   const [screen, setScreen] = useState<ScreenId>('dash');
@@ -135,12 +163,26 @@ export function StatFileApp() {
             <div className="k" style={{ marginTop: 4 }}>Regulatory reporting fabric</div>
           </div>
           <nav className="side-nav">
-            {NAV.filter(([id]) => canSee(user, id)).map(([id, label], i) => (
-              <button key={id} className={'navbtn' + (screen === id ? ' on' : '')} onClick={go(id)}>
-                <span className="num">{String(i + 1).padStart(2, '0')}</span>
-                <span>{label}</span>
-              </button>
-            ))}
+            {(() => {
+              // Sections filtered per role; a section with nothing visible
+              // renders no header. Numbering runs 01–08 across sections.
+              const sections = NAV_SECTIONS
+                .map((s) => ({ title: s.title, items: s.items.filter(([id]) => canSee(user, id)) }))
+                .filter((s) => s.items.length > 0);
+              const navActive = NAV_PARENT[screen] ?? screen;
+              let n = 0;
+              return sections.map((sec) => (
+                <div key={sec.title} className="side-sec">
+                  <div className="side-sec-title">{sec.title}</div>
+                  {sec.items.map(([id, label]) => (
+                    <button key={id} className={'navbtn' + (navActive === id ? ' on' : '')} onClick={go(id)}>
+                      <span className="num">{String(++n).padStart(2, '0')}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              ));
+            })()}
           </nav>
           <div className="side-cycle">
             <div className="k">Active cycle</div>
@@ -188,18 +230,33 @@ export function StatFileApp() {
 
           <div className="content">
             {screen === 'dash' && <DashboardScreen go={go} />}
-            {screen === 'rules' && <RulesScreen user={user} />}
-            {screen === 'graph' && <GraphScreen />}
-            {screen === 'pipe' && <PipelineScreen />}
-            {screen === 'agents' && <AgentsScreen />}
+            {(screen === 'rules' || screen === 'graph') && (
+              <>
+                <ScreenTabs tabs={[['rules', 'Rulebook'], ['graph', 'Knowledge graph']]}
+                  screen={screen} go={go} user={user} />
+                {screen === 'rules' ? <RulesScreen user={user} /> : <GraphScreen />}
+              </>
+            )}
+            {(screen === 'pipe' || screen === 'agents') && (
+              <>
+                <ScreenTabs tabs={[['pipe', 'Medallion pipeline'], ['agents', 'Agent console']]}
+                  screen={screen} go={go} user={user} />
+                {screen === 'pipe' ? <PipelineScreen /> : <AgentsScreen />}
+              </>
+            )}
             {screen === 'val' && <ValidationScreen onTrace={traceTo} user={user} />}
             {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} user={user} />}
             {screen === 'filing' && <FilingScreen user={user} go={go} />}
             {screen === 'amend' && <AmendmentsScreen user={user} />}
             {screen === 'mapping' && <MappingReviewScreen />}
             {screen === 'iso' && <IsoScreen />}
-            {screen === 'config' && <ConfigScreen />}
-            {screen === 'users' && <UsersScreen user={user} />}
+            {(screen === 'config' || screen === 'users') && (
+              <>
+                <ScreenTabs tabs={[['config', 'States & standards'], ['users', 'Users & access']]}
+                  screen={screen} go={go} user={user} />
+                {screen === 'config' ? <ConfigScreen /> : <UsersScreen user={user} />}
+              </>
+            )}
           </div>
         </main>
       </div>
