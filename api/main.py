@@ -155,6 +155,13 @@ def root() -> FileResponse:
     return FileResponse(UI_DIR / "index.html")
 
 
+@app.get("/design")
+def design_original() -> FileResponse:
+    """The original claude.ai/design mock the STATFILE React app was ported
+    from — served as-is (self-contained bundled export, static demo data)."""
+    return FileResponse(Path("claude-design") / "Statistical Filing Platform.html")
+
+
 @app.get("/explore")
 def explore() -> FileResponse:
     """Side-by-side regulation review UI (the working tool)."""
