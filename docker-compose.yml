@@ -4,13 +4,28 @@
 #   neo4j   — KG store (was the only service pre-Docker-deploy)
 #   api     — FastAPI + Sentinel + admin UIs (port 8765)
 #   dagster — orchestrator + admin's pipeline schedule (port 3000)
+#             OPT-IN via `--profile dagster`: on the duckdb backend it
+#             would fight the api for the single-writer file lock, and
+#             pipeline runs already work in-process through the api.
 #
 # Both api + dagster build from the same Dockerfile; they're the same
 # image with different commands. Mirrors how `make ui` / `make dagster`
 # run the same Python code in two processes locally.
 #
-# Bring up the full stack:   docker compose up -d
-# Tail logs:                  docker compose logs -f api dagster
+# The warehouse backend is a PARAMETER — pass REGULAI_DB (shell env wins
+# over .env):
+#   REGULAI_DB=duckdb     docker compose up -d    # self-contained (default)
+#   REGULAI_DB=databricks docker compose up -d    # needs DATABRICKS_* in .env
+#   REGULAI_DB=snowflake  docker compose up -d    # needs SNOWFLAKE_*  in .env
+# On first boot the api entrypoint (scripts/docker_entry.sh) bootstraps an
+# empty KG (replays cached extractions — no LLM calls) and, on duckdb only,
+# seeds the warehouse file if it's missing. Cloud warehouses are never
+# auto-seeded.
+#
+# Bring up the stack:         REGULAI_DB=duckdb docker compose up -d
+# With Dagster:               docker compose --profile dagster up -d
+# Tail logs:                  docker compose logs -f api
+# Force a warehouse reseed:   make docker-seed
 # Run one-off command:        docker compose exec api make rebuild-kg
 # Tear down + wipe volumes:   docker compose down -v
 #
@@ -64,6 +79,11 @@ services:
     ports:
       - "8765:8765"
     environment:
+      # Warehouse backend — THE parameter. duckdb (self-contained file,
+      # default), snowflake, or databricks (creds below from .env).
+      REGULAI_DB: ${REGULAI_DB:-duckdb}
+      # Bootstrap policy for scripts/docker_entry.sh: auto|force|skip.
+      REGULAI_BOOTSTRAP: ${REGULAI_BOOTSTRAP:-auto}
       # Neo4j — service-name DNS on the compose network.
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
@@ -71,8 +91,9 @@ services:
       # Dagster — admin UI's /admin/schedule + /admin/upload talk to
       # Dagster via GraphQL. On the compose network it's the service name.
       DAGSTER_URL: http://dagster:3000
-      # OpenAI + Snowflake creds come from .env; never committed.
+      # OpenAI + warehouse creds come from .env; never committed.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
       SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT:-}
       SNOWFLAKE_USER: ${SNOWFLAKE_USER:-}
       SNOWFLAKE_TOKEN: ${SNOWFLAKE_TOKEN:-}
@@ -81,13 +102,21 @@ services:
       SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE:-COMPUTE_WH}
       SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE:-INSURANCE_REGULATORY}
       SNOWFLAKE_AUTHENTICATOR: ${SNOWFLAKE_AUTHENTICATOR:-}
+      DATABRICKS_SERVER_HOSTNAME: ${DATABRICKS_SERVER_HOSTNAME:-}
+      DATABRICKS_HTTP_PATH: ${DATABRICKS_HTTP_PATH:-}
+      DATABRICKS_TOKEN: ${DATABRICKS_TOKEN:-}
+      DATABRICKS_CATALOG: ${DATABRICKS_CATALOG:-INSURANCE_REGULATORY}
+      DATABRICKS_SCHEMA: ${DATABRICKS_SCHEMA:-}
     volumes:
-      # Upload staging — admin/upload writes here. Bind mount so files
-      # survive container rebuilds + are visible on the host for debug.
-      - ./materialized/uploads:/app/materialized/uploads
-      # Generated reference SQL — make build-validation-rules writes
-      # here. Keep visible to host so devs can inspect.
-      - ./materialized/reference:/app/materialized/reference
+      # The whole materialized/ tree: the DuckDB warehouse file, submission
+      # artifacts (outbox/, inbox/, sftp_dropbox/, archive/), mapping specs,
+      # cached extractions, uploads, generated reference SQL. Bind-mounted
+      # so state survives rebuilds and is inspectable on the host.
+      - ./materialized:/app/materialized
+    entrypoint:
+      - /usr/bin/tini
+      - --
+      - /app/scripts/docker_entry.sh
     command:
       - uv
       - run
@@ -102,10 +131,15 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      # First boot may replay the full KG + warehouse seed — allow time
+      # before marking unhealthy.
+      start_period: 180s
 
   # ────────────────────────────────────────────────────────────────
-  # dagster — orchestrator + scheduler
+  # dagster — orchestrator + scheduler (OPT-IN: --profile dagster).
+  # Not started by default: on REGULAI_DB=duckdb it would contend for
+  # the single-writer file lock the api holds; pipeline runs go through
+  # the api in-process instead. Use with cloud backends.
   # ────────────────────────────────────────────────────────────────
   dagster:
     # Reuse the image api builds — same code, different command. Avoids
@@ -113,6 +147,7 @@ services:
     # define `build:` for the same image tag.
     image: regulai-app:dev
     container_name: regulai-dagster
+    profiles: ["dagster"]
     depends_on:
       neo4j:
         condition: service_healthy
@@ -122,6 +157,9 @@ services:
       - "3000:3000"
     environment:
       DAGSTER_HOME: /app/.dagster_home
+      REGULAI_DB: ${REGULAI_DB:-duckdb}
+      # The api service owns bootstrap; dagster must not race it.
+      REGULAI_BOOTSTRAP: skip
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-regulai-dev-password}
@@ -134,12 +172,21 @@ services:
       SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE:-COMPUTE_WH}
       SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE:-INSURANCE_REGULATORY}
       SNOWFLAKE_AUTHENTICATOR: ${SNOWFLAKE_AUTHENTICATOR:-}
+      DATABRICKS_SERVER_HOSTNAME: ${DATABRICKS_SERVER_HOSTNAME:-}
+      DATABRICKS_HTTP_PATH: ${DATABRICKS_HTTP_PATH:-}
+      DATABRICKS_TOKEN: ${DATABRICKS_TOKEN:-}
+      DATABRICKS_CATALOG: ${DATABRICKS_CATALOG:-INSURANCE_REGULATORY}
+      DATABRICKS_SCHEMA: ${DATABRICKS_SCHEMA:-}
     volumes:
       # DAGSTER_HOME — schedules, run history, sqlite storage. Named
       # volume so it survives container restarts.
       - regulai-dagster-home:/app/.dagster_home
-      # Uploads — Dagster ops read parquet from here; share with api.
-      - ./materialized/uploads:/app/materialized/uploads
+      # Shared state with the api (uploads, duckdb file, artifacts).
+      - ./materialized:/app/materialized
+    entrypoint:
+      - /usr/bin/tini
+      - --
+      - /app/scripts/docker_entry.sh
     command:
       - uv
       - run

@@ -1,4 +1,10 @@
-.PHONY: help install up down logs migrate smoke seed test clean
+.PHONY: help install up down logs migrate smoke seed test clean \
+        docker-build docker-up docker-down docker-logs docker-seed
+
+# Warehouse backend parameter for the docker stack: duckdb (default,
+# self-contained) | snowflake | databricks. Shell env wins over this default:
+#   make docker-up REGULAI_DB=databricks
+REGULAI_DB ?= duckdb
 
 help:
 	@echo "RegulAI LHS dev commands:"
@@ -6,6 +12,13 @@ help:
 	@echo "  make up        - start Neo4j (docker compose, wait until ready)"
 	@echo "  make down      - stop Neo4j"
 	@echo "  make logs      - tail Neo4j logs"
+	@echo "  make docker-up [REGULAI_DB=duckdb|snowflake|databricks]"
+	@echo "                 - full stack in Docker (neo4j + api); first boot"
+	@echo "                   auto-bootstraps KG + duckdb warehouse"
+	@echo "  make docker-seed  - force a warehouse reseed (stops api first)"
+	@echo "  make docker-build - rebuild the app image (web UI + python)"
+	@echo "  make docker-down  - stop the whole docker stack"
+	@echo "  make docker-logs  - tail api logs"
 	@echo "  make migrate   - run Cypher schema migrations (constraints + indexes)"
 	@echo "  make smoke     - run LHS-1 smoke test (write + read a node)"
 	@echo "  make seed      - DESTRUCTIVE: wipe DB and load regulatory canon"
@@ -33,6 +46,29 @@ down:
 
 logs:
 	docker compose logs -f neo4j
+
+# ── Full stack in Docker (REGULAI_DB parameterizes the warehouse) ──────
+docker-build:
+	docker compose build api
+
+docker-up:
+	REGULAI_DB=$(REGULAI_DB) docker compose up -d neo4j api
+	@echo "Stack starting (REGULAI_DB=$(REGULAI_DB)) — first boot bootstraps KG + warehouse."
+	@echo "  App:    http://localhost:8765/app"
+	@echo "  Logs:   make docker-logs"
+
+docker-down:
+	docker compose --profile dagster down
+
+docker-logs:
+	docker compose logs -f api
+
+# Reseed the warehouse. DuckDB is single-writer, so the api container is
+# stopped first, the seed runs as a one-off container, then api restarts.
+docker-seed:
+	docker compose stop api
+	REGULAI_DB=$(REGULAI_DB) docker compose run --rm -e REGULAI_BOOTSTRAP=force api bootstrap-only
+	REGULAI_DB=$(REGULAI_DB) docker compose up -d api
 
 migrate:
 	uv run python -m scripts.migrate
