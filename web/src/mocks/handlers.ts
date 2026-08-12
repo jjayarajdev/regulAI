@@ -9,8 +9,9 @@ import * as fx from './fixtures';
 import { mappingDetail, mappingsList } from './mappings';
 import {
   ack, applyBulletin, approve, approveRegulationMock, bulletinImpact, db,
-  extractionStatusMock, fixBronze, neighborhood, renderFile, resetBulletin,
-  sendFiling, startExtractionMock, submissionState, uploadRegulationMock,
+  extractionStatusMock, fixBronze, goLiveJurisdictionMock, neighborhood,
+  renderFile, resetBulletin, sendFiling, startExtractionMock, submissionState,
+  uploadRegulationMock,
 } from './db';
 import type { ApprovalRole } from '../api/types';
 
@@ -60,7 +61,7 @@ export const handlers = [
 
   http.get(`${API_BASE}/filings`, async () => {
     await delay();
-    return HttpResponse.json(fx.filings);
+    return HttpResponse.json(db.filings);
   }),
 
   http.get(`${API_BASE}/state`, async () => {
@@ -220,6 +221,15 @@ export const handlers = [
   http.post('/api/regulations/:slug/approve', async ({ params }) => {
     await delay(700); // materializing to the KG is a real write
     const { status, body } = approveRegulationMock(String(params.slug));
+    return HttpResponse.json(body as Record<string, unknown>, { status });
+  }),
+
+  // Wizard finale (mock-only): certify → the jurisdiction goes live. Creates
+  // the filing obligation the registry cards + filing dashboard key off.
+  http.post('/api/onboarding/go-live', async ({ request }) => {
+    await delay(600);
+    const payload = (await request.json().catch(() => null)) as { jurisdiction?: string } | null;
+    const { status, body } = goLiveJurisdictionMock(payload?.jurisdiction ?? '');
     return HttpResponse.json(body as Record<string, unknown>, { status });
   }),
 

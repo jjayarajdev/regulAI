@@ -14,6 +14,7 @@ import type {
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
 
 export const db = {
+  filings: clone(fx.filings),
   state: clone(fx.state),
   validate: clone(fx.validateByFiling),
   approval: clone(fx.approvalByFiling),
@@ -157,6 +158,49 @@ export function approveRegulationMock(slug: string): { status: number; body: unk
     status: 200,
     body: { ok: true, nodes_created: created, relationships_created: created.length * 2 },
   };
+}
+
+// ── wizard "Go live" (mock-only endpoint) ───────────────────────────
+// Materializes a filing obligation for the onboarded jurisdiction so it
+// flips to Live on the Jurisdictions registry and shows up in the filing
+// dashboard. Mirrors what scripts.seed_filing_obligations does for real.
+const GO_LIVE_SEEDS: Record<string, { id: string; plan_name: string; plan_code: string; channel: string }> = {
+  'US-CA': { id: 'CDI-HO-2026A', plan_name: 'California Homeowners — CDI Statistical Plan', plan_code: 'CDI-HO', channel: 'CDI Secure Upload' },
+  'US-FL': { id: 'FLOIR-HO-2026A', plan_name: 'Florida Property — OIR Statistical Plan', plan_code: 'OIR-HO', channel: 'FL OIR Portal' },
+  'US-OK': { id: 'OID-HO-2026A', plan_name: 'Oklahoma Homeowners — OID Statistical Plan', plan_code: 'OID-HO', channel: 'OID Email Submission' },
+};
+
+export function goLiveJurisdictionMock(jurisdiction: string): { status: number; body: unknown } {
+  const jur = guessJur(jurisdiction || 'California');
+  const seed = GO_LIVE_SEEDS[jur] ?? GO_LIVE_SEEDS['US-CA'];
+  const existing = db.filings.filings.find((f) => f.jurisdiction_code === jur);
+  if (existing) {
+    existing.is_active = true;
+    return { status: 200, body: { ok: true, filing_id: existing.id, already_live: true } };
+  }
+  db.filings.filings.push({
+    id: seed.id,
+    plan_name: seed.plan_name,
+    plan_code: seed.plan_code,
+    policy_id_ranges: [[2600, 2699]],
+    cadence: 'Annual',
+    period_start: '2026-01-01',
+    period_end: '2026-12-31',
+    due_date: '2027-04-01',
+    channel: seed.channel,
+    is_active: true,
+    jurisdiction_code: jur,
+  });
+  db.kgAudit.entries.unshift({
+    id: `audit-mock-${actionSeq++}`,
+    action: 'jurisdiction_live',
+    actor: 'S. Iyer',
+    summary: `${jur.replace('US-', '')} certified — filing obligation ${seed.id} created, jurisdiction live`,
+    occurred_at: now(),
+    affected_count: 1,
+  });
+  db.kgAudit.count = db.kgAudit.entries.length;
+  return { status: 200, body: { ok: true, filing_id: seed.id } };
 }
 
 const now = () => new Date().toISOString().slice(0, 19).replace('T', ' ');

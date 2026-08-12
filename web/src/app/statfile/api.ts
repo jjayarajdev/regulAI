@@ -573,6 +573,9 @@ export interface ExtractStatus {
   result?: {
     slug: string; model: string; n_nodes: number; n_relationships: number;
     n_citations: number; summary: string;
+    // api/main.py returns the full Sentinel extraction JSON alongside the
+    // counts; proposed_nodes[].confidence feeds the wizard's confidence bands.
+    extraction?: { proposed_nodes?: Array<{ confidence?: number | null }> } | null;
   } | null;
 }
 export const useExtractStatus = (slug: string | null, active: boolean) =>
@@ -586,6 +589,17 @@ export const useExtractStatus = (slug: string | null, active: boolean) =>
 export const approveRegulation = (slug: string) =>
   regJson<{ ok?: boolean; nodes_created?: unknown; relationships_created?: number }>(
     `/regulations/${encodeURIComponent(slug)}/approve`, { method: 'POST' });
+
+// Mock-only wizard finale: flips the onboarded jurisdiction to Live in the
+// mock registry (MSW adds a filing obligation). The real backend has no such
+// endpoint yet — live mode disables the Go-live button instead.
+export const goLiveOnboarding = (jurisdiction: string) =>
+  regJson<{ ok: boolean; filing_id?: string; already_live?: boolean }>(
+    '/onboarding/go-live', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jurisdiction }),
+    });
 
 export interface RegDocument {
   document_id: string; document_type: string; title: string; issuing_body: string;
