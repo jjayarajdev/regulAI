@@ -19,7 +19,10 @@ section):
   Validation.9  YEAR_BUILT_RANGE             — year_built in [1900, reporting_year]
   Validation.10 GEOCODE_PRESENT_OR_NULL      — latitude/longitude both or neither
 
-All target BRONZE.FL_FHCF_POLICY. Validation flows the existing path:
+All target GOLD.FHCF_EXPOSURE_RECORDS — the filing-ready Gold table built
+by scripts/run_fhcf.py from the FL rows in the Guidewire Bronze tables
+(previously the rules ran against the pre-shaped BRONZE.FL_FHCF_POLICY
+shortcut). Validation flows the existing path:
   KG Rule.violation_sql
     → build_validation_rules_reference.py --jur US-FL
     → REFERENCE.TSPR_VALIDATION_RULES
@@ -40,7 +43,7 @@ FL_VALIDATION_RULES = [
     {
         "match_name": "Rule Validation.1 — NAIC_NUMERIC",
         "rule_number": "Validation.1",
-        "target_table": "BRONZE.FL_FHCF_POLICY",
+        "target_table": "GOLD.FHCF_EXPOSURE_RECORDS",
         "target_id_expr": "j.policy_number",
         # NAIC must be exactly 10 digits, leading-zero padded.
         "violation_sql": """
@@ -55,7 +58,7 @@ FL_VALIDATION_RULES = [
     {
         "match_name": "Rule Validation.2 — ZIP_TX_PREFIX_INVALID",
         "rule_number": "Validation.2",
-        "target_table": "BRONZE.FL_FHCF_POLICY",
+        "target_table": "GOLD.FHCF_EXPOSURE_RECORDS",
         "target_id_expr": "j.policy_number",
         # First digit of a FL ZIP code is always '3'. TX ZIPs start with '7'.
         # Catches the obvious mis-routed-record bug where TX data lands in
@@ -72,7 +75,7 @@ FL_VALIDATION_RULES = [
     {
         "match_name": "Rule Validation.3 — COUNTY_FIPS_VALID",
         "rule_number": "Validation.3",
-        "target_table": "BRONZE.FL_FHCF_POLICY",
+        "target_table": "GOLD.FHCF_EXPOSURE_RECORDS",
         "target_id_expr": "j.policy_number",
         # Florida has exactly 67 counties; FIPS sub-codes 01..67.
         "violation_sql": """
@@ -87,7 +90,7 @@ FL_VALIDATION_RULES = [
     {
         "match_name": "Rule Validation.4 — STATE_CODE_FIXED",
         "rule_number": "Validation.4",
-        "target_table": "BRONZE.FL_FHCF_POLICY",
+        "target_table": "GOLD.FHCF_EXPOSURE_RECORDS",
         "target_id_expr": "j.policy_number",
         # The FHCF only accepts FL-domiciled risks. Any other STATE_CODE on
         # an FHCF row is structurally wrong (probably a misrouted record).
@@ -102,7 +105,7 @@ FL_VALIDATION_RULES = [
     {
         "match_name": "Rule Validation.5 — HURRICANE_DEDUCTIBLE_RANGE",
         "rule_number": "Validation.5",
-        "target_table": "BRONZE.FL_FHCF_POLICY",
+        "target_table": "GOLD.FHCF_EXPOSURE_RECORDS",
         "target_id_expr": "j.policy_number",
         # Hurricane deductible reported as pct * 100; range [200,1000] = 2%..10%.
         # Spec says "soft warning requiring justification" — modeled as WARNING.
@@ -117,7 +120,7 @@ FL_VALIDATION_RULES = [
     {
         "match_name": "Rule Validation.6 — COVERAGE_A_PLAUSIBLE",
         "rule_number": "Validation.6",
-        "target_table": "BRONZE.FL_FHCF_POLICY",
+        "target_table": "GOLD.FHCF_EXPOSURE_RECORDS",
         "target_id_expr": "j.policy_number",
         # Coverage A plausibility band: $50k..$5M. Outside → warning.
         "violation_sql": """
@@ -131,7 +134,7 @@ FL_VALIDATION_RULES = [
     {
         "match_name": "Rule Validation.7 — WIND_MITIGATION_FBC_REQUIRED",
         "rule_number": "Validation.7",
-        "target_table": "BRONZE.FL_FHCF_POLICY",
+        "target_table": "GOLD.FHCF_EXPOSURE_RECORDS",
         "target_id_expr": "j.policy_number",
         # If WIND_MITIGATION='Y', all 5 companion FBC fields must be populated.
         "violation_sql": """
@@ -151,7 +154,7 @@ FL_VALIDATION_RULES = [
     {
         "match_name": "Rule Validation.8 — DATE_ORDER",
         "rule_number": "Validation.8",
-        "target_table": "BRONZE.FL_FHCF_POLICY",
+        "target_table": "GOLD.FHCF_EXPOSURE_RECORDS",
         "target_id_expr": "j.policy_number",
         # Effective must strictly precede expiry. NULLs on either side are
         # also a malformed policy.
@@ -167,7 +170,7 @@ FL_VALIDATION_RULES = [
     {
         "match_name": "Rule Validation.9 — YEAR_BUILT_RANGE",
         "rule_number": "Validation.9",
-        "target_table": "BRONZE.FL_FHCF_POLICY",
+        "target_table": "GOLD.FHCF_EXPOSURE_RECORDS",
         "target_id_expr": "j.policy_number",
         # Year built in [1900, reporting_year]. Reporting year is on each row,
         # so we self-reference it for the upper bound.
@@ -183,7 +186,7 @@ FL_VALIDATION_RULES = [
     {
         "match_name": "Rule Validation.10 — GEOCODE_PRESENT_OR_NULL",
         "rule_number": "Validation.10",
-        "target_table": "BRONZE.FL_FHCF_POLICY",
+        "target_table": "GOLD.FHCF_EXPOSURE_RECORDS",
         "target_id_expr": "j.policy_number",
         # Both populated or both null (XOR of nullness is the violation).
         "violation_sql": """

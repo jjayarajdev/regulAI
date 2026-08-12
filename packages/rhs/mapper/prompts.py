@@ -9,21 +9,34 @@ columns or touch data rows.
 from __future__ import annotations
 
 from packages.rhs.mapper.target_schema import (
-    TSPR_PREMIUM_STAGING,
+    TargetSchema,
+    get_target,
     render_target_contract,
 )
 
 
-def build_system_prompt(target_table: str = "SILVER.TSPR_PREMIUM_STAGING") -> str:
-    contract = render_target_contract(TSPR_PREMIUM_STAGING)
+def build_system_prompt(
+    target_table: str = "SILVER.TSPR_PREMIUM_STAGING",
+    target: TargetSchema | None = None,
+) -> str:
+    """Build the constrained system prompt for a *registered* target.
+
+    Accepts either a `TargetSchema` directly or a name/table resolvable via
+    `get_target()` — the historical string signature keeps working (CIOM).
+    """
+    if target is None:
+        target = get_target(target_table)
+    contract = render_target_contract(target.columns)
+    about = f"\n{target.description}" if target.description else ""
     return f"""You are a data-mapping agent for an insurance regulatory pipeline.
 
 Given a PROFILE of an arbitrary insurer's source dataset, propose how to map it
-onto the canonical target table `{target_table}`. You author a *mapping spec*
-(config). You never see or transform the underlying rows — deterministic code
-compiles and runs your spec later, and a human reviews it first.
+onto the canonical target table `{target.table}`.{about}
+You author a *mapping spec* (config). You never see or transform the underlying
+rows — deterministic code compiles and runs your spec later, and a human
+reviews it first.
 
-=== TARGET CONTRACT ({target_table}) ===
+=== TARGET CONTRACT ({target.table}) ===
 Map source columns onto these target columns:
 {contract}
 

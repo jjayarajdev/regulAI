@@ -311,6 +311,16 @@ def main() -> int:
     n_cancel = silver_cancellation(args.month)
     print(f"  ✓ TSPR_CANCELLATION_STAGING   {n_cancel} rows")
 
+    # FL FHCF exposure staging rides the same "run cycle" (Makefile,
+    # Dagster, /api/rhs/pipeline/silver). Non-fatal: environments without
+    # the FL seed (scripts.seed_fl_fhcf) must not break the TX pipeline.
+    try:
+        from scripts.run_fhcf import silver_fhcf
+        n_fhcf = silver_fhcf()
+        print(f"  ✓ FHCF_EXPOSURE_STAGING       {n_fhcf} rows")
+    except Exception as e:  # noqa: BLE001 — FL layer is optional
+        print(f"  ⚠ FHCF_EXPOSURE_STAGING skipped: {str(e)[:120]}")
+
     print()
     print(f"Silver populated · run_id = {RUN_ID}")
     return 0

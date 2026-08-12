@@ -155,6 +155,20 @@ def main() -> int:
             except Exception as e:  # noqa: BLE001 — report + continue
                 print(f"  ✗ {schema}.{table.upper()}: {str(e)[:160]}")
 
+    # ── FL FHCF medallion tables (populated by scripts.run_fhcf) ──────────
+    # Shared portable DDL from the transform module; the databricks client
+    # translates length-less VARCHAR → STRING, so no Snowflake-file parsing
+    # is needed here (these tables never existed in the Snowflake DDL set).
+    from scripts.run_fhcf import FHCF_GOLD_DDL, FHCF_SILVER_DDL
+    for label, ddl in (("SILVER.FHCF_EXPOSURE_STAGING", FHCF_SILVER_DDL),
+                       ("GOLD.FHCF_EXPOSURE_RECORDS", FHCF_GOLD_DDL)):
+        try:
+            query(ddl + (" USING DELTA" if _IS_DELTA else ""))
+            print(f"  ✓ {label}")
+            created += 1
+        except Exception as e:  # noqa: BLE001 — report + continue
+            print(f"  ✗ {label}: {str(e)[:160]}")
+
     # ── supplemental gold columns (run_gold is ahead of the DDL file) ──────
     for fq, cols in _SUPPLEMENTAL_COLS.items():
         for col in cols:

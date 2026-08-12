@@ -281,7 +281,7 @@ def test_fl_rules_have_executable_validation_sql():
             """
             MATCH (r:Rule)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-FL'})
             WHERE r.violation_sql IS NOT NULL
-              AND r.target_table = 'BRONZE.FL_FHCF_POLICY'
+              AND r.target_table = 'GOLD.FHCF_EXPOSURE_RECORDS'
             RETURN r.rule_number AS rule_number ORDER BY rule_number
             """
         ).data()

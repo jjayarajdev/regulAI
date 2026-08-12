@@ -35,7 +35,7 @@ DELETE FROM TSPR_VALIDATION_RULES WHERE jurisdiction_code = 'US';
 INSERT INTO TSPR_VALIDATION_RULES (
     rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, target_table, target_id_expr, violation_sql, violation_reason, severity, citation, validation_version, kg_canon_version, kg_source_document_id, generated_at
 ) VALUES (
-    '55918f20-63ee-5133-818a-85a8d039efaa', '1', 'Rule Validation.1 — NAIC_NUMERIC', 'Validation Rules', 'US-FL', FALSE, 'BRONZE.FL_FHCF_POLICY', 'j.policy_number', 'j.insurer_naic IS NULL
+    '55918f20-63ee-5133-818a-85a8d039efaa', '1', 'Rule Validation.1 — NAIC_NUMERIC', 'Validation Rules', 'US-FL', FALSE, 'GOLD.FHCF_EXPOSURE_RECORDS', 'j.policy_number', 'j.insurer_naic IS NULL
             OR LENGTH(TRIM(j.insurer_naic)) <> 10
             OR NOT REGEXP_LIKE(j.insurer_naic, ''^[0-9]{10}$'')', 'INSURER_NAIC must be exactly 10 digits, leading-zero padded; non-numeric records are rejected', 'ERROR', 'FHCF Data Call Form / Validation Rule 1', 1, 1, '32668f02-aeb6-54c9-918b-0aa1dfac3820', CURRENT_TIMESTAMP()
 );
@@ -44,7 +44,7 @@ INSERT INTO TSPR_VALIDATION_RULES (
 INSERT INTO TSPR_VALIDATION_RULES (
     rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, target_table, target_id_expr, violation_sql, violation_reason, severity, citation, validation_version, kg_canon_version, kg_source_document_id, generated_at
 ) VALUES (
-    'ee793611-49c5-58d1-8699-31e70cb94a4f', '2', 'Rule Validation.2 — ZIP_TX_PREFIX_INVALID', 'Validation Rules', 'US-FL', FALSE, 'BRONZE.FL_FHCF_POLICY', 'j.policy_number', 'j.risk_zip IS NULL
+    'ee793611-49c5-58d1-8699-31e70cb94a4f', '2', 'Rule Validation.2 — ZIP_TX_PREFIX_INVALID', 'Validation Rules', 'US-FL', FALSE, 'GOLD.FHCF_EXPOSURE_RECORDS', 'j.policy_number', 'j.risk_zip IS NULL
             OR LENGTH(TRIM(j.risk_zip)) <> 5
             OR LEFT(TRIM(j.risk_zip), 1) <> ''3''', 'RISK_ZIP must be 5 digits beginning with ''3'' (Florida prefix); non-FL prefix is a hard validation error', 'ERROR', 'FHCF Data Call Form / Validation Rule 2 / §215.555(5)(b), F.S.', 1, 1, '32668f02-aeb6-54c9-918b-0aa1dfac3820', CURRENT_TIMESTAMP()
 );
@@ -53,7 +53,7 @@ INSERT INTO TSPR_VALIDATION_RULES (
 INSERT INTO TSPR_VALIDATION_RULES (
     rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, target_table, target_id_expr, violation_sql, violation_reason, severity, citation, validation_version, kg_canon_version, kg_source_document_id, generated_at
 ) VALUES (
-    '453ab25d-a0f5-5afd-bebe-40d6671163cf', '3', 'Rule Validation.3 — COUNTY_FIPS_VALID', 'Validation Rules', 'US-FL', FALSE, 'BRONZE.FL_FHCF_POLICY', 'j.policy_number', 'j.county_fips IS NULL
+    '453ab25d-a0f5-5afd-bebe-40d6671163cf', '3', 'Rule Validation.3 — COUNTY_FIPS_VALID', 'Validation Rules', 'US-FL', FALSE, 'GOLD.FHCF_EXPOSURE_RECORDS', 'j.policy_number', 'j.county_fips IS NULL
             OR NOT REGEXP_LIKE(j.county_fips, ''^[0-9]{1,2}$'')
             OR TO_NUMBER(j.county_fips) NOT BETWEEN 1 AND 67', 'COUNTY_FIPS must be a numeric Florida county FIPS sub-code in 01..67', 'ERROR', 'FHCF Data Call Form / Validation Rule 3', 1, 1, '32668f02-aeb6-54c9-918b-0aa1dfac3820', CURRENT_TIMESTAMP()
 );
@@ -62,7 +62,7 @@ INSERT INTO TSPR_VALIDATION_RULES (
 INSERT INTO TSPR_VALIDATION_RULES (
     rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, target_table, target_id_expr, violation_sql, violation_reason, severity, citation, validation_version, kg_canon_version, kg_source_document_id, generated_at
 ) VALUES (
-    '437328c6-ff71-52e7-9426-6c5e99c6dd5e', '4', 'Rule Validation.4 — STATE_CODE_FIXED', 'Validation Rules', 'US-FL', FALSE, 'BRONZE.FL_FHCF_POLICY', 'j.policy_number', 'j.state_code IS NULL
+    '437328c6-ff71-52e7-9426-6c5e99c6dd5e', '4', 'Rule Validation.4 — STATE_CODE_FIXED', 'Validation Rules', 'US-FL', FALSE, 'GOLD.FHCF_EXPOSURE_RECORDS', 'j.policy_number', 'j.state_code IS NULL
             OR UPPER(TRIM(j.state_code)) <> ''FL''', 'STATE_CODE must equal ''FL'' exactly — FHCF only covers Florida-domiciled risks', 'ERROR', 'FHCF Data Call Form / Validation Rule 4 / §215.555(2)(a), F.S.', 1, 1, '32668f02-aeb6-54c9-918b-0aa1dfac3820', CURRENT_TIMESTAMP()
 );
 
@@ -70,7 +70,7 @@ INSERT INTO TSPR_VALIDATION_RULES (
 INSERT INTO TSPR_VALIDATION_RULES (
     rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, target_table, target_id_expr, violation_sql, violation_reason, severity, citation, validation_version, kg_canon_version, kg_source_document_id, generated_at
 ) VALUES (
-    'e28f8af9-9060-54fd-afd1-dea5b9eeaf49', '5', 'Rule Validation.5 — HURRICANE_DEDUCTIBLE_RANGE', 'Validation Rules', 'US-FL', FALSE, 'BRONZE.FL_FHCF_POLICY', 'j.policy_number', 'j.hurricane_deductible IS NOT NULL
+    'e28f8af9-9060-54fd-afd1-dea5b9eeaf49', '5', 'Rule Validation.5 — HURRICANE_DEDUCTIBLE_RANGE', 'Validation Rules', 'US-FL', FALSE, 'GOLD.FHCF_EXPOSURE_RECORDS', 'j.policy_number', 'j.hurricane_deductible IS NOT NULL
             AND (j.hurricane_deductible < 200 OR j.hurricane_deductible > 1000)', 'HURRICANE_DEDUCTIBLE outside [200,1000] (2%..10%) — soft warning, requires justification', 'WARNING', 'FHCF Data Call Form / Validation Rule 5', 1, 1, '32668f02-aeb6-54c9-918b-0aa1dfac3820', CURRENT_TIMESTAMP()
 );
 
@@ -78,7 +78,7 @@ INSERT INTO TSPR_VALIDATION_RULES (
 INSERT INTO TSPR_VALIDATION_RULES (
     rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, target_table, target_id_expr, violation_sql, violation_reason, severity, citation, validation_version, kg_canon_version, kg_source_document_id, generated_at
 ) VALUES (
-    '1fbad750-4a60-59f3-81f4-2c69701e88c1', '6', 'Rule Validation.6 — COVERAGE_A_PLAUSIBLE', 'Validation Rules', 'US-FL', FALSE, 'BRONZE.FL_FHCF_POLICY', 'j.policy_number', 'j.coverage_a IS NOT NULL
+    '1fbad750-4a60-59f3-81f4-2c69701e88c1', '6', 'Rule Validation.6 — COVERAGE_A_PLAUSIBLE', 'Validation Rules', 'US-FL', FALSE, 'GOLD.FHCF_EXPOSURE_RECORDS', 'j.policy_number', 'j.coverage_a IS NOT NULL
             AND (j.coverage_a < 50000 OR j.coverage_a > 5000000)', 'COVERAGE_A outside [$50,000, $5,000,000] plausibility band', 'WARNING', 'FHCF Data Call Form / Validation Rule 6', 1, 1, '32668f02-aeb6-54c9-918b-0aa1dfac3820', CURRENT_TIMESTAMP()
 );
 
@@ -86,7 +86,7 @@ INSERT INTO TSPR_VALIDATION_RULES (
 INSERT INTO TSPR_VALIDATION_RULES (
     rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, target_table, target_id_expr, violation_sql, violation_reason, severity, citation, validation_version, kg_canon_version, kg_source_document_id, generated_at
 ) VALUES (
-    '011880ad-4a1e-5092-834e-f7458e8a4d81', '7', 'Rule Validation.7 — WIND_MITIGATION_FBC_REQUIRED', 'Validation Rules', 'US-FL', FALSE, 'BRONZE.FL_FHCF_POLICY', 'j.policy_number', 'UPPER(TRIM(j.wind_mitigation)) = ''Y''
+    '011880ad-4a1e-5092-834e-f7458e8a4d81', '7', 'Rule Validation.7 — WIND_MITIGATION_FBC_REQUIRED', 'Validation Rules', 'US-FL', FALSE, 'GOLD.FHCF_EXPOSURE_RECORDS', 'j.policy_number', 'UPPER(TRIM(j.wind_mitigation)) = ''Y''
             AND (
                 j.opening_protection IS NULL OR TRIM(j.opening_protection) = ''''
              OR j.roof_cover_type IS NULL OR TRIM(j.roof_cover_type) = ''''
@@ -100,7 +100,7 @@ INSERT INTO TSPR_VALIDATION_RULES (
 INSERT INTO TSPR_VALIDATION_RULES (
     rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, target_table, target_id_expr, violation_sql, violation_reason, severity, citation, validation_version, kg_canon_version, kg_source_document_id, generated_at
 ) VALUES (
-    '286224a0-801e-55d5-a858-3840a4253fe3', '8', 'Rule Validation.8 — DATE_ORDER', 'Validation Rules', 'US-FL', FALSE, 'BRONZE.FL_FHCF_POLICY', 'j.policy_number', 'j.effective_date IS NULL
+    '286224a0-801e-55d5-a858-3840a4253fe3', '8', 'Rule Validation.8 — DATE_ORDER', 'Validation Rules', 'US-FL', FALSE, 'GOLD.FHCF_EXPOSURE_RECORDS', 'j.policy_number', 'j.effective_date IS NULL
             OR j.expiry_date IS NULL
             OR j.effective_date >= j.expiry_date', 'EFFECTIVE_DATE must precede EXPIRY_DATE; both must be populated', 'ERROR', 'FHCF Data Call Form / Validation Rule 8', 1, 1, '32668f02-aeb6-54c9-918b-0aa1dfac3820', CURRENT_TIMESTAMP()
 );
@@ -109,7 +109,7 @@ INSERT INTO TSPR_VALIDATION_RULES (
 INSERT INTO TSPR_VALIDATION_RULES (
     rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, target_table, target_id_expr, violation_sql, violation_reason, severity, citation, validation_version, kg_canon_version, kg_source_document_id, generated_at
 ) VALUES (
-    '09abeb51-38c8-53a3-bb28-c9ec13975780', '9', 'Rule Validation.9 — YEAR_BUILT_RANGE', 'Validation Rules', 'US-FL', FALSE, 'BRONZE.FL_FHCF_POLICY', 'j.policy_number', 'j.year_built IS NULL
+    '09abeb51-38c8-53a3-bb28-c9ec13975780', '9', 'Rule Validation.9 — YEAR_BUILT_RANGE', 'Validation Rules', 'US-FL', FALSE, 'GOLD.FHCF_EXPOSURE_RECORDS', 'j.policy_number', 'j.year_built IS NULL
             OR j.year_built < 1900
             OR j.year_built > j.reporting_year', 'YEAR_BUILT must be between 1900 and the current reporting year', 'ERROR', 'FHCF Data Call Form / Validation Rule 9', 1, 1, '32668f02-aeb6-54c9-918b-0aa1dfac3820', CURRENT_TIMESTAMP()
 );
@@ -118,7 +118,7 @@ INSERT INTO TSPR_VALIDATION_RULES (
 INSERT INTO TSPR_VALIDATION_RULES (
     rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, target_table, target_id_expr, violation_sql, violation_reason, severity, citation, validation_version, kg_canon_version, kg_source_document_id, generated_at
 ) VALUES (
-    'f0ab54fc-ce9e-5649-83b0-668c8889cb02', '10', 'Rule Validation.10 — GEOCODE_PRESENT_OR_NULL', 'Validation Rules', 'US-FL', FALSE, 'BRONZE.FL_FHCF_POLICY', 'j.policy_number', '(j.latitude IS NULL AND j.longitude IS NOT NULL)
+    'f0ab54fc-ce9e-5649-83b0-668c8889cb02', '10', 'Rule Validation.10 — GEOCODE_PRESENT_OR_NULL', 'Validation Rules', 'US-FL', FALSE, 'GOLD.FHCF_EXPOSURE_RECORDS', 'j.policy_number', '(j.latitude IS NULL AND j.longitude IS NOT NULL)
             OR (j.latitude IS NOT NULL AND j.longitude IS NULL)', 'LATITUDE and LONGITUDE must both be populated or both null; mixed null state rejected', 'ERROR', 'FHCF Data Call Form / Validation Rule 10', 1, 1, '32668f02-aeb6-54c9-918b-0aa1dfac3820', CURRENT_TIMESTAMP()
 );
 

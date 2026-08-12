@@ -220,6 +220,13 @@ def main() -> None:
     """)
     print("  GOLD + GOLD_AUDIT: tables created (empty)")
 
+    # ── FL FHCF medallion tables (populated by scripts.run_fhcf) ──────
+    # DDL is shared with the transform module so the shape can't drift.
+    from scripts.run_fhcf import FHCF_GOLD_DDL, FHCF_SILVER_DDL
+    q(FHCF_SILVER_DDL)
+    q(FHCF_GOLD_DDL)
+    print("  SILVER.FHCF_EXPOSURE_STAGING + GOLD.FHCF_EXPOSURE_RECORDS: created (empty)")
+
     con.close()
     print(f"\n✓ {DB_PATH}  ({loaded} bronze tables)\n  run: REGULAI_DB=duckdb uv run uvicorn api.main:app")
 

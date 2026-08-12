@@ -206,6 +206,14 @@ def main() -> int:
     n_a = gold_aggregates(args.month)
     print(f"  ✓ TSPR_MONTHLY_AGGREGATES      {n_a} rows  (Section 29 transmittal)")
 
+    # FL FHCF gold records ride the same "run cycle" (see run_silver).
+    try:
+        from scripts.run_fhcf import FILING_ID as FHCF_ID, gold_fhcf
+        n_f = gold_fhcf()
+        print(f"  ✓ FHCF_EXPOSURE_RECORDS        {n_f} rows  (stamped {FHCF_ID})")
+    except Exception as e:  # noqa: BLE001 — FL layer is optional
+        print(f"  ⚠ FHCF_EXPOSURE_RECORDS skipped: {str(e)[:120]}")
+
     print()
     print(f"Gold assembled · run_id = {RUN_ID}")
     return 0

@@ -1,7 +1,6 @@
 """In-process DuckDB harness for verifying violation_sql against synthetic data.
 
-Production runs violation_sql against Snowflake via api/rhs_demo.py's
-/validate endpoint:
+Production runs violation_sql via api/rhs_demo.py's /validate endpoint:
 
     SELECT {target_id_expr} AS record_id
     FROM INSURANCE_REGULATORY.{target_table} j
@@ -13,12 +12,12 @@ well-formed. DuckDB's SQL dialect overlaps Snowflake's for the
 functions our rules use (LEFT, TRIM, LENGTH, REGEXP_LIKE, BETWEEN,
 COALESCE, IS NULL, UPPER, TO_NUMBER → CAST).
 
-The 5 synthetic fixture rows live in:
-  references/files -Snowflake/03_bronze_fl_fhcf.sql
-
-We load them programmatically here (rather than parsing the Snowflake
-DDL) so DuckDB-vs-Snowflake type quirks don't leak into the test setup.
-The row values stay byte-identical to the DDL fixture.
+The rules target GOLD.FHCF_EXPOSURE_RECORDS — the filing-ready table
+built by scripts/run_fhcf.py from the FL rows in the Guidewire Bronze.
+This harness builds that table directly from the 12 fixture rows below:
+the fixtures test RULE SEMANTICS (each dirty row trips exactly one
+rule), not the Bronze→Silver→Gold transform — that end-to-end path is
+covered by tests/test_fhcf_pipeline.py against the seeded warehouse.
 """
 
 from __future__ import annotations
@@ -28,10 +27,9 @@ from dataclasses import dataclass
 import duckdb
 
 
-# Mirrors references/files -Snowflake/03_bronze_fl_fhcf.sql one-to-one.
-# Any change to the DDL's row values must be reflected here. The
-# test_fl_bronze_ddl_includes_test_fixtures test in test_fl_rhs_pipeline.py
-# guards the DDL side; this guards the harness side.
+# Historical fixture set (originally mirrored the retired
+# BRONZE.FL_FHCF_POLICY DDL in references/files -Snowflake/03_bronze_fl_fhcf.sql;
+# now loaded straight into the GOLD.FHCF_EXPOSURE_RECORDS shape).
 #
 # Schema invariant: each dirty row is designed to trigger EXACTLY ONE
 # wired rule. Anything else triggering means false positive (rule
@@ -144,14 +142,15 @@ FL_FHCF_FIXTURE_ROWS = [
 ]
 
 
-# DuckDB-compatible DDL for fl_fhcf_policy. Mirrors the Snowflake DDL's
-# column shape but uses DuckDB types directly so we don't have to
-# translate. Schema-qualified to match the production target_table
-# value 'BRONZE.FL_FHCF_POLICY' — production /validate prepends
-# 'INSURANCE_REGULATORY.', here we point it at our test schema.
+# DuckDB-compatible DDL for the FHCF gold exposure table. Mirrors
+# scripts/run_fhcf.py's FHCF_GOLD_DDL column shape but uses DuckDB types
+# directly so we don't have to translate. Schema-qualified to match the
+# production target_table value 'GOLD.FHCF_EXPOSURE_RECORDS' — production
+# /validate prepends 'INSURANCE_REGULATORY.', here we point it at our
+# test schema.
 _DDL = """
-    CREATE SCHEMA IF NOT EXISTS bronze;
-    CREATE TABLE bronze.fl_fhcf_policy (
+    CREATE SCHEMA IF NOT EXISTS gold;
+    CREATE TABLE gold.fhcf_exposure_records (
         insurer_naic              VARCHAR,
         policy_number             VARCHAR,
         risk_zip                  VARCHAR,
@@ -177,9 +176,22 @@ _DDL = """
         latitude                  BIGINT,
         longitude                 BIGINT,
         reporting_year            INTEGER,
-        source_file               VARCHAR
+        source_file               VARCHAR,
+        filing_batch_id           VARCHAR
     );
 """
+
+# Column order of FL_FHCF_FIXTURE_ROWS (filing_batch_id is stamped by the
+# loader, not carried in the fixture tuples).
+_FIXTURE_COLUMNS = [
+    "insurer_naic", "policy_number", "risk_zip", "risk_zip4", "county_fips",
+    "state_code", "policy_form", "effective_date", "expiry_date",
+    "occupancy_type", "construction_type", "year_built", "protection_class",
+    "coverage_a", "hurricane_deductible", "written_premium", "wind_mitigation",
+    "opening_protection", "roof_cover_type", "roof_deck_attachment",
+    "roof_to_wall_connection", "secondary_water_resistance",
+    "latitude", "longitude", "reporting_year", "source_file",
+]
 
 
 @dataclass(frozen=True)
@@ -206,13 +218,15 @@ def _install_snowflake_aliases(conn: duckdb.DuckDBPyConnection) -> None:
 
 
 def load_fl_bronze() -> duckdb.DuckDBPyConnection:
-    """Open an in-memory DuckDB with bronze.fl_fhcf_policy + the 5 fixture rows."""
+    """Open an in-memory DuckDB with gold.fhcf_exposure_records + the 12
+    fixture rows (name kept for the existing test imports)."""
     conn = duckdb.connect()
     conn.execute(_DDL)
     _install_snowflake_aliases(conn)
-    placeholders = ", ".join(["?"] * len(FL_FHCF_FIXTURE_ROWS[0]))
+    placeholders = ", ".join(["?"] * len(_FIXTURE_COLUMNS))
     conn.executemany(
-        f"INSERT INTO bronze.fl_fhcf_policy VALUES ({placeholders})",
+        f"INSERT INTO gold.fhcf_exposure_records ({', '.join(_FIXTURE_COLUMNS)}, filing_batch_id) "
+        f"VALUES ({placeholders}, 'FHCF-A-2026')",
         FL_FHCF_FIXTURE_ROWS,
     )
     return conn
@@ -222,14 +236,14 @@ def execute_rule(conn: duckdb.DuckDBPyConnection, rule: RuleSpec) -> list[str]:
     """Execute one rule the same way production does. Returns the list
     of record_ids that violated the rule (policy_numbers, since
     target_id_expr is 'j.policy_number')."""
-    # production form (api/rhs_demo.py:496-500):
+    # production form (api/rhs_demo.py::_run_rules):
     #   SELECT {target_id_expr} AS record_id
     #   FROM INSURANCE_REGULATORY.{target_table} j
     #   WHERE ({violation_sql})
-    # target_table is 'BRONZE.FL_FHCF_POLICY' — Snowflake is case-
+    # target_table is 'GOLD.FHCF_EXPOSURE_RECORDS' — warehouses are case-
     # insensitive, DuckDB is case-sensitive on quoted but tolerant on
     # unquoted. We just lowercase the schema-qualified name; the bare
-    # 'bronze.fl_fhcf_policy' matches our CREATE.
+    # 'gold.fhcf_exposure_records' matches our CREATE.
     target_clause = rule.target_table.lower()
     sql = (
         f"SELECT {rule.target_id_expr} AS record_id "

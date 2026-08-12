@@ -94,6 +94,9 @@ _TO_VARCHAR_FMT = re.compile(
     r"\bTO_VARCHAR\s*\(\s*([^,()]+?)\s*,\s*'([^']*)'\s*\)", re.IGNORECASE
 )
 _TO_VARCHAR_1 = re.compile(r"\bTO_VARCHAR\s*\(\s*([^,()]+?)\s*\)", re.IGNORECASE)
+# Snowflake's 1-arg TO_NUMBER(x) — Databricks' to_number requires a format
+# string, so map to a plain double cast (used by the FL validation rules).
+_TO_NUMBER_1 = re.compile(r"\bTO_NUMBER\s*\(\s*([^,()]+?)\s*\)", re.IGNORECASE)
 # Bare VARCHAR (e.g. `CAST(x AS VARCHAR)`) — Databricks requires a length, so map
 # the length-less form to STRING. `VARCHAR(n)` (followed by a paren) is left alone.
 _VARCHAR_NOLEN = re.compile(r"\bVARCHAR\b(?!\s*\()", re.IGNORECASE)
@@ -130,6 +133,7 @@ def _translate_sql(sql: str) -> str:
         sql,
     )
     sql = _TO_VARCHAR_1.sub(lambda m: f"CAST({m.group(1)} AS STRING)", sql)
+    sql = _TO_NUMBER_1.sub(lambda m: f"CAST({m.group(1)} AS DOUBLE)", sql)
     sql = _VARCHAR_NOLEN.sub("STRING", sql)
     sql = _TO_DATE.sub("to_date(", sql)
     sql = _DATEDIFF.sub(lambda m: f"date_diff({m.group(1).upper()},", sql)

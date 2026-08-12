@@ -1,0 +1,89 @@
+{
+  "target": "FHCF_EXPOSURE",
+  "target_table": "INSURANCE_REGULATORY.SILVER.FHCF_EXPOSURE_STAGING",
+  "columns": [
+    "insurer_naic",
+    "policy_number",
+    "risk_zip",
+    "risk_zip4",
+    "county_fips",
+    "state_code",
+    "policy_form",
+    "effective_date",
+    "expiry_date",
+    "occupancy_type",
+    "construction_type",
+    "year_built",
+    "protection_class",
+    "coverage_a",
+    "hurricane_deductible",
+    "written_premium",
+    "wind_mitigation",
+    "opening_protection",
+    "roof_cover_type",
+    "roof_deck_attachment",
+    "roof_to_wall_connection",
+    "secondary_water_resistance",
+    "latitude",
+    "longitude",
+    "reporting_year",
+    "source_file"
+  ],
+  "insert_sql": "INSERT INTO INSURANCE_REGULATORY.SILVER.FHCF_EXPOSURE_STAGING (\n  insurer_naic, policy_number, risk_zip, risk_zip4, county_fips, state_code, policy_form, effective_date, expiry_date, occupancy_type, construction_type, year_built, protection_class, coverage_a, hurricane_deductible, written_premium, wind_mitigation, opening_protection, roof_cover_type, roof_deck_attachment, roof_to_wall_connection, secondary_water_resistance, latitude, longitude, reporting_year, source_file\n)\nSELECT\n  (SELECT LPAD(TRIM(MAX(uw.naiccode)), 10, '0') FROM INSURANCE_REGULATORY.BRONZE.GW_PC_UWCOMPANY uw) AS insurer_naic,\n  TRIM(p.policynumber) AS policy_number,\n  LPAD(TRIM(CAST(dw.zip AS STRING)), 5, '0') AS risk_zip,\n  CASE WHEN dw.ziplus4 IS NULL OR TRIM(CAST(dw.ziplus4 AS STRING)) = '' THEN NULL ELSE LPAD(TRIM(CAST(dw.ziplus4 AS STRING)), 4, '0') END AS risk_zip4,\n  TRIM(dw.countyfips) AS county_fips,\n  UPPER(TRIM(dw.state)) AS state_code,\n  TRIM(line.holineform) AS policy_form,\n  CAST(line.effectivedate AS DATE) AS effective_date,\n  CAST(line.expirationdate AS DATE) AS expiry_date,\n  CASE WHEN line.occupancytype = 'OwnerOccupied' THEN 'O1' ELSE 'O2' END AS occupancy_type,\n  TRIM(CAST(dw.constructiontype AS STRING)) AS construction_type,\n  CAST(dw.yearbuilt AS INT) AS year_built,\n  CAST(NULLIF(TRIM(CAST(dw.ppccode AS STRING)), '') AS INT) AS protection_class,\n  CAST(cov.coverageamount AS BIGINT) AS coverage_a,\n  CAST(cov.tropicalcyclonedeductible AS INT) AS hurricane_deductible,\n  CAST(ROUND(cov.writtenpremium) AS BIGINT) AS written_premium,\n  CASE WHEN UPPER(TRIM(dw.windmitigation)) = 'Y' THEN 'Y' ELSE 'N' END AS wind_mitigation,\n  dw.openingprotection AS opening_protection,\n  CASE WHEN UPPER(TRIM(dw.windmitigation)) = 'Y' THEN TRIM(line.roofcoveringtype) ELSE NULL END AS roof_cover_type,\n  dw.roofdeckattachment AS roof_deck_attachment,\n  dw.rooftowallconnection AS roof_to_wall_connection,\n  dw.secondarywaterresistance AS secondary_water_resistance,\n  CAST(dw.latitude AS BIGINT) AS latitude,\n  CAST(dw.longitude AS BIGINT) AS longitude,\n  2025 AS reporting_year,\n  'FHCF_D1A_GUIDEWIRE_2025.txt' AS source_file\nFROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p\n    JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HOPOLICYLINE line ON line.policy_id = p.id\n    JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HOCOVERAGE cov ON cov.policyline_id = line.id\n    JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HODWELLING dw ON dw.policyline_id = line.id\nWHERE UPPER(TRIM(dw.state)) = 'FL'",
+  "select_sql": "SELECT\n  (SELECT LPAD(TRIM(MAX(uw.naiccode)), 10, '0') FROM INSURANCE_REGULATORY.BRONZE.GW_PC_UWCOMPANY uw) AS insurer_naic,\n  TRIM(p.policynumber) AS policy_number,\n  LPAD(TRIM(CAST(dw.zip AS STRING)), 5, '0') AS risk_zip,\n  CASE WHEN dw.ziplus4 IS NULL OR TRIM(CAST(dw.ziplus4 AS STRING)) = '' THEN NULL ELSE LPAD(TRIM(CAST(dw.ziplus4 AS STRING)), 4, '0') END AS risk_zip4,\n  TRIM(dw.countyfips) AS county_fips,\n  UPPER(TRIM(dw.state)) AS state_code,\n  TRIM(line.holineform) AS policy_form,\n  CAST(line.effectivedate AS DATE) AS effective_date,\n  CAST(line.expirationdate AS DATE) AS expiry_date,\n  CASE WHEN line.occupancytype = 'OwnerOccupied' THEN 'O1' ELSE 'O2' END AS occupancy_type,\n  TRIM(CAST(dw.constructiontype AS STRING)) AS construction_type,\n  CAST(dw.yearbuilt AS INT) AS year_built,\n  CAST(NULLIF(TRIM(CAST(dw.ppccode AS STRING)), '') AS INT) AS protection_class,\n  CAST(cov.coverageamount AS BIGINT) AS coverage_a,\n  CAST(cov.tropicalcyclonedeductible AS INT) AS hurricane_deductible,\n  CAST(ROUND(cov.writtenpremium) AS BIGINT) AS written_premium,\n  CASE WHEN UPPER(TRIM(dw.windmitigation)) = 'Y' THEN 'Y' ELSE 'N' END AS wind_mitigation,\n  dw.openingprotection AS opening_protection,\n  CASE WHEN UPPER(TRIM(dw.windmitigation)) = 'Y' THEN TRIM(line.roofcoveringtype) ELSE NULL END AS roof_cover_type,\n  dw.roofdeckattachment AS roof_deck_attachment,\n  dw.rooftowallconnection AS roof_to_wall_connection,\n  dw.secondarywaterresistance AS secondary_water_resistance,\n  CAST(dw.latitude AS BIGINT) AS latitude,\n  CAST(dw.longitude AS BIGINT) AS longitude,\n  2025 AS reporting_year,\n  'FHCF_D1A_GUIDEWIRE_2025.txt' AS source_file\nFROM INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p\n    JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HOPOLICYLINE line ON line.policy_id = p.id\n    JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HOCOVERAGE cov ON cov.policyline_id = line.id\n    JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HODWELLING dw ON dw.policyline_id = line.id\nWHERE UPPER(TRIM(dw.state)) = 'FL'",
+  "source_relation": "INSURANCE_REGULATORY.BRONZE.GW_PC_POLICY p\n    JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HOPOLICYLINE line ON line.policy_id = p.id\n    JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HOCOVERAGE cov ON cov.policyline_id = line.id\n    JOIN INSURANCE_REGULATORY.BRONZE.GW_PC_HODWELLING dw ON dw.policyline_id = line.id",
+  "compiled_from": "materialized/mappings/guidewire_fl_fhcf.reviewed.json",
+  "compiled_at": "2026-08-12T05:45:25+00:00",
+  "provenance": {
+    "stage": "reviewed",
+    "proposed_by": "openai:gpt-5.5",
+    "tokens": 21783,
+    "proposal_file": "materialized/mappings/guidewire_fl_fhcf.mapping.json",
+    "reviewed_by": "human-in-the-loop review, 2026-08-12",
+    "review_summary": "26 proposed \u00b7 7 overridden in review \u00b7 rest accepted as proposed. Compiled output verified row-identical to the hand-written FHCF_SILVER_SQL reference (tests/test_fhcf_mapping_compile.py).",
+    "overrides": [
+      {
+        "target_column": "county_fips",
+        "proposed": "LPAD(RIGHT(TRIM(CAST(dw.countyfips AS STRING)), 2), 2, '0')",
+        "accepted_as": "TRIM(dw.countyfips)",
+        "reason": "OVERRIDE: proposal took RIGHT(...,2) assuming a full 5-digit FIPS; Bronze already carries the 2-digit FL county sub-code, so plain TRIM is correct."
+      },
+      {
+        "target_column": "occupancy_type",
+        "proposed": "CASE WHEN UPPER(TRIM(line.occupancytype)) IN ('OWNEROCCUPIED','OWNER_OCCUPIED') AND CAST(dw.numberoffamilies AS INT) = 1 THEN 'O1' ELSE 'O2' END",
+        "accepted_as": "CASE WHEN line.occupancytype = 'OwnerOccupied' THEN 'O1' ELSE 'O2' END",
+        "reason": "OVERRIDE: dropped the proposal's extra numberoffamilies=1 clause \u2014 the implemented FHCF encoding keys on occupancy only (HO book is single-family; a NULL family count must not demote O1 to O2)."
+      },
+      {
+        "target_column": "hurricane_deductible",
+        "proposed": "CAST(cov.tropicalcyclonedeductible AS BIGINT)",
+        "accepted_as": "CAST(cov.tropicalcyclonedeductible AS INT)",
+        "reason": "OVERRIDE: BIGINT \u2192 INT to match the target DDL (values are whole-dollar deductibles)."
+      },
+      {
+        "target_column": "opening_protection",
+        "proposed": "CASE WHEN UPPER(TRIM(dw.windmitigation)) = 'Y' THEN TRIM(dw.openingprotection) ELSE NULL END",
+        "accepted_as": "dw.openingprotection",
+        "reason": "OVERRIDE: Direct from the OIR-B1-1802 extension column \u2014 the carrier only populates companions when an inspection is on file, so the proposal's CASE gate is redundant."
+      },
+      {
+        "target_column": "roof_deck_attachment",
+        "proposed": "CASE WHEN UPPER(TRIM(dw.windmitigation)) = 'Y' THEN TRIM(dw.roofdeckattachment) ELSE NULL END",
+        "accepted_as": "dw.roofdeckattachment",
+        "reason": "OVERRIDE: Direct from the extension column (see opening_protection)."
+      },
+      {
+        "target_column": "roof_to_wall_connection",
+        "proposed": "CASE WHEN UPPER(TRIM(dw.windmitigation)) = 'Y' THEN TRIM(dw.rooftowallconnection) ELSE NULL END",
+        "accepted_as": "dw.rooftowallconnection",
+        "reason": "OVERRIDE: Direct from the extension column (see opening_protection)."
+      },
+      {
+        "target_column": "secondary_water_resistance",
+        "proposed": "CASE WHEN UPPER(TRIM(dw.windmitigation)) = 'Y' THEN UPPER(TRIM(dw.secondarywaterresistance)) ELSE NULL END",
+        "accepted_as": "dw.secondarywaterresistance",
+        "reason": "OVERRIDE: Direct from the extension column (see opening_protection)."
+      }
+    ]
+  }
+}

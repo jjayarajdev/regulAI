@@ -116,18 +116,20 @@ def test_fl_reference_sql_contains_all_ten_validation_rules(fl_reference_sql):
     assert not missing, f"FL reference SQL missing rules: {missing}"
 
 
-def test_fl_reference_sql_targets_fl_bronze(fl_reference_sql):
-    """Every wired FL rule targets BRONZE.FL_FHCF_POLICY — no rule
+def test_fl_reference_sql_targets_fl_gold(fl_reference_sql):
+    """Every wired FL rule targets GOLD.FHCF_EXPOSURE_RECORDS (the
+    filing-ready table built by scripts/run_fhcf.py) — no rule
     accidentally points at a TX table (which would silently no-op or
     return TX violations under an FL filing)."""
     # All 10 FHCF validation rules wired.
     inserts = re.findall(r"INSERT INTO TSPR_VALIDATION_RULES", fl_reference_sql)
     assert len(inserts) == 10, f"Expected 10 INSERTs, got {len(inserts)}"
-    # All target FL Bronze
-    fl_target_count = fl_reference_sql.count("'BRONZE.FL_FHCF_POLICY'")
+    # All target the FL Gold exposure table
+    fl_target_count = fl_reference_sql.count("'GOLD.FHCF_EXPOSURE_RECORDS'")
     assert fl_target_count == 10, (
-        f"Only {fl_target_count}/10 FL rules target BRONZE.FL_FHCF_POLICY — "
-        f"the others may be pointing at a TX table by mistake"
+        f"Only {fl_target_count}/10 FL rules target GOLD.FHCF_EXPOSURE_RECORDS — "
+        f"the others may be pointing at a TX table (or the retired "
+        f"BRONZE.FL_FHCF_POLICY shortcut) by mistake"
     )
     # Negative: no FL rule should target a TX table
     assert "BRONZE.GW_PC_JOB" not in fl_reference_sql, (
