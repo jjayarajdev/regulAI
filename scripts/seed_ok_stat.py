@@ -1,27 +1,22 @@
-"""Seed the Oklahoma statistical records + validation reference rows.
+"""Seed the Oklahoma demo statistical records (fixture CONTENT, not mechanism).
 
 The OK stat plan is a data-call style feed (like FL's FHCF): records land
 directly in the filing-ready GOLD.OK_STAT_RECORDS table, premium ('P') and
-loss ('L') records sharing one layout. This seed loads:
+loss ('L') records sharing one layout. This seed loads 12 synthetic Lone
+Star Mutual OK policies stamped filing_batch_id='OK-HO-2026A': two clean
+rows plus one designated violator per executable rule (the FL fixture
+design — tests/test_ok_rules_execute.py asserts the mapping).
 
-  1. GOLD.OK_STAT_RECORDS — 12 synthetic Lone Star Mutual OK policies,
-     stamped filing_batch_id='OK-HO-2026A': two clean rows plus one
-     designated violator per executable rule (the same design as the FL
-     fixture set — tests/test_ok_rules_execute.py asserts the mapping).
-  2. REFERENCE.TSPR_VALIDATION_RULES — the 10 US-OK rules, read live from
-     the KG Rule nodes (delete-then-insert on jurisdiction_code='US-OK').
+The edit package itself (violation_sql on the KG rules + the reference
+table rows) is attached by the GENERIC mechanism:
+    uv run python -m scripts.attach_validation_rules -j US-OK
 
 DuckDB is single-writer: stop the api container before running this against
 the local warehouse. Idempotent — truncate-and-reload per run.
-
-Run after: approve the OK extraction → scripts.migrate_ok_validation_rules.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
-
-from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
 from packages.rhs.db import query
 
 FILING_ID = "OK-HO-2026A"
@@ -94,47 +89,10 @@ def seed_records() -> int:
     return len(OK_FIXTURES)
 
 
-def load_reference_rules() -> int:
-    """US-OK rows for REFERENCE.TSPR_VALIDATION_RULES, straight from the KG."""
-    with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
-        rows = list(s.run(
-            """
-            MATCH (r:Rule)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: 'US-OK'})
-            WHERE r.violation_sql IS NOT NULL AND r.status <> 'superseded'
-            RETURN r.id AS rule_id, r.rule_number AS n, r.name AS rule_name,
-                   r.section AS section, r.target_table AS target_table,
-                   r.target_id_expr AS target_id_expr, r.violation_sql AS violation_sql,
-                   r.violation_reason AS violation_reason, r.severity AS severity,
-                   r.citation AS citation, r.validation_version AS validation_version
-            ORDER BY r.rule_number
-            """
-        ))
-    query("DELETE FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
-          "WHERE jurisdiction_code = 'US-OK'")
-    now = datetime.now().isoformat(sep=" ", timespec="seconds")
-    for r in rows:
-        query(
-            "INSERT INTO INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
-            "(rule_id, rule_number, rule_name, section, jurisdiction_code, "
-            " is_federal_default, target_table, target_id_expr, violation_sql, "
-            " violation_reason, severity, citation, validation_version, generated_at) "
-            "VALUES (%s, %s, %s, %s, 'US-OK', FALSE, %s, %s, %s, %s, %s, %s, %s, %s)",
-            (str(r["rule_id"]), f"OK.{r['n']}", r["rule_name"], r["section"],
-             r["target_table"], r["target_id_expr"], r["violation_sql"],
-             r["violation_reason"], r["severity"], r["citation"],
-             int(r["validation_version"] or 1), now),
-        )
-    return len(rows)
-
-
 def main() -> int:
     n = seed_records()
     print(f"  ✓ GOLD.OK_STAT_RECORDS: {n} records (filing {FILING_ID})")
-    k = load_reference_rules()
-    print(f"  ✓ REFERENCE.TSPR_VALIDATION_RULES: {k} US-OK rules loaded")
-    if k == 0:
-        print("  ⚠ No executable US-OK rules in the KG — run scripts.migrate_ok_validation_rules first.")
-        return 1
+    print("  (edit package: uv run python -m scripts.attach_validation_rules -j US-OK)")
     return 0
 
 

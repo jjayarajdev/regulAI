@@ -1,0 +1,102 @@
+[
+  {
+    "match_name": "Rule 1 \u2014 Quarterly Reporting Obligation",
+    "rule_number": "OK.1",
+    "target_table": "GOLD.OK_STAT_RECORDS",
+    "target_id_expr": "j.policy_number",
+    "violation_sql": "j.reported_lag_days IS NULL OR j.reported_lag_days > 45",
+    "violation_reason": "Transaction reported more than 45 days after the close of the calendar quarter",
+    "severity": "WARNING",
+    "citation": "OK Statistical Plan \u00a71, Rule 1"
+  },
+  {
+    "match_name": "Rule 2 \u2014 Fixed-Width Record Format and NAIC Company Code",
+    "rule_number": "OK.2",
+    "target_table": "GOLD.OK_STAT_RECORDS",
+    "target_id_expr": "j.policy_number",
+    "violation_sql": "j.naic_code IS NULL\n            OR NOT REGEXP_LIKE(TRIM(j.naic_code), '^[0-9]{5}$')",
+    "violation_reason": "NAIC company code must be exactly 5 digits",
+    "severity": "ERROR",
+    "citation": "OK Statistical Plan \u00a71, Rule 2"
+  },
+  {
+    "match_name": "Rule 3 \u2014 County FIPS Code",
+    "rule_number": "OK.3",
+    "target_table": "GOLD.OK_STAT_RECORDS",
+    "target_id_expr": "j.policy_number",
+    "violation_sql": "j.county_fips IS NULL\n            OR NOT REGEXP_LIKE(TRIM(j.county_fips), '^[0-9]{3}$')",
+    "violation_reason": "County code must be the 3-digit FIPS code of the insured dwelling's county",
+    "severity": "ERROR",
+    "citation": "OK Statistical Plan \u00a71, Rule 3"
+  },
+  {
+    "match_name": "Rule 4 \u2014 Written Premium and Return Premium Reporting",
+    "rule_number": "OK.4",
+    "target_table": "GOLD.OK_STAT_RECORDS",
+    "target_id_expr": "j.policy_number",
+    "violation_sql": "j.record_type = 'P'\n            AND (j.written_premium IS NULL\n                 OR j.written_premium <> ROUND(j.written_premium))",
+    "violation_reason": "Written premium must be reported in whole dollars",
+    "severity": "ERROR",
+    "citation": "OK Statistical Plan \u00a72, Rule 4"
+  },
+  {
+    "match_name": "Rule 5 \u2014 Amount of Insurance for Coverage A",
+    "rule_number": "OK.5",
+    "target_table": "GOLD.OK_STAT_RECORDS",
+    "target_id_expr": "j.policy_number",
+    "violation_sql": "j.record_type = 'P'\n            AND (j.aoi_thousands IS NULL OR j.aoi_thousands <= 0)",
+    "violation_reason": "Amount of insurance (Coverage A, whole thousands) missing or non-positive on a premium record",
+    "severity": "ERROR",
+    "citation": "OK Statistical Plan \u00a72, Rule 5"
+  },
+  {
+    "match_name": "Rule 6 \u2014 Windstorm or Hail Deductible Type Codes",
+    "rule_number": "OK.6",
+    "target_table": "GOLD.OK_STAT_RECORDS",
+    "target_id_expr": "j.policy_number",
+    "violation_sql": "j.wind_deductible_pct IS NOT NULL AND j.deductible_type <> '3'",
+    "violation_reason": "Percentage windstorm/hail deductible must carry deductible type code 3",
+    "severity": "ERROR",
+    "citation": "OK Statistical Plan \u00a72, Rule 6"
+  },
+  {
+    "match_name": "Rule 7 \u2014 Roof Impact-Resistance Mitigation Code",
+    "rule_number": "OK.7",
+    "target_table": "GOLD.OK_STAT_RECORDS",
+    "target_id_expr": "j.policy_number",
+    "violation_sql": "j.mitigation_credit > 0\n            AND (j.mitigation_code IS NULL OR TRIM(j.mitigation_code) = '')",
+    "violation_reason": "Mitigation premium credit reported without the mitigation code from the Section 4 code table",
+    "severity": "WARNING",
+    "citation": "OK Statistical Plan \u00a72, Rule 7"
+  },
+  {
+    "match_name": "Rule 8 \u2014 Paid Loss Reporting",
+    "rule_number": "OK.8",
+    "target_table": "GOLD.OK_STAT_RECORDS",
+    "target_id_expr": "j.policy_number",
+    "violation_sql": "j.record_type = 'L' AND j.paid_amount > 0\n            AND (j.cause_of_loss IS NULL OR j.accident_date IS NULL)",
+    "violation_reason": "Paid loss must carry the cause of loss code and the accident date",
+    "severity": "ERROR",
+    "citation": "OK Statistical Plan \u00a73, Rule 8"
+  },
+  {
+    "match_name": "Rule 9 \u2014 Claims Closed Without Payment",
+    "rule_number": "OK.9",
+    "target_table": "GOLD.OK_STAT_RECORDS",
+    "target_id_expr": "j.policy_number",
+    "violation_sql": "j.record_type = 'L' AND j.disposition_code = 'C'\n            AND j.paid_amount <> 0",
+    "violation_reason": "Closed-without-payment claims must report a paid amount of zero with disposition code C",
+    "severity": "ERROR",
+    "citation": "OK Statistical Plan \u00a73, Rule 9"
+  },
+  {
+    "match_name": "Rule 10 \u2014 Catastrophe Serial Number Reporting",
+    "rule_number": "OK.10",
+    "target_table": "GOLD.OK_STAT_RECORDS",
+    "target_id_expr": "j.policy_number",
+    "violation_sql": "j.record_type = 'L' AND j.cat_serial IS NULL",
+    "violation_reason": "Loss record missing the catastrophe serial number (0 for non-catastrophe losses)",
+    "severity": "WARNING",
+    "citation": "OK Statistical Plan \u00a73, Rule 10"
+  }
+]

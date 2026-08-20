@@ -2449,40 +2449,65 @@ def _render_footer(naic: str, agg: dict, sha256: str) -> str:
     return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
 
 
-def _build_ok_csv(f: dict) -> dict:
-    """Render the OK statistical data call submission as CSV.
+def _build_data_call_csv(f: dict) -> dict:
+    """Generic data-call submission renderer — works for ANY state, no
+    per-jurisdiction code.
 
-    One row per GOLD.OK_STAT_RECORDS record (premium 'P' and loss 'L' rows
-    share the layout), trailing `# sha256=… records=…` comment line. Same
-    return shape as the TSPR/FHCF renderers so seal / send / archive are
-    agnostic to the plan.
+    The filing's records table is discovered from its own edit package: the
+    jurisdiction's executable rules in REFERENCE.TSPR_VALIDATION_RULES all
+    carry target_table (that's what /validate runs against), so the
+    submission renders every row of that table stamped with this
+    filing_batch_id. Columns come from the table itself; the record id
+    column comes from the rules' target_id_expr. Same return shape as the
+    TSPR/FHCF renderers so seal / send / archive stay plan-agnostic.
+
+    Onboarding a new state therefore needs no renderer work: approve the
+    canon, attach its rules (scripts.attach_validation_rules), and sealing
+    works.
     """
     import csv
     import hashlib
     import io
 
-    from scripts.seed_ok_stat import _COLS as _OK_COLS
-
     filing_id = f["id"]
-    columns = [c.strip() for c in _OK_COLS.split(",")]
+    jur = f.get("jurisdiction_code") or ""
+    meta = query(
+        "SELECT DISTINCT target_table, target_id_expr "
+        "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
+        "WHERE jurisdiction_code = %s AND target_table IS NOT NULL",
+        (jur,),
+    )
+    if not meta:
+        raise HTTPException(
+            409,
+            f"no executable rules for {jur} — the filing's records table is "
+            "derived from its edit package; attach validation rules first "
+            "(scripts.attach_validation_rules).",
+        )
+    table = meta[0].get("target_table") or meta[0].get("TARGET_TABLE")
+    id_expr = (meta[0].get("target_id_expr") or meta[0].get("TARGET_ID_EXPR") or "j.policy_number")
+    id_col = id_expr.split(".")[-1].strip()
+
     try:
         rows = _jsonify(query(
-            f"SELECT {', '.join(columns)} "
-            "FROM INSURANCE_REGULATORY.GOLD.OK_STAT_RECORDS "
-            "WHERE filing_batch_id = %s "
-            "ORDER BY record_type, policy_number",
+            f"SELECT * FROM INSURANCE_REGULATORY.{table} "
+            f"WHERE filing_batch_id = %s ORDER BY {id_col}",
             (filing_id,),
         ))
     except Exception:
-        logger.warning("[file] OK_STAT_RECORDS read failed", exc_info=True)
+        logger.warning("[file] %s read failed", table, exc_info=True)
         rows = []
+    columns = list(rows[0].keys()) if rows else []
 
-    naic = next(
-        (str(r.get("naic_code")) for r in rows
-         if r.get("naic_code") and str(r["naic_code"]).isdigit()
-         and len(str(r["naic_code"])) == 5),
-        "00000",
-    )
+    # Best-effort NAIC: the first column whose name mentions naic with an
+    # all-digit value (5-digit state codes, 10-digit FHCF-style both accepted).
+    naic = "00000"
+    for c in columns:
+        if "naic" in c.lower():
+            v = next((str(r[c]) for r in rows if r.get(c) and str(r[c]).isdigit()), None)
+            if v:
+                naic = v
+                break
 
     buf = io.StringIO()
     writer = csv.writer(buf, lineterminator="\n")
@@ -2493,13 +2518,14 @@ def _build_ok_csv(f: dict) -> dict:
     sha256 = hashlib.sha256(body.encode("utf-8", errors="replace")).hexdigest()
     footer_line = f"# sha256={sha256} records={len(rows)}"
     file_text = body + "\n" + footer_line + "\n"
-    file_name = f"OKSTAT_{naic}_{filing_id.replace('-', '')}.csv"
+    plan_tag = "".join(ch for ch in (f.get("plan_code") or jur.replace("US-", "")) if ch.isalnum()) or "DATACALL"
+    file_name = f"{plan_tag}_{naic}_{filing_id.replace('-', '')}.csv"
     warning = None if rows else (
-        f"No GOLD.OK_STAT_RECORDS rows found for filing {filing_id}. "
-        f"Run `uv run python -m scripts.seed_ok_stat` to build them."
+        f"No {table} rows found for filing {filing_id} — seed or transform "
+        "the jurisdiction's records first."
     )
 
-    p_count = sum(1 for r in rows if r.get("record_type") == "P")
+    p_count = sum(1 for r in rows if r.get("record_type") == "P") if rows and "record_type" in columns else len(rows)
     return {
         "filing_id":    filing_id,
         "filing":       f,
@@ -2604,9 +2630,9 @@ def _build_filing_file(filing_id: str) -> dict:
         raise HTTPException(404, f"unknown filing {filing_id}")
 
     if (f.get("plan_code") or "").upper() == "FHCF":
-        return _build_fhcf_csv(f)
-    if (f.get("plan_code") or "").upper() == "OK-HO":
-        return _build_ok_csv(f)
+        return _build_fhcf_csv(f)   # bespoke column contract, predates the generic path
+    if _is_data_call(f):
+        return _build_data_call_csv(f)
 
     # Resolve NAIC from the first policyperiod row in scope
     naic_rows = query(

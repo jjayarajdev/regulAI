@@ -1,13 +1,18 @@
 """OK executable rules — every violation_sql runs and catches exactly its
 designated violator (mirrors test_fl_rules_execute, but self-contained: the
-rules come from the migration script's dict and the fixture rows from the
-seed script, so no live Neo4j/warehouse is needed)."""
+rules come from the jurisdiction's content file and the fixture rows from
+the seed script, so no live Neo4j/warehouse is needed)."""
+
+import json
+from pathlib import Path
 
 import duckdb
 import pytest
 
-from scripts.migrate_ok_validation_rules import OK_VALIDATION_RULES
 from scripts.seed_ok_stat import OK_FIXTURES, _row_params
+
+OK_VALIDATION_RULES = json.loads(
+    Path("references/validation_rules/US-OK.json").read_text(encoding="utf-8"))
 
 # policy → the single rule_number it is designed to violate (clean = none).
 EXPECTED = {
