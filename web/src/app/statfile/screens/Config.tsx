@@ -19,12 +19,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Blueprint } from '../Blueprint';
 import {
   approveRegulation, can, goLiveOnboarding, startExtraction, uploadRegulation,
-  useExtractStatus, useFilings, useKgRules, useRegDocuments, whoCan, type AppUser,
+  useExtractStatus, useFilings, useKgRules, useRegDocuments, useRegulations,
+  whoCan, type AppUser,
 } from '../api';
 import { ACC, ACC9, ONBOARD_STEPS, STANDARDS, STATES, type ScreenId } from '../data';
-
-// Mock ↔ live switch (same flag src/main.tsx keys the MSW worker off).
-const MOCK_API = (import.meta.env.VITE_API_MODE ?? 'mock') !== 'live';
 
 export const STATE_NAMES: Record<string, string> = {
   TX: 'Texas — Department of Insurance',
@@ -166,6 +164,7 @@ export function ConfigScreen({ go, user }: {
   const filingsQ = useFilings();
   const docsQ = useRegDocuments();
   const rulesQ = useKgRules();
+  const regsQ = useRegulations();
 
   const [tab, setTab] = useState<Tab>('registry');
   const [wizard, setWizard] = useState<WizardState>(loadWizard);
@@ -199,6 +198,10 @@ export function ConfigScreen({ go, user }: {
       ruleStats.set(code, s);
     }
     const docsFor = (code: string) => docs.filter((d) => ISSUER_JUR[d.issuing_body] === code);
+    // Uploaded rulebooks live in the regulation store (not the warehouse
+    // regdocs table) and carry the jurisdiction from the wizard.
+    const uploadsFor = (code: string) =>
+      (regsQ.data?.documents ?? []).filter((d) => d.jurisdiction_code === `US-${code}`);
 
     const codes = [...new Set([...byJur.keys(), ...ruleStats.keys()])]
       .sort((a, b) => Number(byJur.has(b)) - Number(byJur.has(a)) || a.localeCompare(b));
@@ -247,6 +250,7 @@ export function ConfigScreen({ go, user }: {
 
     const jr = rules.filter((r) => (r.jurisdiction_code || '').replace(/^US-/, '') === target);
     const jd = docsFor(target);
+    const ju = uploadsFor(target);
     const approved = jr.filter((r) => r.status === 'approved').length;
     const executable = jr.filter((r) => r.executable).length;
     const jf = byJur.get(target) ?? [];
@@ -261,10 +265,10 @@ export function ConfigScreen({ go, user }: {
     const st = (real: StepState): StepState => (targetLive ? 'done' : real);
     const steps = [
       mk(1, 'Ingest rulebook',
-        jd.length
-          ? `${jd.length} regulator document${jd.length > 1 ? 's' : ''} loaded into the regdocs store — ${jd.map((d) => d.title).slice(0, 2).join('; ')}${jd.length > 2 ? '; …' : ''}.`
+        jd.length || ju.length
+          ? `${jd.length + ju.length} regulator document${jd.length + ju.length > 1 ? 's' : ''} loaded — ${[...jd.map((d) => d.title), ...ju.map((d) => d.label)].slice(0, 2).join('; ')}${jd.length + ju.length > 2 ? '; …' : ''}.`
           : 'No regulator documents loaded yet.',
-        st(jd.length ? 'done' : 'now')),
+        st(jd.length || ju.length ? 'done' : 'now')),
       mk(2, 'Extract candidate rules',
         `${fmt(jr.length)} rules in the knowledge graph, extracted with citations.`,
         st(jr.length ? 'done' : 'todo')),
@@ -303,7 +307,7 @@ export function ConfigScreen({ go, user }: {
         resumeStep: firstOpen === -1 ? 6 : Math.min(firstOpen + 2, 6),
       },
     };
-  }, [filingsQ.data, rulesQ.data, docsQ.data]);
+  }, [filingsQ.data, rulesQ.data, docsQ.data, regsQ.data]);
 
   // Demo fallback (warehouse cold): the design fixtures, reshaped.
   const cards = derived?.cards ?? STATES.map((s) => ({
@@ -496,7 +500,11 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
     setBusy('upload'); setError(null);
     try {
       const label = wizard.std || [wizard.jurisdiction, wizard.lob].filter(Boolean).join(' ') || undefined;
-      const r = await uploadRegulation(f, label, wizard.jurisdiction ? `${wizard.jurisdiction} — uploaded rulebook` : undefined);
+      const r = await uploadRegulation(
+        f, label,
+        wizard.jurisdiction ? `${wizard.jurisdiction} — uploaded rulebook` : undefined,
+        wizard.jurisdiction || undefined,
+      );
       patch({ slug: r.slug, pages: r.pages, chars: r.chars, step: 2 });
     } catch (e) {
       setError((e as Error).message);
@@ -549,6 +557,14 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
   const progress = Math.round(((wizard.step - 1) / (WIZ_STEPS.length - 1)) * 100);
   const back = () => patch({ step: Math.max(1, wizard.step - 1) });
 
+  // Processing lock: while a request is in flight, or Sentinel is rewriting
+  // the extraction, block every other wizard action so nothing conflicting
+  // can be triggered. Save-and-exit stays available during the (minutes-long)
+  // extraction — the job runs server-side and the wizard resumes onto it —
+  // but is blocked during short in-flight requests.
+  const processing = busy !== null;
+  const navLocked = processing || extractRunning;
+
   const mb = wizard.fileSize != null ? (wizard.fileSize / 1048576).toFixed(1) : null;
 
   // ── step 2: parse rows — live where the upload/extraction payloads carry
@@ -600,8 +616,16 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
   // The design footer: Back + Save-and-exit on the left, primary on the right.
   const footer = (primary: ReactNode) => (
     <div style={{ display: 'flex', gap: 8, marginTop: 22, borderTop: '1px solid var(--color-divider)', paddingTop: 16 }}>
-      {wizard.step > 1 && <button className="btn btn-secondary" onClick={back}>← Back</button>}
-      <button className="btn btn-secondary" onClick={onExit}>Save and exit</button>
+      {wizard.step > 1 && (
+        <button className="btn btn-secondary" onClick={back} disabled={navLocked}
+          title={navLocked ? 'wait for the current step to finish' : undefined}>
+          ← Back
+        </button>
+      )}
+      <button className="btn btn-secondary" onClick={onExit} disabled={processing}
+        title={extractRunning ? 'safe — the extraction keeps running server-side' : undefined}>
+        Save and exit
+      </button>
       <span style={{ marginLeft: 'auto' }}>{primary}</span>
     </div>
   );
@@ -617,7 +641,7 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
         {WIZ_STEPS.map(([title, desc], i) => {
           const n = i + 1;
           const [label, tagClass] = railStatus(n);
-          const jumpable = n < wizard.step; // completed steps re-open on click
+          const jumpable = n < wizard.step && !navLocked; // completed steps re-open on click
           return (
             <div
               key={title}
@@ -808,6 +832,9 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
                     ? 'Approved — the extraction is materialized in the knowledge graph as draft rules.'
                     : 'Mapping the fields approves the extraction into the knowledge graph — the rules land as drafts and go through the human approval gate on the Rulebook screen.'}
                 </div>
+                <div style={{ marginTop: 10 }}>
+                  {deepLink('Review the queued proposals first →', go('extract'))}
+                </div>
               </>
             )}
             {error && status?.status !== 'error' && <div style={{ fontSize: 12.5, color: '#a33', margin: '12px 0 0' }}>{error}</div>}
@@ -930,8 +957,8 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
             {footer(
               <button
                 className="btn btn-primary"
-                disabled={!mayOnboard || busy === 'golive' || !MOCK_API}
-                title={gate ?? (!MOCK_API ? 'requires a filing obligation — seed via scripts.seed_filing_obligations' : undefined)}
+                disabled={!mayOnboard || busy === 'golive'}
+                title={gate ?? 'creates the filing obligation — the jurisdiction goes live'}
                 onClick={doGoLive}
               >
                 {busy === 'golive' ? 'Going live…' : 'Go live →'}

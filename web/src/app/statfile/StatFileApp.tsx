@@ -14,6 +14,7 @@ import { RecordScreen } from './screens/Record';
 import { FilingScreen } from './screens/Filing';
 import { AmendmentsScreen } from './screens/Amendments';
 import { MappingReviewScreen } from './screens/MappingReview';
+import { ExtractionReviewScreen } from './screens/ExtractionReview';
 import { IsoScreen } from './screens/Iso';
 import { ConfigScreen } from './screens/Config';
 import { UsersScreen } from './screens/Users';
@@ -22,13 +23,13 @@ import './statfile.css';
 
 // Screens whose data comes from the live API today; the rest still render the
 // design's demo content until their endpoints land.
-const LIVE_SCREENS: ScreenId[] = ['dash', 'rules', 'val', 'pipe', 'mapping', 'record', 'graph', 'agents', 'config', 'filing', 'amend'];
+const LIVE_SCREENS: ScreenId[] = ['dash', 'rules', 'val', 'pipe', 'mapping', 'record', 'graph', 'agents', 'config', 'filing', 'amend', 'extract'];
 
 // Drill-in screens highlight their parent nav item: the record inspector is
 // reached from Validation, the knowledge graph is the Rulebook's second tab,
 // the agent console lives under Operations, users under Administration.
 const NAV_PARENT: Partial<Record<ScreenId, ScreenId>> = {
-  record: 'val', graph: 'rules', agents: 'pipe', users: 'config',
+  record: 'val', graph: 'rules', extract: 'rules', agents: 'pipe', users: 'config',
 };
 
 // Segmented tab strip for screens that share a nav item. The tab state IS the
@@ -230,11 +231,13 @@ export function StatFileApp() {
 
           <div className="content">
             {screen === 'dash' && <DashboardScreen go={go} />}
-            {(screen === 'rules' || screen === 'graph') && (
+            {(screen === 'rules' || screen === 'graph' || screen === 'extract') && (
               <>
-                <ScreenTabs tabs={[['rules', 'Rulebook'], ['graph', 'Knowledge graph']]}
+                <ScreenTabs tabs={[['rules', 'Rulebook'], ['extract', 'Extraction review'], ['graph', 'Knowledge graph']]}
                   screen={screen} go={go} user={user} />
-                {screen === 'rules' ? <RulesScreen user={user} /> : <GraphScreen />}
+                {screen === 'rules' ? <RulesScreen user={user} />
+                  : screen === 'extract' ? <ExtractionReviewScreen user={user} />
+                  : <GraphScreen />}
               </>
             )}
             {(screen === 'pipe' || screen === 'agents') && (

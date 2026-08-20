@@ -53,13 +53,16 @@ const JUR_HINTS: Array<[RegExp, string]> = [
 const guessJur = (s: string): string =>
   JUR_HINTS.find(([re]) => re.test(s))?.[1] ?? 'US-CA';
 
-export function uploadRegulationMock(fileName: string, label?: string | null, category?: string | null) {
+export function uploadRegulationMock(
+  fileName: string, label?: string | null, category?: string | null, jurisdiction?: string | null,
+) {
   const stem = fileName.replace(/\.pdf$/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'regulation';
   const slug = `uploaded-${stem}`;
   const pages = 188;
   const chars = 412_308;
   const entry: fx.MockRegulation = {
     slug,
+    jurisdiction_code: jurisdiction ? guessJur(jurisdiction) : guessJur(fileName),
     label: label || fileName.replace(/\.pdf$/i, ''),
     category: category || 'Uploaded regulations & bulletins',
     blurb: `Uploaded ${fileName} · ${pages} pages · ${chars.toLocaleString('en-US')} chars extracted.`,
@@ -74,6 +77,7 @@ export function uploadRegulationMock(fileName: string, label?: string | null, ca
   delete extractJobs[slug];
   return {
     slug, label: entry.label, category: entry.category, pages, chars,
+    jurisdiction_code: jurisdiction ? guessJur(jurisdiction) : guessJur(fileName),
     next: `POST /api/regulations/${slug}/extract  (Sentinel → KG)`,
   };
 }
@@ -201,6 +205,128 @@ export function goLiveJurisdictionMock(jurisdiction: string): { status: number; 
   });
   db.kgAudit.count = db.kgAudit.entries.length;
   return { status: 200, body: { ok: true, filing_id: seed.id } };
+}
+
+// ── extraction review (per-proposal verdicts, mirrors api/main.py) ──
+// GET merges the fixture proposals with in-memory verdicts; PUT stores a
+// verdict and returns the same merged payload — exactly the live contract.
+interface MockVerdict {
+  verdict: 'accepted' | 'rejected' | 'overridden';
+  overrides: Record<string, unknown> | null;
+  reason: string | null; actor: string | null; at: string | null;
+}
+const reviewVerdicts: Record<string, Record<string, MockVerdict>> = {};
+
+// The 9 candidate nodes every mock extraction "found" (n_nodes: 9 above),
+// spread across the confidence bands so the review screen has work to show.
+const PROPOSAL_SEED: Array<{
+  temp_id: string; type: string; name: string; conf: number;
+  fields: Record<string, unknown>; excerpt: string;
+}> = [
+  { temp_id: 'doc1', type: 'RegulationDocument', name: '__DOC__', conf: 0.99,
+    fields: { kind: 'StatPlan', effective_date: '2026-01-01' },
+    excerpt: 'This statistical plan is promulgated under the authority of the insurance code and applies to all residential property business written in the state.' },
+  { temp_id: 'rule_territory', type: 'Rule', name: 'Territory code from property ZIP', conf: 0.96,
+    fields: { section: '4.3.2', rule_number: 2, document_temp_id: 'doc1' },
+    excerpt: 'Every residential property record must carry the two-digit territory assigned to the location ZIP code as of the effective date of the transaction.' },
+  { temp_id: 'rule_aoi', type: 'Rule', name: 'Amount of insurance rounding', conf: 0.94,
+    fields: { section: '4.5.1', rule_number: 5, document_temp_id: 'doc1' },
+    excerpt: 'Amount of insurance shall be reported in whole thousands of dollars, rounded to the nearest thousand.' },
+  { temp_id: 'tpl_annual', type: 'ReportTemplate', name: 'Annual statistical call', conf: 0.93,
+    fields: { cadence: 'Annual', deadline_days_after_close: 90, document_temp_id: 'doc1' },
+    excerpt: 'Each reporting insurer shall submit the annual call not later than ninety days after the close of the reporting period.' },
+  { temp_id: 'cl_construction', type: 'CodeList', name: 'Construction codes', conf: 0.91,
+    fields: { code_list_name: 'Construction', document_temp_id: 'doc1' },
+    excerpt: 'Construction of the insured dwelling is reported on a six-value scale: frame, masonry veneer, masonry, superior, mixed, other.' },
+  { temp_id: 'rule_wind', type: 'Rule', name: 'Windstorm exclusion requires coastal territory', conf: 0.88,
+    fields: { section: '5.2.4', rule_number: 12, document_temp_id: 'doc1' },
+    excerpt: 'A windstorm or hail exclusion indicator of 01 is admissible only where the territory code falls within the seacoast band enumerated in Appendix C.' },
+  { temp_id: 'rule_roof', type: 'Rule', name: 'Roof age reporting', conf: 0.84,
+    fields: { section: '5.4.1', rule_number: 17, document_temp_id: 'doc1' },
+    excerpt: 'The age of the primary roof covering shall be reported in whole years; where the appendix table conflicts with this clause, the clause governs.' },
+  { temp_id: 'rule_mitigation', type: 'Rule', name: 'Mitigation discount reporting', conf: 0.78,
+    fields: { section: '6.1.3', rule_number: 22, document_temp_id: 'doc1' },
+    excerpt: 'Premium credits granted for wind mitigation features shall be reported with the applicable mitigation code from the code table.' },
+  { temp_id: 'rule_wildfire', type: 'Rule', name: 'Wildfire risk score derivation', conf: 0.64,
+    fields: { section: '6.4', document_temp_id: 'doc1' },
+    excerpt: 'Insurers using a vendor wildfire risk score shall report the score band; the clause references a bulletin this rulebook does not contain.' },
+];
+
+const bandOf = (c: number) => (c >= 0.9 ? 'auto' : c >= 0.7 ? 'queued' : 'escalated');
+
+export function extractionReviewMock(slug: string): { status: number; body: unknown } {
+  const doc = db.regulations.documents.find((d) => d.slug === slug);
+  if (!doc) return { status: 404, body: { detail: `Document '${slug}' not found` } };
+  if (!doc.has_extraction) {
+    return { status: 400, body: { detail: 'No cached extraction. POST /api/regulations/{slug}/extract first.' } };
+  }
+  const verdicts = reviewVerdicts[slug] ?? {};
+  let charAt = 120;
+  const proposals = PROPOSAL_SEED.map((s) => {
+    const v = verdicts[s.temp_id];
+    const start = charAt;
+    charAt += s.excerpt.length + 90;
+    return {
+      temp_id: s.temp_id, type: s.type,
+      name: s.name === '__DOC__' ? doc.label : s.name,
+      confidence: s.conf, band: bandOf(s.conf), fields: s.fields,
+      citations: [{ char_start: start, char_end: start + s.excerpt.length, kind: 'defines', excerpt: s.excerpt }],
+      verdict: v?.verdict ?? 'accepted',
+      overrides: v?.overrides ?? null,
+      reason: v?.reason ?? null, actor: v?.actor ?? null, at: v?.at ?? null,
+    };
+  });
+  const n = proposals.length;
+  const rejected = proposals.filter((p) => p.verdict === 'rejected').length;
+  return {
+    status: 200,
+    body: {
+      slug, label: doc.label,
+      summary: 'Statistical plan for residential property: territory assignment, '
+        + 'mitigation-discount reporting and residual-market cross-references. '
+        + '9 candidate rules with clause citations.',
+      proposals,
+      totals: {
+        proposals: n,
+        accepted: n - rejected,
+        rejected,
+        overridden: proposals.filter((p) => p.verdict === 'overridden').length,
+        queued: proposals.filter((p) => p.band === 'queued').length,
+        escalated: proposals.filter((p) => p.band === 'escalated').length,
+        avg_confidence: Math.round((proposals.reduce((a, p) => a + p.confidence, 0) / n) * 1000) / 1000,
+      },
+      updated_at: Object.values(verdicts).map((v) => v.at).sort().at(-1) ?? null,
+    },
+  };
+}
+
+export function putVerdictMock(
+  slug: string, tempId: string, body: Record<string, unknown>,
+): { status: number; body: unknown } {
+  const doc = db.regulations.documents.find((d) => d.slug === slug);
+  if (!doc) return { status: 404, body: { detail: `Document '${slug}' not found` } };
+  if (!PROPOSAL_SEED.some((s) => s.temp_id === tempId)) {
+    return { status: 404, body: { detail: `No proposal '${tempId}' in this extraction` } };
+  }
+  const verdict = String(body.verdict ?? '');
+  if (!['accepted', 'rejected', 'overridden'].includes(verdict)) {
+    return { status: 422, body: { detail: `Invalid verdict payload: ${verdict}` } };
+  }
+  const overrides = (body.overrides ?? null) as Record<string, unknown> | null;
+  if (verdict === 'overridden' && (!overrides || !Object.keys(overrides).length)) {
+    return { status: 422, body: { detail: "verdict 'overridden' requires overrides" } };
+  }
+  const store = (reviewVerdicts[slug] ??= {});
+  if (verdict === 'accepted' && !body.reason && !overrides) {
+    delete store[tempId];
+  } else {
+    store[tempId] = {
+      verdict: verdict as MockVerdict['verdict'], overrides,
+      reason: (body.reason as string) || null, actor: (body.actor as string) || null,
+      at: new Date().toISOString().slice(0, 19),
+    };
+  }
+  return extractionReviewMock(slug);
 }
 
 const now = () => new Date().toISOString().slice(0, 19).replace('T', ' ');

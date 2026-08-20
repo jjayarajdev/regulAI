@@ -9,9 +9,9 @@ import * as fx from './fixtures';
 import { mappingDetail, mappingsList } from './mappings';
 import {
   ack, applyBulletin, approve, approveRegulationMock, bulletinImpact, db,
-  extractionStatusMock, fixBronze, goLiveJurisdictionMock, neighborhood,
-  renderFile, resetBulletin, sendFiling, startExtractionMock, submissionState,
-  uploadRegulationMock,
+  extractionReviewMock, extractionStatusMock, fixBronze, goLiveJurisdictionMock,
+  neighborhood, putVerdictMock, renderFile, resetBulletin, sendFiling,
+  startExtractionMock, submissionState, uploadRegulationMock,
 } from './db';
 import type { ApprovalRole } from '../api/types';
 
@@ -201,10 +201,12 @@ export const handlers = [
     }
     const label = fd?.get('label');
     const category = fd?.get('category');
+    const jurisdiction = fd?.get('jurisdiction');
     return HttpResponse.json(uploadRegulationMock(
       file.name,
       typeof label === 'string' ? label : null,
       typeof category === 'string' ? category : null,
+      typeof jurisdiction === 'string' ? jurisdiction : null,
     ));
   }),
 
@@ -221,6 +223,21 @@ export const handlers = [
   http.post('/api/regulations/:slug/approve', async ({ params }) => {
     await delay(700); // materializing to the KG is a real write
     const { status, body } = approveRegulationMock(String(params.slug));
+    return HttpResponse.json(body as Record<string, unknown>, { status });
+  }),
+
+  // Per-proposal review verdicts (the HITL gate before approve).
+  http.get('/api/regulations/:slug/review', async ({ params }) => {
+    await delay();
+    const { status, body } = extractionReviewMock(String(params.slug));
+    return HttpResponse.json(body as Record<string, unknown>, { status });
+  }),
+
+  http.put('/api/regulations/:slug/review/:tempId', async ({ params, request }) => {
+    await delay(200);
+    const payload = (await request.json().catch(() => ({}))) as Record<string, unknown> | null;
+    const { status, body } = putVerdictMock(
+      String(params.slug), String(params.tempId), payload ?? {});
     return HttpResponse.json(body as Record<string, unknown>, { status });
   }),
 

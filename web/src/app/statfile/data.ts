@@ -8,7 +8,7 @@ export const NEU = '#98989b';
 
 export type ScreenId =
   | 'dash' | 'rules' | 'amend' | 'graph' | 'pipe' | 'mapping' | 'agents'
-  | 'val' | 'record' | 'filing' | 'iso' | 'config' | 'users';
+  | 'val' | 'record' | 'filing' | 'iso' | 'config' | 'users' | 'extract';
 
 // Sidebar navigation: 8 items in 3 labeled sections. Every ScreenId stays
 // routable — 'record', 'graph', 'agents' and 'users' are drill-ins reached
@@ -32,6 +32,7 @@ export const NAV: Array<[ScreenId, string]> = NAV_SECTIONS.flatMap((s) => s.item
 export const TITLES: Record<ScreenId, [string, string]> = {
   dash: ['Cycle overview', 'Texas residential property — 2026 annual call'],
   rules: ['Rulebook — ingestion', 'TDI Residential Property Statistical Plan'],
+  extract: ['Rulebook — Extraction review', 'Agent-proposed rules · human governed'],
   graph: ['Rulebook — Knowledge graph', 'Clause → rule → field → source'],
   pipe: ['Operations — Medallion pipeline', 'Bronze · Silver · Gold'],
   mapping: ['Mapping review', 'Agent-proposed field mappings · human governed'],

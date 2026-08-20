@@ -61,6 +61,7 @@ export const SCREEN_ACCESS: Record<ScreenId, Role[]> = {
   mapping: ['admin', 'cco'],
   agents: ['admin', 'cco'],
   rules:  ['admin', 'cco'],
+  extract: ['admin', 'cco'],
   graph:  ['admin', 'cco'],
   iso:    ['admin', 'cco'],
   config: ['admin', 'cco'],
@@ -530,6 +531,7 @@ async function regJson<T>(path: string, init?: RequestInit): Promise<T> {
 export interface RegulationDoc {
   slug: string; label: string; category: string; blurb: string;
   size_bytes: number; exists: boolean; has_extraction: boolean; has_pdf: boolean;
+  jurisdiction_code?: string | null;
 }
 export const useRegulations = () =>
   useQuery({
@@ -539,16 +541,20 @@ export const useRegulations = () =>
   });
 
 export interface UploadRegulationResponse {
-  slug: string; label: string; category: string; pages: number; chars: number; next: string;
+  slug: string; label: string; category: string; pages: number; chars: number;
+  jurisdiction_code: string | null; next: string;
 }
-// Multipart upload — the one call the JSON helpers can't make.
+// Multipart upload — the one call the JSON helpers can't make. `jurisdiction`
+// (free text — 'Oklahoma', 'US-OK') is remembered server-side so approve can
+// tag the materialized nodes to the right state.
 export async function uploadRegulation(
-  file: File, label?: string, category?: string,
+  file: File, label?: string, category?: string, jurisdiction?: string,
 ): Promise<UploadRegulationResponse> {
   const fd = new FormData();
   fd.append('file', file);
   if (label) fd.append('label', label);
   if (category) fd.append('category', category);
+  if (jurisdiction) fd.append('jurisdiction', jurisdiction);
   const r = await fetch(REG_API_BASE + '/regulations/upload', {
     method: 'POST', body: fd, headers: regHeaders(),
   });
@@ -589,6 +595,52 @@ export const useExtractStatus = (slug: string | null, active: boolean) =>
 export const approveRegulation = (slug: string) =>
   regJson<{ ok?: boolean; nodes_created?: unknown; relationships_created?: number }>(
     `/regulations/${encodeURIComponent(slug)}/approve`, { method: 'POST' });
+
+// ── Per-proposal extraction review (the HITL gate before approve) ──────────
+// GET merges the agent's proposals with the sidecar review verdicts; PUT sets
+// one verdict and returns the same merged payload, so the mutation can write
+// the query cache directly — no refetch round-trip.
+export type ProposalVerdictKind = 'accepted' | 'rejected' | 'overridden';
+export interface ProposalCitation { char_start: number; char_end: number; kind: string; excerpt: string }
+export interface ReviewProposal {
+  temp_id: string; type: string; name: string; confidence: number;
+  band: 'auto' | 'queued' | 'escalated';
+  fields: Record<string, unknown>;
+  citations: ProposalCitation[];
+  verdict: ProposalVerdictKind;
+  overrides: Record<string, unknown> | null;
+  reason: string | null; actor: string | null; at: string | null;
+}
+export interface ExtractionReviewPayload {
+  slug: string; label: string; summary: string;
+  proposals: ReviewProposal[];
+  totals: {
+    proposals: number; accepted: number; rejected: number; overridden: number;
+    queued: number; escalated: number; avg_confidence: number | null;
+  };
+  updated_at: string | null;
+}
+export const useExtractionReview = (slug: string | null) =>
+  useQuery({
+    queryKey: ['sf', 'ext-review', slug],
+    queryFn: () => regJson<ExtractionReviewPayload>(
+      `/regulations/${encodeURIComponent(slug!)}/review`),
+    enabled: !!slug,
+  });
+export const useSetProposalVerdict = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, tempId, ...body }: {
+      slug: string; tempId: string; verdict: ProposalVerdictKind;
+      overrides?: Record<string, unknown>; reason?: string; actor?: string;
+    }) =>
+      regJson<ExtractionReviewPayload>(
+        `/regulations/${encodeURIComponent(slug)}/review/${encodeURIComponent(tempId)}`,
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      ),
+    onSuccess: (payload) => qc.setQueryData(['sf', 'ext-review', payload.slug], payload),
+  });
+};
 
 // Mock-only wizard finale: flips the onboarded jurisdiction to Live in the
 // mock registry (MSW adds a filing obligation). The real backend has no such

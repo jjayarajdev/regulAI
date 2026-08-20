@@ -533,6 +533,7 @@ export const regDocuments = {
 export interface MockRegulation {
   slug: string; label: string; category: string; blurb: string;
   size_bytes: number; exists: boolean; has_extraction: boolean; has_pdf: boolean;
+  jurisdiction_code?: string | null;
 }
 export const regulations: { documents: MockRegulation[] } = {
   documents: [
