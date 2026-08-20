@@ -1181,6 +1181,16 @@ def reference_table(table_name: str) -> JSONResponse:
     return JSONResponse({"table": safe, "rows": _jsonify(rows), "count": len(rows)})
 
 
+def _is_data_call(f: dict) -> bool:
+    """Self-contained state data call (FL FHCF, OK stat records): the state's
+    rules run against its own gold table, with no Guidewire policy-id-range
+    scoping and no federal-default union. Identified structurally — non-TX
+    jurisdiction with no policy-id ranges — so a new state onboards without
+    touching this file."""
+    return ((f.get("jurisdiction_code") or "US-TX") != "US-TX"
+            and not f.get("policy_id_ranges"))
+
+
 @router.get("/validate")
 @router.get("/validate/cancellations")   # legacy alias — pre-dates the rule engine running everything
 def validate_cancellations(filing: str | None = None,
@@ -1207,17 +1217,16 @@ def validate_cancellations(filing: str | None = None,
             return JSONResponse(_hit[1])
 
     target_jur = "US-TX"
-    plan_code = None
+    f_obj = None
     if filing:
         f_obj = _filing(filing)
         if f_obj:
             target_jur = f_obj.get("jurisdiction_code") or "US-TX"
-            plan_code = f_obj.get("plan_code")
-    if plan_code == "FHCF":
-        # FL data call: self-contained rule set against
-        # GOLD.FHCF_EXPOSURE_RECORDS (the rules' target_table drives this).
+    if f_obj is not None and _is_data_call(f_obj):
+        # State data call (FHCF, OK stat records): self-contained rule set
+        # against its own gold table (the rules' target_table drives this).
         # No federal-default union (those target the TX Guidewire tables) and
-        # no policy-id-range scope (FHCF has none — every FL row is in scope).
+        # no policy-id-range scope — every state row is in scope.
         jur_clause = "jurisdiction_code = %s"
         scope_set = None
     else:
@@ -1310,9 +1319,10 @@ def validate_all() -> JSONResponse:
     by_filing: dict[str, dict] = {}
     for f in filings:
         jur = f.get("jurisdiction_code") or "US-TX"
-        if (f.get("plan_code") or "").upper() == "FHCF":
-            # FHCF has no Guidewire policy-id ranges — its scope is every row
-            # of GOLD.FHCF_EXPOSURE_RECORDS, i.e. every US-FL rule violation.
+        if _is_data_call(f):
+            # State data calls (FHCF, OK stat records) have no Guidewire
+            # policy-id ranges — their scope is every row of their own gold
+            # table, i.e. every violation for their jurisdiction's rules.
             applicable = [r for r in rules if r.get("jurisdiction_code") == jur]
             fv = [v for v in all_violations if v.get("jurisdiction_code") == jur]
         else:
