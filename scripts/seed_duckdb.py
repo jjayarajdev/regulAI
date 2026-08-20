@@ -191,7 +191,13 @@ def main() -> None:
     q(f"""
         CREATE OR REPLACE TABLE {CATALOG}.GOLD.FILING_SUBMISSION (
             submission_id VARCHAR, filing_batch_id VARCHAR, sha256 VARCHAR,
-            submitted_at TIMESTAMP, acked_at TIMESTAMP, receipt VARCHAR
+            submitted_at TIMESTAMP, acked_at TIMESTAMP, receipt VARCHAR,
+            -- Rich seal metadata (the api's primary insert shape; without
+            -- these it silently falls back to the sha-only legacy row and
+            -- the Filing screen loses file name / record count / size).
+            channel VARCHAR, submitted_by VARCHAR, file_name VARCHAR,
+            file_sha256 VARCHAR, file_size_bytes BIGINT, record_count INT,
+            status VARCHAR
         )
     """)
     q(f"""

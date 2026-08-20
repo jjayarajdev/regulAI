@@ -14,8 +14,8 @@ import {
 import type { Filing, SubmissionState } from '../../../api/types';
 import type { ScreenId } from '../data';
 
-const fmt = (n: number) => n.toLocaleString('en-US');
-const kb = (bytes: number) => (bytes / 1024).toFixed(1) + ' KB';
+const fmt = (n: number | null | undefined) => (n == null ? '—' : n.toLocaleString('en-US'));
+const kb = (bytes: number | null | undefined) => (bytes == null ? '—' : (bytes / 1024).toFixed(1) + ' KB');
 const juris = (code?: string | null) => (code ?? '').replace(/^US-/, '') || '—';
 const stamp = (s?: string | null) => (s ? s.replace('T', ' ').slice(0, 16) : null);
 
@@ -272,7 +272,7 @@ export function FilingScreen({ user, go }: { user?: AppUser; go?: (s: ScreenId) 
             <div className="k" style={{ marginBottom: 10 }}>Sealed package</div>
             {sub.submission ? (
               <>
-                <MetaRow k="File">{sub.submission.file_name}</MetaRow>
+                <MetaRow k="File">{sub.submission.file_name ?? fileQ.data?.file_name ?? '—'}</MetaRow>
                 <MetaRow k="SHA-256">
                   <span onClick={() => copySha(sub.submission!.sha256)} title={sub.submission.sha256 + ' — click to copy'}
                     style={{ cursor: 'pointer', color: 'var(--color-accent-700)' }}>
@@ -284,7 +284,7 @@ export function FilingScreen({ user, go }: { user?: AppUser; go?: (s: ScreenId) 
                     ? `${fmt(fileQ.data.record_count)} — P ${fmt(fileQ.data.p_count)} · L ${fmt(fileQ.data.l_count)} · C ${fmt(fileQ.data.c_count)}`
                     : fmt(sub.submission.record_count)}
                 </MetaRow>
-                <MetaRow k="Size">{kb(sub.submission.file_size_bytes)} · {fmt(sub.submission.file_size_bytes)} bytes</MetaRow>
+                <MetaRow k="Size">{kb(sub.submission.file_size_bytes ?? fileQ.data?.byte_count)} · {fmt(sub.submission.file_size_bytes ?? fileQ.data?.byte_count)} bytes</MetaRow>
                 <MetaRow k="Sealed">{stamp(sub.submission.sealed_at) ?? '—'}</MetaRow>
                 {fileQ.data ? (
                   <pre className="mono" style={{
