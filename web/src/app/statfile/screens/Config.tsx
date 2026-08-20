@@ -510,8 +510,16 @@ function JurCard({ card: s, user, editable }: {
       }} />
   );
 
+  const clickable = editable && !editing;
   return (
-    <Blueprint style={{ padding: '16px 18px', display: 'flex', alignItems: editing ? 'flex-start' : 'center', gap: 18 }}>
+    <Blueprint
+      onClick={clickable ? open : undefined}
+      title={clickable ? 'click to edit' : undefined}
+      style={{
+        padding: '16px 18px', display: 'flex',
+        alignItems: editing ? 'flex-start' : 'center', gap: 18,
+        cursor: clickable ? 'pointer' : undefined,
+      }}>
       <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 34, width: 56, lineHeight: 1, color: 'var(--color-accent-900)' }}>
         {s.code}
       </div>

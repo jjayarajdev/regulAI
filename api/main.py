@@ -160,6 +160,20 @@ WEB_DIST = Path("web/dist")
 if WEB_DIST.exists():
     app.mount("/app", StaticFiles(directory=WEB_DIST, html=True), name="react_app")
 
+
+@app.middleware("http")
+async def _no_cache_spa_shell(request, call_next):
+    """index.html must never be cached: Vite's hashed /app/assets/* are safe
+    to cache forever, but a cached shell keeps referencing the OLD hashes
+    after a deploy — users see stale UI until a hard refresh. Assets keep
+    default caching; only the shell (and anything non-asset under /app)
+    gets no-store."""
+    response = await call_next(request)
+    p = request.url.path
+    if p.startswith("/app") and "/assets/" not in p:
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+    return response
+
 if MOCK_UI_DIR.exists():
     # mount mock-ui-v2's styles directory so we can reuse the design language
     if (MOCK_UI_DIR / "styles").exists():
