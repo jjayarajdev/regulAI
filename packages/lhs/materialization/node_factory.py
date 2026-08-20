@@ -111,7 +111,12 @@ def proposed_to_typed_node(
         # OIR-22-04M extraction). Future Sentinel runs can fill `heading`
         # directly; we accept both.
         heading = p.heading
-        if rule_kind != RuleKind.STATUTE and heading is None and p.section is not None:
+        if rule_kind == RuleKind.STATUTE:
+            # Sentinel often adds a descriptive heading alongside a full
+            # §section.number cite. Statutes are cited by number — drop the
+            # redundant heading rather than skip the whole rule.
+            heading = None
+        elif heading is None and p.section is not None:
             heading = p.section
 
         return Rule(

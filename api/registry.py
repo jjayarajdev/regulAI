@@ -27,6 +27,9 @@ class DocEntry:
     pdf_path: Path | None = None
     pdf_start_page: int = 1
     pdf_end_page: int | None = None
+    # Set at upload time from the onboarding wizard ('US-OK'); approve uses it
+    # to tag materialized nodes. None → materialize's default (US-TX).
+    jurisdiction_code: str | None = None
 
 
 # Section page ranges within the TICO Stat Plan PDF (computed from page markers).
@@ -188,6 +191,11 @@ def rects_path_for(doc: DocEntry) -> Path:
     return Path("materialized/extractions") / f"{doc.path.stem}.rects.json"
 
 
+def review_path_for(doc: DocEntry) -> Path:
+    """Sidecar file of per-proposal review verdicts (see packages/lhs/materialization/review.py)."""
+    return Path("materialized/extractions") / f"{doc.path.stem}.review.json"
+
+
 # Map a registry slug to the RecordLayout name(s) the parser writes for it.
 # When a doc has wire-format layouts in the KG, the UI's third pane lights up
 # with sample-record generation and validation against that layout.
@@ -219,6 +227,7 @@ def _entry_to_dict(d: DocEntry) -> dict:
         "slug": d.slug, "label": d.label, "category": d.category,
         "path": str(d.path), "blurb": d.blurb,
         "pdf_path": str(d.pdf_path) if d.pdf_path else None,
+        "jurisdiction_code": d.jurisdiction_code,
     }
 
 
@@ -227,6 +236,7 @@ def _entry_from_dict(x: dict) -> DocEntry:
         slug=x["slug"], label=x["label"], category=x.get("category", "Uploaded"),
         path=Path(x["path"]), blurb=x.get("blurb", ""),
         pdf_path=Path(x["pdf_path"]) if x.get("pdf_path") else None,
+        jurisdiction_code=x.get("jurisdiction_code"),
     )
 
 

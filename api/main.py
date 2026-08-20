@@ -5,7 +5,9 @@ Endpoints:
   GET  /api/regulations                 list all documents
   GET  /api/regulations/{slug}          metadata + raw text + (cached extraction if any)
   POST /api/regulations/{slug}/extract  run Sentinel (writes extraction JSON)
-  POST /api/regulations/{slug}/approve  materialize the cached extraction to KG
+  GET  /api/regulations/{slug}/review   proposals merged with review verdicts
+  PUT  /api/regulations/{slug}/review/{temp_id}  set a per-proposal verdict
+  POST /api/regulations/{slug}/approve  materialize the reviewed extraction to KG
   GET  /api/kg/stats                    counts by type (for status bar / Neo4j health)
 
 Run: make ui
@@ -13,6 +15,7 @@ Run: make ui
 
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
@@ -33,6 +36,7 @@ from api.registry import (
     get_doc,
     register_uploaded_doc,
     rects_path_for,
+    review_path_for,
     wire_layouts_for,
 )
 from api.rhs_demo import router as rhs_router
@@ -42,6 +46,19 @@ from packages.config.settings import settings
 from packages.lhs.citations.pdf_highlight import CitationRectsBundle, compute_rects_bundle
 from packages.lhs.materialization.materialize import materialize
 from packages.lhs.materialization.parser_boundary import ParserBoundaryViolation
+from packages.lhs.materialization.jurisdiction import (
+    ensure_jurisdiction,
+    resolve_jurisdiction,
+    retag_new_nodes,
+    snapshot_node_ids,
+)
+from packages.lhs.materialization.review import (
+    ExtractionReview,
+    ProposalVerdict,
+    ReviewOverrideError,
+    apply_review,
+    validate_overrides,
+)
 from packages.lhs.sentinel.agent import Sentinel
 from packages.lhs.sentinel.filter import strip_parser_owned
 from packages.lhs.sentinel.schema import SentinelExtraction
@@ -300,6 +317,7 @@ def list_regulations() -> JSONResponse:
             "exists": d.path.exists(),
             "has_extraction": ext_path.exists(),
             "has_pdf": d.pdf_path is not None and d.pdf_path.exists(),
+            "jurisdiction_code": d.jurisdiction_code,
         })
     return JSONResponse({"documents": items})
 
@@ -357,6 +375,7 @@ async def upload_regulation(
     file: UploadFile = File(...),
     label: str | None = Form(None),
     category: str | None = Form(None),
+    jurisdiction: str | None = Form(None),
 ) -> JSONResponse:
     """Upload a regulation/bulletin PDF and register it for Sentinel extraction.
 
@@ -371,6 +390,11 @@ async def upload_regulation(
     import re as _re
     stem = _re.sub(r"[^a-z0-9]+", "-", Path(name).stem.lower()).strip("-") or "regulation"
     slug = f"uploaded-{stem}"
+    if _is_extracting(slug):
+        raise HTTPException(
+            status_code=409,
+            detail="Extraction is running for this document — wait for it to finish before re-uploading.",
+        )
 
     data = await file.read()
     if not data:
@@ -396,6 +420,9 @@ async def upload_regulation(
     text_path = text_dir / f"{slug}.md"
     text_path.write_text(text, encoding="utf-8")
 
+    # Remember the wizard's jurisdiction so approve can tag the canon. A name
+    # that doesn't resolve is not an error — approve materializes untagged.
+    resolved = resolve_jurisdiction(jurisdiction)
     entry = DocEntry(
         slug=slug,
         label=label or Path(name).stem,
@@ -403,12 +430,14 @@ async def upload_regulation(
         path=text_path,
         blurb=f"Uploaded {name} · {pages} pages · {len(text):,} chars extracted.",
         pdf_path=pdf_path,
+        jurisdiction_code=resolved[0] if resolved else None,
     )
     register_uploaded_doc(entry)
 
     return JSONResponse({
         "slug": slug, "label": entry.label, "category": entry.category,
         "pages": pages, "chars": len(text),
+        "jurisdiction_code": entry.jurisdiction_code,
         "next": f"POST /api/regulations/{slug}/extract  (Sentinel → KG)",
     })
 
@@ -417,6 +446,31 @@ async def upload_regulation(
 # The Sentinel LLM call takes ~1–2 min; the UI starts a job and polls /status so
 # it never holds a long request open.
 _EXTRACT_JOBS: dict[str, dict] = {}
+
+# Processing locks. While Sentinel is rewriting a document's extraction, or
+# approve is mid-materialization, conflicting actions on that slug return 409:
+# re-upload / review verdicts / approve during extraction; everything during
+# an in-flight approve. In-memory (like the job dict) — one API process.
+_APPROVE_LOCKS: set[str] = set()
+
+
+def _is_extracting(slug: str) -> bool:
+    return (_EXTRACT_JOBS.get(slug) or {}).get("status") == "running"
+
+
+def _check_not_processing(slug: str) -> None:
+    if _is_extracting(slug):
+        raise HTTPException(
+            status_code=409,
+            detail="Extraction is running for this document — the proposal set is "
+                   "being rewritten. Wait for it to finish.",
+        )
+    if slug in _APPROVE_LOCKS:
+        raise HTTPException(
+            status_code=409,
+            detail="This document is being materialized to the Knowledge Graph — "
+                   "wait for the approval to finish.",
+        )
 
 
 def _run_extraction(doc) -> dict:
@@ -505,8 +559,14 @@ def start_extraction(slug: str) -> JSONResponse:
     doc = get_doc(slug)
     if doc is None or not doc.path.exists():
         raise HTTPException(status_code=404, detail=f"Document {slug!r} not found")
-    if (_EXTRACT_JOBS.get(slug) or {}).get("status") == "running":
+    if _is_extracting(slug):
         return JSONResponse({"status": "running"})
+    if slug in _APPROVE_LOCKS:
+        raise HTTPException(
+            status_code=409,
+            detail="This document is being materialized to the Knowledge Graph — "
+                   "wait for the approval to finish before re-extracting.",
+        )
     _EXTRACT_JOBS[slug] = {"status": "running", "result": None, "error": None}
 
     def _work() -> None:
@@ -539,20 +599,181 @@ def extraction_status(slug: str) -> JSONResponse:
     return JSONResponse({"status": "idle"})
 
 
-@app.post("/api/regulations/{slug}/approve")
-def approve_extraction(slug: str) -> JSONResponse:
-    doc = get_doc(slug)
-    if doc is None:
-        raise HTTPException(status_code=404, detail=f"Document {slug!r} not found")
+# ── Per-proposal review (HITL gate before approve) ──────────────────────────
+# Verdicts live in a sidecar file next to the extraction JSON. The extraction
+# stays the agent's untouched proposal; approve folds the verdicts in via
+# apply_review(). Same model as the schema-mapper review: accepted (default),
+# rejected, or overridden with field corrections + a reason.
+
+
+def _load_review(doc: DocEntry) -> ExtractionReview | None:
+    p = review_path_for(doc)
+    if not p.exists():
+        return None
+    return ExtractionReview.model_validate(json.loads(p.read_text(encoding="utf-8")))
+
+
+def _load_extraction(doc: DocEntry) -> SentinelExtraction:
     ext_path = extraction_path_for(doc)
     if not ext_path.exists():
         raise HTTPException(
             status_code=400,
             detail="No cached extraction. POST /api/regulations/{slug}/extract first.",
         )
-    extraction = SentinelExtraction.model_validate(
-        json.loads(ext_path.read_text(encoding="utf-8"))
-    )
+    return SentinelExtraction.model_validate(json.loads(ext_path.read_text(encoding="utf-8")))
+
+
+# Confidence bands, same thresholds as the onboarding wizard's step 3.
+def _band(confidence: float) -> str:
+    return "auto" if confidence >= 0.9 else "queued" if confidence >= 0.7 else "escalated"
+
+
+_EXCERPT_MAX = 420
+
+
+def _review_payload(doc: DocEntry) -> dict:
+    """Every proposal merged with its verdict + citation excerpts."""
+    extraction = _load_extraction(doc)
+    review = _load_review(doc)
+    verdicts = review.verdicts if review else {}
+    text = doc.path.read_text(encoding="utf-8") if doc.path.exists() else ""
+
+    cites_by_temp_id: dict[str, list[dict]] = {}
+    for c in extraction.citations:
+        excerpt = text[c.char_start:c.char_end].strip()
+        if len(excerpt) > _EXCERPT_MAX:
+            excerpt = excerpt[:_EXCERPT_MAX].rstrip() + " …"
+        cites_by_temp_id.setdefault(c.node_temp_id, []).append({
+            "char_start": c.char_start, "char_end": c.char_end,
+            "kind": c.kind.value if hasattr(c.kind, "value") else str(c.kind),
+            "excerpt": excerpt,
+        })
+
+    proposals = []
+    for p in extraction.proposed_nodes:
+        v = verdicts.get(p.temp_id)
+        dumped = p.model_dump(mode="json", exclude_none=True)
+        fields = {k: x for k, x in dumped.items()
+                  if k not in ("temp_id", "type", "name", "confidence")}
+        proposals.append({
+            "temp_id": p.temp_id,
+            "type": dumped["type"],
+            "name": p.name,
+            "confidence": p.confidence,
+            "band": _band(p.confidence),
+            "fields": fields,
+            "citations": cites_by_temp_id.get(p.temp_id, []),
+            "verdict": v.verdict if v else "accepted",
+            "overrides": v.overrides if v else None,
+            "reason": v.reason if v else None,
+            "actor": v.actor if v else None,
+            "at": v.at if v else None,
+        })
+
+    n = len(proposals)
+    rejected = sum(1 for x in proposals if x["verdict"] == "rejected")
+    overridden = sum(1 for x in proposals if x["verdict"] == "overridden")
+    return {
+        "slug": doc.slug,
+        "label": doc.label,
+        "summary": extraction.summary,
+        "proposals": proposals,
+        "totals": {
+            "proposals": n,
+            "accepted": n - rejected,   # overridden counts as accepted-with-edits
+            "rejected": rejected,
+            "overridden": overridden,
+            "queued": sum(1 for x in proposals if x["band"] == "queued"),
+            "escalated": sum(1 for x in proposals if x["band"] == "escalated"),
+            "avg_confidence": round(sum(x["confidence"] for x in proposals) / n, 3) if n else None,
+        },
+        "updated_at": review.updated_at if review else None,
+    }
+
+
+@app.get("/api/regulations/{slug}/review")
+def get_extraction_review(slug: str) -> JSONResponse:
+    doc = get_doc(slug)
+    if doc is None:
+        raise HTTPException(status_code=404, detail=f"Document {slug!r} not found")
+    return JSONResponse(_review_payload(doc))
+
+
+@app.put("/api/regulations/{slug}/review/{temp_id}")
+def put_proposal_verdict(slug: str, temp_id: str, payload: dict = Body(...)) -> JSONResponse:
+    """Set (or reset) one proposal's verdict.
+
+    Body: {verdict: accepted|rejected|overridden, overrides?, reason?, actor?}.
+    `accepted` with no reason/overrides deletes the entry — back to the
+    default. Overrides are validated immediately so a bad edit is refused
+    when it's made, not at approval.
+    """
+    doc = get_doc(slug)
+    if doc is None:
+        raise HTTPException(status_code=404, detail=f"Document {slug!r} not found")
+    _check_not_processing(slug)
+    extraction = _load_extraction(doc)
+    node = next((p for p in extraction.proposed_nodes if p.temp_id == temp_id), None)
+    if node is None:
+        raise HTTPException(status_code=404, detail=f"No proposal {temp_id!r} in this extraction")
+
+    try:
+        verdict = ProposalVerdict.model_validate({
+            **{k: payload.get(k) for k in ("verdict", "overrides", "reason", "actor")},
+            "at": datetime.now().isoformat(timespec="seconds"),
+        })
+    except Exception as e:  # noqa: BLE001 — bad verdict literal / extra keys
+        raise HTTPException(status_code=422, detail=f"Invalid verdict payload: {e}") from e
+    if verdict.verdict == "overridden":
+        if not verdict.overrides:
+            raise HTTPException(status_code=422, detail="verdict 'overridden' requires overrides")
+        try:
+            validate_overrides(node, verdict.overrides)
+        except ReviewOverrideError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+
+    review = _load_review(doc) or ExtractionReview(slug=doc.slug)
+    if verdict.verdict == "accepted" and not verdict.reason and not verdict.overrides:
+        review.verdicts.pop(temp_id, None)
+    else:
+        review.verdicts[temp_id] = verdict
+    review.updated_at = verdict.at
+    rp = review_path_for(doc)
+    rp.parent.mkdir(parents=True, exist_ok=True)
+    rp.write_text(json.dumps(review.model_dump(mode="json"), indent=2), encoding="utf-8")
+
+    return JSONResponse(_review_payload(doc))
+
+
+@app.post("/api/regulations/{slug}/approve")
+def approve_extraction(slug: str, payload: dict | None = Body(None)) -> JSONResponse:
+    """Materialize the reviewed extraction to the KG.
+
+    Optional body {jurisdiction: 'Oklahoma' | 'US-OK' | 'OK'} overrides the
+    jurisdiction remembered from upload; new nodes get tagged + APPLIES_IN
+    re-pointed (the generalized materialize_florida_extraction pattern).
+    """
+    doc = get_doc(slug)
+    if doc is None:
+        raise HTTPException(status_code=404, detail=f"Document {slug!r} not found")
+    _check_not_processing(slug)
+    extraction = _load_extraction(doc)
+
+    # Jurisdiction: explicit body override wins, else the upload-time value.
+    resolved = resolve_jurisdiction((payload or {}).get("jurisdiction")) \
+        or ((doc.jurisdiction_code, doc.jurisdiction_code) if doc.jurisdiction_code else None)
+    if resolved and doc.jurisdiction_code and resolved[0] == doc.jurisdiction_code:
+        # Prefer the pretty name over the raw stored code for the node label.
+        resolved = resolve_jurisdiction(doc.jurisdiction_code) or resolved
+    jur_code, jur_name = resolved if resolved else (None, None)
+    tag_needed = jur_code is not None and jur_code != "US-TX"  # TX is the default
+
+    # Fold in the per-proposal review verdicts (no review file → identity).
+    try:
+        applied = apply_review(extraction, _load_review(doc))
+    except ReviewOverrideError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    extraction = applied.extraction
 
     rects_bundle: CitationRectsBundle | None = None
     rects_path = rects_path_for(doc)
@@ -560,7 +781,19 @@ def approve_extraction(slug: str) -> JSONResponse:
         rects_bundle = CitationRectsBundle.model_validate(
             json.loads(rects_path.read_text(encoding="utf-8"))
         )
+        # The bundle is aligned by index to the *unreviewed* citations list —
+        # subset it to the kept citations so rects stay on the right spans.
+        if applied.citations_dropped:
+            rects_bundle = rects_bundle.model_copy(update={
+                "citation_rects": [
+                    rects_bundle.citation_rects[i]
+                    if i < len(rects_bundle.citation_rects) else []
+                    for i in applied.kept_citation_indices
+                ],
+            })
 
+    retag_stats: dict = {"retagged": 0, "edges_rewired": 0}
+    _APPROVE_LOCKS.add(slug)
     try:
         from api.rhs_demo import AgentTrace
         tr = AgentTrace()
@@ -568,10 +801,24 @@ def approve_extraction(slug: str) -> JSONResponse:
         tr.step("Load cached extraction",
                 f"{doc.slug} · {n_props} proposed nodes · "
                 f"{len(extraction.proposed_relationships)} proposed rels")
+        if applied.nodes_rejected or applied.nodes_overridden:
+            tr.step("Apply review verdicts",
+                    f"{applied.nodes_rejected} rejected dropped · "
+                    f"{applied.nodes_overridden} overridden · "
+                    f"{applied.relationships_dropped} rels + "
+                    f"{applied.citations_dropped} citations pruned")
         with Neo4jGREAdapter() as gre:
+            before = snapshot_node_ids(gre) if tag_needed else set()
             result = materialize(
                 extraction, gre, document_label=doc.slug, rects_bundle=rects_bundle
             )
+            if tag_needed:
+                ensure_jurisdiction(gre, jur_code, jur_name or jur_code)
+                new_ids = snapshot_node_ids(gre) - before
+                retag_stats = retag_new_nodes(gre, new_ids, jur_code)
+                tr.step("Tag jurisdiction",
+                        f"{retag_stats['retagged']} nodes → {jur_code} · "
+                        f"{retag_stats['edges_rewired']} APPLIES_IN edges")
         tr.step("Materialize to canon",
                 f"{len(result.nodes_created)} nodes · {result.relationships_created} rels written"
                 + (f" · {n_props - len(result.nodes_created)} deduped" if n_props > len(result.nodes_created) else ""))
@@ -579,7 +826,8 @@ def approve_extraction(slug: str) -> JSONResponse:
             "KG Materializer", f"Approve {doc.slug} → canon",
             model="graph writer",
             result=f"{len(result.nodes_created)} nodes · "
-                   f"{result.relationships_created} rels",
+                   f"{result.relationships_created} rels"
+                   + (f" · {jur_code}" if tag_needed else ""),
         )
     except ParserBoundaryViolation as e:
         # Cluster C: the cached extraction proposes RecordLayout /
@@ -611,9 +859,23 @@ def approve_extraction(slug: str) -> JSONResponse:
             detail=f"Knowledge Graph write failed: {e}. Is Neo4j running and reachable? "
                    "(locally: ./run-docker.sh api neo4j)",
         ) from e
+    finally:
+        _APPROVE_LOCKS.discard(slug)
 
     return JSONResponse({
         "slug": slug,
+        "jurisdiction": {
+            "code": jur_code,
+            "tagged": tag_needed,
+            "retagged": retag_stats["retagged"],
+            "edges_rewired": retag_stats["edges_rewired"],
+        },
+        "review": {
+            "nodes_rejected": applied.nodes_rejected,
+            "nodes_overridden": applied.nodes_overridden,
+            "relationships_dropped": applied.relationships_dropped,
+            "citations_dropped": applied.citations_dropped,
+        },
         "nodes_created": [{"type": t, "name": n} for t, n in result.nodes_created],
         "nodes_reused": [{"type": t, "name": n} for t, n in result.nodes_reused],
         "relationships_created": result.relationships_created,
@@ -624,6 +886,134 @@ def approve_extraction(slug: str) -> JSONResponse:
         ],
         "snapshot_path": str(result.materialized_path) if result.materialized_path else None,
     })
+
+
+# ── Onboarding go-live: certify → a real FilingObligation ───────────────────
+# The registry card reads "Live" when an active FilingObligation for the
+# jurisdiction exists in the KG (that's what /api/rhs/filings serves). The
+# wizard's Certify step calls this to create one — the real version of what
+# the MSW mock fakes in demo mode. Idempotent: an existing obligation for the
+# jurisdiction is re-activated, not duplicated.
+
+_GO_LIVE_CARRIER = ("org:lone-star-mutual", "Lone Star Mutual")  # matches seed_filing_obligations
+
+
+@app.post("/api/onboarding/go-live")
+def onboarding_go_live(payload: dict = Body(...)) -> JSONResponse:
+    resolved = resolve_jurisdiction((payload or {}).get("jurisdiction"))
+    if not resolved:
+        raise HTTPException(
+            status_code=422,
+            detail="Could not resolve the jurisdiction — pass a state name or code (e.g. 'Oklahoma', 'US-OK').",
+        )
+    code, name = resolved
+    short = code.replace("US-", "")
+    year = datetime.now().year
+    filing_id = f"{short}-HO-{year}A"
+    now_iso = datetime.now().isoformat()
+
+    try:
+        with Neo4jGREAdapter() as gre:
+            with gre.driver.session(database=gre.database) as s:
+                # Gate: going live requires an approved canon for the state —
+                # at least one materialized node tagged to it.
+                n_canon = s.run(
+                    "MATCH (n:GRENode) WHERE n.jurisdiction_code = $code "
+                    "AND NOT 'Jurisdiction' IN labels(n) RETURN count(n) AS n",
+                    code=code,
+                ).single()["n"]
+                if n_canon == 0:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"No approved canon for {name} yet — upload, extract and "
+                               "approve its rulebook before going live.",
+                    )
+
+                # Existing obligation for this jurisdiction → re-activate.
+                existing = s.run(
+                    "MATCH (fo:FilingObligation) WHERE fo.jurisdiction_code = $code "
+                    "RETURN fo.obligation_code AS id LIMIT 1",
+                    code=code,
+                ).single()
+                if existing:
+                    s.run(
+                        "MATCH (fo:FilingObligation) WHERE fo.jurisdiction_code = $code "
+                        "SET fo.is_active = true",
+                        code=code,
+                    )
+                    return JSONResponse({"ok": True, "filing_id": existing["id"], "already_live": True})
+
+            ensure_jurisdiction(gre, code, name)
+            with gre.driver.session(database=gre.database) as s:
+                # Carrier + a receiving StatisticalAgent for the state.
+                s.run(
+                    """
+                    MERGE (o:GRENode:Organization {id: $id})
+                    ON CREATE SET o.type='Organization', o.name=$name, o.org_name=$name,
+                        o.org_kind='Insurer', o.jurisdiction_code='US-TX', o.version=1,
+                        o.status='approved', o.created_at=$now, o.created_by='onboarding_go_live'
+                    """,
+                    id=_GO_LIVE_CARRIER[0], name=_GO_LIVE_CARRIER[1], now=now_iso,
+                )
+                s.run(
+                    """
+                    MERGE (a:GRENode:StatisticalAgent {id: $id})
+                    ON CREATE SET a.type='StatisticalAgent', a.name=$name, a.agent_code=$code,
+                        a.agent_name=$name, a.submission_channel=$chan, a.jurisdiction_code=$jur,
+                        a.version=1, a.status='approved', a.created_at=$now,
+                        a.created_by='onboarding_go_live'
+                    WITH a
+                    MATCH (j:Jurisdiction {jurisdiction_code: $jur})
+                    MERGE (a)-[:APPLIES_IN]->(j)
+                    """,
+                    id=f"agent:{short}-STAT", code=f"{short}-STAT",
+                    name=f"{name} Statistical Reporting", chan=f"{short} Portal Submission",
+                    jur=code, now=now_iso,
+                )
+                s.run(
+                    """
+                    MERGE (fo:GRENode:FilingObligation {id: $id})
+                    ON CREATE SET fo.type='FilingObligation', fo.name=$code, fo.obligation_code=$code,
+                        fo.plan_code=$plan_code, fo.plan_name=$plan_name, fo.cadence='Annual',
+                        fo.period_start=date($ps), fo.period_end=date($pe), fo.due_date=date($due),
+                        fo.policy_id_ranges_json='[]', fo.is_active=true, fo.jurisdiction_code=$jur,
+                        fo.version=1, fo.status='approved', fo.created_at=$now,
+                        fo.created_by='onboarding_go_live'
+                    WITH fo
+                    MATCH (o:Organization {id: $carrier})
+                    MERGE (fo)-[:OBLIGATES]->(o)
+                    WITH fo
+                    MATCH (a:StatisticalAgent {id: $agent})
+                    MERGE (fo)-[:RECEIVES_SUBMISSION]->(a)
+                    WITH fo
+                    MATCH (j:Jurisdiction {jurisdiction_code: $jur})
+                    MERGE (fo)-[:APPLIES_IN]->(j)
+                    """,
+                    id=f"fo:{filing_id}", code=filing_id,
+                    plan_code=f"{short}-HO", plan_name=f"{name} Homeowners — Statistical Plan",
+                    ps=f"{year}-01-01", pe=f"{year}-12-31", due=f"{year + 1}-04-01",
+                    jur=code, now=now_iso, carrier=_GO_LIVE_CARRIER[0],
+                    agent=f"agent:{short}-STAT",
+                )
+            try:
+                from packages.core.enums import KGAuditAction
+                gre.record_audit_entry(
+                    action=KGAuditAction.NODE_CREATE,
+                    summary=f"{name} certified — filing obligation {filing_id} created, jurisdiction live",
+                    actor="onboarding_go_live",
+                    affected_node_ids=[],
+                )
+            except Exception:  # noqa: BLE001 — audit is best-effort
+                logger.warning("go-live audit write failed", exc_info=True)
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001 — Neo4j unreachable → clean JSON
+        raise HTTPException(
+            status_code=502,
+            detail=f"Knowledge Graph write failed: {e}. Is Neo4j running and reachable?",
+        ) from e
+
+    return JSONResponse({"ok": True, "filing_id": filing_id})
 
 
 # -- Admin: Dagster schedule -------------------------------------------------
