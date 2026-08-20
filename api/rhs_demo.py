@@ -573,7 +573,15 @@ def _record_validation_run(filing_id: str, rule_results: list[dict], violations:
     `force` bypasses the unchanged-since-last-run dedupe (used by the bulletin
     flow, which must reconcile exceptions to compute its deltas).
     """
-    sig = "|".join(sorted(f"{v.get('policy_number')}~{v.get('rule_id')}" for v in violations))
+    # Suppressed rules stay visible but stop blocking (see validate_suppress).
+    # They're part of the dedupe signature too: suppressing/releasing changes
+    # the batch status even when the violation set itself is unchanged.
+    try:
+        sups = {(k or "").upper() for k in _triage_state()[0]}
+    except Exception:  # noqa: BLE001 — triage tables unavailable → nothing suppressed
+        sups = set()
+    sig = ("|".join(sorted(f"{v.get('policy_number')}~{v.get('rule_id')}" for v in violations))
+           + "#sup:" + ",".join(sorted(sups)))
     if not force and _last_validation_sig.get(filing_id) == sig:
         return None  # unchanged since the last persisted run — skip the audit DML
 
@@ -665,7 +673,11 @@ def _record_validation_run(filing_id: str, rule_results: list[dict], violations:
     #   - all ERRORs cleared → 'validated' (ready for analyst sign-off)
     # Note: do not regress later sign-off states (analyst_signed, actuary_approved,
     # officer_approved, submitted, acked) just because validation was re-run.
-    error_blockers = sum(1 for v in violations if (v.get("severity") or "").upper() == "ERROR")
+    error_blockers = sum(
+        1 for v in violations
+        if (v.get("severity") or "").upper() == "ERROR"
+        and (v.get("rule_number") or "").upper() not in sups
+    )
     auto_status = "resolving" if error_blockers else "validated"
     query(
         "UPDATE INSURANCE_REGULATORY.GOLD.FILING_BATCH "
@@ -2437,6 +2449,75 @@ def _render_footer(naic: str, agg: dict, sha256: str) -> str:
     return out.ljust(_TSPR_RECORD_WIDTH, " ")[:_TSPR_RECORD_WIDTH]
 
 
+def _build_ok_csv(f: dict) -> dict:
+    """Render the OK statistical data call submission as CSV.
+
+    One row per GOLD.OK_STAT_RECORDS record (premium 'P' and loss 'L' rows
+    share the layout), trailing `# sha256=… records=…` comment line. Same
+    return shape as the TSPR/FHCF renderers so seal / send / archive are
+    agnostic to the plan.
+    """
+    import csv
+    import hashlib
+    import io
+
+    from scripts.seed_ok_stat import _COLS as _OK_COLS
+
+    filing_id = f["id"]
+    columns = [c.strip() for c in _OK_COLS.split(",")]
+    try:
+        rows = _jsonify(query(
+            f"SELECT {', '.join(columns)} "
+            "FROM INSURANCE_REGULATORY.GOLD.OK_STAT_RECORDS "
+            "WHERE filing_batch_id = %s "
+            "ORDER BY record_type, policy_number",
+            (filing_id,),
+        ))
+    except Exception:
+        logger.warning("[file] OK_STAT_RECORDS read failed", exc_info=True)
+        rows = []
+
+    naic = next(
+        (str(r.get("naic_code")) for r in rows
+         if r.get("naic_code") and str(r["naic_code"]).isdigit()
+         and len(str(r["naic_code"])) == 5),
+        "00000",
+    )
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(columns)
+    for r in rows:
+        writer.writerow(["" if r.get(c) is None else r.get(c) for c in columns])
+    body = buf.getvalue().rstrip("\n")
+    sha256 = hashlib.sha256(body.encode("utf-8", errors="replace")).hexdigest()
+    footer_line = f"# sha256={sha256} records={len(rows)}"
+    file_text = body + "\n" + footer_line + "\n"
+    file_name = f"OKSTAT_{naic}_{filing_id.replace('-', '')}.csv"
+    warning = None if rows else (
+        f"No GOLD.OK_STAT_RECORDS rows found for filing {filing_id}. "
+        f"Run `uv run python -m scripts.seed_ok_stat` to build them."
+    )
+
+    p_count = sum(1 for r in rows if r.get("record_type") == "P")
+    return {
+        "filing_id":    filing_id,
+        "filing":       f,
+        "file_name":    file_name,
+        "file_text":    file_text,
+        "naic":         naic,
+        "record_count": len(rows),
+        "byte_count":   len(file_text.encode("utf-8", errors="replace")),
+        "sha256":       sha256,
+        "header":       body.split("\n", 1)[0],
+        "footer":       footer_line,
+        "p_count":      p_count,
+        "l_count":      len(rows) - p_count,
+        "c_count":      0,
+        "warning":      warning,
+    }
+
+
 def _build_fhcf_csv(f: dict) -> dict:
     """Render the FHCF Annual Data Call submission as CSV.
 
@@ -2524,6 +2605,8 @@ def _build_filing_file(filing_id: str) -> dict:
 
     if (f.get("plan_code") or "").upper() == "FHCF":
         return _build_fhcf_csv(f)
+    if (f.get("plan_code") or "").upper() == "OK-HO":
+        return _build_ok_csv(f)
 
     # Resolve NAIC from the first policyperiod row in scope
     naic_rows = query(
