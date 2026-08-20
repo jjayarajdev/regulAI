@@ -7,7 +7,7 @@
 // on the server — works on any warehouse).
 import { useState, type CSSProperties } from 'react';
 import { Blueprint } from '../Blueprint';
-import { PickerTabs } from '../PickerTabs';
+import { SelectList } from '../SelectList';
 import { useMappingDetail, useMappings } from '../api';
 import type { MappingColumn, MappingDetail, MappingTransformType } from '../../../api/types';
 import { ACC, ACC9, NEU } from '../data';
@@ -207,25 +207,27 @@ export function MappingReviewScreen() {
   const relation = (d?.source_relation ?? '').replace(/\s+/g, ' ');
 
   return (
-    <div className="sc">
-      {/* ── mapping picker — same underline-tab language as Administration ── */}
-      <PickerTabs
+    <div className="sc" style={{ display: 'grid', gridTemplateColumns: '292px 1fr', gap: 28, alignItems: 'start' }}>
+      {/* ── mapping master list — compact, searchable, scales with specs ── */}
+      <SelectList
+        label="Reviewed mappings"
         items={mappings.map((m) => ({
           id: m.name,
-          label: m.name,
+          title: m.name,
+          meta: `${m.source_label} → ${m.target}`,
           tag: m.compiled ? 'Compiled' : 'Not compiled',
           tagClass: m.compiled ? 'tag-neutral' : 'tag-outline',
         }))}
         value={M?.name ?? null}
         onChange={(id) => { setSelName(id); setSelCol(null); }}
       />
-      {listQ.isPending && <span className="k">loading mappings…</span>}
-      {!listQ.isPending && mappings.length === 0 && (
-        <span className="k">no reviewed mappings on disk yet</span>
-      )}
 
       {/* ── proposals, verdicts, diffs ─────────────────────────────────── */}
       <section>
+        {listQ.isPending && <span className="k">loading mappings…</span>}
+        {!listQ.isPending && mappings.length === 0 && (
+          <span className="k">no reviewed mappings on disk yet</span>
+        )}
         {M && (
           <>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>

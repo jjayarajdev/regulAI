@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Blueprint } from '../Blueprint';
-import { PickerTabs } from '../PickerTabs';
+import { SelectList } from '../SelectList';
 import {
   can, useApplyBulletin, useBulletinImpact, useBulletins, whoCan, type AppUser,
 } from '../api';
@@ -227,22 +227,24 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
   ] : [];
 
   return (
-    <div className="sc">
-      {/* ── bulletin picker — same underline-tab language as Administration ── */}
-      <PickerTabs
+    <div className="sc" style={{ display: 'grid', gridTemplateColumns: '292px 1fr', gap: 28, alignItems: 'start' }}>
+      {/* ── bulletin master list — compact, searchable, scales to 50 states ── */}
+      <SelectList
+        label="Commissioner's bulletins"
         items={bulletins.map((b) => ({
           id: b.name,
-          label: `${b.name} · ${juris(b.jurisdiction_code)}`,
+          title: b.name,
+          meta: `${juris(b.jurisdiction_code)} · eff ${b.effective_date} · ${b.targets} target${b.targets === 1 ? '' : 's'}`,
           tag: b.status === 'applied' ? 'Applied' : 'Pending',
           tagClass: b.status === 'applied' ? 'tag-neutral' : 'tag-accent',
         }))}
         value={B?.name ?? null}
         onChange={setSelName}
       />
-      {!live && bulQ.isLoading && <span className="k">loading bulletins…</span>}
 
       {/* ── impact analysis ────────────────────────────────────────────── */}
       <section>
+        {!live && bulQ.isLoading && <span className="k">loading bulletins…</span>}
         {B && (
           <>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
