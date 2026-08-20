@@ -3,9 +3,10 @@
 // before/after diffs, dry-run record impact, and the gated apply. Live:
 // /bulletins + /bulletin/{name}/impact; when the knowledge graph is offline
 // (503 / kg_offline) the screen degrades to the bundled demo impact.
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Blueprint } from '../Blueprint';
+import { PickerTabs } from '../PickerTabs';
 import {
   can, useApplyBulletin, useBulletinImpact, useBulletins, whoCan, type AppUser,
 } from '../api';
@@ -218,11 +219,6 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
 
   const applyMut = useApplyBulletin();
 
-  const cardStyle = (selected: boolean): CSSProperties => ({
-    padding: '13px 15px', cursor: 'pointer',
-    background: selected ? 'color-mix(in srgb,#5980a6 10%,transparent)' : undefined,
-  });
-
   const kpis = impact ? [
     { label: 'Rules affected', value: String(impact.totals.rules_affected), note: 'in the executable canon' },
     { label: 'Newly failing', value: fmt(impact.totals.newly_failing), note: 'records caught by the amendment' },
@@ -231,50 +227,34 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
   ] : [];
 
   return (
-    <div className="sc" style={{ display: 'grid', gridTemplateColumns: '262px 1fr', gap: 28, alignItems: 'start' }}>
-      {/* ── left rail: bulletin list — uniform cards, own scroll ─────────── */}
-      <aside style={{
-        display: 'flex', flexDirection: 'column', gap: 14,
-        maxHeight: 'max(420px, calc(100vh - 230px))', overflow: 'auto',
-      }}>
-        <div className="k">Commissioner's bulletins</div>
-        {bulletins.map((b) => (
-          <Blueprint key={b.name} className="card" style={cardStyle(b.name === B?.name)}
-            onClick={() => setSelName(b.name)}>
-            <div className="card-kicker" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span>eff. {b.effective_date}</span>
-              <span className="tag tag-outline" style={{ marginLeft: 'auto' }}>{juris(b.jurisdiction_code)}</span>
-            </div>
-            <div className="card-title" style={{ marginTop: 4 }}>{b.name}</div>
-            {/* Clamped — the full summary reads in the main pane; the rail is
-                for scanning, and unclamped blurbs made card heights wild. */}
-            <p className="card-body" style={{
-              margin: '5px 0 8px', display: '-webkit-box', WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            }}>
-              {b.summary}
-            </p>
-            <div className="card-meta" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className={'tag ' + (b.status === 'applied' ? 'tag-neutral' : 'tag-accent')}>
-                {b.status === 'applied' ? 'Applied' : 'Pending review'}
-              </span>
-              <span className="mono muted" style={{ fontSize: 10.5 }}>{b.targets} rule target{b.targets === 1 ? '' : 's'}</span>
-            </div>
-          </Blueprint>
-        ))}
-        {!live && bulQ.isLoading && <span className="k">loading bulletins…</span>}
-      </aside>
+    <div className="sc">
+      {/* ── bulletin picker — same underline-tab language as Administration ── */}
+      <PickerTabs
+        items={bulletins.map((b) => ({
+          id: b.name,
+          label: `${b.name} · ${juris(b.jurisdiction_code)}`,
+          tag: b.status === 'applied' ? 'Applied' : 'Pending',
+          tagClass: b.status === 'applied' ? 'tag-neutral' : 'tag-accent',
+        }))}
+        value={B?.name ?? null}
+        onChange={setSelName}
+      />
+      {!live && bulQ.isLoading && <span className="k">loading bulletins…</span>}
 
-      {/* ── main: impact analysis ──────────────────────────────────────── */}
+      {/* ── impact analysis ────────────────────────────────────────────── */}
       <section>
         {B && (
           <>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
-              <h4>{B.name} — {B.title}</h4>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+              <h4>{B.title}</h4>
               <span className="k">impact on the executable canon</span>
             </div>
-            {/* The full bulletin summary lives here (the rail clamps it). */}
-            <p style={{ fontSize: 12.5, lineHeight: 1.65, maxWidth: '92ch', margin: '0 0 16px', color: 'color-mix(in srgb,var(--color-text) 72%,transparent)' }}>
+            <div className="mono muted" style={{ fontSize: 11, marginBottom: 8, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <span>eff. {B.effective_date}</span>
+              <span>{juris(B.jurisdiction_code)}</span>
+              <span>{B.targets} rule target{B.targets === 1 ? '' : 's'}</span>
+            </div>
+            <p style={{ fontSize: 12.5, lineHeight: 1.65, maxWidth: '92ch', margin: '0 0 18px', color: 'color-mix(in srgb,var(--color-text) 72%,transparent)' }}>
               {B.summary}
             </p>
           </>

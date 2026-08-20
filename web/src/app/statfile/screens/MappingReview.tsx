@@ -7,6 +7,7 @@
 // on the server — works on any warehouse).
 import { useState, type CSSProperties } from 'react';
 import { Blueprint } from '../Blueprint';
+import { PickerTabs } from '../PickerTabs';
 import { useMappingDetail, useMappings } from '../api';
 import type { MappingColumn, MappingDetail, MappingTransformType } from '../../../api/types';
 import { ACC, ACC9, NEU } from '../data';
@@ -195,11 +196,6 @@ export function MappingReviewScreen() {
   const cols = d ? sortCols(d.columns) : [];
   const activeCol = cols.find((c) => c.target_column === selCol) ?? cols[0];
 
-  const cardStyle = (selected: boolean): CSSProperties => ({
-    padding: '13px 15px', cursor: 'pointer',
-    background: selected ? 'color-mix(in srgb,#5980a6 10%,transparent)' : undefined,
-  });
-
   const agentModel = (d?.proposed_by ?? M?.proposed_by ?? '—').split(':').pop() ?? '—';
   const kpis = d ? [
     { label: 'Columns mapped', value: String(d.columns.length), note: d.target_table.split('.').slice(-2).join('.'), accent: false },
@@ -211,44 +207,37 @@ export function MappingReviewScreen() {
   const relation = (d?.source_relation ?? '').replace(/\s+/g, ' ');
 
   return (
-    <div className="sc" style={{ display: 'grid', gridTemplateColumns: '262px 1fr', gap: 28, alignItems: 'start' }}>
-      {/* ── left rail: reviewed mapping specs ──────────────────────────── */}
-      <aside style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div className="k">Reviewed mappings</div>
-        {mappings.map((m) => (
-          <Blueprint key={m.name} className="card" style={cardStyle(m.name === M?.name)}
-            onClick={() => { setSelName(m.name); setSelCol(null); }}>
-            <div className="card-kicker">{m.source_label} → {m.target}</div>
-            <div className="card-title mono" style={{ marginTop: 4, fontSize: 14 }}>{m.name}</div>
-            <p className="card-body" style={{
-              margin: '5px 0 8px', display: '-webkit-box', WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            }}>
-              {m.review_summary}
-            </p>
-            <div className="card-meta" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span className={'tag ' + (m.compiled ? 'tag-neutral' : 'tag-outline')}>
-                {m.compiled ? 'Compiled · live in pipeline' : 'Not compiled'}
-              </span>
-              <span className="mono muted" style={{ fontSize: 10 }}>
-                {m.proposed_by} · {m.tokens != null ? fmt(m.tokens) : '—'} tok
-              </span>
-            </div>
-          </Blueprint>
-        ))}
-        {listQ.isPending && <span className="k">loading mappings…</span>}
-        {!listQ.isPending && mappings.length === 0 && (
-          <span className="k">no reviewed mappings on disk yet</span>
-        )}
-      </aside>
+    <div className="sc">
+      {/* ── mapping picker — same underline-tab language as Administration ── */}
+      <PickerTabs
+        items={mappings.map((m) => ({
+          id: m.name,
+          label: m.name,
+          tag: m.compiled ? 'Compiled' : 'Not compiled',
+          tagClass: m.compiled ? 'tag-neutral' : 'tag-outline',
+        }))}
+        value={M?.name ?? null}
+        onChange={(id) => { setSelName(id); setSelCol(null); }}
+      />
+      {listQ.isPending && <span className="k">loading mappings…</span>}
+      {!listQ.isPending && mappings.length === 0 && (
+        <span className="k">no reviewed mappings on disk yet</span>
+      )}
 
-      {/* ── main: proposals, verdicts, diffs ───────────────────────────── */}
+      {/* ── proposals, verdicts, diffs ─────────────────────────────────── */}
       <section>
         {M && (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-            <h4>{M.source_label} → {M.target}</h4>
-            <span className="k">every proposal, its confidence, and what review changed</span>
-          </div>
+          <>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+              <h4>{M.source_label} → {M.target}</h4>
+              <span className="k">every proposal, its confidence, and what review changed</span>
+            </div>
+            {M.review_summary && (
+              <p style={{ fontSize: 12.5, lineHeight: 1.65, maxWidth: '92ch', margin: '0 0 16px', color: 'color-mix(in srgb,var(--color-text) 72%,transparent)' }}>
+                {M.review_summary}
+              </p>
+            )}
+          </>
         )}
 
         {loading && (
