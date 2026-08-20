@@ -10,8 +10,9 @@ import { mappingDetail, mappingsList } from './mappings';
 import {
   ack, applyBulletin, approve, approveRegulationMock, bulletinImpact, db,
   extractionReviewMock, extractionStatusMock, fixBronze, goLiveJurisdictionMock,
-  neighborhood, putVerdictMock, renderFile, resetBulletin, sendFiling,
-  startExtractionMock, submissionState, uploadRegulationMock,
+  jurisdictionsMock, neighborhood, patchJurisdictionMock, putVerdictMock,
+  renderFile, resetBulletin, sendFiling, startExtractionMock, submissionState,
+  uploadRegulationMock,
 } from './db';
 import type { ApprovalRole } from '../api/types';
 
@@ -223,6 +224,19 @@ export const handlers = [
   http.post('/api/regulations/:slug/approve', async ({ params }) => {
     await delay(700); // materializing to the KG is a real write
     const { status, body } = approveRegulationMock(String(params.slug));
+    return HttpResponse.json(body as Record<string, unknown>, { status });
+  }),
+
+  // Jurisdiction registry metadata (editable display fields).
+  http.get('/api/jurisdictions', async () => {
+    await delay(150);
+    return HttpResponse.json(jurisdictionsMock());
+  }),
+
+  http.patch('/api/jurisdictions/:code', async ({ params, request }) => {
+    await delay(250);
+    const payload = (await request.json().catch(() => ({}))) as Record<string, unknown> | null;
+    const { status, body } = patchJurisdictionMock(String(params.code), payload ?? {});
     return HttpResponse.json(body as Record<string, unknown>, { status });
   }),
 

@@ -207,6 +207,36 @@ export function goLiveJurisdictionMock(jurisdiction: string): { status: number; 
   return { status: 200, body: { ok: true, filing_id: seed.id } };
 }
 
+// ── jurisdiction registry metadata (editable display fields) ────────
+const jurMetaStore: Record<string, { name: string | null; lob: string | null }> = {};
+
+export function jurisdictionsMock() {
+  const codes = new Set<string>();
+  for (const f of db.filings.filings) if (f.jurisdiction_code) codes.add(f.jurisdiction_code);
+  for (const r of db.kgRules.rules) if (r.jurisdiction_code) codes.add(r.jurisdiction_code);
+  return {
+    jurisdictions: [...codes].sort().map((code) => ({
+      code,
+      name: jurMetaStore[code]?.name ?? null,
+      lob: jurMetaStore[code]?.lob ?? null,
+      kind: code === 'US' ? 'federal' : 'state',
+      obligations: db.filings.filings.filter((f) => f.jurisdiction_code === code).length,
+      active_obligations: db.filings.filings.filter((f) => f.jurisdiction_code === code && f.is_active).length,
+    })),
+  };
+}
+
+export function patchJurisdictionMock(code: string, body: Record<string, unknown>): { status: number; body: unknown } {
+  const norm = code.toUpperCase().startsWith('US') ? code.toUpperCase() : `US-${code.toUpperCase()}`;
+  const cur = (jurMetaStore[norm] ??= { name: null, lob: null });
+  if (typeof body.display_name === 'string') cur.name = body.display_name;
+  if (typeof body.lob === 'string') cur.lob = body.lob;
+  if (typeof body.filing_active === 'boolean') {
+    for (const f of db.filings.filings) if (f.jurisdiction_code === norm) f.is_active = body.filing_active;
+  }
+  return { status: 200, body: { ok: true, code: norm } };
+}
+
 // ── extraction review (per-proposal verdicts, mirrors api/main.py) ──
 // GET merges the fixture proposals with in-memory verdicts; PUT stores a
 // verdict and returns the same merged payload — exactly the live contract.

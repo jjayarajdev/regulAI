@@ -653,6 +653,33 @@ export const goLiveOnboarding = (jurisdiction: string) =>
       body: JSON.stringify({ jurisdiction }),
     });
 
+// ── Jurisdiction registry metadata (editable display fields on KG nodes) ──
+export interface JurisdictionMeta {
+  code: string; name: string | null; lob: string | null; kind: string | null;
+  obligations: number; active_obligations: number;
+}
+export const useJurisdictions = () =>
+  useQuery({
+    queryKey: ['sf', 'jurisdictions'],
+    queryFn: () => regJson<{ jurisdictions: JurisdictionMeta[] }>('/jurisdictions'),
+    staleTime: 60_000,
+  });
+export const useSaveJurisdiction = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ code, ...body }: {
+      code: string; display_name?: string; lob?: string; filing_active?: boolean; actor?: string;
+    }) =>
+      regJson<{ ok: boolean }>(`/jurisdictions/${encodeURIComponent(code)}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['sf', 'jurisdictions'] });
+      qc.invalidateQueries({ queryKey: ['sf', 'filings'] }); // pause/resume flips Live
+    },
+  });
+};
+
 export interface RegDocument {
   document_id: string; document_type: string; title: string; issuing_body: string;
   edition: string; effective_date: string; word_count: number; page_count: number; loaded_at: string;

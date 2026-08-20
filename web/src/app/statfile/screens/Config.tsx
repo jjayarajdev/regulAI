@@ -19,8 +19,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Blueprint } from '../Blueprint';
 import {
   approveRegulation, can, goLiveOnboarding, startExtraction, uploadRegulation,
-  useExtractStatus, useFilings, useKgRules, useRegDocuments, useRegulations,
-  whoCan, type AppUser,
+  useExtractStatus, useFilings, useJurisdictions, useKgRules, useRegDocuments,
+  useRegulations, useSaveJurisdiction, whoCan, type AppUser,
 } from '../api';
 import { ACC, ACC9, ONBOARD_STEPS, STANDARDS, STATES, type ScreenId } from '../data';
 
@@ -165,6 +165,17 @@ export function ConfigScreen({ go, user }: {
   const docsQ = useRegDocuments();
   const rulesQ = useKgRules();
   const regsQ = useRegulations();
+  const jursQ = useJurisdictions();
+
+  // Server-backed display metadata (editable on the cards) — falls back to
+  // the design maps when the KG has no value yet.
+  const jurMeta = useMemo(() => {
+    const m = new Map<string, { name: string | null; lob: string | null }>();
+    for (const j of jursQ.data?.jurisdictions ?? []) {
+      m.set(j.code.replace(/^US-/, '') || 'US', { name: j.name, lob: j.lob });
+    }
+    return m;
+  }, [jursQ.data]);
 
   const [tab, setTab] = useState<Tab>('registry');
   const [wizard, setWizard] = useState<WizardState>(loadWizard);
@@ -211,8 +222,10 @@ export function ConfigScreen({ go, user }: {
       const rs = ruleStats.get(code);
       const isLive = fs.some((f) => f.is_active);
       const plans = [...new Set(fs.map((f) => f.plan_code))];
+      const meta = jurMeta.get(code);
+      const lob = meta?.lob || LOB[code];
       const sub = [
-        LOB[code],
+        lob,
         plans.length ? `${plans.join(', ')} plan${plans.length > 1 ? 's' : ''}` : 'no filing configured',
         rs
           ? `${fmt(rs.total)} rules` + (rs.executable ? ` · ${rs.executable} executable` : '')
@@ -220,8 +233,10 @@ export function ConfigScreen({ go, user }: {
       ].filter(Boolean).join(' · ');
       return {
         code,
-        name: STATE_NAMES[code] ?? code,
+        name: meta?.name || STATE_NAMES[code] || code,
+        lob: lob ?? '',
         sub,
+        hasFilings: fs.length > 0,
         status: isLive ? 'Live' : fs.length ? 'Filed'
           : code === 'US' ? 'Defaults' : 'Onboarding',
         tagClass: isLive || fs.length || code === 'US' ? 'tag-neutral' : 'tag-outline',
@@ -307,11 +322,12 @@ export function ConfigScreen({ go, user }: {
         resumeStep: firstOpen === -1 ? 6 : Math.min(firstOpen + 2, 6),
       },
     };
-  }, [filingsQ.data, rulesQ.data, docsQ.data, regsQ.data]);
+  }, [filingsQ.data, rulesQ.data, docsQ.data, regsQ.data, jurMeta]);
 
   // Demo fallback (warehouse cold): the design fixtures, reshaped.
   const cards = derived?.cards ?? STATES.map((s) => ({
-    code: s.code, name: s.name, sub: s.detail, status: s.status,
+    code: s.code, name: s.name, lob: '', sub: s.detail, hasFilings: false,
+    status: s.status,
     tagClass: s.status === 'Onboarding' ? 'tag-outline' : 'tag-neutral',
   }));
   const onboard = derived?.onboard ?? null;
@@ -371,18 +387,8 @@ export function ConfigScreen({ go, user }: {
             <h4 style={{ marginBottom: 14 }}>Jurisdictions {live && <span className="k">live · filings + canon</span>}</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {cards.map((s) => (
-                <Blueprint key={s.code} style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 18 }}>
-                  <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 34, width: 56, lineHeight: 1, color: 'var(--color-accent-900)' }}>
-                    {s.code}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 500 }}>{s.name}</div>
-                    <div style={{ fontSize: 11.5, marginTop: 2, color: 'color-mix(in srgb,var(--color-text) 58%,transparent)' }}>
-                      {s.sub}
-                    </div>
-                  </div>
-                  <span className={'tag ' + s.tagClass}>{s.status}</span>
-                </Blueprint>
+                <JurCard key={s.code} card={s} user={user}
+                  editable={!!derived && mayOnboard} />
               ))}
             </div>
 
@@ -458,6 +464,103 @@ export function ConfigScreen({ go, user }: {
         />
       )}
     </div>
+  );
+}
+
+// ── an editable jurisdiction card ───────────────────────────────────────────
+// Display name + line of business persist on the KG Jurisdiction node
+// (display_name / lob via PATCH /api/jurisdictions/{code}); pause/resume
+// flips the jurisdiction's FilingObligations, which drives Live ↔ Filed.
+interface JurCardData {
+  code: string; name: string; lob: string; sub: string;
+  hasFilings: boolean; status: string; tagClass: string;
+}
+
+function JurCard({ card: s, user, editable }: {
+  card: JurCardData; user: AppUser; editable: boolean;
+}) {
+  const saveMut = useSaveJurisdiction();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(s.name);
+  const [lob, setLob] = useState(s.lob);
+  const open = () => { setName(s.name); setLob(s.lob); setEditing(true); saveMut.reset(); };
+  const patchCode = s.code === 'US' ? 'US' : `US-${s.code}`;
+
+  const doSave = () => {
+    if (!name.trim()) return;
+    saveMut.mutate(
+      { code: patchCode, display_name: name.trim(), lob: lob.trim(), actor: user.name },
+      { onSuccess: () => setEditing(false) },
+    );
+  };
+  const doToggleFilings = () =>
+    saveMut.mutate(
+      { code: patchCode, filing_active: s.status !== 'Live', actor: user.name },
+      { onSuccess: () => setEditing(false) },
+    );
+
+  const input = (val: string, set: (v: string) => void, ph: string): ReactNode => (
+    <input value={val} placeholder={ph} onChange={(e) => set(e.target.value)}
+      style={{
+        display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 3,
+        padding: '7px 9px', fontSize: 12.5, fontFamily: 'var(--font-body)',
+        border: '1px solid var(--color-divider)', borderRadius: 0,
+        background: 'color-mix(in srgb,var(--color-text) 4%,transparent)',
+        color: 'var(--color-text)',
+      }} />
+  );
+
+  return (
+    <Blueprint style={{ padding: '16px 18px', display: 'flex', alignItems: editing ? 'flex-start' : 'center', gap: 18 }}>
+      <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 34, width: 56, lineHeight: 1, color: 'var(--color-accent-900)' }}>
+        {s.code}
+      </div>
+      {editing ? (
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+            <label style={{ fontSize: 11, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>
+              Display name{input(name, setName, 'Oklahoma — Insurance Department')}
+            </label>
+            <label style={{ fontSize: 11, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>
+              Line of business{input(lob, setLob, 'Homeowners')}
+            </label>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" disabled={!name.trim() || saveMut.isPending} onClick={doSave}>
+              {saveMut.isPending ? 'Saving…' : 'Save'}
+            </button>
+            <button className="btn btn-secondary" onClick={() => setEditing(false)}>Cancel</button>
+            {s.hasFilings && (
+              <button className="btn btn-secondary" disabled={saveMut.isPending} onClick={doToggleFilings}
+                title={s.status === 'Live' ? 'sets the filing obligations inactive — card reads Filed' : 'reactivates the filing obligations — card reads Live'}>
+                {s.status === 'Live' ? 'Pause filings' : 'Resume filings'}
+              </button>
+            )}
+            {saveMut.error != null && (
+              <span style={{ fontSize: 11.5, color: '#a33' }}>{(saveMut.error as Error).message}</span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 500 }}>{s.name}</div>
+          <div style={{ fontSize: 11.5, marginTop: 2, color: 'color-mix(in srgb,var(--color-text) 58%,transparent)' }}>
+            {s.sub}
+          </div>
+        </div>
+      )}
+      {!editing && editable && (
+        <button onClick={open}
+          style={{
+            background: 'none', border: 'none', padding: '0 2px', cursor: 'pointer',
+            fontSize: 12, color: 'var(--color-accent-700)', textDecoration: 'underline',
+            fontFamily: 'var(--font-body)', flex: 'none',
+          }}>
+          Edit
+        </button>
+      )}
+      {!editing && <span className={'tag ' + s.tagClass}>{s.status}</span>}
+    </Blueprint>
   );
 }
 

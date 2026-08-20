@@ -1016,6 +1016,88 @@ def onboarding_go_live(payload: dict = Body(...)) -> JSONResponse:
     return JSONResponse({"ok": True, "filing_id": filing_id})
 
 
+# ── Jurisdiction registry metadata (editable) ───────────────────────────────
+# The registry cards' display fields live on the KG Jurisdiction nodes so an
+# admin can correct them in the product ("Oklahoma — Insurance Department",
+# line of business) instead of editing frontend maps. `display_name`/`lob`
+# are additive properties — `name`/`jurisdiction_name` (used by seeds and
+# queries) stay untouched. PATCH can also pause/resume the jurisdiction's
+# filing obligations (is_active), which drives the Live/Filed status chip.
+
+_JUR_EDITABLE = {"display_name", "lob"}
+
+
+@app.get("/api/jurisdictions")
+def list_jurisdictions() -> JSONResponse:
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+            rows = list(s.run(
+                """
+                MATCH (j:Jurisdiction)
+                OPTIONAL MATCH (fo:FilingObligation)-[:APPLIES_IN]->(j)
+                RETURN j.jurisdiction_code AS code,
+                       coalesce(j.display_name, j.jurisdiction_name, j.name) AS name,
+                       j.lob AS lob,
+                       j.jurisdiction_type AS kind,
+                       count(fo) AS obligations,
+                       sum(CASE WHEN fo.is_active THEN 1 ELSE 0 END) AS active_obligations
+                ORDER BY code
+                """
+            ))
+        return JSONResponse({"jurisdictions": [dict(r) for r in rows]})
+    except Exception as e:  # noqa: BLE001 — KG offline → empty list, UI falls back
+        logger.warning("list_jurisdictions: KG unreachable (%s)", e)
+        return JSONResponse({"jurisdictions": [], "kg_offline": True})
+
+
+@app.patch("/api/jurisdictions/{code}")
+def patch_jurisdiction(code: str, payload: dict = Body(...)) -> JSONResponse:
+    code = code.upper() if code.upper().startswith("US") else f"US-{code.upper()}"
+    edits = {k: v for k, v in (payload or {}).items() if k in _JUR_EDITABLE and isinstance(v, str)}
+    filing_active = payload.get("filing_active") if isinstance(payload.get("filing_active"), bool) else None
+    if not edits and filing_active is None:
+        raise HTTPException(status_code=422, detail=f"Nothing to update — editable fields: {sorted(_JUR_EDITABLE)}, filing_active")
+
+    try:
+        with Neo4jGREAdapter() as gre, gre.driver.session(database=gre.database) as s:
+            found = s.run(
+                "MATCH (j:Jurisdiction {jurisdiction_code: $code}) "
+                + (("SET " + ", ".join(f"j.{k} = ${k}" for k in edits) + " ") if edits else "")
+                + "RETURN j.jurisdiction_code AS code",
+                code=code, **edits,
+            ).single()
+            if found is None:
+                raise HTTPException(status_code=404, detail=f"No Jurisdiction {code!r} in the canon")
+            toggled = 0
+            if filing_active is not None:
+                toggled = s.run(
+                    "MATCH (fo:FilingObligation)-[:APPLIES_IN]->(:Jurisdiction {jurisdiction_code: $code}) "
+                    "SET fo.is_active = $active RETURN count(fo) AS n",
+                    code=code, active=filing_active,
+                ).single()["n"]
+        try:
+            from packages.core.enums import KGAuditAction
+            changes = [f"{k}={v!r}" for k, v in edits.items()]
+            if filing_active is not None:
+                changes.append(f"filing_active={filing_active} ({toggled} obligations)")
+            with Neo4jGREAdapter() as gre:
+                gre.record_audit_entry(
+                    action=KGAuditAction.MANUAL_EDIT,
+                    summary=f"Jurisdiction {code} edited: {', '.join(changes)}",
+                    actor=str(payload.get("actor") or "registry-edit"),
+                    affected_node_ids=[],
+                )
+        except Exception:  # noqa: BLE001 — audit is best-effort
+            logger.warning("jurisdiction edit audit failed", exc_info=True)
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"Knowledge Graph write failed: {e}") from e
+
+    return JSONResponse({"ok": True, "code": code, "updated": sorted(edits),
+                         "filing_active": filing_active})
+
+
 # -- Admin: Dagster schedule -------------------------------------------------
 #
 # The /admin/schedule UI is a thin layer over Dagster's GraphQL surface +
