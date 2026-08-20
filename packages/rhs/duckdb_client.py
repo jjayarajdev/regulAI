@@ -77,6 +77,10 @@ _DATEDIFF = re.compile(
     r"\bDATEDIFF\s*\(\s*(day|month|year|week|hour|minute|second|quarter)\s*,",
     re.IGNORECASE,
 )
+# Snowflake/Databricks address the catalog's information schema three-part
+# (CATALOG.INFORMATION_SCHEMA.TABLES); DuckDB only exposes the two-part form.
+# One catalog is attached, so dropping the prefix is unambiguous.
+_INFO_SCHEMA = re.compile(rf"\b{CATALOG}\.INFORMATION_SCHEMA\.", re.IGNORECASE)
 
 # Snowflake date-format tokens → strftime. Order matters: longer/ambiguous
 # tokens first (HH24 before HH, MI before MM-as-minutes isn't an issue since
@@ -106,6 +110,7 @@ def _translate_sql(sql: str) -> str:
         sql,
     )
     sql = _DATEDIFF.sub(lambda m: f"date_diff('{m.group(1).lower()}',", sql)
+    sql = _INFO_SCHEMA.sub("information_schema.", sql)
     return sql
 
 

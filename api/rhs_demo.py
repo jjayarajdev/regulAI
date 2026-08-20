@@ -13,6 +13,7 @@ import datetime as dt
 import io
 import json
 import logging
+import os
 import subprocess
 from decimal import Decimal
 from pathlib import Path
@@ -299,6 +300,12 @@ def admin_update_user(user_id: str, body: dict = Body(...),
         _record_action(f["id"], "user_updated", actor=user["name"],
                        summary=f"Updated {target['name']}: {', '.join(changes)}")
     return JSONResponse({"ok": True, "user": _public(_USERS_CACHE[user_id])})
+
+# Engine check for the few spots where SQL must differ per warehouse
+# (identifier quoting, information_schema column availability).
+def _is_duckdb() -> bool:
+    return os.environ.get("REGULAI_DB", "").strip().lower() == "duckdb"
+
 
 BULLETIN_OVERRIDE_NAME = "Credit Score Declination Reporting Override"
 BULLETIN_PATH = Path("synthetic_regulations/synthetic/bulletins/B-2026-Q4-118.md")
@@ -755,11 +762,15 @@ def _record_agent_steps_sync(run_id: str, steps: list[dict]) -> None:
     global _AGENT_STEP_DDL_DONE
     if not steps:
         return
+    # DuckDB reserves `at` as a keyword and needs it quoted; Snowflake and
+    # Databricks accept it bare (and their existing tables already carry the
+    # bare column, where quoting would change identifier semantics).
+    at_col = '"at"' if _is_duckdb() else "at"
     if not _AGENT_STEP_DDL_DONE:
         query(
             "CREATE TABLE IF NOT EXISTS INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN_STEP (\n"
             "  run_id STRING, seq INT, step STRING, detail STRING,\n"
-            "  status STRING, duration_ms BIGINT, at TIMESTAMP\n)"
+            f"  status STRING, duration_ms BIGINT, {at_col} TIMESTAMP\n)"
         )
         _AGENT_STEP_DDL_DONE = True
     placeholders = ", ".join(["(%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP())"] * len(steps))
@@ -769,7 +780,7 @@ def _record_agent_steps_sync(run_id: str, steps: list[dict]) -> None:
                    s.get("status", "done"), s.get("duration_ms")]
     query(
         "INSERT INTO INSURANCE_REGULATORY.GOLD_AUDIT.AGENT_RUN_STEP "
-        "(run_id, seq, step, detail, status, duration_ms, at) VALUES " + placeholders,
+        f"(run_id, seq, step, detail, status, duration_ms, {at_col}) VALUES " + placeholders,
         tuple(params),
     )
 
@@ -1090,12 +1101,17 @@ def catalog() -> JSONResponse:
     if hit and (_time.time() - hit[0]) < _CATALOG_TTL:
         return JSONResponse(hit[1])
 
+    # DuckDB's information_schema has no comment/last_altered columns.
+    meta_cols = (
+        "CAST(NULL AS VARCHAR) AS comment, CAST(NULL AS VARCHAR) AS last_altered"
+        if _is_duckdb()
+        else "comment, TO_VARCHAR(last_altered, 'YYYY-MM-DD HH24:MI:SS') AS last_altered"
+    )
     rows = query(
-        """
+        f"""
         SELECT table_schema AS schema_name,
                table_name,
-               comment,
-               TO_VARCHAR(last_altered, 'YYYY-MM-DD HH24:MI:SS') AS last_altered
+               {meta_cols}
         FROM INSURANCE_REGULATORY.INFORMATION_SCHEMA.TABLES
         WHERE table_type IN ('BASE TABLE', 'MANAGED')
           AND UPPER(table_schema) IN ('BRONZE','SILVER','GOLD','REFERENCE','STAGING')
