@@ -232,8 +232,11 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
 
   return (
     <div className="sc" style={{ display: 'grid', gridTemplateColumns: '262px 1fr', gap: 28, alignItems: 'start' }}>
-      {/* ── left rail: bulletin list ───────────────────────────────────── */}
-      <aside style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* ── left rail: bulletin list — uniform cards, own scroll ─────────── */}
+      <aside style={{
+        display: 'flex', flexDirection: 'column', gap: 14,
+        maxHeight: 'max(420px, calc(100vh - 230px))', overflow: 'auto',
+      }}>
         <div className="k">Commissioner's bulletins</div>
         {bulletins.map((b) => (
           <Blueprint key={b.name} className="card" style={cardStyle(b.name === B?.name)}
@@ -243,7 +246,14 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
               <span className="tag tag-outline" style={{ marginLeft: 'auto' }}>{juris(b.jurisdiction_code)}</span>
             </div>
             <div className="card-title" style={{ marginTop: 4 }}>{b.name}</div>
-            <p className="card-body" style={{ margin: '5px 0 8px' }}>{b.summary}</p>
+            {/* Clamped — the full summary reads in the main pane; the rail is
+                for scanning, and unclamped blurbs made card heights wild. */}
+            <p className="card-body" style={{
+              margin: '5px 0 8px', display: '-webkit-box', WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}>
+              {b.summary}
+            </p>
             <div className="card-meta" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className={'tag ' + (b.status === 'applied' ? 'tag-neutral' : 'tag-accent')}>
                 {b.status === 'applied' ? 'Applied' : 'Pending review'}
@@ -258,10 +268,16 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
       {/* ── main: impact analysis ──────────────────────────────────────── */}
       <section>
         {B && (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
-            <h4>{B.name} — {B.title}</h4>
-            <span className="k">impact on the executable canon</span>
-          </div>
+          <>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+              <h4>{B.name} — {B.title}</h4>
+              <span className="k">impact on the executable canon</span>
+            </div>
+            {/* The full bulletin summary lives here (the rail clamps it). */}
+            <p style={{ fontSize: 12.5, lineHeight: 1.65, maxWidth: '92ch', margin: '0 0 16px', color: 'color-mix(in srgb,var(--color-text) 72%,transparent)' }}>
+              {B.summary}
+            </p>
+          </>
         )}
 
         {kgOffline && (
@@ -285,7 +301,32 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
           </div>
         )}
 
-        {!loading && impact && (
+        {/* No resolved rule targets → nothing to diff or apply. Say so
+            instead of rendering four zeros and a live Apply button. */}
+        {!loading && impact && impact.totals.rules_affected === 0 && impact.rule_changes.length === 0 && (
+          <Blueprint className="gridwash" style={{ padding: '26px 30px', maxWidth: 720 }}>
+            <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 18, marginBottom: 8 }}>
+              No impact on the executable canon
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.7 }}>
+              None of this bulletin's provisions resolve to an executable rule —
+              its extracted rules are descriptive (no compiled <span className="mono" style={{ fontSize: 12 }}>violation_sql</span>),
+              so there is nothing to diff against the validation reference and
+              nothing for an amendment to materialize.
+            </div>
+            <div className="muted" style={{ fontSize: 12, lineHeight: 1.65, marginTop: 12 }}>
+              A bulletin gains impact here once its target rules are compiled into
+              the edit package. Until then, review its extracted provisions on the
+              Rulebook screen — apply is disabled because it would be a no-op.
+            </div>
+            <button className="btn btn-secondary" disabled style={{ marginTop: 16 }}
+              title="no resolved rule targets — nothing to materialize">
+              Apply amendment
+            </button>
+          </Blueprint>
+        )}
+
+        {!loading && impact && !(impact.totals.rules_affected === 0 && impact.rule_changes.length === 0) && (
           <>
             {/* KPI row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 22, marginBottom: 24 }}>
