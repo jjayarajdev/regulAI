@@ -7,6 +7,7 @@
 // on the server — works on any warehouse).
 import { useState, type CSSProperties } from 'react';
 import { Blueprint } from '../Blueprint';
+import { DetailModal } from '../DetailModal';
 import { SelectList } from '../SelectList';
 import { useMappingDetail, useMappings } from '../api';
 import type { MappingColumn, MappingDetail, MappingTransformType } from '../../../api/types';
@@ -57,19 +58,9 @@ function SqlCol({ label, sql, accepted }: { label: string; sql: string; accepted
   );
 }
 
-function ColumnDetail({ col }: { col: MappingColumn }) {
+function ColumnDetailBody({ col }: { col: MappingColumn }) {
   return (
-    <Blueprint style={{ padding: '16px 18px', marginBottom: 18 }}>
-      {/* header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-        <span className="mono" style={{ fontSize: 14, color: 'var(--color-accent-700)' }}>{col.target_column}</span>
-        <span className={'tag ' + XFORM_TAG[col.transform_type]}>{col.transform_type}</span>
-        {col.needs_review && (
-          <span className="mono muted" style={{ fontSize: 10.5 }}>⚑ agent flagged for review</span>
-        )}
-        <span style={{ marginLeft: 'auto' }}><ConfidenceCell c={col.confidence} /></span>
-      </div>
-
+    <>
       {/* the agent's reasoning, quoted */}
       {col.rationale && (
         <div style={{ marginBottom: 14, paddingLeft: 12, borderLeft: `3px solid ${NEU}` }}>
@@ -113,7 +104,7 @@ function ColumnDetail({ col }: { col: MappingColumn }) {
           )}
         </>
       )}
-    </Blueprint>
+    </>
   );
 }
 
@@ -190,11 +181,11 @@ export function MappingReviewScreen() {
   const d = detailQ.data;
   const loading = listQ.isPending || (!!M && detailQ.isPending);
 
-  // Row selection — defaults to the first overridden column (the sort puts
-  // overrides first), so the screen lands on the diff.
+  // Row click opens the proposal detail in a modal (overrides sort first, so
+  // the interesting rows lead the table).
   const [selCol, setSelCol] = useState<string | null>(null);
   const cols = d ? sortCols(d.columns) : [];
-  const activeCol = cols.find((c) => c.target_column === selCol) ?? cols[0];
+  const activeCol = cols.find((c) => c.target_column === selCol) ?? null;
 
   const agentModel = (d?.proposed_by ?? M?.proposed_by ?? '—').split(':').pop() ?? '—';
   const kpis = d ? [
@@ -302,13 +293,9 @@ export function MappingReviewScreen() {
                 </thead>
                 <tbody>
                   {cols.map((c) => {
-                    const on = c.target_column === activeCol?.target_column;
                     return (
-                      <tr key={c.target_column} onClick={() => setSelCol(c.target_column)}
-                        style={{
-                          cursor: 'pointer',
-                          background: on ? 'color-mix(in srgb,#5980a6 10%,transparent)' : undefined,
-                        }}>
+                      <tr key={c.target_column} className="rowlink"
+                        onClick={() => setSelCol(c.target_column)}>
                         <td className="mono" style={{ fontSize: 11.5 }}>{c.target_column}</td>
                         <td className="mono" style={{ fontSize: 11.5 }}>
                           {c.source_column ?? <span className="muted">constant</span>}
@@ -332,8 +319,25 @@ export function MappingReviewScreen() {
               </table>
             </Blueprint>
 
-            {/* selected column: rationale + proposed/accepted diff */}
-            {activeCol && <ColumnDetail col={activeCol} />}
+            {/* row click → proposal detail in a modal, right where the user is */}
+            <DetailModal
+              open={!!activeCol}
+              onClose={() => setSelCol(null)}
+              kicker="mapping proposal · agent proposes, human governs"
+              title={<span className="mono" style={{ color: 'var(--color-accent-700)' }}>{activeCol?.target_column}</span>}
+              tags={activeCol && (
+                <>
+                  <span className={'tag ' + XFORM_TAG[activeCol.transform_type]}>{activeCol.transform_type}</span>
+                  <span className={'tag ' + (activeCol.overridden ? 'tag-accent' : 'tag-neutral')}>
+                    {activeCol.overridden ? 'Overridden' : 'Accepted'}
+                  </span>
+                  {activeCol.needs_review && <span className="mono muted" style={{ fontSize: 10.5 }}>⚑ flagged</span>}
+                  <ConfidenceCell c={activeCol.confidence} />
+                </>
+              )}
+            >
+              {activeCol && <ColumnDetailBody col={activeCol} />}
+            </DetailModal>
 
             <CompiledFooter d={d} />
           </>

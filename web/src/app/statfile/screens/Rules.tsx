@@ -290,7 +290,8 @@ export function RulesScreen({ user }: { user?: AppUser }) {
                 return (
                   <Blueprint
                     key={r.id}
-                    style={{ padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+                    className="rowlink"
+                    style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}
                     onClick={() => { setSelIdx(i); if (r.page) setPage(r.page); }}
                   >
                     <span className="mono" style={{ fontSize: 10.5, color: 'var(--color-accent-700)', flex: 'none' }}>

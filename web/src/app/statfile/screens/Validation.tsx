@@ -3,6 +3,7 @@
 // the sample panel pulls the first failing policy's bronze fields.
 import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
+import { DetailModal } from '../DetailModal';
 import {
   can, groupViolations, useApplyFix, useAssign, useBronzeFix, useClaims,
   useFilings, usePolicyFields, useReasonCodes, useSuppress, useUnsuppress,
@@ -167,7 +168,7 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
           </thead>
           <tbody>
             {shown.map((e) => (
-              <tr key={e.code} className="row" style={{ cursor: 'pointer' }} onClick={() => pickError(e.code)}>
+              <tr key={e.code} className="row rowlink" onClick={() => pickError(e.code)}>
                 <td><span style={{ display: 'inline-block', width: 8, height: 8, background: sevDot(e.sev) }} /></td>
                 <td className="mono" style={{ fontSize: 11.5, color: 'var(--color-accent-700)' }}>{e.code}</td>
                 <td className="mono" style={{ fontSize: 11.5 }}>{e.field}</td>
@@ -186,14 +187,26 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
           </tbody>
         </table>
 
-        {E && (
-          <Blueprint style={{ marginTop: 26, padding: '18px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <span className="mono" style={{ fontSize: 12, color: 'var(--color-accent-700)' }}>{E.code}</span>
-              <h4>{E.field}</h4>
+        {/* Row click → the edit's full detail + actions in a modal, right
+            where the user clicked (it used to render below the fold). */}
+        <DetailModal
+          open={!!E && errCode !== null}
+          onClose={() => setErrCode(null)}
+          width={920}
+          kicker={E ? `edit ${E.code} · ${E.origin}` : undefined}
+          title={E?.field ?? ''}
+          tags={E && (
+            <>
               {E.assignee && <span className="tag tag-outline">assigned · {E.assignee}</span>}
-              <span className="tag tag-outline" style={{ marginLeft: 'auto' }}>{E.count} records</span>
-            </div>
+              <span className="tag tag-outline">{E.count} records</span>
+              <span className={'tag ' + (E.suppressed ? 'tag-neutral' : E.sev === 2 ? 'tag-accent' : 'tag-outline')}>
+                {E.status}
+              </span>
+            </>
+          )}
+        >
+          {E && (
+          <>
             {E.suppressed && E.memo && (
               <div style={{ fontSize: 12.5, lineHeight: 1.6, padding: '9px 12px', marginBottom: 12, background: 'color-mix(in srgb,var(--color-text) 5%,transparent)', borderLeft: '2px solid var(--color-neutral-500, #999)' }}>
                 <span className="k" style={{ marginRight: 8 }}>Suppressed</span>{E.memo}
@@ -373,8 +386,9 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
                   .filter((e): e is ApiError => e instanceof ApiError).map((e) => e.message).join(' · ') || 'action failed'}
               </div>
             )}
-          </Blueprint>
-        )}
+          </>
+          )}
+        </DetailModal>
       </section>
     </div>
   );

@@ -50,7 +50,7 @@ export function DashboardScreen({ go }: { go: (s: ScreenId) => () => void }) {
             </thead>
             <tbody>
               {cycles.map((c, i) => (
-                <tr key={i} className="row" style={{ cursor: 'pointer' }} onClick={go(c.goTo)}>
+                <tr key={i} className="row rowlink" onClick={go(c.goTo)}>
                   <td>
                     <span className="tag tag-outline" style={{ fontFamily: 'var(--font-heading)', fontSize: 13 }}>
                       {c.state}
@@ -87,7 +87,7 @@ export function DashboardScreen({ go }: { go: (s: ScreenId) => () => void }) {
           <h4 style={{ marginBottom: 10 }}>Needs a human</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {queue.map((q) => (
-              <Blueprint key={q.meta + q.title} className="card" style={{ padding: '14px 16px', cursor: 'pointer' }} onClick={go(q.goTo)}>
+              <Blueprint key={q.meta + q.title} className="card rowlink" style={{ padding: '14px 16px' }} onClick={go(q.goTo)}>
                 <div className="card-kicker">{q.kicker}</div>
                 <div className="card-title">{q.title}</div>
                 <p className="card-body">{q.body}</p>

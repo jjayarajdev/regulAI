@@ -130,9 +130,8 @@ export function AgentsScreen() {
               return (
                 <tr
                   key={r.runId ?? r.agent + g.i}
-                  className="row"
+                  className="row rowlink"
                   style={{
-                    cursor: 'pointer',
                     background: g.i === runIdx ? 'color-mix(in srgb,#5980a6 10%,transparent)' : undefined,
                   }}
                   onClick={() => setRun(g.i)}

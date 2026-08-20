@@ -51,9 +51,9 @@ export function SelectList({ items, value, onChange, label, height }: {
         {filtered.map((it) => {
           const on = it.id === value;
           return (
-            <div key={it.id} onClick={() => onChange(it.id)}
+            <div key={it.id} className="rowlink" onClick={() => onChange(it.id)}
               style={{
-                padding: '9px 12px', cursor: 'pointer',
+                padding: '9px 12px',
                 borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)',
                 borderLeft: '3px solid ' + (on ? 'var(--color-accent)' : 'transparent'),
                 background: on ? 'color-mix(in srgb,#5980a6 10%,transparent)' : undefined,

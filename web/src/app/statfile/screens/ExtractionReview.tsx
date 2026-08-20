@@ -418,10 +418,9 @@ export function ExtractionReviewScreen({ user }: { user: AppUser }) {
               const on = p.temp_id === active?.temp_id;
               const [tagClass, tagLabel] = VERDICT_TAG[p.verdict];
               return (
-                <div key={p.temp_id} onClick={() => setSelId(p.temp_id)}
+                <div key={p.temp_id} className="rowlink" onClick={() => setSelId(p.temp_id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px',
-                    cursor: 'pointer',
                     borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)',
                     borderLeft: '3px solid ' + (on ? 'var(--color-accent)' : 'transparent'),
                     background: on ? 'color-mix(in srgb,#5980a6 10%,transparent)' : undefined,
