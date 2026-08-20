@@ -83,3 +83,9 @@ materialized/transforms/
 # Uploaded regulations/bulletins — user runtime data, not source
 references/regulations/uploaded-*.pdf
 materialized/uploaded_regulations/
+
+# Submission runtime artifacts (seal/send/ack walk-throughs)
+materialized/outbox/
+materialized/inbox/
+materialized/sftp_dropbox/
+materialized/archive/
