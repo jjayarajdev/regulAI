@@ -1,0 +1,13 @@
+{
+  "slug": "uploaded-la-homeowners-stat-plan-2026",
+  "verdicts": {
+    "org-designated-stat-agent": {
+      "verdict": "rejected",
+      "overrides": null,
+      "reason": "Inferred entity, not a provision of the plan \u2014 exclude from the canon.",
+      "actor": "e2e-test",
+      "at": "2026-08-20T18:30:18"
+    }
+  },
+  "updated_at": "2026-08-20T18:30:18"
+}

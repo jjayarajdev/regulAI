@@ -24,6 +24,17 @@ ORDER BY n.version DESC
 LIMIT 1
 """
 
+# Jurisdiction-scoped variant — two states legitimately carry same-named
+# rules ("Rule 4 — Written Premium…"); dedup must not merge them across
+# jurisdictions.
+FIND_LATEST_BY_NAME_TYPE_AND_JURISDICTION = """
+MATCH (n:GRENode {type: $type, name: $name})
+WHERE n.status <> 'superseded' AND n.jurisdiction_code = $jurisdiction_code
+RETURN n
+ORDER BY n.version DESC
+LIMIT 1
+"""
+
 FIND_DOCUMENT_BY_HASH = """
 MATCH (d:GRENode:RegulationDocument {hash: $hash})
 RETURN d

@@ -25,6 +25,20 @@ def test_statute_rule_with_redundant_heading_materializes():
     assert rule.rule_number == 1
 
 
+def test_node_identity_is_jurisdiction_scoped():
+    """Same-named rules in two states are different rules: the deterministic
+    UUID includes the jurisdiction for non-default states, while the legacy
+    TX/None key is byte-identical to before (existing artifacts depend on it)."""
+    from packages.lhs.materialization.materialize import _deterministic_node_uuid as du
+
+    legacy = du("Rule", "Rule 4 — Written Premium and Return Premium Reporting")
+    assert du("Rule", "Rule 4 — Written Premium and Return Premium Reporting", None) == legacy
+    assert du("Rule", "Rule 4 — Written Premium and Return Premium Reporting", "US-TX") == legacy
+    ok = du("Rule", "Rule 4 — Written Premium and Return Premium Reporting", "US-OK")
+    la = du("Rule", "Rule 4 — Written Premium and Return Premium Reporting", "US-LA")
+    assert len({legacy, ok, la}) == 3  # three distinct identities
+
+
 def test_memo_rule_still_lifts_heading_from_section():
     """The existing memo leniency is unchanged: no rule_number → memo kind,
     heading lifted off section when Sentinel parked it there."""

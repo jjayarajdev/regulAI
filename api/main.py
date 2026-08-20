@@ -824,7 +824,10 @@ def approve_extraction(slug: str, payload: dict | None = Body(None)) -> JSONResp
         with Neo4jGREAdapter() as gre:
             before = snapshot_node_ids(gre) if tag_needed else set()
             result = materialize(
-                extraction, gre, document_label=doc.slug, rects_bundle=rects_bundle
+                extraction, gre, document_label=doc.slug, rects_bundle=rects_bundle,
+                # Scope dedup identity to the state: same-named rules in two
+                # jurisdictions are different rules, not duplicates.
+                jurisdiction_code=jur_code if tag_needed else None,
             )
             if tag_needed:
                 ensure_jurisdiction(gre, jur_code, jur_name or jur_code)

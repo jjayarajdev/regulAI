@@ -101,16 +101,24 @@ class MaterializationResult:
 _KG_NODE_NAMESPACE = UUID("0a4d8a36-7e1a-4b8e-9c2f-67616c6c6f72")
 
 
-def _deterministic_node_uuid(type_label: str, name: str) -> UUID:
-    """uuid5-based UUID keyed on (type, name) — the same identity tuple
-    find_existing_by_name dedup uses. Stable across rebuilds, so
-    reproducing the KG from disk produces byte-identical artifacts."""
+def _deterministic_node_uuid(type_label: str, name: str, jurisdiction_code: str | None = None) -> UUID:
+    """uuid5-based UUID keyed on the same identity tuple find_existing_by_name
+    dedup uses. Stable across rebuilds, so reproducing the KG from disk
+    produces byte-identical artifacts.
+
+    Legacy key is (type, name); when a non-default jurisdiction is being
+    materialized the key includes it — two states legitimately carry
+    same-named rules, and a shared UUID would merge them. The legacy TX/None
+    path is byte-identical to before (existing artifacts unaffected)."""
+    if jurisdiction_code and jurisdiction_code != "US-TX":
+        return uuid5(_KG_NODE_NAMESPACE, f"{type_label}|{name}|{jurisdiction_code}")
     return uuid5(_KG_NODE_NAMESPACE, f"{type_label}|{name}")
 
 
 def _resolve_temp_ids(
     proposals: list[ProposedNode],
     gre: Neo4jGREAdapter,
+    jurisdiction_code: str | None = None,
 ) -> tuple[dict[str, UUID], dict[str, GRENode], list[tuple[str, str]], set[str]]:
     """First pass: assign each temp_id a UUID, reusing existing nodes when matched.
 
@@ -143,8 +151,8 @@ def _resolve_temp_ids(
                 existing_by_temp_id[p.temp_id] = doc
                 reused.append((type_label, p.name))
                 continue
-        # (type, name) dedup against the DB
-        existing = gre.find_existing_by_name(type_label, p.name)
+        # (type, name[, jurisdiction]) dedup against the DB
+        existing = gre.find_existing_by_name(type_label, p.name, jurisdiction_code)
         if existing is not None:
             temp_id_to_uuid[p.temp_id] = existing.id
             existing_by_temp_id[p.temp_id] = existing
@@ -162,7 +170,7 @@ def _resolve_temp_ids(
             in_extraction_dups.add(p.temp_id)
             reused.append((type_label, p.name))
             continue
-        temp_id_to_uuid[p.temp_id] = _deterministic_node_uuid(type_label, p.name)
+        temp_id_to_uuid[p.temp_id] = _deterministic_node_uuid(type_label, p.name, jurisdiction_code)
         name_key_to_first_temp_id[key] = p.temp_id
 
     return temp_id_to_uuid, existing_by_temp_id, reused, in_extraction_dups
@@ -252,6 +260,7 @@ def materialize(
     snapshot_dir: Path | None = None,
     rects_bundle: CitationRectsBundle | None = None,
     source: str = "sentinel",
+    jurisdiction_code: str | None = None,
 ) -> MaterializationResult:
     # Phase 0 (Cluster C): refuse to materialize a parser-owned doc's
     # extraction if Sentinel proposed parser-owned-type nodes. The parser
@@ -263,8 +272,9 @@ def materialize(
 
     result = MaterializationResult(document_label=document_label)
 
-    # Phase 1: resolve temp_ids → UUIDs (with dedup)
-    temp_id_to_uuid, existing, reused, dups = _resolve_temp_ids(extraction.proposed_nodes, gre)
+    # Phase 1: resolve temp_ids → UUIDs (with dedup, jurisdiction-scoped when known)
+    temp_id_to_uuid, existing, reused, dups = _resolve_temp_ids(
+        extraction.proposed_nodes, gre, jurisdiction_code)
     result.nodes_reused = reused
 
     # Index citations by temp_id so skipped proposals can carry a char-range

@@ -216,14 +216,25 @@ class Neo4jGREAdapter:
                 return None
             return _props_to_node(dict(record["n"].items()))
 
-    def find_existing_by_name(self, node_type: str, name: str) -> GRENode | None:
-        """Find the latest non-superseded node by (type, name). For materialization dedup."""
+    def find_existing_by_name(
+        self, node_type: str, name: str, jurisdiction_code: str | None = None,
+    ) -> GRENode | None:
+        """Find the latest non-superseded node by (type, name) — the
+        materialization dedup identity. With `jurisdiction_code`, the match is
+        scoped to that jurisdiction: same-named rules in different states are
+        different rules and must not merge (None keeps the legacy global
+        match for the TX canon and parser paths)."""
         with self.driver.session(database=self.database) as session:
-            record = session.run(
-                queries.FIND_LATEST_BY_NAME_AND_TYPE,
-                type=node_type,
-                name=name,
-            ).single()
+            if jurisdiction_code:
+                record = session.run(
+                    queries.FIND_LATEST_BY_NAME_TYPE_AND_JURISDICTION,
+                    type=node_type, name=name, jurisdiction_code=jurisdiction_code,
+                ).single()
+            else:
+                record = session.run(
+                    queries.FIND_LATEST_BY_NAME_AND_TYPE,
+                    type=node_type, name=name,
+                ).single()
             if record is None:
                 return None
             return _props_to_node(dict(record["n"].items()))
