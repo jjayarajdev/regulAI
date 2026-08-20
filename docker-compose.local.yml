@@ -17,9 +17,11 @@ services:
   api:
     ports: !override                             # replace (not append to) the base ports
       - "${REGULAI_API_PORT:-8899}:8765"        # → http://localhost:8899/app/
-    depends_on: !reset []                        # experience needs only Databricks; skip neo4j wait
+    depends_on: !reset []                        # experience needs only the warehouse; skip neo4j wait
     environment:
-      REGULAI_DB: databricks
+      # DuckDB by default (free, self-contained); opt into the cloud warehouse
+      # per-run:  REGULAI_DB=databricks ./run-docker.sh api neo4j
+      REGULAI_DB: ${REGULAI_DB:-duckdb}
       DATABRICKS_SERVER_HOSTNAME: ${DATABRICKS_SERVER_HOSTNAME:-}
       DATABRICKS_HTTP_PATH: ${DATABRICKS_HTTP_PATH:-}
       DATABRICKS_TOKEN: ${DATABRICKS_TOKEN:-}
@@ -34,7 +36,7 @@ services:
     ports: !override
       - "${REGULAI_DAGSTER_PORT:-3030}:3000"     # avoid the AI-gateway's :3000
     environment:
-      REGULAI_DB: databricks
+      REGULAI_DB: ${REGULAI_DB:-duckdb}
       DATABRICKS_SERVER_HOSTNAME: ${DATABRICKS_SERVER_HOSTNAME:-}
       DATABRICKS_HTTP_PATH: ${DATABRICKS_HTTP_PATH:-}
       DATABRICKS_TOKEN: ${DATABRICKS_TOKEN:-}
