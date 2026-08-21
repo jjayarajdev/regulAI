@@ -334,14 +334,22 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
                   {fixMut.error instanceof ApiError ? fixMut.error.message : 'fix failed'}
                 </span>
               )}
+              {/* The remedy registry holds exactly one deterministic fix
+                  (A.34 reason-code companion). Everything else would be the
+                  agent inventing data — the button says so instead of failing. */}
               <button
                 className="btn btn-primary"
                 style={{ marginLeft: fixMut.data || fixMut.error != null ? undefined : 'auto' }}
-                disabled={!live || !mayFix || fixMut.isPending}
-                title={mayFix ? undefined : `requires ${whoCan('fix')}`}
+                disabled={!live || !mayFix || fixMut.isPending || !E.code.toUpperCase().startsWith('A.34')}
+                title={!mayFix ? `requires ${whoCan('fix')}`
+                  : !E.code.toUpperCase().startsWith('A.34')
+                    ? 'no deterministic remedy for this edit — the correct value lives in the source policy; use the record editor above or suppress with a memo'
+                    : 'bulk-applies the reason-code companion remedy to every violating record'}
                 onClick={() => fixMut.mutate(E.code)}
               >
-                {fixMut.isPending ? 'Applying fix…' : `Apply agent fix to ${E.count}`}
+                {fixMut.isPending ? 'Applying fix…'
+                  : E.code.toUpperCase().startsWith('A.34') ? `Apply agent fix to ${E.count}`
+                  : 'No automated remedy'}
               </button>
             </div>
 
