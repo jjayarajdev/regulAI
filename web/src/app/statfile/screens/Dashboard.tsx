@@ -29,7 +29,7 @@ export function DashboardScreen({ go }: { go: (s: ScreenId) => () => void }) {
     <div className="sc">
       <StatRow style={{ marginBottom: 30 }}>
         {kpis.map((k) => (
-          <Stat key={k.label} label={k.label} value={k.value} note={k.note} />
+          <Stat key={k.label} label={k.label} value={k.value} note={k.note} onClick={go(k.goTo)} />
         ))}
       </StatRow>
 
@@ -82,7 +82,7 @@ export function DashboardScreen({ go }: { go: (s: ScreenId) => () => void }) {
         </section>
 
         <section>
-          <h4 style={{ marginBottom: 10 }}>Needs a human</h4>
+          <h4 style={{ marginBottom: 10 }}>Requires review</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {queue.map((q) => (
               <Blueprint key={q.meta + q.title} className="card rowlink" style={{ padding: '14px 16px' }} onClick={go(q.goTo)}>

@@ -742,7 +742,7 @@ export function cyclesFromFilings(filings: Filing[], val?: ValidateAllResponse):
   });
 }
 
-export interface Kpi { label: string; value: string; note: string }
+export interface Kpi { label: string; value: string; note: string; goTo: ScreenId }
 export function kpisFrom(
   filings: Filing[], val?: ValidateAllResponse, pipe?: PipelineStateResponse, rulesPending?: number,
 ): Kpi[] {
@@ -753,11 +753,12 @@ export function kpisFrom(
   const blocking = violations.filter((v) => v.severity === 'ERROR').length;
   const due = filings.filter((f) => f.is_active).map((f) => f.due_date).sort()[0];
   const days = due ? Math.max(0, Math.round((+new Date(due) - Date.now()) / 86400000)) : null;
+  // Every KPI links to the screen its number comes from.
   return [
-    { label: 'Records staged', value: gold ? fmt(gold.row_total) : '—', note: 'gold · all filings' },
-    { label: 'Open exceptions', value: val ? fmt(violations.length) : '—', note: `${fmt(blocking)} blocking the package` },
-    { label: 'Rules pending', value: rulesPending != null ? String(rulesPending) : '—', note: 'human approval gate' },
-    { label: 'Days to due', value: days != null ? String(days) : '—', note: due ? `TDI · ${due}` : '—' },
+    { label: 'Records staged', value: gold ? fmt(gold.row_total) : '—', note: 'gold · all filings', goTo: 'pipe' },
+    { label: 'Open exceptions', value: val ? fmt(violations.length) : '—', note: `${fmt(blocking)} blocking the package`, goTo: 'val' },
+    { label: 'Rules pending', value: rulesPending != null ? String(rulesPending) : '—', note: 'human approval gate', goTo: 'rules' },
+    { label: 'Days to due', value: days != null ? String(days) : '—', note: due ? `TDI · ${due}` : '—', goTo: 'filing' },
   ];
 }
 

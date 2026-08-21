@@ -6,11 +6,21 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Blueprint } from './Blueprint';
 
 // ── Stat — the KPI card: small-caps label, one canonical value size, note ──
-export function Stat({ label, value, note, accent }: {
+export function Stat({ label, value, note, accent, onClick }: {
   label: string; value: ReactNode; note?: ReactNode; accent?: boolean;
+  onClick?: () => void;   // KPIs navigate to their source screen
 }) {
   return (
-    <Blueprint style={{ padding: '13px 15px 11px' }}>
+    <Blueprint className={onClick ? 'rowlink' : undefined}
+      onClick={onClick}
+      title={onClick ? 'open the screen behind this number' : undefined}
+      style={{ padding: '13px 15px 11px', position: 'relative' }}>
+      {onClick && (
+        <span aria-hidden style={{
+          position: 'absolute', top: 10, right: 12, fontSize: 13,
+          color: 'color-mix(in srgb,var(--color-text) 35%,transparent)',
+        }}>›</span>
+      )}
       <div className="k">{label}</div>
       <div style={{
         fontFamily: 'var(--font-heading)', fontSize: 30, lineHeight: 1.05, marginTop: 5,
