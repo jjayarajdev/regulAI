@@ -213,3 +213,14 @@
 .sf .tophead h3 { margin: 2px 0 0; font-size: 23px; }
 .sf .tophead .actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .sf .content { flex: 1; padding: 26px 28px; }
+
+
+/* — side-drawer modal motion — */
+@keyframes sf-drawer-in {
+  from { transform: translateX(28px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes sf-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
