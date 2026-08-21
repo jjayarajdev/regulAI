@@ -8,6 +8,7 @@
 import { useState, type CSSProperties } from 'react';
 import { Blueprint } from '../Blueprint';
 import { DetailModal } from '../DetailModal';
+import { Stat, StatRow } from '../ui';
 import { SelectList } from '../SelectList';
 import { useMappingDetail, useMappings } from '../api';
 import type { MappingColumn, MappingDetail, MappingTransformType } from '../../../api/types';
@@ -254,20 +255,11 @@ export function MappingReviewScreen() {
         {!loading && d && (
           <>
             {/* KPI row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 22, marginBottom: 18 }}>
+            <StatRow style={{ marginBottom: 18 }}>
               {kpis.map((k) => (
-                <Blueprint key={k.label} style={{ padding: '14px 16px 12px' }}>
-                  <div className="k">{k.label}</div>
-                  <div style={{
-                    fontFamily: 'var(--font-heading)', fontSize: 32, lineHeight: 1.05, marginTop: 6,
-                    color: k.accent ? 'var(--color-accent-700)' : undefined,
-                  }}>
-                    {k.value}
-                  </div>
-                  <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{k.note}</div>
-                </Blueprint>
+                <Stat key={k.label} label={k.label} value={k.value} note={k.note} accent={k.accent} />
               ))}
-            </div>
+            </StatRow>
 
             {/* provenance strip */}
             <div className="mono muted" style={{

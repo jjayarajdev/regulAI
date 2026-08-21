@@ -2,6 +2,7 @@
 // Live: /filings + /validate/all + /pipeline/state + /kg/rules; falls back to
 // the design fixtures per section while loading or when the warehouse is cold.
 import { Blueprint } from '../Blueprint';
+import { DemoTag, Stat, StatRow } from '../ui';
 import {
   cyclesFromFilings, groupViolations, kpisFrom, layersFrom, queueFrom,
   useFilings, useKgRules, usePipelineState, useValidateAll,
@@ -26,20 +27,17 @@ export function DashboardScreen({ go }: { go: (s: ScreenId) => () => void }) {
 
   return (
     <div className="sc">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 26, marginBottom: 34 }}>
+      <StatRow style={{ marginBottom: 30 }}>
         {kpis.map((k) => (
-          <Blueprint key={k.label} style={{ padding: '14px 16px 12px' }}>
-            <div className="k">{k.label}</div>
-            <div style={{ fontFamily: 'var(--font-heading)', fontSize: 36, lineHeight: 1.05, marginTop: 6 }}>{k.value}</div>
-            <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{k.note}</div>
-          </Blueprint>
+          <Stat key={k.label} label={k.label} value={k.value} note={k.note} />
         ))}
-      </div>
+      </StatRow>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 34 }}>
         <section>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
             <h4>Filing cycles</h4>
+            {!filingsQ.data?.filings.length && <DemoTag reason="warehouse filings unavailable — showing design fixtures" />}
             <span className="k">
               {filings.length ? 'live · all jurisdictions' : 'All jurisdictions · all standards'}
             </span>

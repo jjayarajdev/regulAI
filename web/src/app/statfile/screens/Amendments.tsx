@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Blueprint } from '../Blueprint';
 import { SelectList } from '../SelectList';
+import { DemoTag, Stat, StatRow } from '../ui';
 import {
   can, useApplyBulletin, useBulletinImpact, useBulletins, whoCan, type AppUser,
 } from '../api';
@@ -244,6 +245,7 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
 
       {/* ── impact analysis ────────────────────────────────────────────── */}
       <section>
+        {!live && !bulQ.isLoading && <div style={{ marginBottom: 10 }}><DemoTag reason="bulletins API empty or unreachable — showing design fixtures" /></div>}
         {!live && bulQ.isLoading && <span className="k">loading bulletins…</span>}
         {B && (
           <>
@@ -311,15 +313,11 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
         {!loading && impact && !(impact.totals.rules_affected === 0 && impact.rule_changes.length === 0) && (
           <>
             {/* KPI row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 22, marginBottom: 24 }}>
+            <StatRow>
               {kpis.map((k) => (
-                <Blueprint key={k.label} style={{ padding: '14px 16px 12px' }}>
-                  <div className="k">{k.label}</div>
-                  <div style={{ fontFamily: 'var(--font-heading)', fontSize: 32, lineHeight: 1.05, marginTop: 6 }}>{k.value}</div>
-                  <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{k.note}</div>
-                </Blueprint>
+                <Stat key={k.label} label={k.label} value={k.value} note={k.note} />
               ))}
-            </div>
+            </StatRow>
 
             {/* per-rule diffs */}
             {impact.rule_changes.map((rc) => {

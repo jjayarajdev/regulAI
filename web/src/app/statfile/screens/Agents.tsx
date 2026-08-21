@@ -4,6 +4,7 @@
 // forward. Demo runs until the first recorded run lands.
 import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
+import { Stat, StatRow } from '../ui';
 import { useAgentRunDetail, useAgentRuns, type AgentRunRow } from '../api';
 import { ACC, ACC9, AGENT_STATS, NEU, RUNS, TRACE } from '../data';
 
@@ -96,14 +97,11 @@ export function AgentsScreen() {
   return (
     <div className="sc" style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 30, alignItems: 'start' }}>
       <section>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20, marginBottom: 26 }}>
+        <StatRow>
           {stats.map((a) => (
-            <Blueprint key={a.label} style={{ padding: '12px 14px' }}>
-              <div className="k">{a.label}</div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: 27, lineHeight: 1.1, marginTop: 4 }}>{a.value}</div>
-            </Blueprint>
+            <Stat key={a.label} label={a.label} value={a.value} />
           ))}
-        </div>
+        </StatRow>
         <h4 style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
           {live ? 'Run history — GOLD_AUDIT.AGENT_RUN' : 'Run history — cycle TX-HO-2026A'}
           {!live && (

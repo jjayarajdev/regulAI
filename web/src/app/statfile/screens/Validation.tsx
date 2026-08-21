@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
 import { DetailModal } from '../DetailModal';
+import { DemoTag } from '../ui';
 import {
   can, groupViolations, useApplyFix, useAssign, useBronzeFix, useClaims,
   useFilings, usePolicyFields, useReasonCodes, useSuppress, useUnsuppress,
@@ -162,6 +163,7 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
       </aside>
 
       <section>
+        {!live && <div style={{ marginBottom: 10 }}><DemoTag reason="no live violations — showing design fixtures" /></div>}
         <table className="table">
           <thead>
             <tr><th>Sev</th><th>Edit</th><th>Field</th><th>Description</th><th>Records</th><th>Origin</th><th /></tr>

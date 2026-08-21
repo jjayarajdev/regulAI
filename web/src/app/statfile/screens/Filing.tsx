@@ -7,6 +7,7 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Blueprint } from '../Blueprint';
+import { DemoTag } from '../ui';
 import {
   can, useAdvanceFiling, useFilingFile, useFilings, useSendFiling,
   useSubmissionState, whoCan, type AppUser,
@@ -148,6 +149,7 @@ export function FilingScreen({ user, go }: { user?: AppUser; go?: (s: ScreenId) 
       {/* ── filing selector ─────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
         <span className="k">Filing</span>
+        {!live && <DemoTag reason="submission state unavailable — showing the design journey" />}
         <div className="seg">
           {filings.map((f) => (
             <label key={f.id} className="seg-opt">

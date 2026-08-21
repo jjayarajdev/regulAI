@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
 import { DetailModal } from '../DetailModal';
+import { DemoTag } from '../ui';
 import {
   can, useAuthorExecutable, useCitation, useKgDiff, useKgRules, useRuleDecision,
   whoCan, type AppUser,
@@ -337,6 +338,7 @@ export function RulesScreen({ user }: { user?: AppUser }) {
         <section>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <h4>Extracted rules</h4>
+            {!live && <DemoTag reason="the canon is empty or unreachable — showing design fixtures" />}
             <span className="k">{pending} awaiting review · showing {filtered.length} of {cards.length}</span>
             <div className="seg" style={{ marginLeft: 'auto' }}>
               {([['pending', 'Pending'], ['low', 'Low confidence'], ['all', 'All']] as Array<[Filter, string]>).map(([f, label]) => (
