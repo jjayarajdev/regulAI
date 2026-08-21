@@ -53,6 +53,17 @@ primary_region = "iad"  # US-East — co-located with the Databricks warehouse
   # the Dockerfile CMD. Fly routes 80/443 → this port via the
   # [http_service] block below.
   PORT = "8765"
+  # DuckDB is the primary warehouse (the REGULAI_DB secret also says duckdb;
+  # keep them in agreement). State — the DuckDB file, uploads, sealed
+  # submissions — lives on the mounted volume; the entrypoint seeds it from
+  # the image's baked materialized/ on first boot and symlinks it in.
+  REGULAI_STATE_DIR = "/data/materialized"
+
+# DuckDB is single-writer: exactly one machine. The volume mount enforces
+# it (a machine can only run where its volume lives) — do not scale out.
+[mounts]
+  source = "regulai_data"
+  destination = "/data"
 
 [experimental]
   # Bind IPv4 — matches dagster app for consistency. Cross-app traffic

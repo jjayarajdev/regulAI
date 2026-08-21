@@ -16,6 +16,24 @@
 # (DuckDB is single-writer; the seed must not race a running api container).
 set -euo pipefail
 
+# ── Persistent state (Fly.io etc.): REGULAI_STATE_DIR points at a mounted
+# volume. First boot seeds it from the image's baked materialized/ (warehouse
+# file, cached extractions, mappings); afterwards the volume is the truth and
+# survives restarts + deploys. /app/materialized becomes a symlink into it.
+if [ -n "${REGULAI_STATE_DIR:-}" ]; then
+  mkdir -p "${REGULAI_STATE_DIR}"
+  if [ ! -e "${REGULAI_STATE_DIR}/.initialized" ] && [ -d /app/materialized ] && [ ! -L /app/materialized ]; then
+    echo "[entry] seeding ${REGULAI_STATE_DIR} from the image's materialized/ …"
+    cp -a /app/materialized/. "${REGULAI_STATE_DIR}/"
+    touch "${REGULAI_STATE_DIR}/.initialized"
+  fi
+  if [ ! -L /app/materialized ]; then
+    rm -rf /app/materialized
+    ln -s "${REGULAI_STATE_DIR}" /app/materialized
+  fi
+  echo "[entry] materialized/ → ${REGULAI_STATE_DIR} (persistent volume)"
+fi
+
 DB="${REGULAI_DB:-duckdb}"
 BOOTSTRAP="${REGULAI_BOOTSTRAP:-auto}"
 echo "[entry] REGULAI_DB=${DB} · REGULAI_BOOTSTRAP=${BOOTSTRAP}"
