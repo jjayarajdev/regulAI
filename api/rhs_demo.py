@@ -528,6 +528,10 @@ def _assemble_rules(rules, by_rule, errors, scope_set, pubid_to_policy):
                 "record_id": pubid, "policy_number": pubid_to_policy.get(pubid, pubid),
                 "violation_reason": rule["violation_reason"], "severity": rule["severity"], "citation": rule["citation"],
                 "jurisdiction_code": rule.get("jurisdiction_code"),
+                # Declarative remedy authored on the rule (or the legacy A.34
+                # hardcoded path) — the UI enables Apply-fix from this.
+                "fix_available": bool(rule.get("fix_expr")) or str(rule.get("rule_number") or "").upper().startswith("A.34"),
+                "fix_description": rule.get("fix_description"),
             })
     return rule_results, violations
 
@@ -1247,7 +1251,8 @@ def validate_cancellations(filing: str | None = None,
     rules = query(
         "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
         "       violation_sql, violation_reason, severity, citation, "
-        "       jurisdiction_code, is_federal_default "
+        "       jurisdiction_code, is_federal_default, "
+        "       fix_target_field, fix_expr, fix_description "
         "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
         f"WHERE {jur_clause} "
         "ORDER BY rule_number",
@@ -1309,7 +1314,8 @@ def validate_all() -> JSONResponse:
     rules = query(
         "SELECT rule_id, rule_number, rule_name, target_table, target_id_expr, "
         "       violation_sql, violation_reason, severity, citation, "
-        "       jurisdiction_code, is_federal_default "
+        "       jurisdiction_code, is_federal_default, "
+        "       fix_target_field, fix_expr, fix_description "
         "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
         f"WHERE jurisdiction_code IN ({placeholders}) "
         "ORDER BY rule_number",
@@ -1589,6 +1595,48 @@ def validate_assign(body: dict = Body(...), user: dict = Depends(current_user)) 
     return JSONResponse({"ok": True, "rule_number": rule_number, "assignee": assignee or None})
 
 
+def _apply_declarative_fix(rule_number: str, rule: dict, user: dict) -> JSONResponse:
+    """Apply a rule-authored remedy: UPDATE the rule's own target table,
+    setting fix_target_field to fix_expr for every row the violation_sql
+    matches. Deterministic by construction — the remedy was authored (and
+    audited) on the rule because its text dictates the correction. Returns
+    the same FixResult shape as the legacy A.34 path."""
+    table = rule["target_table"]
+    field = rule["fix_target_field"]
+    expr = rule["fix_expr"]
+    id_expr = rule.get("target_id_expr") or "j.policy_number"
+    vsql = rule["violation_sql"]
+
+    tr = AgentTrace()
+    before = query(
+        f"SELECT CAST({id_expr} AS STRING) AS pid, "
+        f"       CAST(j.{field} AS STRING) AS old, "
+        f"       CAST(({expr}) AS STRING) AS new "
+        f"FROM INSURANCE_REGULATORY.{table} j WHERE ({vsql})"
+    )
+    tr.step("Collect targets", f"{len(before)} records violate {rule_number}")
+    if before:
+        query(
+            f"UPDATE INSURANCE_REGULATORY.{table} AS j "
+            f"SET {field} = ({expr}) WHERE ({vsql})"
+        )
+        tr.step("Apply remedy", f"{table}.{field} <- {expr} on {len(before)} rows")
+        _invalidate_validate()
+        _async_audit(_record_action,
+                     next(iter(_live_filings()), {"id": "-"})["id"], "agent_fix",
+                     actor=user["name"], target_rule=rule_number,
+                     summary=f"Declarative remedy applied for {rule_number}: "
+                             f"{field} corrected on {len(before)} record(s)")
+    tr.finish("Fix Agent", f"Apply {rule_number} remedy", model="declarative remedy",
+              result=f"{len(before)} records corrected")
+    return JSONResponse({
+        "ok": True,
+        "rule_number": rule_number,
+        "fixed": [{"policy_number": b["pid"], "old": b["old"], "new": b["new"]} for b in before],
+        "skipped": [],
+    })
+
+
 @router.post("/validate/fix")
 def validate_fix(body: dict = Body(...), user: dict = Depends(current_user)) -> JSONResponse:
     """Bulk-apply the deterministic remedy for one rule's open violations.
@@ -1605,11 +1653,25 @@ def validate_fix(body: dict = Body(...), user: dict = Depends(current_user)) -> 
     if not rule_number:
         raise HTTPException(status_code=400, detail="rule_number required")
     if not rule_number.startswith("A.34"):
-        raise HTTPException(
-            status_code=400,
-            detail=f"no automated fix for rule {rule_number} — "
-                   "the fix agent only knows the reason-code companion remedy (A.34)",
+        # Declarative remedy authored on the rule itself (fix_target_field +
+        # fix_expr) — the generic path. Rules without one refuse: the correct
+        # value lives in the source policy, and the agent doesn't guess.
+        rows = query(
+            "SELECT target_table, target_id_expr, violation_sql, "
+            "       fix_target_field, fix_expr, fix_description "
+            "FROM INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
+            "WHERE UPPER(rule_number) = %s",
+            (rule_number,),
         )
+        r = rows[0] if rows else None
+        if not r or not r.get("fix_expr") or not r.get("fix_target_field"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"no automated fix for rule {rule_number} — no declarative "
+                       "remedy is authored on this rule (Rulebook → executable form), "
+                       "and the built-in agent only knows the A.34 companion remedy",
+            )
+        return _apply_declarative_fix(rule_number, r, user)
 
     tr = AgentTrace()
     payload = json.loads(validate_all().body)
@@ -1759,6 +1821,9 @@ def kg_rules() -> JSONResponse:
               r.created_at      AS created_at,
               r.target_table    AS target_table,
               r.violation_sql   AS violation_sql,
+              r.fix_target_field AS fix_target_field,
+              r.fix_expr        AS fix_expr,
+              r.fix_description AS fix_description,
               r.severity        AS severity,
               r.version         AS version,
               r.status          AS status,
@@ -1894,6 +1959,9 @@ def kg_rule_executable(rule_id: str, body: dict = Body(...),
     severity = str(body["severity"]).upper()
     if severity not in ("ERROR", "WARNING"):
         raise HTTPException(status_code=422, detail="severity must be ERROR or WARNING")
+    if bool(str(body.get("fix_target_field") or "").strip()) != bool(str(body.get("fix_expr") or "").strip()):
+        raise HTTPException(status_code=422,
+                            detail="a remedy needs both fix_target_field and fix_expr (or neither)")
 
     try:
         with Neo4jGREAdapter() as gre:
@@ -1907,6 +1975,9 @@ def kg_rule_executable(rule_id: str, body: dict = Body(...),
                         r.violation_reason = $violation_reason,
                         r.severity = $severity,
                         r.citation = coalesce($citation, r.citation),
+                        r.fix_target_field = $fix_target_field,
+                        r.fix_expr = $fix_expr,
+                        r.fix_description = $fix_description,
                         r.validation_version = COALESCE(r.validation_version, 0) + 1
                     RETURN r.id AS id, r.name AS name, r.jurisdiction_code AS jur,
                            r.validation_version AS validation_version
@@ -1918,6 +1989,9 @@ def kg_rule_executable(rule_id: str, body: dict = Body(...),
                     violation_reason=str(body["violation_reason"]).strip(),
                     severity=severity,
                     citation=(str(body["citation"]).strip() or None) if body.get("citation") else None,
+                    fix_target_field=(str(body["fix_target_field"]).strip() or None) if body.get("fix_target_field") else None,
+                    fix_expr=(str(body["fix_expr"]).strip() or None) if body.get("fix_expr") else None,
+                    fix_description=(str(body["fix_description"]).strip() or None) if body.get("fix_description") else None,
                 ).single()
             if rec is None:
                 raise HTTPException(status_code=404, detail=f"rule {rule_id} not found in the canon")

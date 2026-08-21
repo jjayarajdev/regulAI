@@ -334,21 +334,22 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
                   {fixMut.error instanceof ApiError ? fixMut.error.message : 'fix failed'}
                 </span>
               )}
-              {/* The remedy registry holds exactly one deterministic fix
-                  (A.34 reason-code companion). Everything else would be the
-                  agent inventing data — the button says so instead of failing. */}
+              {/* Remedies are authored per rule (fix_expr on the KG rule,
+                  via the Rulebook executable form) — the button enables only
+                  where one exists; everything else would be the agent
+                  inventing data. */}
               <button
                 className="btn btn-primary"
                 style={{ marginLeft: fixMut.data || fixMut.error != null ? undefined : 'auto' }}
-                disabled={!live || !mayFix || fixMut.isPending || !E.code.toUpperCase().startsWith('A.34')}
+                disabled={!live || !mayFix || fixMut.isPending || !E.violations[0]?.fix_available}
                 title={!mayFix ? `requires ${whoCan('fix')}`
-                  : !E.code.toUpperCase().startsWith('A.34')
-                    ? 'no deterministic remedy for this edit — the correct value lives in the source policy; use the record editor above or suppress with a memo'
-                    : 'bulk-applies the reason-code companion remedy to every violating record'}
+                  : !E.violations[0]?.fix_available
+                    ? 'no remedy authored for this edit — the correct value lives in the source policy; use the record editor above, suppress with a memo, or author a remedy on the Rulebook screen'
+                    : (E.violations[0]?.fix_description ?? 'bulk-applies the rule-authored remedy to every violating record')}
                 onClick={() => fixMut.mutate(E.code)}
               >
                 {fixMut.isPending ? 'Applying fix…'
-                  : E.code.toUpperCase().startsWith('A.34') ? `Apply agent fix to ${E.count}`
+                  : E.violations[0]?.fix_available ? `Apply agent fix to ${E.count}`
                   : 'No automated remedy'}
               </button>
             </div>

@@ -143,12 +143,18 @@ def main() -> None:
             section VARCHAR, jurisdiction_code VARCHAR, is_federal_default BOOLEAN,
             target_table VARCHAR, target_id_expr VARCHAR, violation_sql VARCHAR,
             violation_reason VARCHAR, severity VARCHAR, citation VARCHAR,
-            validation_version INTEGER, generated_at TIMESTAMP
+            validation_version INTEGER, generated_at TIMESTAMP,
+            -- Declarative per-rule remedy (authored where the rule text
+            -- dictates the correction; NULL = no automated fix).
+            fix_target_field VARCHAR, fix_expr VARCHAR, fix_description VARCHAR
         )
     """)
     for i, (num, name, tgt, idexpr, vsql, reason, sev, cite) in enumerate(VALIDATION_RULES, 1):
         con.execute(
-            f"INSERT INTO {CATALOG}.REFERENCE.TSPR_VALIDATION_RULES VALUES "
+            f"INSERT INTO {CATALOG}.REFERENCE.TSPR_VALIDATION_RULES "
+            "(rule_id, rule_number, rule_name, section, jurisdiction_code, is_federal_default, "
+            " target_table, target_id_expr, violation_sql, violation_reason, severity, citation, "
+            " validation_version, generated_at) VALUES "
             "(?, ?, ?, ?, 'US-TX', FALSE, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)",
             [f"rule-{num}-{i:03d}", num, name, num.split(".")[0], tgt, idexpr, vsql, reason, sev, cite],
         )

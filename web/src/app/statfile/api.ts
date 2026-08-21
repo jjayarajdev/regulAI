@@ -222,6 +222,7 @@ export const useAuthorExecutable = () => {
       ruleId: string; target_table: string; target_id_expr: string;
       violation_sql: string; violation_reason: string;
       severity: 'ERROR' | 'WARNING'; citation?: string;
+      fix_target_field?: string; fix_expr?: string; fix_description?: string;
     }) =>
       patchJson<{ ok: boolean; reference_rows_loaded: number | null }>(
         `/kg/rules/${encodeURIComponent(ruleId)}/executable`, body),

@@ -109,7 +109,9 @@ def load_reference(jurisdiction: str) -> int:
                    r.section AS section, r.target_table AS target_table,
                    r.target_id_expr AS target_id_expr, r.violation_sql AS violation_sql,
                    r.violation_reason AS violation_reason, r.severity AS severity,
-                   r.citation AS citation, r.validation_version AS validation_version
+                   r.citation AS citation, r.validation_version AS validation_version,
+                   r.fix_target_field AS fix_target_field, r.fix_expr AS fix_expr,
+                   r.fix_description AS fix_description
             ORDER BY r.rule_number
             """,
             jur=jurisdiction,
@@ -123,12 +125,14 @@ def load_reference(jurisdiction: str) -> int:
             "INSERT INTO INSURANCE_REGULATORY.REFERENCE.TSPR_VALIDATION_RULES "
             "(rule_id, rule_number, rule_name, section, jurisdiction_code, "
             " is_federal_default, target_table, target_id_expr, violation_sql, "
-            " violation_reason, severity, citation, validation_version, generated_at) "
-            "VALUES (%s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s, %s, %s, %s, %s)",
+            " violation_reason, severity, citation, validation_version, generated_at, "
+            " fix_target_field, fix_expr, fix_description) "
+            "VALUES (%s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (str(r["rule_id"]), f"{short}.{r['n']}", r["rule_name"], r["section"],
              jurisdiction, r["target_table"], r["target_id_expr"], r["violation_sql"],
              r["violation_reason"], r["severity"], r["citation"],
-             int(r["validation_version"] or 1), now),
+             int(r["validation_version"] or 1), now,
+             r["fix_target_field"], r["fix_expr"], r["fix_description"]),
         )
     return len(rows)
 

@@ -25,6 +25,9 @@ function ExecutableFormModal({ rule, onClose }: { rule: KgRule; onClose: () => v
     violation_reason: '',
     severity: (rule.severity as 'ERROR' | 'WARNING') ?? 'ERROR',
     citation: rule.citation ?? '',
+    fix_target_field: rule.fix_target_field ?? '',
+    fix_expr: rule.fix_expr ?? '',
+    fix_description: rule.fix_description ?? '',
   });
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
   const valid = f.target_table.trim().length > 5 && f.target_id_expr.trim()
@@ -88,6 +91,20 @@ function ExecutableFormModal({ rule, onClose }: { rule: KgRule; onClose: () => v
         </label>
       </div>
       <label style={{ ...lbl, display: 'block' }}>Citation{inp(f.citation, set('citation'))}</label>
+
+      <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--color-divider)' }}>
+        <div className="k" style={{ marginBottom: 8 }}>
+          Automated remedy · optional — only where the rule text dictates the correction
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: 12 }}>
+          <label style={lbl}>Field to correct{inp(f.fix_target_field, set('fix_target_field'), true)}</label>
+          <label style={lbl}>Corrected value (SQL over <span className="mono">j</span>){inp(f.fix_expr, set('fix_expr'), true)}</label>
+        </div>
+        <label style={{ ...lbl, display: 'block' }}>
+          Remedy description (shown on the Apply-fix button)
+          {inp(f.fix_description, set('fix_description'))}
+        </label>
+      </div>
       <p className="muted" style={{ fontSize: 11.5, lineHeight: 1.6, marginTop: 14 }}>
         Saving writes the executable properties onto the KG rule (audited as a manual edit),
         bumps its validation version, and refreshes the jurisdiction's validation reference —

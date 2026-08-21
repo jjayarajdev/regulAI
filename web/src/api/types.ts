@@ -57,6 +57,8 @@ export interface Violation {
   severity: Severity;
   citation: string;
   suppressed?: boolean; // analyst-suppressed: visible but not blocking
+  fix_available?: boolean;        // a declarative remedy (or legacy A.34) exists
+  fix_description?: string | null;
 }
 
 export interface EditSuppression { memo: string; actor: string; created_at: string }
@@ -159,6 +161,9 @@ export interface KgRule {
   // Executable form (present once authored — the edit package fields).
   target_table?: string | null;
   violation_sql?: string | null;
+  fix_target_field?: string | null;
+  fix_expr?: string | null;
+  fix_description?: string | null;
 }
 
 export interface KgRulesResponse {
