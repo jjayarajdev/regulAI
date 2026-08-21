@@ -853,24 +853,36 @@ export function policiesFrom(val?: ValidateAllResponse): string[] {
   return [...seen].sort();
 }
 
-export function queueFrom(errors: GroupedError[], rulesPending?: number): QueueItem[] {
+export function queueFrom(
+  errors: GroupedError[], rulesPending?: number, pendingBreakdown?: string,
+): QueueItem[] {
   if (!errors.some((e) => e.violations.length)) return QUEUE;
   const items: QueueItem[] = errors
     .filter((e) => e.sev === 2 && !e.suppressed)
     .slice(0, 3)
-    .map((e) => ({
-      kicker: 'Exception',
-      title: `${e.count} × ${e.field}`,
-      body: e.desc,
-      meta: e.code,
-      goTo: 'val' as const,
-    }));
+    .map((e) => {
+      // Locate the exception for the reader: which state, which edit, how many.
+      const jur = ((e.violations[0] as Violation & { jurisdiction_code?: string })
+        ?.jurisdiction_code ?? '').replace(/^US-/, '');
+      const n = e.violations.length;
+      return {
+        kicker: 'Blocking exception',
+        title: e.field,
+        body: e.desc,
+        meta: [jur, `edit ${e.code}`, `${n} record${n === 1 ? '' : 's'}`].filter(Boolean).join(' · '),
+        goTo: 'val' as const,
+      };
+    });
   if (rulesPending) {
     items.unshift({
-      kicker: 'Approval gate',
-      title: `${rulesPending} rules await sign-off`,
-      body: 'Draft or amended rules require human approval before the cycle can close.',
-      meta: 'Blocks seal',
+      kicker: 'Sign-off queue',
+      title: `${rulesPending} rules await review`,
+      // The breakdown turns a wall of a number into per-state work items.
+      body: pendingBreakdown
+        ? `Draft rules pending human approval: ${pendingBreakdown}.`
+        : 'Draft rules pending human approval on the Rulebook screen.',
+      // Sign-off does NOT gate sealing (ERROR exceptions do) — say what it is.
+      meta: 'Rulebook',
       goTo: 'rules',
     });
   }

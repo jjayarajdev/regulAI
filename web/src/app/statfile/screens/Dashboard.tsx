@@ -16,14 +16,25 @@ export function DashboardScreen({ go }: { go: (s: ScreenId) => () => void }) {
   const rulesQ = useKgRules();
 
   const filings = filingsQ.data?.filings ?? [];
-  const rulesPending = rulesQ.data
-    ? rulesQ.data.rules.filter((r) => r.status === 'draft' || !r.currently_active).length
+  // Rules genuinely awaiting a decision — drafts only (superseded/rejected
+  // versions are history, not work).
+  const pendingRules = rulesQ.data?.rules.filter((r) => r.status === 'draft') ?? [];
+  const rulesPending = rulesQ.data ? pendingRules.length : undefined;
+  const pendingBreakdown = pendingRules.length
+    ? Object.entries(pendingRules.reduce<Record<string, number>>((m, r) => {
+        const j = (r.jurisdiction_code ?? '—').replace(/^US-/, '') || 'US';
+        m[j] = (m[j] ?? 0) + 1;
+        return m;
+      }, {}))
+      .sort((a, b) => b[1] - a[1])
+      .map(([j, n]) => `${n} ${j}`)
+      .join(' · ')
     : undefined;
 
   const kpis = kpisFrom(filings, valQ.data, pipeQ.data, rulesPending);
   const cycles = cyclesFromFilings(filings, valQ.data);
   const layers = layersFrom(pipeQ.data);
-  const queue = queueFrom(groupViolations(valQ.data), rulesPending);
+  const queue = queueFrom(groupViolations(valQ.data), rulesPending, pendingBreakdown);
 
   return (
     <div className="sc">
