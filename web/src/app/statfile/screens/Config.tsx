@@ -624,10 +624,28 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
 
   const doExtract = async () => {
     if (!wizard.slug) return;
+    // A cached extraction already exists → don't spend tokens or replace the
+    // proposal set; step 3 renders it directly (Re-extract is the explicit,
+    // armed action there).
+    if (statusQ.data?.status === 'done') { patch({ step: 3 }); return; }
     setBusy('extract'); setError(null);
     try {
       await startExtraction(wizard.slug);
       patch({ step: 3 });
+      statusQ.refetch();
+    } catch (e) { setError((e as Error).message); } finally { setBusy(null); }
+  };
+
+  // Two-step re-extract: first click arms, second click forces. Replacing a
+  // reviewed proposal set must never be one accidental click.
+  const [reArm, setReArm] = useState(false);
+  const doReExtract = async () => {
+    if (!wizard.slug) return;
+    if (!reArm) { setReArm(true); return; }
+    setReArm(false); setBusy('extract'); setError(null);
+    try {
+      await startExtraction(wizard.slug, true);
+      patch({ approved: false });
       statusQ.refetch();
     } catch (e) { setError((e as Error).message); } finally { setBusy(null); }
   };
@@ -943,8 +961,18 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
                     ? 'Approved — the extraction is materialized in the knowledge graph as draft rules.'
                     : 'Mapping the fields approves the extraction into the knowledge graph — the rules land as drafts and go through the human approval gate on the Rulebook screen.'}
                 </div>
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 10, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
                   {deepLink('Review the queued proposals first →', go('extract'))}
+                  <button
+                    className="btn btn-secondary"
+                    style={reArm ? { borderColor: 'var(--color-accent)', color: 'var(--color-accent-700)' } : undefined}
+                    disabled={!mayOnboard || busy === 'extract'}
+                    title="extraction is non-deterministic — a re-run produces a different proposal set and orphans recorded verdicts"
+                    onClick={doReExtract}
+                    onBlur={() => setReArm(false)}
+                  >
+                    {reArm ? 'Replaces all proposals + verdicts — click again to confirm' : 'Re-extract…'}
+                  </button>
                 </div>
               </>
             )}

@@ -568,13 +568,30 @@ def run_extraction(slug: str) -> JSONResponse:
 
 
 @app.post("/api/regulations/{slug}/extract/start")
-def start_extraction(slug: str) -> JSONResponse:
-    """Kick off extraction in the background and return immediately."""
+def start_extraction(slug: str, force: bool = False) -> JSONResponse:
+    """Kick off extraction in the background and return immediately.
+
+    Re-extracting a document that already has a cached extraction replaces
+    the whole proposal set (extraction is non-deterministic) and orphans any
+    review verdicts keyed on the old temp_ids — and spends real tokens. It
+    therefore requires an explicit ?force=true; without it, an existing
+    extraction returns 409 so accidental re-runs can't happen.
+    """
     doc = get_doc(slug)
     if doc is None or not doc.path.exists():
         raise HTTPException(status_code=404, detail=f"Document {slug!r} not found")
     if _is_extracting(slug):
         return JSONResponse({"status": "running"})
+    if extraction_path_for(doc).exists() and not force:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "extraction_exists",
+                "message": "A cached extraction already exists. Re-extracting replaces "
+                           "every proposal (and orphans review verdicts) and spends "
+                           "tokens — pass ?force=true to do it deliberately.",
+            },
+        )
     if slug in _APPROVE_LOCKS:
         raise HTTPException(
             status_code=409,

@@ -211,9 +211,11 @@ export const handlers = [
     ));
   }),
 
-  http.post('/api/regulations/:slug/extract/start', async ({ params }) => {
+  http.post('/api/regulations/:slug/extract/start', async ({ params, request }) => {
     await delay(200);
-    return HttpResponse.json(startExtractionMock(String(params.slug)));
+    const force = new URL(request.url).searchParams.get('force') === 'true';
+    const { status, body } = startExtractionMock(String(params.slug), force);
+    return HttpResponse.json(body as Record<string, unknown>, { status });
   }),
 
   http.get('/api/regulations/:slug/extract/status', async ({ params }) => {

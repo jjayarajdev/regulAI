@@ -82,8 +82,13 @@ export function uploadRegulationMock(
   };
 }
 
-export function startExtractionMock(slug: string): { status: string } {
-  if (extractJobs[slug]?.status === 'running') return { status: 'running' };
+export function startExtractionMock(slug: string, force = false): { status: number; body: unknown } {
+  if (extractJobs[slug]?.status === 'running') return { status: 200, body: { status: 'running' } };
+  const cached = db.regulations.documents.find((x) => x.slug === slug)?.has_extraction;
+  if (cached && !force) {
+    return { status: 409, body: { detail: { error: 'extraction_exists',
+      message: 'A cached extraction already exists — pass ?force=true to replace it.' } } };
+  }
   extractJobs[slug] = { status: 'running', result: null, error: null };
   // Sentinel "runs" for a few seconds, then the cached extraction appears.
   setTimeout(() => {
@@ -101,7 +106,7 @@ export function startExtractionMock(slug: string): { status: string } {
     const doc = db.regulations.documents.find((d) => d.slug === slug);
     if (doc) doc.has_extraction = true;
   }, 2600);
-  return { status: 'running' };
+  return { status: 200, body: { status: 'running' } };
 }
 
 export function extractionStatusMock(slug: string): ExtractJob | { status: 'idle' } {

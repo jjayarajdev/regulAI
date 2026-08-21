@@ -4,9 +4,97 @@
 // citation to real regulator text. Demo fixtures when the canon is empty.
 import { useMemo, useState } from 'react';
 import { Blueprint } from '../Blueprint';
-import { can, useCitation, useKgDiff, useKgRules, useRuleDecision, whoCan, type AppUser } from '../api';
+import { DetailModal } from '../DetailModal';
+import {
+  can, useAuthorExecutable, useCitation, useKgDiff, useKgRules, useRuleDecision,
+  whoCan, type AppUser,
+} from '../api';
 import { ACC, ACC9, CLAUSES, RULES } from '../data';
 import type { KgRule } from '../../../api/types';
+
+// In-product authoring of a rule's executable form — the edit-package fields
+// that scripts.attach_validation_rules used to require a JSON file for.
+function ExecutableFormModal({ rule, onClose }: { rule: KgRule; onClose: () => void }) {
+  const mut = useAuthorExecutable();
+  const short = (rule.jurisdiction_code ?? '').replace('US-', '');
+  const [f, setF] = useState({
+    target_table: rule.target_table ?? (short && short !== 'US' ? `GOLD.${short}_STAT_RECORDS` : 'GOLD.'),
+    target_id_expr: 'j.policy_number',
+    violation_sql: rule.violation_sql ?? '',
+    violation_reason: '',
+    severity: (rule.severity as 'ERROR' | 'WARNING') ?? 'ERROR',
+    citation: rule.citation ?? '',
+  });
+  const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
+  const valid = f.target_table.trim().length > 5 && f.target_id_expr.trim()
+    && f.violation_sql.trim() && f.violation_reason.trim();
+
+  const inp = (v: string, on: (x: string) => void, mono = false, rows = 0) => rows > 0 ? (
+    <textarea value={v} rows={rows} onChange={(e) => on(e.target.value)}
+      style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4, padding: '8px 10px',
+        fontSize: 12, fontFamily: mono ? 'var(--font-mono, monospace)' : 'var(--font-body)',
+        border: '1px solid var(--color-divider)', borderRadius: 0, resize: 'vertical',
+        background: 'color-mix(in srgb,var(--color-text) 4%,transparent)', color: 'var(--color-text)' }} />
+  ) : (
+    <input value={v} onChange={(e) => on(e.target.value)}
+      style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4, padding: '8px 10px',
+        fontSize: 12, fontFamily: mono ? 'var(--font-mono, monospace)' : 'var(--font-body)',
+        border: '1px solid var(--color-divider)', borderRadius: 0,
+        background: 'color-mix(in srgb,var(--color-text) 4%,transparent)', color: 'var(--color-text)' }} />
+  );
+  const lbl = { fontSize: 11.5, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' } as const;
+
+  return (
+    <DetailModal open onClose={onClose} width={720}
+      kicker={`executable form · ${rule.jurisdiction_code ?? '—'} · runs in /validate once saved`}
+      title={rule.name}
+      tags={<span className={'tag ' + (rule.violation_sql ? 'tag-neutral' : 'tag-outline')}>
+        {rule.violation_sql ? 'editing' : 'not yet executable'}
+      </span>}
+      footer={
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="btn btn-primary" disabled={!valid || mut.isPending}
+            onClick={() => mut.mutate(
+              { ruleId: rule.id, ...f, citation: f.citation || undefined },
+              { onSuccess: onClose },
+            )}>
+            {mut.isPending ? 'Saving…' : 'Save — compile into the edit package'}
+          </button>
+          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          {mut.error != null && (
+            <span style={{ fontSize: 11.5, color: '#a33' }}>{(mut.error as Error).message}</span>
+          )}
+        </div>
+      }>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px 16px', marginBottom: 12 }}>
+        <label style={lbl}>Target table{inp(f.target_table, set('target_table'), true)}</label>
+        <label style={lbl}>Record id expression{inp(f.target_id_expr, set('target_id_expr'), true)}</label>
+      </div>
+      <label style={{ ...lbl, display: 'block', marginBottom: 12 }}>
+        Violation SQL — predicate over alias <span className="mono">j</span>; TRUE means the record violates the rule
+        {inp(f.violation_sql, set('violation_sql'), true, 5)}
+      </label>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px 16px', marginBottom: 12 }}>
+        <label style={lbl}>Violation reason (analyst-facing){inp(f.violation_reason, set('violation_reason'))}</label>
+        <label style={lbl}>Severity
+          <select value={f.severity} onChange={(e) => setF((s) => ({ ...s, severity: e.target.value as 'ERROR' | 'WARNING' }))}
+            style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', fontSize: 12,
+              border: '1px solid var(--color-divider)', borderRadius: 0,
+              background: 'var(--color-bg, transparent)', color: 'var(--color-text)' }}>
+            <option value="ERROR">ERROR — blocks sealing</option>
+            <option value="WARNING">WARNING — flagged only</option>
+          </select>
+        </label>
+      </div>
+      <label style={{ ...lbl, display: 'block' }}>Citation{inp(f.citation, set('citation'))}</label>
+      <p className="muted" style={{ fontSize: 11.5, lineHeight: 1.6, marginTop: 14 }}>
+        Saving writes the executable properties onto the KG rule (audited as a manual edit),
+        bumps its validation version, and refreshes the jurisdiction's validation reference —
+        the edit runs on the next validation pass. No scripts, no JSON files.
+      </p>
+    </DetailModal>
+  );
+}
 
 const JUR: Record<string, string> = {
   'US-TX': 'Texas', 'US-FL': 'Florida', 'US-OK': 'Oklahoma', 'US-LA': 'Louisiana',
@@ -127,6 +215,9 @@ export function RulesScreen({ user }: { user?: AppUser }) {
     setDecided((s) => ({ ...s, [id]: d }));  // optimistic; refetch reconciles
     if (live) decideMut.mutate({ ruleId: id, decision: d });
   };
+
+  // Executable-form authoring modal — opened from the expanded rule card.
+  const [authorRule, setAuthorRule] = useState<KgRule | null>(null);
 
   // Canon diff panel — last 30 days of KG mutations, fetched on demand.
   const [showDiff, setShowDiff] = useState(false);
@@ -351,6 +442,13 @@ export function RulesScreen({ user }: { user?: AppUser }) {
                       </span>
                       {mayDecide ? (
                         <>
+                          {r.raw && (
+                            <button className="btn btn-secondary"
+                              title="author the rule's edit-package fields — target table, violation SQL, severity"
+                              onClick={(e) => { e.stopPropagation(); setAuthorRule(r.raw!); }}>
+                              {r.raw.violation_sql ? 'Edit executable…' : 'Make executable…'}
+                            </button>
+                          )}
                           <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); decide(r.id, 'rejected'); }}>Reject</button>
                           <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); decide(r.id, 'approved'); }}>Approve</button>
                         </>
@@ -367,6 +465,11 @@ export function RulesScreen({ user }: { user?: AppUser }) {
           </div>
         </section>
       </div>
+
+      {authorRule && (
+        <ExecutableFormModal key={authorRule.id} rule={authorRule}
+          onClose={() => setAuthorRule(null)} />
+      )}
     </div>
   );
 }

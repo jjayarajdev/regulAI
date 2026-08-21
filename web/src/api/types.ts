@@ -156,6 +156,9 @@ export interface KgRule {
   source_doc: string | null;
   source_kind: string | null;
   source_url: string | null;
+  // Executable form (present once authored — the edit package fields).
+  target_table?: string | null;
+  violation_sql?: string | null;
 }
 
 export interface KgRulesResponse {

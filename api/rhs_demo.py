@@ -1804,9 +1804,9 @@ def kg_rules() -> JSONResponse:
             and (ef is None or ef <= today)
             and (eu is None or eu >= today)
         )
-        # Don't ship the SQL/citation noise in the list view
-        r.pop("target_table", None)
-        r.pop("violation_sql", None)
+        # target_table/violation_sql stay in the payload: the Rulebook's
+        # executable-form editor prefills from them (they used to be popped
+        # as list-view noise, before authoring moved into the product).
     counts = {
         "total": len(rules),
         "executable": sum(1 for r in rules if r["executable"]),
@@ -1866,6 +1866,90 @@ def kg_rule_decision(rule_id: str, body: dict = Body(...),
         raise HTTPException(status_code=503, detail=f"KG unreachable: {e}") from e
 
     return JSONResponse({"ok": True, "rule": dict(rec)})
+
+
+@router.patch("/kg/rules/{rule_id}/executable")
+def kg_rule_executable(rule_id: str, body: dict = Body(...),
+                       user: dict = Depends(current_user)) -> JSONResponse:
+    """Author (or update) a rule's executable form in the product.
+
+    Body: {target_table, target_id_expr, violation_sql, violation_reason,
+           severity: ERROR|WARNING, citation?}
+
+    This is scripts.attach_validation_rules as an endpoint: SET the executable
+    properties on the KG Rule node, bump validation_version, then refresh the
+    rule's jurisdiction rows in REFERENCE.TSPR_VALIDATION_RULES so /validate
+    picks the edit up immediately. With this, a state's edit package is
+    authored entirely in the Rulebook screen — no JSON files, no scripts.
+    """
+    from uuid import UUID
+
+    from packages.core.enums import KGAuditAction
+
+    require(user, "rule_decision")
+    required = ("target_table", "target_id_expr", "violation_sql", "violation_reason", "severity")
+    missing = [k for k in required if not str(body.get(k) or "").strip()]
+    if missing:
+        raise HTTPException(status_code=422, detail=f"missing required field(s): {missing}")
+    severity = str(body["severity"]).upper()
+    if severity not in ("ERROR", "WARNING"):
+        raise HTTPException(status_code=422, detail="severity must be ERROR or WARNING")
+
+    try:
+        with Neo4jGREAdapter() as gre:
+            with gre.driver.session(database=gre.database) as s:
+                rec = s.run(
+                    """
+                    MATCH (r:Rule {id: $rid})
+                    SET r.target_table = $target_table,
+                        r.target_id_expr = $target_id_expr,
+                        r.violation_sql = $violation_sql,
+                        r.violation_reason = $violation_reason,
+                        r.severity = $severity,
+                        r.citation = coalesce($citation, r.citation),
+                        r.validation_version = COALESCE(r.validation_version, 0) + 1
+                    RETURN r.id AS id, r.name AS name, r.jurisdiction_code AS jur,
+                           r.validation_version AS validation_version
+                    """,
+                    rid=rule_id,
+                    target_table=str(body["target_table"]).strip(),
+                    target_id_expr=str(body["target_id_expr"]).strip(),
+                    violation_sql=str(body["violation_sql"]).strip(),
+                    violation_reason=str(body["violation_reason"]).strip(),
+                    severity=severity,
+                    citation=(str(body["citation"]).strip() or None) if body.get("citation") else None,
+                ).single()
+            if rec is None:
+                raise HTTPException(status_code=404, detail=f"rule {rule_id} not found in the canon")
+            try:  # audit is best-effort
+                gre.record_audit_entry(
+                    KGAuditAction.MANUAL_EDIT,
+                    f"Executable form authored for rule: {rec['name']} (v{rec['validation_version']})",
+                    actor=user["name"],
+                    affected_node_ids=[UUID(rule_id)],
+                    details_json=json.dumps({"severity": severity, "target_table": body["target_table"]}),
+                )
+            except Exception:
+                logger.warning("kg_rule_executable: audit entry failed for %s", rule_id, exc_info=True)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"KG unreachable: {e}") from e
+
+    # Refresh the jurisdiction's reference rows so /validate sees the edit now.
+    # In-process warehouse write — safe for single-writer DuckDB (we hold the
+    # connection). Best-effort: the KG carries the truth either way.
+    loaded = None
+    jur = rec["jur"]
+    if jur:
+        try:
+            from scripts.attach_validation_rules import load_reference
+            loaded = load_reference(jur)
+            _invalidate_validate()
+        except Exception:
+            logger.warning("kg_rule_executable: reference refresh failed for %s", jur, exc_info=True)
+
+    return JSONResponse({"ok": True, "rule": dict(rec), "reference_rows_loaded": loaded})
 
 
 @router.get("/reference/reason-codes")
@@ -2805,10 +2889,45 @@ _STAT_AGENTS = {
 }
 
 
+_AGENT_CACHE: dict[str, tuple[float, dict]] = {}
+
+
 def _agent_for_filing(f: dict) -> dict:
-    if (f.get("plan_code") or "").upper() == "FHCF":
-        return _STAT_AGENTS["FHCF"]
-    return _STAT_AGENTS["TICO"]
+    """The statistical agent that receives this filing's submission.
+
+    Resolved from the KG — the FilingObligation's RECEIVES_SUBMISSION edge —
+    so a newly onboarded state's submissions route to its own agent (SFTP
+    folder, email identity, ack signature) instead of defaulting to TICO.
+    Cached ~5 min; the static map is both the canonical contact card for
+    known agents and the fallback when the KG is unreachable.
+    """
+    fid = str(f.get("id") or "")
+    hit = _AGENT_CACHE.get(fid)
+    if hit and (_time.time() - hit[0]) < 300:
+        return hit[1]
+
+    agent: dict | None = None
+    try:
+        from packages.adapters.lhs.gre.neo4j_adapter import Neo4jGREAdapter
+        with Neo4jGREAdapter() as g, g.driver.session(database=g.database) as s:
+            r = s.run(
+                "MATCH (fo:FilingObligation {obligation_code: $code})"
+                "-[:RECEIVES_SUBMISSION]->(a:StatisticalAgent) "
+                "RETURN a.agent_code AS code, coalesce(a.agent_name, a.name) AS name",
+                code=fid,
+            ).single()
+            if r and r["code"]:
+                agent = _STAT_AGENTS.get(r["code"]) or {
+                    "code": r["code"],
+                    "name": r["name"] or r["code"],
+                    "email": f"stat.submissions@{r['code'].lower().replace('-', '')}.example",
+                }
+    except Exception:  # noqa: BLE001 — KG offline → static fallback below
+        pass
+    if agent is None:
+        agent = _STAT_AGENTS["FHCF"] if (f.get("plan_code") or "").upper() == "FHCF" else _STAT_AGENTS["TICO"]
+    _AGENT_CACHE[fid] = (_time.time(), agent)
+    return agent
 
 
 _DISPATCH_DDL_DONE = False

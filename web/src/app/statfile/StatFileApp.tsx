@@ -15,6 +15,7 @@ import { FilingScreen } from './screens/Filing';
 import { AmendmentsScreen } from './screens/Amendments';
 import { MappingReviewScreen } from './screens/MappingReview';
 import { ExtractionReviewScreen } from './screens/ExtractionReview';
+import { ErrorBoundary } from './ErrorBoundary';
 import { IsoScreen } from './screens/Iso';
 import { ConfigScreen } from './screens/Config';
 import { UsersScreen } from './screens/Users';
@@ -230,6 +231,7 @@ export function StatFileApp() {
           </header>
 
           <div className="content">
+            <ErrorBoundary screen={screen}>
             {screen === 'dash' && <DashboardScreen go={go} />}
             {(screen === 'rules' || screen === 'graph' || screen === 'extract') && (
               <>
@@ -260,6 +262,7 @@ export function StatFileApp() {
                 {screen === 'config' ? <ConfigScreen go={go} user={user} /> : <UsersScreen user={user} />}
               </>
             )}
+            </ErrorBoundary>
           </div>
         </main>
       </div>

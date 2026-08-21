@@ -174,7 +174,7 @@ async function extract(slug,name){
   $("resPanel").scrollIntoView({behavior:"smooth",block:"start"});
   try{
     // Start the job, then poll — the LLM call takes ~1–2 min, so we never block.
-    const s=await fetch(`/api/regulations/${slug}/extract/start`,{method:"POST"});
+    const s=await fetch(`/api/regulations/${slug}/extract/start?force=true`,{method:"POST"});
     const sd=await readJson(s); if(!s.ok)throw new Error(sd.detail||s.statusText);
     let secs=0;
     const job=await new Promise((resolve,reject)=>{

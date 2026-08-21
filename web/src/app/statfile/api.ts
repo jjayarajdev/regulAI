@@ -211,6 +211,27 @@ export const useRuleDecision = () => {
   });
 };
 
+// Author a rule's executable form (target table + violation SQL) in-product —
+// scripts.attach_validation_rules as an endpoint. The server refreshes the
+// jurisdiction's REFERENCE.TSPR_VALIDATION_RULES rows, so /validate picks the
+// edit up immediately.
+export const useAuthorExecutable = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ruleId, ...body }: {
+      ruleId: string; target_table: string; target_id_expr: string;
+      violation_sql: string; violation_reason: string;
+      severity: 'ERROR' | 'WARNING'; citation?: string;
+    }) =>
+      patchJson<{ ok: boolean; reference_rows_loaded: number | null }>(
+        `/kg/rules/${encodeURIComponent(ruleId)}/executable`, body),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['sf', 'kg-rules'] });
+      qc.invalidateQueries({ queryKey: ['sf', 'validate-all'] });
+    },
+  });
+};
+
 // Run the full cycle: Bronze→Silver, Silver→Gold, then let every query
 // refetch (validation re-runs on the fresh gold). Long-running — Databricks.
 export const useRunCycle = () => {
@@ -569,8 +590,13 @@ export async function uploadRegulation(
 // Background extraction: POST …/extract/start kicks Sentinel off server-side,
 // GET …/extract/status is the poll target (same mechanism the legacy
 // ui/reg-upload.html uses). Never call the synchronous /extract from the UI.
-export const startExtraction = (slug: string) =>
-  regJson<{ status: string }>(`/regulations/${encodeURIComponent(slug)}/extract/start`, { method: 'POST' });
+// force=true deliberately replaces an existing extraction (new proposal set,
+// verdicts orphaned, tokens spent) — without it the server 409s when a cached
+// extraction exists, so accidental re-runs can't happen.
+export const startExtraction = (slug: string, force = false) =>
+  regJson<{ status: string }>(
+    `/regulations/${encodeURIComponent(slug)}/extract/start${force ? '?force=true' : ''}`,
+    { method: 'POST' });
 
 export interface ExtractStatus {
   status: 'idle' | 'running' | 'done' | 'error';
