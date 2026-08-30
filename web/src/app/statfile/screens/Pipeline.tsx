@@ -1,10 +1,32 @@
-// Medallion pipeline — Bronze/Silver/Gold layer cards + the transformation
-// contract table. Live: /catalog for the layer cards (tables, row counts,
-// last-altered); /pipeline/contract for the Bronze→Silver contract with live
-// per-column coverage. Demo fixtures when the warehouse is cold.
-import { Blueprint } from '../Blueprint';
+// Medallion pipeline — reimagined as a native Ant Design page: Bronze/Silver/
+// Gold as a Card row with Badge freshness, per-layer table inventories as
+// compact Tables with Statistic footers, and the transformation contract as a
+// Card-framed Table with coverage Tags. Live: /catalog for the layer cards
+// (tables, row counts, last-altered); /pipeline/contract for the Bronze→Silver
+// contract with live per-column coverage. Demo fixtures when the warehouse is
+// cold.
+import type { CSSProperties } from 'react';
+import { Badge, Card, Col, Row, Statistic, Table, Tag, Typography } from 'antd';
 import { medallionFrom, useCatalog, usePipelineContract } from '../api';
-import { ACC, CONTRACT } from '../data';
+import { CONTRACT } from '../data';
+
+const { Text, Paragraph } = Typography;
+
+const MONO: CSSProperties = { fontFamily: "ui-monospace,'SFMono-Regular',Menlo,monospace" };
+
+// Layer freshness → Badge semantics.
+const layerBadge = (status: string): 'success' | 'processing' | 'warning' =>
+  status === 'Fresh' ? 'success' : status === 'Rebuilding' ? 'processing' : 'warning';
+
+// Contract coverage intensities → Tag colors by meaning: full coverage is
+// settled, near-full needs a glance, a real gap demands attention.
+const covColor = (tagClass: string) =>
+  tagClass === 'tag-neutral' ? 'green' : tagClass === 'tag-accent' ? 'red' : 'orange';
+
+interface ContractRow {
+  field: string; silver: string; gw: string; xform: string;
+  rule: string; cov: string; tagClass: string;
+}
 
 export function PipelineScreen() {
   const catQ = useCatalog();
@@ -12,7 +34,7 @@ export function PipelineScreen() {
 
   const conQ = usePipelineContract();
   const liveCon = (conQ.data?.row_count ?? 0) > 0;
-  const contract = liveCon
+  const contract: ContractRow[] = liveCon
     ? conQ.data!.columns.map((c) => ({
         field: c.name.toLowerCase(),
         silver: `tspr_premium_staging.${c.name.toLowerCase()}`,
@@ -26,61 +48,100 @@ export function PipelineScreen() {
       }))
     : CONTRACT;
 
-  return (
-    <div className="sc">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 22 }}>
-        {medallion.map((m) => (
-          <Blueprint key={m.name} style={{ padding: '18px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: 26 }}>{m.name}</div>
-              <span className={'tag ' + m.tagClass}>{m.status}</span>
-            </div>
-            <div style={{ fontSize: 12.5, lineHeight: 1.6, color: 'color-mix(in srgb,var(--color-text) 65%,transparent)', margin: '6px 0 14px' }}>{m.desc}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {m.tables.map(([name, rows]) => (
-                <div key={name} className="row" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 8%,transparent)' }}>
-                  <span className="mono" style={{ fontSize: 11.5, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                  <span className="mono muted" style={{ fontSize: 11 }}>{rows}</span>
-                  <span style={{ width: 7, height: 7, background: m.status === 'Fresh' ? ACC : '#94bce3' }} />
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: 14, display: 'flex', gap: 16 }}>
-              <div><div className="k">Tables</div><div className="mono" style={{ fontSize: 13 }}>{m.latency}</div></div>
-              <div><div className="k">Last altered</div><div className="mono" style={{ fontSize: 13 }}>{m.last}</div></div>
-            </div>
-          </Blueprint>
-        ))}
-      </div>
+  const layerColumns = [
+    {
+      title: 'Table', dataIndex: 'name', key: 'name', ellipsis: true,
+      render: (v: string) => <span style={{ ...MONO, fontSize: 11.5 }}>{v}</span>,
+    },
+    {
+      title: 'Rows', dataIndex: 'rows', key: 'rows', align: 'right' as const, width: 80,
+      render: (v: string) => <Text type="secondary" style={{ ...MONO, fontSize: 11 }}>{v}</Text>,
+    },
+  ];
 
-      <div style={{ marginTop: 34 }}>
-        <h4 style={{ marginBottom: 10 }}>
-          {liveCon ? (
-            <>Transformation contract — Silver <span className="mono" style={{ fontSize: 13 }}>tspr_premium_staging</span>
-            {' '}<span className="k">live · coverage over {conQ.data!.row_count.toLocaleString('en-US')} staged records</span></>
-          ) : (
-            <>Transformation contract — Gold <span className="mono" style={{ fontSize: 13 }}>tx_ho_stat_record</span>
-            {' '}<span className="k">demo — warehouse offline</span></>
-          )}
-        </h4>
-        <table className="table">
-          <thead>
-            <tr><th>Stat field</th><th>Silver column</th><th>Guidewire source</th><th>Transform</th><th>Governing rule</th><th>Coverage</th></tr>
-          </thead>
-          <tbody>
-            {contract.map((c) => (
-              <tr key={c.field} className="row">
-                <td className="mono" style={{ fontSize: 12 }}>{c.field}</td>
-                <td className="mono" style={{ fontSize: 12, color: 'color-mix(in srgb,var(--color-text) 65%,transparent)' }}>{c.silver}</td>
-                <td className="mono" style={{ fontSize: 12, color: 'color-mix(in srgb,var(--color-text) 65%,transparent)' }}>{c.gw}</td>
-                <td style={{ fontSize: 12.5 }}>{c.xform}</td>
-                <td className="mono" style={{ fontSize: 11.5, color: 'var(--color-accent-700)' }}>{c.rule}</td>
-                <td><span className={'tag ' + c.tagClass}>{c.cov}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+  const contractColumns = [
+    {
+      title: 'Stat field', dataIndex: 'field', key: 'field',
+      render: (v: string) => <span style={{ ...MONO, fontSize: 12 }}>{v}</span>,
+    },
+    {
+      title: 'Silver column', dataIndex: 'silver', key: 'silver', ellipsis: true,
+      render: (v: string) => <Text type="secondary" style={{ ...MONO, fontSize: 12 }}>{v}</Text>,
+    },
+    {
+      title: 'Guidewire source', dataIndex: 'gw', key: 'gw', ellipsis: true,
+      render: (v: string) => <Text type="secondary" style={{ ...MONO, fontSize: 12 }}>{v}</Text>,
+    },
+    { title: 'Transform', dataIndex: 'xform', key: 'xform' },
+    {
+      title: 'Governing rule', dataIndex: 'rule', key: 'rule', width: 150,
+      render: (v: string) => <Text code style={{ fontSize: 11.5 }}>{v}</Text>,
+    },
+    {
+      title: 'Coverage', dataIndex: 'cov', key: 'cov', width: 100,
+      render: (v: string, c: ContractRow) => <Tag color={covColor(c.tagClass)}>{v}</Tag>,
+    },
+  ];
+
+  return (
+    <div>
+      {/* ── medallion layers ────────────────────────────────────────────── */}
+      <Row gutter={[16, 16]}>
+        {medallion.map((m) => (
+          <Col key={m.name} xs={24} xl={8}>
+            <Card
+              title={m.name}
+              extra={<Badge status={layerBadge(m.status)} text={m.status} />}
+              style={{ height: '100%' }}
+            >
+              <Paragraph type="secondary" style={{ fontSize: 12.5, lineHeight: 1.6, marginBottom: 12 }}>
+                {m.desc}
+              </Paragraph>
+              <Table
+                rowKey="name"
+                dataSource={m.tables.map(([name, rows]) => ({ name, rows }))}
+                columns={layerColumns}
+                pagination={false} size="small" showHeader={false}
+              />
+              <Row gutter={16} style={{ marginTop: 14 }}>
+                <Col span={12}>
+                  <Statistic
+                    title={<Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tables</Text>}
+                    value={m.latency}
+                    valueStyle={{ ...MONO, fontSize: 15 }}
+                  />
+                </Col>
+                <Col span={12}>
+                  <Statistic
+                    title={<Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Last altered</Text>}
+                    value={m.last}
+                    valueStyle={{ ...MONO, fontSize: 15 }}
+                  />
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+
+      {/* ── transformation contract ─────────────────────────────────────── */}
+      <Card
+        style={{ marginTop: 16 }}
+        title={liveCon
+          ? <>Transformation contract — Silver <span style={{ ...MONO, fontSize: 13, fontWeight: 400 }}>tspr_premium_staging</span></>
+          : <>Transformation contract — Gold <span style={{ ...MONO, fontSize: 13, fontWeight: 400 }}>tx_ho_stat_record</span></>}
+        extra={liveCon
+          ? <Text type="secondary" style={{ fontSize: 13 }}>live · coverage over {conQ.data!.row_count.toLocaleString('en-US')} staged records</Text>
+          : <Tag color="orange" title="warehouse offline — showing design fixtures">demo data</Tag>}
+        styles={{ body: { padding: 0 } }}
+      >
+        <Table
+          rowKey="field"
+          dataSource={contract}
+          columns={contractColumns}
+          pagination={false} size="middle"
+        />
+      </Card>
     </div>
   );
 }

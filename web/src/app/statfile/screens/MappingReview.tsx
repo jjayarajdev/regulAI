@@ -1,34 +1,40 @@
-// Mapping review — "agent proposes, human governs" for schema mappings. The
-// schema-mapper LLM proposed every Guidewire→FHCF column expression; a human
-// review accepted most and overrode the rest. Left rail lists the reviewed
-// mapping specs; the main pane shows every proposal with its confidence and
-// rationale, and for the overridden columns a proposed-vs-accepted SQL diff
-// with the reviewer's reason. Live: /mappings + /mapping/{name} (file-backed
-// on the server — works on any warehouse).
-import { useState, type CSSProperties } from 'react';
-import { Blueprint } from '../Blueprint';
-import { DetailModal } from '../DetailModal';
-import { Stat, StatRow } from '../ui';
-import { SelectList } from '../SelectList';
+// Mapping review — "agent proposes, human governs" for schema mappings,
+// reimagined as a native Ant Design page: mapping specs as a selectable
+// Card+List rail, verdict KPIs as Statistic-style cards, every proposal in an
+// antd Table (confidence as Badge dots, verdicts as Tags), and the
+// proposed-vs-accepted SQL diff with the reviewer's reason in a right-side
+// Drawer. Live: /mappings + /mapping/{name} (file-backed on the server —
+// works on any warehouse).
+import { useMemo, useState, type CSSProperties } from 'react';
+import {
+  Badge, Button, Card, Col, Divider, Drawer, Empty, Input, List, Row,
+  Skeleton, Space, Table, Tag, Typography,
+} from 'antd';
 import { useMappingDetail, useMappings } from '../api';
-import type { MappingColumn, MappingDetail, MappingTransformType } from '../../../api/types';
-import { ACC, ACC9, NEU } from '../data';
+import type { MappingColumn, MappingDetail, MappingSummary, MappingTransformType } from '../../../api/types';
+
+const { Text, Title, Paragraph } = Typography;
+
+const MONO: CSSProperties = { fontFamily: "ui-monospace,'SFMono-Regular',Menlo,monospace" };
+const KICKER: CSSProperties = { fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' };
 
 const fmt = (n: number) => n.toLocaleString('en-US');
 const stamp = (s?: string | null) => (s ? s.replace('T', ' ').slice(0, 16) : '—');
 
 // Confidence banding: high reads quiet, the band the reviewer must look at
-// reads loud — same palette logic as the severity dots elsewhere.
-const confDot = (c: number) => (c >= 0.9 ? NEU : c >= 0.7 ? ACC : ACC9);
+// reads loud — same palette logic as the severity badges elsewhere.
+const confBadge = (c: number): 'success' | 'warning' | 'error' =>
+  c >= 0.9 ? 'success' : c >= 0.7 ? 'warning' : 'error';
 
-const XFORM_TAG: Record<MappingTransformType, string> = {
-  direct: 'tag-neutral', lookup: 'tag-accent', composite: 'tag-outline',
+// transform kind → Tag color by meaning: direct is plain, lookup is an
+// active join (blue), composite is the special multi-source case (purple).
+const XFORM_COLOR: Record<MappingTransformType, string | undefined> = {
+  direct: undefined, lookup: 'blue', composite: 'purple',
 };
 
 const sqlBlock: CSSProperties = {
-  fontSize: 11, lineHeight: 1.65, padding: '9px 11px', whiteSpace: 'pre-wrap',
-  overflowWrap: 'anywhere', margin: 0,
-  background: 'color-mix(in srgb,var(--color-text) 5%,transparent)',
+  ...MONO, fontSize: 11, lineHeight: 1.65, padding: '9px 11px', whiteSpace: 'pre-wrap',
+  overflowWrap: 'anywhere', margin: 0, background: 'rgba(5,5,5,0.04)', borderRadius: 6,
 };
 
 // Overridden rows first (the story), then alphabetical.
@@ -39,22 +45,22 @@ const sortCols = (cols: MappingColumn[]): MappingColumn[] =>
 
 function ConfidenceCell({ c }: { c: number }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-      <span className="mono" style={{ fontSize: 11.5 }}>{c.toFixed(2)}</span>
-      <span style={{ width: 8, height: 8, background: confDot(c), flex: 'none' }} />
-    </span>
+    <Space size={7}>
+      <span style={{ ...MONO, fontSize: 11.5 }}>{c.toFixed(2)}</span>
+      <Badge status={confBadge(c)} />
+    </Space>
   );
 }
 
 // One side of the proposed/accepted diff — the accepted side carries the
-// accent left-border, the discarded proposal reads muted.
+// primary left-border, the discarded proposal reads muted.
 function SqlCol({ label, sql, accepted }: { label: string; sql: string; accepted?: boolean }) {
   return (
     <div style={accepted
-      ? { borderLeft: '3px solid var(--color-accent)', paddingLeft: 12 }
+      ? { borderLeft: '3px solid #1677ff', paddingLeft: 12 }
       : { opacity: 0.62 }}>
-      <div className="k" style={{ marginBottom: 7 }}>{label}</div>
-      <pre className="mono" style={sqlBlock}>{sql}</pre>
+      <Text type="secondary" style={{ ...KICKER, display: 'block', marginBottom: 7 }}>{label}</Text>
+      <pre style={sqlBlock}>{sql}</pre>
     </div>
   );
 }
@@ -64,44 +70,43 @@ function ColumnDetailBody({ col }: { col: MappingColumn }) {
     <>
       {/* the agent's reasoning, quoted */}
       {col.rationale && (
-        <div style={{ marginBottom: 14, paddingLeft: 12, borderLeft: `3px solid ${NEU}` }}>
-          <div className="k" style={{ marginBottom: 5 }}>Agent rationale</div>
-          <div style={{ fontSize: 12.5, lineHeight: 1.6, fontStyle: 'italic', opacity: 0.85 }}>
+        <div style={{ marginBottom: 16, paddingLeft: 12, borderLeft: '3px solid rgba(5,5,5,0.15)' }}>
+          <Text type="secondary" style={{ ...KICKER, display: 'block', marginBottom: 5 }}>Agent rationale</Text>
+          <Paragraph italic type="secondary" style={{ fontSize: 12.5, lineHeight: 1.6, marginBottom: 0 }}>
             {col.rationale}
-          </div>
+          </Paragraph>
         </div>
       )}
 
       {col.overridden && col.proposed_sql ? (
         <>
           {/* the money shot: what the agent wrote vs what the human shipped */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            <SqlCol label="Proposed · agent" sql={col.proposed_sql} />
-            <SqlCol label="Accepted · review" sql={col.accepted_sql} accepted />
-          </div>
+          <Row gutter={[20, 16]}>
+            <Col xs={24} md={12}>
+              <SqlCol label="Proposed · agent" sql={col.proposed_sql} />
+            </Col>
+            <Col xs={24} md={12}>
+              <SqlCol label="Accepted · review" sql={col.accepted_sql} accepted />
+            </Col>
+          </Row>
           {col.override_reason && (
-            <div style={{
-              marginTop: 14, padding: '11px 13px',
-              borderLeft: '3px solid var(--color-accent)',
-              background: 'color-mix(in srgb,var(--color-accent) 7%,transparent)',
-            }}>
-              <div className="k" style={{ marginBottom: 5 }}>Reviewer</div>
+            <Card
+              size="small"
+              style={{ marginTop: 16, borderColor: '#ffd591', background: '#fffbe6' }}
+            >
+              <Text type="secondary" style={{ ...KICKER, display: 'block', marginBottom: 5 }}>Reviewer</Text>
               <div style={{ fontSize: 12.5, lineHeight: 1.6 }}>{col.override_reason}</div>
-            </div>
+            </Card>
           )}
         </>
       ) : (
         <>
           <SqlCol label="Accepted · as proposed" sql={col.accepted_sql} accepted />
           {col.review_note && (
-            <div style={{
-              marginTop: 14, padding: '11px 13px',
-              borderLeft: `3px solid ${NEU}`,
-              background: 'color-mix(in srgb,var(--color-text) 4%,transparent)',
-            }}>
-              <div className="k" style={{ marginBottom: 5 }}>Review note</div>
+            <Card size="small" style={{ marginTop: 16, background: 'rgba(5,5,5,0.02)' }}>
+              <Text type="secondary" style={{ ...KICKER, display: 'block', marginBottom: 5 }}>Review note</Text>
               <div style={{ fontSize: 12.5, lineHeight: 1.6 }}>{col.review_note}</div>
-            </div>
+            </Card>
           )}
         </>
       )}
@@ -118,56 +123,117 @@ function CompiledFooter({ d }: { d: MappingDetail }) {
   const shown = allUnmapped ? unmapped : unmapped.slice(0, 24);
 
   return (
-    <Blueprint style={{ padding: '16px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div className="k">Compiled SQL</div>
-        <span className="mono muted" style={{ fontSize: 10.5 }}>
-          select_sql · {d.compiled ? `compiled ${stamp(d.compiled_at)}` : 'not compiled'}
-        </span>
-        {d.compiled_sql && (
-          <button className="btn btn-secondary" style={{ marginLeft: 'auto', padding: '3px 12px', fontSize: 11 }}
-            onClick={() => setOpenSql((v) => !v)}>
-            {openSql ? 'Hide' : 'Show'}
-          </button>
-        )}
-      </div>
-      {openSql && d.compiled_sql && (
-        <pre className="mono" style={{
-          ...sqlBlock, marginTop: 12, maxHeight: 340, overflow: 'auto',
-          border: '1px solid var(--color-divider)',
-        }}>
+    <Card
+      size="small"
+      title="Compiled SQL"
+      extra={
+        <Space size={10}>
+          <Text type="secondary" style={{ ...MONO, fontSize: 10.5 }}>
+            select_sql · {d.compiled ? `compiled ${stamp(d.compiled_at)}` : 'not compiled'}
+          </Text>
+          {d.compiled_sql && (
+            <Button size="small" onClick={() => setOpenSql((v) => !v)}>
+              {openSql ? 'Hide' : 'Show'}
+            </Button>
+          )}
+        </Space>
+      }
+    >
+      {openSql && d.compiled_sql ? (
+        <pre style={{ ...sqlBlock, maxHeight: 340, overflow: 'auto', border: '1px solid rgba(5,5,5,0.08)' }}>
           {d.compiled_sql}
         </pre>
+      ) : (
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {d.compiled_sql ? 'the compiled select_sql is collapsed — Show expands it' : 'no compiled select_sql on disk'}
+        </Text>
       )}
 
       {unmapped.length > 0 && (
-        <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--color-divider)' }}>
-          <div className="k" style={{ marginBottom: 8 }}>
+        <>
+          <Divider style={{ margin: '14px 0 10px' }} />
+          <Text type="secondary" style={{ ...KICKER, display: 'block', marginBottom: 8 }}>
             Unmapped source columns · {unmapped.length} (deliberate — CDC metadata, join keys, rating variables)
-          </div>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          </Text>
+          <Space size={4} wrap>
             {shown.map((u) => (
-              <span key={u.name} className="mono muted" title={u.reason}
-                style={{
-                  fontSize: 10, padding: '2px 7px',
-                  border: '1px solid color-mix(in srgb,var(--color-text) 15%,transparent)',
-                }}>
+              <Tag key={u.name} title={u.reason} style={{ ...MONO, fontSize: 10, marginInlineEnd: 0, color: 'rgba(0,0,0,0.45)' }}>
                 {u.name}
-              </span>
+              </Tag>
             ))}
             {unmapped.length > 24 && (
-              <button onClick={() => setAllUnmapped((v) => !v)}
-                style={{
-                  background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer',
-                  fontSize: 10.5, color: 'var(--color-accent-700)', textDecoration: 'underline',
-                }}>
+              <Button type="link" size="small" style={{ fontSize: 10.5, padding: '0 4px' }}
+                onClick={() => setAllUnmapped((v) => !v)}>
                 {allUnmapped ? 'show fewer' : `+${unmapped.length - 24} more`}
-              </button>
+              </Button>
             )}
-          </div>
+          </Space>
+        </>
+      )}
+    </Card>
+  );
+}
+
+// ── mapping master rail — Card + selectable List, filterable at scale ──────
+function MappingRail({ mappings, value, onChange }: {
+  mappings: MappingSummary[];
+  value: string | null;
+  onChange: (name: string) => void;
+}) {
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return mappings;
+    return mappings.filter((m) =>
+      `${m.name} ${m.source_label} ${m.target}`.toLowerCase().includes(needle));
+  }, [mappings, q]);
+
+  return (
+    <Card title="Reviewed mappings" size="small" styles={{ body: { padding: 0 } }}>
+      {mappings.length > 6 && (
+        <div style={{ padding: '8px 12px 0' }}>
+          <Input allowClear size="small" placeholder="filter…"
+            value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
       )}
-    </Blueprint>
+      <List
+        size="small"
+        dataSource={filtered}
+        locale={{ emptyText: 'no matches' }}
+        style={{ maxHeight: 'max(360px, calc(100vh - 320px))', overflow: 'auto' }}
+        renderItem={(m) => {
+          const on = m.name === value;
+          return (
+            <List.Item
+              onClick={() => onChange(m.name)}
+              style={{
+                cursor: 'pointer', paddingInline: 13,
+                borderInlineStart: `3px solid ${on ? '#1677ff' : 'transparent'}`,
+                background: on ? 'rgba(22,119,255,0.06)' : undefined,
+              }}
+            >
+              <List.Item.Meta
+                title={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ ...MONO, flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: on ? 600 : 400 }}>
+                      {m.name}
+                    </span>
+                    <Tag color={m.compiled ? 'green' : undefined} style={{ marginInlineEnd: 0 }}>
+                      {m.compiled ? 'Compiled' : 'Not compiled'}
+                    </Tag>
+                  </div>
+                }
+                description={
+                  <Text type="secondary" style={{ ...MONO, fontSize: 10.5 }}>
+                    {m.source_label} → {m.target}
+                  </Text>
+                }
+              />
+            </List.Item>
+          );
+        }}
+      />
+    </Card>
   );
 }
 
@@ -182,8 +248,8 @@ export function MappingReviewScreen() {
   const d = detailQ.data;
   const loading = listQ.isPending || (!!M && detailQ.isPending);
 
-  // Row click opens the proposal detail in a modal (overrides sort first, so
-  // the interesting rows lead the table).
+  // Row click opens the proposal detail in a right-side drawer (overrides
+  // sort first, so the interesting rows lead the table).
   const [selCol, setSelCol] = useState<string | null>(null);
   const cols = d ? sortCols(d.columns) : [];
   const activeCol = cols.find((c) => c.target_column === selCol) ?? null;
@@ -198,143 +264,176 @@ export function MappingReviewScreen() {
 
   const relation = (d?.source_relation ?? '').replace(/\s+/g, ' ');
 
+  const columns = [
+    {
+      title: 'Target field', dataIndex: 'target_column', key: 'target',
+      render: (v: string) => <span style={{ ...MONO, fontSize: 11.5 }}>{v}</span>,
+    },
+    {
+      title: 'Source', dataIndex: 'source_column', key: 'source',
+      render: (v: string | null) => v
+        ? <span style={{ ...MONO, fontSize: 11.5 }}>{v}</span>
+        : <Text type="secondary" style={{ fontSize: 11.5 }}>constant</Text>,
+    },
+    {
+      title: 'Transform', dataIndex: 'transform_type', key: 'xform', width: 120,
+      render: (v: MappingTransformType) => <Tag color={XFORM_COLOR[v]}>{v}</Tag>,
+    },
+    {
+      title: 'Confidence', dataIndex: 'confidence', key: 'conf', width: 120,
+      render: (c: number) => <ConfidenceCell c={c} />,
+    },
+    {
+      title: 'Review', key: 'review', width: 190,
+      render: (_: unknown, c: MappingColumn) => (
+        <Space size={8}>
+          <Tag color={c.overridden ? 'orange' : 'green'}>
+            {c.overridden ? 'Overridden' : 'Accepted'}
+          </Tag>
+          {c.needs_review && (
+            <Text type="secondary" style={{ ...MONO, fontSize: 10 }}>⚑ flagged</Text>
+          )}
+        </Space>
+      ),
+    },
+  ];
+
   return (
-    <div className="sc" style={{ display: 'grid', gridTemplateColumns: '292px 1fr', gap: 28, alignItems: 'start' }}>
+    <Row gutter={[16, 16]} wrap={false} align="top">
       {/* ── mapping master list — compact, searchable, scales with specs ── */}
-      <SelectList
-        label="Reviewed mappings"
-        items={mappings.map((m) => ({
-          id: m.name,
-          title: m.name,
-          meta: `${m.source_label} → ${m.target}`,
-          tag: m.compiled ? 'Compiled' : 'Not compiled',
-          tagClass: m.compiled ? 'tag-neutral' : 'tag-outline',
-        }))}
-        value={M?.name ?? null}
-        onChange={(id) => { setSelName(id); setSelCol(null); }}
-      />
+      <Col flex="300px" style={{ minWidth: 0 }}>
+        <MappingRail
+          mappings={mappings}
+          value={M?.name ?? null}
+          onChange={(id) => { setSelName(id); setSelCol(null); }}
+        />
+      </Col>
 
       {/* ── proposals, verdicts, diffs ─────────────────────────────────── */}
-      <section>
-        {listQ.isPending && <span className="k">loading mappings…</span>}
+      <Col flex="auto" style={{ minWidth: 0 }}>
+        {listQ.isPending && <Text type="secondary" style={KICKER}>loading mappings…</Text>}
         {!listQ.isPending && mappings.length === 0 && (
-          <span className="k">no reviewed mappings on disk yet</span>
+          <Text type="secondary" style={KICKER}>no reviewed mappings on disk yet</Text>
         )}
         {M && (
           <>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-              <h4>{M.source_label} → {M.target}</h4>
-              <span className="k">every proposal, its confidence, and what review changed</span>
-            </div>
+            <Space size={10} align="baseline" wrap style={{ marginBottom: 4 }}>
+              <Title level={4} style={{ margin: 0 }}>{M.source_label} → {M.target}</Title>
+              <Text type="secondary" style={KICKER}>every proposal, its confidence, and what review changed</Text>
+            </Space>
             {M.review_summary && (
-              <p style={{ fontSize: 12.5, lineHeight: 1.65, maxWidth: '92ch', margin: '0 0 16px', color: 'color-mix(in srgb,var(--color-text) 72%,transparent)' }}>
+              <Paragraph type="secondary" style={{ fontSize: 12.5, lineHeight: 1.65, maxWidth: '92ch', marginBottom: 16 }}>
                 {M.review_summary}
-              </p>
+              </Paragraph>
             )}
           </>
         )}
 
         {loading && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 22, marginBottom: 24 }}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
             {[0, 1, 2, 3].map((i) => (
-              <Blueprint key={i} style={{ padding: '14px 16px 12px', minHeight: 74 }}>
-                <div className="k">loading…</div>
-                <div style={{ height: 30, marginTop: 8, background: 'color-mix(in srgb,var(--color-text) 7%,transparent)' }} />
-              </Blueprint>
+              <Col xs={12} xl={6} key={i}>
+                <Card size="small">
+                  <Skeleton active title={false} paragraph={{ rows: 2 }} />
+                </Card>
+              </Col>
             ))}
-          </div>
+          </Row>
         )}
 
-        {!loading && !d && (
-          <div className="muted" style={{ fontSize: 13, lineHeight: 1.6, maxWidth: 520 }}>
-            No reviewed mappings on disk yet — run the mapper's propose + review flow to
-            materialize a spec, then this screen shows every proposal and its verdict.
-          </div>
+        {!loading && !d && !listQ.isPending && (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            style={{ maxWidth: 520, marginTop: 32 }}
+            description={
+              <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.6 }}>
+                No reviewed mappings on disk yet — run the mapper's propose + review flow to
+                materialize a spec, then this screen shows every proposal and its verdict.
+              </Text>
+            }
+          />
         )}
 
         {!loading && d && (
           <>
-            {/* KPI row */}
-            <StatRow style={{ marginBottom: 18 }}>
+            {/* KPI row — the review verdict at a glance */}
+            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
               {kpis.map((k) => (
-                <Stat key={k.label} label={k.label} value={k.value} note={k.note} accent={k.accent} />
+                <Col xs={12} xl={6} key={k.label}>
+                  <Card size="small">
+                    <Text type="secondary" style={KICKER}>{k.label}</Text>
+                    <div style={{
+                      fontSize: 26, lineHeight: 1.2, marginTop: 4,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      color: k.accent ? '#fa8c16' : undefined,
+                    }}>
+                      {k.value}
+                    </div>
+                    <Text type="secondary" ellipsis style={{ display: 'block', fontSize: 11, marginTop: 2 }}>
+                      {k.note}
+                    </Text>
+                  </Card>
+                </Col>
               ))}
-            </StatRow>
+            </Row>
 
             {/* provenance strip */}
-            <div className="mono muted" style={{
-              fontSize: 10.5, lineHeight: 1.7, marginBottom: 20,
-              display: 'flex', gap: 18, flexWrap: 'wrap',
-            }}>
-              <span title={d.source_relation + (d.source_filter ? `\nWHERE ${d.source_filter}` : '')}
-                style={{ maxWidth: 480, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ ...MONO, fontSize: 10.5, lineHeight: 1.7, marginBottom: 16, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+              <Text
+                type="secondary"
+                title={d.source_relation + (d.source_filter ? `\nWHERE ${d.source_filter}` : '')}
+                style={{ fontSize: 10.5, maxWidth: 480, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+              >
                 src {relation}
-              </span>
-              <span>reviewed {d.reviewed_by ?? '—'}</span>
-              <span>compiled {stamp(d.compiled_at)}</span>
+              </Text>
+              <Text type="secondary" style={{ fontSize: 10.5 }}>reviewed {d.reviewed_by ?? '—'}</Text>
+              <Text type="secondary" style={{ fontSize: 10.5 }}>compiled {stamp(d.compiled_at)}</Text>
             </div>
 
-            {/* column table */}
-            <Blueprint style={{ padding: '4px 0 0', marginBottom: 18, overflow: 'hidden' }}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Target field</th><th>Source</th><th>Transform</th>
-                    <th>Confidence</th><th>Review</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cols.map((c) => {
-                    return (
-                      <tr key={c.target_column} className="rowlink"
-                        onClick={() => setSelCol(c.target_column)}>
-                        <td className="mono" style={{ fontSize: 11.5 }}>{c.target_column}</td>
-                        <td className="mono" style={{ fontSize: 11.5 }}>
-                          {c.source_column ?? <span className="muted">constant</span>}
-                        </td>
-                        <td><span className={'tag ' + XFORM_TAG[c.transform_type]}>{c.transform_type}</span></td>
-                        <td><ConfidenceCell c={c.confidence} /></td>
-                        <td>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                            <span className={'tag ' + (c.overridden ? 'tag-accent' : 'tag-neutral')}>
-                              {c.overridden ? 'Overridden' : 'Accepted'}
-                            </span>
-                            {c.needs_review && (
-                              <span className="mono muted" style={{ fontSize: 10 }}>⚑ flagged</span>
-                            )}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </Blueprint>
+            {/* column table — row click opens the proposal detail drawer */}
+            <Card size="small" style={{ marginBottom: 16 }} styles={{ body: { padding: 0 } }}>
+              <Table
+                rowKey="target_column"
+                dataSource={cols}
+                columns={columns}
+                pagination={false} size="middle"
+                onRow={(c) => ({ onClick: () => setSelCol(c.target_column), style: { cursor: 'pointer' } })}
+              />
+            </Card>
 
-            {/* row click → proposal detail in a modal, right where the user is */}
-            <DetailModal
+            {/* proposal detail — agent proposes, human governs */}
+            <Drawer
               open={!!activeCol}
               onClose={() => setSelCol(null)}
-              kicker="mapping proposal · agent proposes, human governs"
-              title={<span className="mono" style={{ color: 'var(--color-accent-700)' }}>{activeCol?.target_column}</span>}
-              tags={activeCol && (
-                <>
-                  <span className={'tag ' + XFORM_TAG[activeCol.transform_type]}>{activeCol.transform_type}</span>
-                  <span className={'tag ' + (activeCol.overridden ? 'tag-accent' : 'tag-neutral')}>
+              width={760}
+              title={
+                <div>
+                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>
+                    mapping proposal · agent proposes, human governs
+                  </Text>
+                  <div style={{ ...MONO, fontSize: 16 }}>{activeCol?.target_column}</div>
+                </div>
+              }
+              extra={activeCol && (
+                <Space size={6}>
+                  <Tag color={XFORM_COLOR[activeCol.transform_type]}>{activeCol.transform_type}</Tag>
+                  <Tag color={activeCol.overridden ? 'orange' : 'green'}>
                     {activeCol.overridden ? 'Overridden' : 'Accepted'}
-                  </span>
-                  {activeCol.needs_review && <span className="mono muted" style={{ fontSize: 10.5 }}>⚑ flagged</span>}
+                  </Tag>
+                  {activeCol.needs_review && (
+                    <Text type="secondary" style={{ ...MONO, fontSize: 10.5 }}>⚑ flagged</Text>
+                  )}
                   <ConfidenceCell c={activeCol.confidence} />
-                </>
+                </Space>
               )}
             >
               {activeCol && <ColumnDetailBody col={activeCol} />}
-            </DetailModal>
+            </Drawer>
 
             <CompiledFooter d={d} />
           </>
         )}
-      </section>
-    </div>
+      </Col>
+    </Row>
   );
 }

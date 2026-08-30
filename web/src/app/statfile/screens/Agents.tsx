@@ -1,12 +1,39 @@
-// Agent console — cycle stats, run history, and the trace rail for the
-// selected run. Live: GOLD_AUDIT.AGENT_RUN via /agents/runs — every real
-// Sentinel extraction, KG materialization and edit-engine run recorded going
-// forward. Demo runs until the first recorded run lands.
-import { useMemo, useState } from 'react';
-import { Blueprint } from '../Blueprint';
-import { Stat, StatRow } from '../ui';
+// Agent console — reimagined as a native Ant Design page: Statistic KPI cards
+// for cycle telemetry, run history as a Card-framed Table with a Segmented
+// grouped/every-run toggle, and the selected run's trace as a Timeline with
+// its correlated evidence in a sticky side Card. Live: GOLD_AUDIT.AGENT_RUN
+// via /agents/runs — every real Sentinel extraction, KG materialization and
+// edit-engine run recorded going forward. Demo runs until the first recorded
+// run lands.
+import { useMemo, useState, type CSSProperties } from 'react';
+import {
+  Button, Card, Col, Divider, Row, Segmented, Space, Statistic, Table, Tag,
+  Timeline, Typography,
+} from 'antd';
 import { useAgentRunDetail, useAgentRuns, type AgentRunRow } from '../api';
-import { ACC, ACC9, AGENT_STATS, NEU, RUNS, TRACE } from '../data';
+import { AGENT_STATS, RUNS, TRACE } from '../data';
+
+const { Text } = Typography;
+
+const MONO: CSSProperties = { fontFamily: "ui-monospace,'SFMono-Regular',Menlo,monospace" };
+
+// Timeline dot palette by meaning (antd colors, not the legacy steel-blues).
+const DOT_NEUTRAL = 'rgba(0,0,0,0.25)';
+const DOT_ACTIVE = '#1677ff';
+const DOT_EMPHASIS = '#722ed1';
+const DOT_ERROR = '#ff4d4f';
+// Demo TRACE fixtures carry the legacy hex constants in their `dot` field —
+// map them by meaning rather than importing the constants.
+const LEGACY_DOT: Record<string, string> = {
+  '#5980a6': DOT_ACTIVE, '#1d2d3d': DOT_EMPHASIS, '#98989b': DOT_NEUTRAL,
+};
+const dotColor = (c: string) => LEGACY_DOT[c] ?? c;
+
+// Run-result tag intensities → antd colors: settled green, needs-a-look
+// orange, errored/blocked red.
+const RESULT_COLOR: Record<string, string> = {
+  'tag-neutral': 'green', 'tag-outline': 'orange', 'tag-accent': 'red',
+};
 
 const fmtTokens = (n: number | null) =>
   n == null || n === 0 ? '—' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(0) + 'K' : String(n);
@@ -84,136 +111,181 @@ export function AgentsScreen() {
     ? realSteps.map((s) => ({
         step: s.step,
         detail: s.detail + (s.duration_ms != null && s.duration_ms > 0 ? `\n${fmtDur(s.duration_ms)}` : ''),
-        dot: s.status === 'error' ? ACC9 : s.status === 'skipped' || s.status === 'review' ? NEU : ACC,
+        dot: s.status === 'error' ? DOT_ERROR : s.status === 'skipped' || s.status === 'review' ? DOT_NEUTRAL : DOT_ACTIVE,
       }))
     : live && sel?.runId
     ? [
-        { step: 'Queued', detail: `${sel.agent}\n${sel.task}`, dot: NEU },
-        { step: 'Run', detail: `model ${sel.model}\nduration ${sel.dur}`, dot: ACC },
-        { step: sel.status === 'error' ? 'Failed' : 'Result', detail: `${sel.result}\n${sel.ranAt ?? ''}`, dot: sel.status === 'error' ? ACC9 : ACC },
+        { step: 'Queued', detail: `${sel.agent}\n${sel.task}`, dot: DOT_NEUTRAL },
+        { step: 'Run', detail: `model ${sel.model}\nduration ${sel.dur}`, dot: DOT_ACTIVE },
+        { step: sel.status === 'error' ? 'Failed' : 'Result', detail: `${sel.result}\n${sel.ranAt ?? ''}`, dot: sel.status === 'error' ? DOT_ERROR : DOT_ACTIVE },
       ]
     : TRACE;
 
-  return (
-    <div className="sc" style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 30, alignItems: 'start' }}>
-      <section>
-        <StatRow>
-          {stats.map((a) => (
-            <Stat key={a.label} label={a.label} value={a.value} />
-          ))}
-        </StatRow>
-        <h4 style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
-          {live ? 'Run history — GOLD_AUDIT.AGENT_RUN' : 'Run history — cycle TX-HO-2026A'}
-          {!live && (
-            <span className="tag tag-outline">
-              {runsQ.isLoading ? 'connecting…' : runsQ.isError ? 'demo — telemetry store unreachable' : 'demo — no recorded runs yet'}
-            </span>
-          )}
-          <div className="seg" style={{ marginLeft: 'auto' }}>
-            {([[true, 'Grouped'], [false, 'Every run']] as Array<[boolean, string]>).map(([v, label]) => (
-              <label key={label} className="seg-opt">
-                <input type="radio" name="rg" checked={collapse === v} onChange={() => setCollapse(v)} />
-                <span>{label}</span>
-              </label>
-            ))}
-          </div>
-        </h4>
-        <table className="table">
-          <thead>
-            <tr><th>Agent</th><th>Task</th><th>Model</th><th>Tokens</th><th>Dur</th><th>Conf</th><th>Result</th></tr>
-          </thead>
-          <tbody>
-            {groups.map((g) => {
-              const r = g.r;
-              return (
-                <tr
-                  key={r.runId ?? r.agent + g.i}
-                  className="row rowlink"
-                  style={{
-                    background: g.i === runIdx ? 'color-mix(in srgb,#5980a6 10%,transparent)' : undefined,
-                  }}
-                  onClick={() => setRun(g.i)}
-                >
-                  <td style={{ fontFamily: 'var(--font-heading)', fontSize: 15, whiteSpace: 'nowrap' }}>
-                    {r.agent}
-                    {g.count > 1 && (
-                      <span className="mono" style={{ fontSize: 10.5, marginLeft: 7, color: 'color-mix(in srgb,var(--color-text) 50%,transparent)' }}>
-                        ×{g.count}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ fontSize: 12.5 }}>{r.task}</td>
-                  <td className="mono muted" style={{ fontSize: 11 }}>{r.model}</td>
-                  <td className="mono" style={{ fontSize: 11.5, textAlign: 'right' }}>{r.tokens}</td>
-                  <td className="mono" style={{ fontSize: 11.5, textAlign: 'right' }}>{r.dur}</td>
-                  <td className="mono" style={{ fontSize: 11.5, textAlign: 'right' }}>{r.conf}</td>
-                  <td><span className={'tag ' + r.tagClass}>{r.result}</span></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </section>
+  type GroupRow = RunView & { key: string; i: number; count: number };
+  const rows: GroupRow[] = groups.map((g) => ({
+    ...g.r, key: g.r.runId ?? g.r.agent + g.i, i: g.i, count: g.count,
+  }));
 
-      <Blueprint style={{ padding: '16px 18px', position: 'sticky', top: 16, maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
-        <div className="k">Trace</div>
-        <div style={{ fontFamily: 'var(--font-heading)', fontSize: 20, margin: '3px 0 2px' }}>{sel?.agent}</div>
-        <div className="mono muted" style={{ fontSize: 11, marginBottom: 14 }}>
-          {live && sel?.runId ? `${sel.runId} · ${sel.ranAt}` : `run_01JZ${4820 + runIdx}K · cycle TX-HO-2026A`}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {trace.map((t) => (
-            <div key={t.step} style={{ display: 'grid', gridTemplateColumns: '14px 1fr', gap: 11, paddingBottom: 14 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ width: 9, height: 9, background: t.dot, marginTop: 4 }} />
-                <span style={{ flex: 1, width: 1, background: 'var(--color-divider)' }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{t.step}</div>
-                <div className="mono" style={{ fontSize: 11.5, lineHeight: 1.6, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)', whiteSpace: 'pre-wrap' }}>{t.detail}</div>
-              </div>
-            </div>
+  const columns = [
+    {
+      title: 'Agent', dataIndex: 'agent', key: 'agent',
+      render: (v: string, g: GroupRow) => (
+        <span style={{ whiteSpace: 'nowrap' }}>
+          <Text strong>{v}</Text>
+          {g.count > 1 && (
+            <Text type="secondary" style={{ ...MONO, fontSize: 10.5, marginLeft: 7 }}>×{g.count}</Text>
+          )}
+        </span>
+      ),
+    },
+    {
+      title: 'Task', dataIndex: 'task', key: 'task',
+      render: (v: string) => <span style={{ fontSize: 12.5 }}>{v}</span>,
+    },
+    {
+      title: 'Model', dataIndex: 'model', key: 'model', width: 110,
+      render: (v: string) => <Text type="secondary" style={{ ...MONO, fontSize: 11 }}>{v}</Text>,
+    },
+    {
+      title: 'Tokens', dataIndex: 'tokens', key: 'tokens', align: 'right' as const, width: 80,
+      render: (v: string) => <span style={{ ...MONO, fontSize: 11.5 }}>{v}</span>,
+    },
+    {
+      title: 'Dur', dataIndex: 'dur', key: 'dur', align: 'right' as const, width: 90,
+      render: (v: string) => <span style={{ ...MONO, fontSize: 11.5 }}>{v}</span>,
+    },
+    {
+      title: 'Conf', dataIndex: 'conf', key: 'conf', align: 'right' as const, width: 70,
+      render: (v: string) => <span style={{ ...MONO, fontSize: 11.5 }}>{v}</span>,
+    },
+    {
+      title: 'Result', dataIndex: 'result', key: 'result', width: 130,
+      render: (v: string, g: GroupRow) => <Tag color={RESULT_COLOR[g.tagClass]}>{v}</Tag>,
+    },
+  ];
+
+  return (
+    <Row gutter={[16, 16]} align="top">
+      {/* ── left: cycle stats + run history ─────────────────────────────── */}
+      <Col flex="auto" style={{ minWidth: 0, maxWidth: '100%' }}>
+        <Row gutter={[16, 16]}>
+          {stats.map((a) => (
+            <Col key={a.label} xs={12} md={6}>
+              <Card>
+                <Statistic title={a.label} value={a.value} valueStyle={{ fontSize: 24 }} />
+              </Card>
+            </Col>
           ))}
-        </div>
-        {live && sel?.runId && (
-          <div style={{ borderTop: '1px solid var(--color-divider)', paddingTop: 12, marginTop: 2 }}>
-            <div className="k" style={{ marginBottom: 8 }}>
-              Evidence
-              {detailQ.isLoading ? ' · loading…' : ''}
+        </Row>
+
+        <Card
+          style={{ marginTop: 16 }}
+          title={live ? 'Run history — GOLD_AUDIT.AGENT_RUN' : 'Run history — cycle TX-HO-2026A'}
+          extra={
+            <Space size={8}>
+              {!live && (runsQ.isLoading
+                ? <Text type="secondary" style={{ fontSize: 12 }}>connecting…</Text>
+                : <Tag color="orange" title={runsQ.isError
+                    ? 'telemetry store unreachable — showing design fixtures'
+                    : 'no recorded runs yet — showing design fixtures'}>
+                    demo data
+                  </Tag>)}
+              <Segmented
+                value={collapse ? 'grouped' : 'every'}
+                onChange={(v) => setCollapse(v === 'grouped')}
+                options={[{ label: 'Grouped', value: 'grouped' }, { label: 'Every run', value: 'every' }]}
+              />
+            </Space>
+          }
+          styles={{ body: { padding: 0 } }}
+        >
+          <Table
+            rowKey="key"
+            dataSource={rows}
+            columns={columns}
+            pagination={false} size="middle"
+            onRow={(g) => ({
+              onClick: () => setRun(g.i),
+              style: {
+                cursor: 'pointer',
+                background: g.i === runIdx ? 'rgba(22,119,255,0.08)' : undefined,
+              },
+            })}
+          />
+        </Card>
+      </Col>
+
+      {/* ── right: trace rail for the selected run ──────────────────────── */}
+      <Col flex="400px">
+        <Card
+          style={{ position: 'sticky', top: 16, maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}
+          title={
+            <div style={{ padding: '6px 0' }}>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Trace</Text>
+              <div style={{ fontSize: 18 }}>{sel?.agent}</div>
+              <Text type="secondary" style={{ ...MONO, fontSize: 11, fontWeight: 400 }}>
+                {live && sel?.runId ? `${sel.runId} · ${sel.ranAt}` : `run_01JZ${4820 + runIdx}K · cycle TX-HO-2026A`}
+              </Text>
             </div>
-            {evidence && evidence.actions.length === 0 && evidence.kg_entries.length === 0 && !detailQ.isLoading && (
-              <div className="muted" style={{ fontSize: 11.5 }}>
-                No correlated audit records — this run left only its telemetry row.
-              </div>
-            )}
-            {evidence?.actions.map((a) => (
-              <div key={a.action_id} style={{ padding: '6px 0', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--color-accent-700)' }}>
-                  {a.acted_at} · {a.action_type} · {a.actor}
+          }
+        >
+          <Timeline
+            items={trace.map((t) => ({
+              key: t.step,
+              color: dotColor(t.dot),
+              children: (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{t.step}</div>
+                  <div style={{ ...MONO, fontSize: 11.5, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: 'rgba(0,0,0,0.55)' }}>
+                    {t.detail}
+                  </div>
+                </>
+              ),
+            }))}
+          />
+
+          {live && sel?.runId && (
+            <>
+              <Divider style={{ margin: '2px 0 12px' }} />
+              <Text type="secondary" style={{ display: 'block', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                Evidence{detailQ.isLoading ? ' · loading…' : ''}
+              </Text>
+              {evidence && evidence.actions.length === 0 && evidence.kg_entries.length === 0 && !detailQ.isLoading && (
+                <Text type="secondary" style={{ display: 'block', fontSize: 11.5 }}>
+                  No correlated audit records — this run left only its telemetry row.
+                </Text>
+              )}
+              {evidence?.actions.map((a) => (
+                <div key={a.action_id} style={{ padding: '6px 0', borderBottom: '1px solid rgba(5,5,5,0.06)' }}>
+                  <Text type="secondary" style={{ ...MONO, display: 'block', fontSize: 10.5 }}>
+                    {a.acted_at} · {a.action_type} · {a.actor}
+                  </Text>
+                  <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                    {[a.target_record, a.target_rule].filter(Boolean).join(' · ')}
+                    {a.summary ? `${a.target_record || a.target_rule ? ' — ' : ''}${a.summary}` : ''}
+                  </div>
                 </div>
-                <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                  {[a.target_record, a.target_rule].filter(Boolean).join(' · ')}
-                  {a.summary ? `${a.target_record || a.target_rule ? ' — ' : ''}${a.summary}` : ''}
+              ))}
+              {evidence?.kg_entries.map((k) => (
+                <div key={k.id} style={{ padding: '6px 0', borderBottom: '1px solid rgba(5,5,5,0.06)' }}>
+                  <Text type="secondary" style={{ ...MONO, display: 'block', fontSize: 10.5 }}>
+                    {k.occurred_at?.slice(0, 16)} · canon · {k.action}
+                  </Text>
+                  <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                    {k.summary}{k.affected_count ? ` · ${k.affected_count} node(s)` : ''}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {evidence?.kg_entries.map((k) => (
-              <div key={k.id} style={{ padding: '6px 0', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--color-accent-700)' }}>
-                  {k.occurred_at?.slice(0, 16)} · canon · {k.action}
-                </div>
-                <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                  {k.summary}{k.affected_count ? ` · ${k.affected_count} node(s)` : ''}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <div style={{ borderTop: '1px solid var(--color-divider)', paddingTop: 12, marginTop: 12, display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary">Replay</button>
-          <button className="btn btn-secondary">Open prompt</button>
-        </div>
-      </Blueprint>
-    </div>
+              ))}
+            </>
+          )}
+
+          <Divider style={{ margin: '12px 0' }} />
+          <Space size={8}>
+            <Button>Replay</Button>
+            <Button>Open prompt</Button>
+          </Space>
+        </Card>
+      </Col>
+    </Row>
   );
 }

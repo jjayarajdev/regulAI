@@ -1,28 +1,37 @@
-// Jurisdictions — the Administration screen, rebuilt on the claude.ai/design
-// v2 "Jurisdictions" mock. Two underline tabs:
-//   Registry          — jurisdiction cards (filings ∪ canon), the standards
-//                       registry (loaded regulator documents) and the
-//                       onboard-a-jurisdiction checklist, all live-derived.
-//   Add a jurisdiction — the onboarding wizard. Steps 1–3 drive the real
+// Jurisdictions — the Administration screen, redesigned as a native Ant
+// Design page. Two Tabs:
+//   Registry          — jurisdiction List with code Avatars and inline edit
+//                       (PATCH /api/jurisdictions), the standards registry as
+//                       a Table, and the onboard-a-jurisdiction checklist as
+//                       vertical Steps, all live-derived.
+//   Add a jurisdiction — the onboarding wizard: a vertical Steps rail beside
+//                       per-step Cards. Steps 1–3 drive the real
 //                       regulation-store endpoints (/api/regulations upload →
-//                       extract/start + status poll → approve) and feed the
-//                       designed panels from the live payloads where they
-//                       exist (pages, slug, parser model, confidence bands).
-//                       Steps 4–6 have no backend yet: they render the full
-//                       claude.ai/design v2 content from the CA fixture story
-//                       below, each panel tagged 'demo projection', with deep
-//                       links into the real Mapping/Validation screens.
-//                       Wizard state persists in localStorage so
-//                       Save-and-exit ↔ Resume onboarding round-trip.
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+//                       extract/start + status poll → approve) with an
+//                       Upload.Dragger front door; steps 4–6 have no backend
+//                       yet and render the CA fixture story below under
+//                       orange demo-data Tags, with deep links into the real
+//                       Mapping/Validation screens. Wizard state persists in
+//                       localStorage so Save-and-exit ↔ Resume onboarding
+//                       round-trip.
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Blueprint } from '../Blueprint';
+import { InboxOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  Alert, Avatar, Button, Card, Col, Input, List, Progress, Row, Space,
+  Statistic, Steps, Table, Tabs, Tag, Tooltip, Typography, Upload,
+} from 'antd';
 import {
   approveRegulation, can, goLiveOnboarding, startExtraction, uploadRegulation,
   useExtractStatus, useFilings, useJurisdictions, useKgRules, useRegDocuments,
   useRegulations, useSaveJurisdiction, whoCan, type AppUser,
 } from '../api';
-import { ACC, ACC9, ONBOARD_STEPS, STANDARDS, STATES, type ScreenId } from '../data';
+import { ONBOARD_STEPS, STANDARDS, STATES, type ScreenId } from '../data';
+
+const { Text, Paragraph, Title } = Typography;
+
+const MONO: CSSProperties = { fontFamily: "ui-monospace,'SFMono-Regular',Menlo,monospace" };
+const K_LABEL: CSSProperties = { fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' };
 
 export const STATE_NAMES: Record<string, string> = {
   TX: 'Texas — Department of Insurance',
@@ -48,6 +57,30 @@ const LOB: Record<string, string> = {
 
 const shortName = (code: string) => (STATE_NAMES[code] ?? code).split(' — ')[0];
 const fmt = (n: number) => n.toLocaleString('en-US');
+
+// Registry status → antd Tag color.
+const STATUS_COLOR: Record<string, string | undefined> = {
+  Live: 'green', Filed: 'blue', Onboarding: 'orange', Defaults: undefined,
+};
+// Onboard-panel step status string → antd Steps status.
+const STEP_STATUS: Record<string, 'finish' | 'process' | 'wait'> = {
+  Done: 'finish', 'In progress': 'process', Active: 'process', Queued: 'wait',
+};
+
+// The demo-fallback marker: orange Tag with the reason in the title.
+function DemoTag({ reason, children }: { reason: string; children?: ReactNode }) {
+  return <Tag color="orange" title={reason}>{children ?? 'demo data'}</Tag>;
+}
+
+// Compact key/value row for parse results, manifests and dry-run read-outs.
+function KV({ k, v, dim }: { k: string; v: ReactNode; dim?: boolean }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, padding: '5px 0', fontSize: 12.5, borderBottom: '1px solid rgba(5,5,5,0.06)' }}>
+      <Text type="secondary" style={{ flex: 1, fontSize: 12 }}>{k}</Text>
+      <span style={{ ...MONO, fontSize: 11.5, textAlign: 'right', opacity: dim ? 0.65 : 1 }}>{v}</span>
+    </div>
+  );
+}
 
 // ── wizard state (persisted) ────────────────────────────────────────────────
 const WIZARD_KEY = 'statfile-onboard-wizard';
@@ -75,7 +108,7 @@ const saveWizard = (w: WizardState) => {
   try { localStorage.setItem(WIZARD_KEY, JSON.stringify(w)); } catch { /* fine */ }
 };
 
-// The mock's six wizard steps — title + one-line description.
+// The wizard's six steps — title + one-line description.
 const WIZ_STEPS: Array<[string, string]> = [
   ['Upload the rulebook', 'Point at the PDF and name the jurisdiction'],
   ['Parse & segment', 'Structure the document into citable clauses'],
@@ -86,10 +119,11 @@ const WIZ_STEPS: Array<[string, string]> = [
 ];
 
 // ── the CA Homeowners onboarding story ──────────────────────────────────────
-// Every fixture number the wizard renders lives here (ported verbatim from the
-// claude.ai/design v2 mock). Steps 2–3 prefer live values from the upload /
-// extraction payloads and fall back to this; steps 4–6 have no backend today
-// and render it in both modes under a 'demo projection' chip.
+// Every fixture number the wizard renders lives here. Steps 2–3 prefer live
+// values from the upload / extraction payloads and fall back to this; steps
+// 4–6 have no backend today and render it in both modes under an orange
+// demo-data Tag. Colors are antd semantics (green = settled, orange = needs
+// work, red = escalated/blocking).
 export const CA_ONBOARDING_STORY = {
   parse: [
     ['Pages', '188'], ['Sections detected', '9'], ['Citable clauses', '412'],
@@ -107,9 +141,9 @@ export const CA_ONBOARDING_STORY = {
   ],
   extractTotal: 214,
   extractBands: [
-    { band: 'Auto-approved', range: 'confidence ≥ 0.90', count: 168, color: ACC },
-    { band: 'Queued for review', range: '0.70 – 0.89', count: 38, color: '#94bce3' },
-    { band: 'Escalated', range: 'below 0.70', count: 8, color: ACC9 },
+    { band: 'Auto-approved', range: 'confidence ≥ 0.90', count: 168, color: '#52c41a' },
+    { band: 'Queued for review', range: '0.70 – 0.89', count: 38, color: '#faad14' },
+    { band: 'Escalated', range: 'below 0.70', count: 8, color: '#ff4d4f' },
   ],
   extractNote: 'Eight rules could not be resolved from the text alone — six are clause/appendix '
     + 'conflicts of the same shape Texas hit on roof age, and two reference a CDI bulletin the '
@@ -122,21 +156,21 @@ export const CA_ONBOARDING_STORY = {
     { v: '0', k: 'Need pipeline code' },
   ],
   map: [
-    { field: 'territory_code', silver: 'risk_location.postal_code', how: 'Reuses the Texas derivation with a CDI territory table', state: 'Resolved', tagClass: 'tag-neutral' },
-    { field: 'amount_of_insurance', silver: 'coverage_detail.cov_a_limit', how: 'Direct, width change only', state: 'Resolved', tagClass: 'tag-neutral' },
-    { field: 'written_premium', silver: 'premium_transaction.amount', how: 'Direct, same sign convention', state: 'Resolved', tagClass: 'tag-neutral' },
-    { field: 'wildfire_risk_score', silver: '—', how: 'No conformed column. Vendor score, needs a new silver derivation', state: 'New derivation', tagClass: 'tag-outline' },
-    { field: 'brush_clearance_ind', silver: '—', how: 'Present in Guidewire as a HOPDwelling question, not yet conformed', state: 'New derivation', tagClass: 'tag-outline' },
-    { field: 'moratorium_flag', silver: 'policy_exposure.nonrenew_reason', how: 'Derived from an existing column, new expression', state: 'New expression', tagClass: 'tag-outline' },
+    { field: 'territory_code', silver: 'risk_location.postal_code', how: 'Reuses the Texas derivation with a CDI territory table', state: 'Resolved', color: 'green' },
+    { field: 'amount_of_insurance', silver: 'coverage_detail.cov_a_limit', how: 'Direct, width change only', state: 'Resolved', color: 'green' },
+    { field: 'written_premium', silver: 'premium_transaction.amount', how: 'Direct, same sign convention', state: 'Resolved', color: 'green' },
+    { field: 'wildfire_risk_score', silver: '—', how: 'No conformed column. Vendor score, needs a new silver derivation', state: 'New derivation', color: 'orange' },
+    { field: 'brush_clearance_ind', silver: '—', how: 'Present in Guidewire as a HOPDwelling question, not yet conformed', state: 'New derivation', color: 'orange' },
+    { field: 'moratorium_flag', silver: 'policy_exposure.nonrenew_reason', how: 'Derived from an existing column, new expression', state: 'New expression', color: 'orange' },
   ],
   dryCycle: 'CA-HO-2025S',
   dry: [
-    { k: 'Records produced', v: '486,220', tag: '—', tagClass: 'tag-neutral' },
-    { k: 'Passing all edits', v: '471,904', tag: '97.1%', tagClass: 'tag-neutral' },
-    { k: 'Blocking exceptions', v: '9,118', tag: '1.9%', tagClass: 'tag-accent' },
-    { k: 'Premium tie to GL', v: '$188,402,110', tag: '0.02%', tagClass: 'tag-neutral' },
-    { k: 'Exposure tie', v: '486,004.2', tag: '0.00%', tagClass: 'tag-neutral' },
-    { k: 'Runtime', v: '1 h 42m', tag: '—', tagClass: 'tag-neutral' },
+    { k: 'Records produced', v: '486,220', tag: '—', color: undefined as string | undefined },
+    { k: 'Passing all edits', v: '471,904', tag: '97.1%', color: 'green' as string | undefined },
+    { k: 'Blocking exceptions', v: '9,118', tag: '1.9%', color: 'red' as string | undefined },
+    { k: 'Premium tie to GL', v: '$188,402,110', tag: '0.02%', color: undefined as string | undefined },
+    { k: 'Exposure tie', v: '486,004.2', tag: '0.00%', color: undefined as string | undefined },
+    { k: 'Runtime', v: '1 h 42m', tag: '—', color: undefined as string | undefined },
   ],
   dryNote: 'The dry run used 2025 California policies already in silver. No bronze ingestion '
     + 'changed and no Guidewire extract was added — the 9,118 exceptions are all wildfire-score '
@@ -239,7 +273,6 @@ export function ConfigScreen({ go, user }: {
         hasFilings: fs.length > 0,
         status: isLive ? 'Live' : fs.length ? 'Filed'
           : code === 'US' ? 'Defaults' : 'Onboarding',
-        tagClass: isLive || fs.length || code === 'US' ? 'tag-neutral' : 'tag-outline',
       };
     });
 
@@ -274,7 +307,6 @@ export function ConfigScreen({ go, user }: {
     const mk = (n: number, title: string, body: string, state: StepState) => ({
       n, title, body,
       status: state === 'done' ? 'Done' : state === 'now' ? 'In progress' : 'Queued',
-      tagClass: state === 'done' ? 'tag-neutral' : 'tag-outline',
     });
     // Every step of a live jurisdiction is done by definition — it files.
     const st = (real: StepState): StepState => (targetLive ? 'done' : real);
@@ -328,7 +360,6 @@ export function ConfigScreen({ go, user }: {
   const cards = derived?.cards ?? STATES.map((s) => ({
     code: s.code, name: s.name, lob: '', sub: s.detail, hasFilings: false,
     status: s.status,
-    tagClass: s.status === 'Onboarding' ? 'tag-outline' : 'tag-neutral',
   }));
   const onboard = derived?.onboard ?? null;
 
@@ -355,6 +386,7 @@ export function ConfigScreen({ go, user }: {
       })
       .sort((a, b) => a.jur.localeCompare(b.jur) || a.name.localeCompare(b.name));
   }, [docsQ.data, rulesQ.data]);
+  const standardsLive = (docsQ.data?.documents.length ?? 0) > 0;
 
   const resumeOnboarding = () => {
     // A saved wizard session wins; otherwise seed one from the panel's
@@ -370,113 +402,136 @@ export function ConfigScreen({ go, user }: {
     setTab('add');
   };
 
-  return (
-    <div className="sc">
-      <div className="tabs-underline">
-        <button className={'tab-underline' + (tab === 'registry' ? ' on' : '')} onClick={() => setTab('registry')}>
-          Registry
-        </button>
-        <button className={'tab-underline' + (tab === 'add' ? ' on' : '')} onClick={() => setTab('add')}>
-          Add a jurisdiction
-        </button>
-      </div>
+  const standardsColumns = [
+    { title: 'Standard', dataIndex: 'name', key: 'name', render: (v: string) => <span style={{ fontSize: 13 }}>{v}</span> },
+    { title: 'Version', dataIndex: 'ver', key: 'ver', width: 140, render: (v: string) => <span style={{ ...MONO, fontSize: 12 }}>{v}</span> },
+    { title: 'Rules', dataIndex: 'rules', key: 'rules', width: 160, render: (v: string) => <span style={{ ...MONO, fontSize: 12 }}>{v}</span> },
+    { title: 'Owner', dataIndex: 'owner', key: 'owner', width: 150, render: (v: string) => <Text type="secondary" style={{ fontSize: 12 }}>{v}</Text> },
+  ];
 
-      {tab === 'registry' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 34, alignItems: 'start' }}>
-          <section>
-            <h4 style={{ marginBottom: 14 }}>Jurisdictions {live && <span className="k">live · filings + canon</span>}</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {cards.map((s) => (
-                <JurCard key={s.code} card={s} user={user}
-                  editable={!!derived && mayOnboard} />
-              ))}
-            </div>
+  const onboardStepItems = (onboard?.steps ?? ONBOARD_STEPS.map((s) => ({
+    n: Number(s.n), title: s.title, body: s.body, status: s.status,
+  }))).map((s) => ({
+    title: <span style={{ fontSize: 14 }}>{s.title}</span>,
+    status: STEP_STATUS[s.status] ?? 'wait',
+    description: (
+      <Text type="secondary" style={{ fontSize: 12, lineHeight: 1.55, display: 'block', paddingBottom: 6 }}>
+        {s.body}
+      </Text>
+    ),
+  }));
 
-            <h4 style={{ margin: '32px 0 10px' }}>
-              Standards registry {live && (docsQ.data?.documents.length ?? 0) > 0 && <span className="k">live · loaded regulator documents</span>}
-            </h4>
-            <table className="table">
-              <thead>
-                <tr><th>Standard</th><th>Version</th><th>Rules</th><th>Owner</th></tr>
-              </thead>
-              <tbody>
-                {standards.map((s) => (
-                  <tr key={s.name} className="row">
-                    <td style={{ fontSize: 13 }}>{s.name}</td>
-                    <td className="mono" style={{ fontSize: 12 }}>{s.ver}</td>
-                    <td className="mono" style={{ fontSize: 12 }}>{s.rules}</td>
-                    <td style={{ fontSize: 12, color: 'color-mix(in srgb,var(--color-text) 60%,transparent)' }}>{s.owner}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
+  const registry = (
+    <Row gutter={[16, 16]} align="top">
+      <Col xs={24} xl={12}>
+        <Card
+          title="Jurisdictions"
+          extra={!derived
+            ? <DemoTag reason="warehouse cold — showing design fixtures" />
+            : live && <Text type="secondary" style={{ fontSize: 13 }}>live · filings + canon</Text>}
+          styles={{ body: { padding: 0 } }}
+        >
+          <List
+            dataSource={cards}
+            rowKey={(s) => s.code}
+            renderItem={(s) => (
+              <JurItem card={s} user={user} editable={!!derived && mayOnboard} />
+            )}
+          />
+        </Card>
 
-          <Blueprint className="gridwash" style={{ padding: '22px 24px' }}>
-            <div className="k">Onboard a jurisdiction{onboard ? ' · live — derived from the canon' : ' · vision demo'}</div>
-            <h4 style={{ margin: '4px 0', fontSize: 23 }}>{onboard ? onboard.title : 'California · Homeowners'}</h4>
-            <div style={{ fontSize: 12.5, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)', margin: '4px 0 18px' }}>
-              Configuration only — no pipeline code is written. The silver layer is already
-              jurisdiction-agnostic; a new state is a rulebook, a mapping and an edit package.
-            </div>
+        <Card
+          title="Standards registry"
+          extra={!standardsLive
+            ? <DemoTag reason="no regulator documents loaded — showing design fixtures" />
+            : live && <Text type="secondary" style={{ fontSize: 13 }}>live · loaded regulator documents</Text>}
+          style={{ marginTop: 16 }}
+          styles={{ body: { padding: 0 } }}
+        >
+          <Table
+            rowKey="name"
+            dataSource={standards}
+            columns={standardsColumns}
+            pagination={false} size="middle"
+          />
+        </Card>
+      </Col>
 
-            {(onboard?.steps ?? ONBOARD_STEPS.map((s) => ({
-              n: Number(s.n), title: s.title, body: s.body, status: s.status,
-              tagClass: s.status === 'Done' ? 'tag-neutral' : 'tag-outline',
-            }))).map((s) => (
-              <div key={s.n} style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '9px 0', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
-                <span className="mono" style={{ fontSize: 11, width: 14, color: 'color-mix(in srgb,var(--color-text) 45%,transparent)' }}>{s.n}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>{s.title}</div>
-                  <div style={{ fontSize: 12, lineHeight: 1.55, color: 'color-mix(in srgb,var(--color-text) 58%,transparent)' }}>{s.body}</div>
-                </div>
-                <span className={'tag ' + s.tagClass}>{s.status}</span>
-              </div>
-            ))}
+      <Col xs={24} xl={12}>
+        <Card
+          title="Onboard a jurisdiction"
+          extra={onboard
+            ? <Tag color="green">live · derived from the canon</Tag>
+            : <DemoTag reason="no canon yet — the CA design story">vision demo</DemoTag>}
+        >
+          <Title level={4} style={{ margin: '0 0 4px' }}>
+            {onboard ? onboard.title : 'California · Homeowners'}
+          </Title>
+          <Paragraph type="secondary" style={{ fontSize: 12.5, marginBottom: 18 }}>
+            Configuration only — no pipeline code is written. The silver layer is already
+            jurisdiction-agnostic; a new state is a rulebook, a mapping and an edit package.
+          </Paragraph>
 
-            <div style={{ fontSize: 12.5, lineHeight: 1.65, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)', margin: '16px 0 18px' }}>
-              A jurisdiction is onboarded by uploading its rulebook. The agents parse it, derive
-              rules, map them onto the existing silver contract and dry-run a shadow cycle —
-              pipeline code is never written.
-            </div>
+          <Steps direction="vertical" size="small" items={onboardStepItems} />
 
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button className="btn btn-secondary" disabled title="coming soon">
+          <Paragraph type="secondary" style={{ fontSize: 12.5, lineHeight: 1.65, margin: '14px 0 18px' }}>
+            A jurisdiction is onboarded by uploading its rulebook. The agents parse it, derive
+            rules, map them onto the existing silver contract and dry-run a shadow cycle —
+            pipeline code is never written.
+          </Paragraph>
+
+          <Space>
+            <Tooltip title="coming soon">
+              <Button disabled>
                 Clone {derived?.cloneFrom ? shortName(derived.cloneFrom) : 'Texas'} config
-              </button>
-              {onboard?.allDone ? (
-                <button
-                  onClick={go('mapping')}
-                  style={{ background: 'none', border: 'none', padding: '0 4px', cursor: 'pointer', fontSize: 13, color: 'var(--color-accent-700)', textDecoration: 'underline', fontFamily: 'var(--font-body)' }}
-                >
-                  View mapping review →
-                </button>
-              ) : (
-                <button className="btn btn-primary" onClick={resumeOnboarding}>Resume onboarding →</button>
-              )}
-            </div>
-          </Blueprint>
-        </div>
-      ) : (
-        <Wizard
-          wizard={wizard} patch={patchWizard} go={go} user={user}
-          mayOnboard={mayOnboard} onExit={() => setTab('registry')}
-        />
-      )}
-    </div>
+              </Button>
+            </Tooltip>
+            {onboard?.allDone ? (
+              <Button type="link" onClick={go('mapping')} style={{ paddingInline: 4 }}>
+                View mapping review →
+              </Button>
+            ) : (
+              <Button type="primary" onClick={resumeOnboarding}>Resume onboarding →</Button>
+            )}
+          </Space>
+        </Card>
+      </Col>
+    </Row>
+  );
+
+  return (
+    <Tabs
+      activeKey={tab}
+      onChange={(k) => setTab(k as Tab)}
+      destroyOnHidden
+
+      items={[
+        { key: 'registry', label: 'Registry', children: registry },
+        {
+          key: 'add',
+          label: 'Add a jurisdiction',
+          children: (
+            <Wizard
+              wizard={wizard} patch={patchWizard} go={go} user={user}
+              mayOnboard={mayOnboard} onExit={() => setTab('registry')}
+            />
+          ),
+        },
+      ]}
+    />
   );
 }
 
-// ── an editable jurisdiction card ───────────────────────────────────────────
+// ── an editable jurisdiction row ────────────────────────────────────────────
 // Display name + line of business persist on the KG Jurisdiction node
 // (display_name / lob via PATCH /api/jurisdictions/{code}); pause/resume
 // flips the jurisdiction's FilingObligations, which drives Live ↔ Filed.
 interface JurCardData {
   code: string; name: string; lob: string; sub: string;
-  hasFilings: boolean; status: string; tagClass: string;
+  hasFilings: boolean; status: string;
 }
 
-function JurCard({ card: s, user, editable }: {
+function JurItem({ card: s, user, editable }: {
   card: JurCardData; user: AppUser; editable: boolean;
 }) {
   const saveMut = useSaveJurisdiction();
@@ -499,76 +554,77 @@ function JurCard({ card: s, user, editable }: {
       { onSuccess: () => setEditing(false) },
     );
 
-  const input = (val: string, set: (v: string) => void, ph: string): ReactNode => (
-    <input value={val} placeholder={ph} onChange={(e) => set(e.target.value)}
-      style={{
-        display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 3,
-        padding: '7px 9px', fontSize: 12.5, fontFamily: 'var(--font-body)',
-        border: '1px solid var(--color-divider)', borderRadius: 0,
-        background: 'color-mix(in srgb,var(--color-text) 4%,transparent)',
-        color: 'var(--color-text)',
-      }} />
-  );
-
   const clickable = editable && !editing;
   return (
-    <Blueprint
+    <List.Item
       onClick={clickable ? open : undefined}
       title={clickable ? 'click to edit' : undefined}
-      style={{
-        padding: '16px 18px', display: 'flex',
-        alignItems: editing ? 'flex-start' : 'center', gap: 18,
-        cursor: clickable ? 'pointer' : undefined,
-      }}>
-      <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 34, width: 56, lineHeight: 1, color: 'var(--color-accent-900)' }}>
-        {s.code}
+      style={{ padding: '14px 20px', cursor: clickable ? 'pointer' : undefined }}
+    >
+      <div style={{ display: 'flex', gap: 14, width: '100%', alignItems: editing ? 'flex-start' : 'center' }}>
+        <Avatar
+          shape="square" size={46}
+          style={{ background: 'rgba(22,119,255,0.1)', color: '#1677ff', fontWeight: 600, fontSize: 16, flexShrink: 0 }}
+        >
+          {s.code}
+        </Avatar>
+        {editing ? (
+          <div style={{ flex: 1, minWidth: 0 }} onClick={(e) => e.stopPropagation()}>
+            <Row gutter={12}>
+              <Col span={14}>
+                <Text type="secondary" style={{ fontSize: 12 }}>Display name</Text>
+                <Input
+                  size="small" value={name} style={{ marginTop: 3 }}
+                  placeholder="Oklahoma — Insurance Department"
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </Col>
+              <Col span={10}>
+                <Text type="secondary" style={{ fontSize: 12 }}>Line of business</Text>
+                <Input
+                  size="small" value={lob} style={{ marginTop: 3 }}
+                  placeholder="Homeowners"
+                  onChange={(e) => setLob(e.target.value)}
+                />
+              </Col>
+            </Row>
+            <Space wrap style={{ marginTop: 10 }}>
+              <Button size="small" type="primary" loading={saveMut.isPending}
+                disabled={!name.trim()} onClick={doSave}>
+                Save
+              </Button>
+              <Button size="small" onClick={() => setEditing(false)}>Cancel</Button>
+              {s.hasFilings && (
+                <Tooltip title={s.status === 'Live'
+                  ? 'sets the filing obligations inactive — card reads Filed'
+                  : 'reactivates the filing obligations — card reads Live'}>
+                  <Button size="small" disabled={saveMut.isPending} onClick={doToggleFilings}>
+                    {s.status === 'Live' ? 'Pause filings' : 'Resume filings'}
+                  </Button>
+                </Tooltip>
+              )}
+              {saveMut.error != null && (
+                <Text type="danger" style={{ fontSize: 11.5 }}>{(saveMut.error as Error).message}</Text>
+              )}
+            </Space>
+          </div>
+        ) : (
+          <>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 500 }}>{s.name}</div>
+              <Text type="secondary" style={{ fontSize: 11.5 }}>{s.sub}</Text>
+            </div>
+            {editable && (
+              <Button size="small" type="link" style={{ flex: 'none', paddingInline: 2 }}
+                onClick={(e) => { e.stopPropagation(); open(); }}>
+                Edit
+              </Button>
+            )}
+            <Tag color={STATUS_COLOR[s.status]} style={{ marginInlineEnd: 0 }}>{s.status}</Tag>
+          </>
+        )}
       </div>
-      {editing ? (
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
-            <label style={{ fontSize: 11, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>
-              Display name{input(name, setName, 'Oklahoma — Insurance Department')}
-            </label>
-            <label style={{ fontSize: 11, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>
-              Line of business{input(lob, setLob, 'Homeowners')}
-            </label>
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button className="btn btn-primary" disabled={!name.trim() || saveMut.isPending} onClick={doSave}>
-              {saveMut.isPending ? 'Saving…' : 'Save'}
-            </button>
-            <button className="btn btn-secondary" onClick={() => setEditing(false)}>Cancel</button>
-            {s.hasFilings && (
-              <button className="btn btn-secondary" disabled={saveMut.isPending} onClick={doToggleFilings}
-                title={s.status === 'Live' ? 'sets the filing obligations inactive — card reads Filed' : 'reactivates the filing obligations — card reads Live'}>
-                {s.status === 'Live' ? 'Pause filings' : 'Resume filings'}
-              </button>
-            )}
-            {saveMut.error != null && (
-              <span style={{ fontSize: 11.5, color: '#a33' }}>{(saveMut.error as Error).message}</span>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14.5, fontWeight: 500 }}>{s.name}</div>
-          <div style={{ fontSize: 11.5, marginTop: 2, color: 'color-mix(in srgb,var(--color-text) 58%,transparent)' }}>
-            {s.sub}
-          </div>
-        </div>
-      )}
-      {!editing && editable && (
-        <button onClick={open}
-          style={{
-            background: 'none', border: 'none', padding: '0 2px', cursor: 'pointer',
-            fontSize: 12, color: 'var(--color-accent-700)', textDecoration: 'underline',
-            fontFamily: 'var(--font-body)', flex: 'none',
-          }}>
-          Edit
-        </button>
-      )}
-      {!editing && <span className={'tag ' + s.tagClass}>{s.status}</span>}
-    </Blueprint>
+    </List.Item>
   );
 }
 
@@ -580,8 +636,6 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
 }) {
   const qc = useQueryClient();
   const fileRef = useRef<File | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState<'upload' | 'extract' | 'approve' | 'golive' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -593,7 +647,7 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
   const extractRunning = wizard.step === 3 && status?.status === 'running';
 
   // A finished background extraction advances nothing by itself — approval is
-  // the explicit human act — but the rail should say "Done running".
+  // the explicit human act — but the rail should say it's running/done.
   useEffect(() => { if (status?.status === 'error') setError(status.error ?? 'extraction failed'); }, [status]);
 
   const gate = mayOnboard ? undefined : `requires ${whoCan('bulletin')}`;
@@ -674,14 +728,6 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
     } catch (e) { setError((e as Error).message); } finally { setBusy(null); }
   };
 
-  const railStatus = (n: number): [string, string] => {
-    if (n < wizard.step) return ['Done', 'tag-neutral'];
-    if (n === wizard.step) {
-      if (n === 3 && extractRunning) return ['Running', 'tag-accent'];
-      return ['Active', 'tag-accent'];
-    }
-    return ['Queued', 'tag-outline'];
-  };
   // 0 → 100 in 20% ticks across the six steps, matching the design mock.
   const progress = Math.round(((wizard.step - 1) / (WIZ_STEPS.length - 1)) * 100);
   const back = () => patch({ step: Math.max(1, wizard.step - 1) });
@@ -719,354 +765,350 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
   const bandTotal = bandsLive ? proposedNodes!.length : story.extractTotal;
   const bands = bandsLive
     ? [
-      { band: 'Auto-approved', range: 'confidence ≥ 0.90', count: proposedNodes!.filter((n) => (n.confidence ?? 0) >= 0.9).length, color: ACC },
-      { band: 'Queued for review', range: '0.70 – 0.89', count: proposedNodes!.filter((n) => (n.confidence ?? 0) >= 0.7 && (n.confidence ?? 0) < 0.9).length, color: '#94bce3' },
-      { band: 'Escalated', range: 'below 0.70', count: proposedNodes!.filter((n) => (n.confidence ?? 0) < 0.7).length, color: ACC9 },
+      { band: 'Auto-approved', range: 'confidence ≥ 0.90', count: proposedNodes!.filter((n) => (n.confidence ?? 0) >= 0.9).length, color: '#52c41a' },
+      { band: 'Queued for review', range: '0.70 – 0.89', count: proposedNodes!.filter((n) => (n.confidence ?? 0) >= 0.7 && (n.confidence ?? 0) < 0.9).length, color: '#faad14' },
+      { band: 'Escalated', range: 'below 0.70', count: proposedNodes!.filter((n) => (n.confidence ?? 0) < 0.7).length, color: '#ff4d4f' },
     ]
     : story.extractBands;
 
-  const projChip = (label = 'demo projection') => (
-    <span className="tag tag-outline" style={{ marginLeft: 'auto', opacity: 0.75 }}>{label}</span>
-  );
-  const kickerRow = (kicker: string, chip?: boolean, chipLabel?: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
-      <span className="k">{kicker}</span>
-      {chip && projChip(chipLabel)}
-    </div>
+  const stepHeader = (n: number) => (
+    <Space align="baseline" size={12} style={{ marginBottom: 14 }}>
+      <Title level={4} style={{ margin: 0 }}>{WIZ_STEPS[n - 1][0]}</Title>
+      <Text type="secondary" style={{ fontSize: 13 }}>{WIZ_STEPS[n - 1][1]}</Text>
+    </Space>
   );
   const deepLink = (label: string, onLink: () => void) => (
-    <button
-      onClick={onLink}
-      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12.5, color: 'var(--color-accent-700)', textDecoration: 'underline', fontFamily: 'var(--font-body)' }}
-    >
+    <Button type="link" size="small" style={{ padding: 0, fontSize: 12.5 }} onClick={onLink}>
       {label}
-    </button>
+    </Button>
   );
   // The design footer: Back + Save-and-exit on the left, primary on the right.
   const footer = (primary: ReactNode) => (
-    <div style={{ display: 'flex', gap: 8, marginTop: 22, borderTop: '1px solid var(--color-divider)', paddingTop: 16 }}>
+    <div style={{ display: 'flex', gap: 8, marginTop: 22, borderTop: '1px solid rgba(5,5,5,0.06)', paddingTop: 16 }}>
       {wizard.step > 1 && (
-        <button className="btn btn-secondary" onClick={back} disabled={navLocked}
-          title={navLocked ? 'wait for the current step to finish' : undefined}>
-          ← Back
-        </button>
+        <Tooltip title={navLocked ? 'wait for the current step to finish' : undefined}>
+          <Button onClick={back} disabled={navLocked}>← Back</Button>
+        </Tooltip>
       )}
-      <button className="btn btn-secondary" onClick={onExit} disabled={processing}
-        title={extractRunning ? 'safe — the extraction keeps running server-side' : undefined}>
-        Save and exit
-      </button>
+      <Tooltip title={extractRunning ? 'safe — the extraction keeps running server-side' : undefined}>
+        <Button onClick={onExit} disabled={processing}>Save and exit</Button>
+      </Tooltip>
       <span style={{ marginLeft: 'auto' }}>{primary}</span>
     </div>
   );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 34, alignItems: 'start' }}>
+    <Row gutter={[16, 16]} align="top">
       {/* left rail — progress */}
-      <section>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
-          <span className="k">Progress</span>
-          <span className="mono" style={{ fontSize: 12 }}>{progress}%</span>
-        </div>
-        {WIZ_STEPS.map(([title, desc], i) => {
-          const n = i + 1;
-          const [label, tagClass] = railStatus(n);
-          const jumpable = n < wizard.step && !navLocked; // completed steps re-open on click
-          return (
-            <div
-              key={title}
-              onClick={jumpable ? () => patch({ step: n }) : undefined}
-              title={jumpable ? `back to step ${n}` : undefined}
-              style={{ display: 'grid', gridTemplateColumns: '24px 1fr auto', gap: 10, padding: '9px 0', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)', cursor: jumpable ? 'pointer' : 'default' }}
-            >
-              <span className="mono" style={{
-                fontSize: 11, width: 21, height: 21, display: 'grid', placeItems: 'center',
-                border: '1px solid ' + (n <= wizard.step ? 'var(--color-accent)' : 'var(--color-divider)'),
-                background: n < wizard.step ? 'var(--color-accent)' : 'transparent',
-                color: n < wizard.step ? 'var(--color-bg)' : 'var(--color-text)',
-              }}>{n}</span>
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: n === wizard.step ? 500 : 400 }}>{title}</div>
-                <div style={{ fontSize: 11.5, lineHeight: 1.5, color: 'color-mix(in srgb,var(--color-text) 55%,transparent)' }}>{desc}</div>
-              </div>
-              <span className={'tag ' + tagClass} style={{ alignSelf: 'start' }}>{label}</span>
-            </div>
-          );
-        })}
-      </section>
+      <Col xs={24} xl={7}>
+        <Card
+          title="Progress"
+          extra={<span style={{ ...MONO, fontSize: 12 }}>{progress}%</span>}
+        >
+          <Progress percent={progress} size="small" showInfo={false} style={{ marginBottom: 16 }} />
+          <Steps
+            direction="vertical" size="small"
+            current={wizard.step - 1}
+            onChange={(i) => {
+              const n = i + 1;
+              if (n < wizard.step && !navLocked) patch({ step: n });
+            }}
+            items={WIZ_STEPS.map(([title, desc], i) => {
+              const n = i + 1;
+              return {
+                title,
+                description: (
+                  <Text type="secondary" style={{ fontSize: 11.5, lineHeight: 1.5, display: 'block', paddingBottom: 6 }}>
+                    {desc}
+                  </Text>
+                ),
+                status: (n < wizard.step ? 'finish' : n === wizard.step ? 'process' : 'wait') as 'finish' | 'process' | 'wait',
+                icon: n === wizard.step && extractRunning ? <LoadingOutlined /> : undefined,
+                disabled: !(n < wizard.step) || navLocked,
+              };
+            })}
+          />
+        </Card>
+      </Col>
 
       {/* main — step content */}
-      <section>
+      <Col xs={24} xl={17}>
         {wizard.step === 1 && (
           <>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14 }}>
-              <h4>Upload the rulebook</h4>
-              <span className="k">Point at the PDF and name the jurisdiction</span>
-            </div>
-            <Blueprint
-              className="gridwash"
-              style={{
-                padding: '52px 40px', textAlign: 'center',
-                background: dragOver ? 'var(--color-accent-100)' : undefined,
-              }}
-              onClick={() => inputRef.current?.click()}
+            {stepHeader(1)}
+            <Upload.Dragger
+              accept=".pdf,application/pdf"
+              maxCount={1}
+              showUploadList={false}
+              beforeUpload={(f) => { chooseFile(f); return false; }}
+              disabled={busy === 'upload'}
             >
-              <div
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => { e.preventDefault(); setDragOver(false); chooseFile(e.dataTransfer.files?.[0] ?? null); }}
-              >
-                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 22 }}>
-                  Drop the jurisdiction&rsquo;s statistical plan PDF
-                </div>
-                <div style={{ fontSize: 12.5, margin: '6px 0 18px', color: 'color-mix(in srgb,var(--color-text) 58%,transparent)' }}>
-                  Or a bulletin, a circular, or a filing manual. Nothing else about the platform
-                  changes — the rulebook is the input.
-                </div>
-                <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}>
-                  Choose file
-                </button>
-                <input
-                  ref={inputRef} type="file" accept=".pdf,application/pdf" style={{ display: 'none' }}
-                  onChange={(e) => chooseFile(e.target.files?.[0] ?? null)}
-                />
-                {wizard.fileName && (
-                  <div className="mono" style={{ marginTop: 16, fontSize: 12, color: 'var(--color-accent-700)' }}>
-                    ✓ {wizard.fileName}{mb ? ` · ${mb} MB` : ''}{wizard.pages ? ` · ${wizard.pages} pp` : ''}
-                    {!fileRef.current && !wizard.slug && '  (re-choose after reload)'}
-                  </div>
-                )}
-              </div>
-            </Blueprint>
+              <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+              <p className="ant-upload-text">Drop the jurisdiction&rsquo;s statistical plan PDF</p>
+              <p className="ant-upload-hint">
+                Or a bulletin, a circular, or a filing manual. Nothing else about the platform
+                changes — the rulebook is the input.
+              </p>
+            </Upload.Dragger>
+            {wizard.fileName && (
+              <Text type="success" style={{ ...MONO, display: 'block', marginTop: 12, fontSize: 12 }}>
+                ✓ {wizard.fileName}{mb ? ` · ${mb} MB` : ''}{wizard.pages ? ` · ${wizard.pages} pp` : ''}
+                {!fileRef.current && !wizard.slug && '  (re-choose after reload)'}
+              </Text>
+            )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, margin: '22px 0' }}>
+            <Row gutter={[16, 16]} style={{ margin: '20px 0 0' }}>
               {([
                 ['Jurisdiction', 'California', wizard.jurisdiction, (v: string) => patch({ jurisdiction: v })],
                 ['Line of business', 'Homeowners', wizard.lob, (v: string) => patch({ lob: v })],
                 ['Standard code', 'CDI HO 2026', wizard.std, (v: string) => patch({ std: v })],
               ] as Array<[string, string, string, (v: string) => void]>).map(([label, ph, val, set]) => (
-                <label key={label} style={{ fontSize: 12, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>
-                  {label}
-                  <input
-                    value={val} placeholder={ph} onChange={(e) => set(e.target.value)}
-                    style={{
-                      display: 'block', width: '100%', marginTop: 5, padding: '9px 11px',
-                      fontSize: 13, fontFamily: 'var(--font-body)', border: '1px solid var(--color-divider)',
-                      borderRadius: 0, background: 'color-mix(in srgb,var(--color-text) 4%,transparent)',
-                      color: 'var(--color-text)',
-                    }}
+                <Col key={label} xs={24} md={8}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>{label}</Text>
+                  <Input
+                    value={val} placeholder={ph} style={{ marginTop: 4 }}
+                    onChange={(e) => set(e.target.value)}
                   />
-                </label>
+                </Col>
               ))}
-            </div>
+            </Row>
 
-            {error && <div style={{ fontSize: 12.5, color: '#a33', marginBottom: 12 }}>{error}</div>}
+            {error && <Alert type="error" showIcon message={error} style={{ marginTop: 14 }} />}
             {footer(
-              <button
-                className="btn btn-primary"
-                disabled={!mayOnboard || busy === 'upload' || !wizard.fileName || !wizard.jurisdiction.trim()}
-                title={gate ?? (!wizard.fileName ? 'choose the rulebook PDF' : !wizard.jurisdiction.trim() ? 'name the jurisdiction' : undefined)}
-                onClick={doUpload}
-              >
-                {busy === 'upload' ? 'Uploading…' : 'Parse document →'}
-              </button>,
+              <Tooltip title={gate ?? (!wizard.fileName ? 'choose the rulebook PDF'
+                : !wizard.jurisdiction.trim() ? 'name the jurisdiction' : undefined)}>
+                <Button
+                  type="primary" loading={busy === 'upload'}
+                  disabled={!mayOnboard || busy === 'upload' || !wizard.fileName || !wizard.jurisdiction.trim()}
+                  onClick={doUpload}
+                >
+                  Parse document →
+                </Button>
+              </Tooltip>,
             )}
           </>
         )}
 
         {wizard.step === 2 && (
           <>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14 }}>
-              <h4>Parse &amp; segment</h4>
-              <span className="k">Structure the document into citable clauses</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: 24 }}>
-              <Blueprint style={{ padding: '16px 18px' }}>
-                {kickerRow('Parse result', parseRows.some((r) => !r.live),
-                  parseRows.some((r) => r.live) ? 'counts projected' : 'demo projection')}
-                {parseRows.map((r) => (
-                  <div key={r.k} style={{ display: 'flex', gap: 10, padding: '5px 0', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)', fontSize: 12.5 }}>
-                    <span style={{ flex: 1, color: 'color-mix(in srgb,var(--color-text) 55%,transparent)' }}>{r.k}</span>
-                    <span className="mono" style={{ fontSize: 11.5, textAlign: 'right', opacity: r.live ? 1 : 0.75 }}>{r.v}</span>
-                  </div>
-                ))}
-              </Blueprint>
-              <Blueprint style={{ padding: '16px 18px' }}>
-                {kickerRow('Document outline — highlighted sections carry reportable rules', true)}
-                {story.outline.map((o) => (
-                  <div key={o.s} className="row" style={{ display: 'flex', gap: 12, padding: '8px 6px', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)', alignItems: 'baseline' }}>
-                    <span className="mono" style={{ fontSize: 11.5, width: 64, color: 'var(--color-accent-700)' }}>{o.s}</span>
-                    <span style={{ flex: 1, fontSize: 13 }}>{o.t}</span>
-                    <span className="mono" style={{ fontSize: 11, color: 'color-mix(in srgb,var(--color-text) 52%,transparent)' }}>{o.c}</span>
-                  </div>
-                ))}
-              </Blueprint>
-            </div>
-            <div style={{ fontSize: 12.5, lineHeight: 1.65, margin: '16px 0 0', color: 'color-mix(in srgb,var(--color-text) 62%,transparent)', maxWidth: '78ch' }}>
+            {stepHeader(2)}
+            <Row gutter={[16, 16]}>
+              <Col xs={24} lg={11}>
+                <Card
+                  size="small"
+                  title={<Text type="secondary" style={K_LABEL}>Parse result</Text>}
+                  extra={parseRows.some((r) => !r.live) && (
+                    <DemoTag reason="rows without a live payload value come from the CA design story">
+                      {parseRows.some((r) => r.live) ? 'counts projected' : 'demo projection'}
+                    </DemoTag>
+                  )}
+                >
+                  {parseRows.map((r) => <KV key={r.k} k={r.k} v={r.v} dim={!r.live} />)}
+                </Card>
+              </Col>
+              <Col xs={24} lg={13}>
+                <Card
+                  size="small"
+                  title={<Text type="secondary" style={K_LABEL}>Document outline — reportable sections</Text>}
+                  extra={<DemoTag reason="no live outline endpoint yet — the CA design story">demo projection</DemoTag>}
+                >
+                  {story.outline.map((o) => (
+                    <div key={o.s} style={{ display: 'flex', gap: 12, padding: '7px 0', alignItems: 'baseline', borderBottom: '1px solid rgba(5,5,5,0.06)' }}>
+                      <span style={{ ...MONO, fontSize: 11.5, width: 64, flex: 'none', color: '#1677ff' }}>{o.s}</span>
+                      <span style={{ flex: 1, fontSize: 13 }}>{o.t}</span>
+                      <Text type="secondary" style={{ ...MONO, fontSize: 11 }}>{o.c}</Text>
+                    </div>
+                  ))}
+                </Card>
+              </Col>
+            </Row>
+            <Paragraph type="secondary" style={{ fontSize: 12.5, lineHeight: 1.65, margin: '16px 0 0', maxWidth: '78ch' }}>
               The document is registered in the regulation store as{' '}
-              <span className="mono" style={{ fontSize: 11.5 }}>{wizard.slug ?? 'uploaded-cdi-ho-2026'}</span>{' '}
+              <Text code style={{ fontSize: 11.5 }}>{wizard.slug ?? 'uploaded-cdi-ho-2026'}</Text>{' '}
               and its text is staged as the Sentinel input. Extraction is an LLM pass that derives
               candidate rules with confidence scores and citations — it takes a couple of minutes
               and runs in the background.
-            </div>
-            {error && <div style={{ fontSize: 12.5, color: '#a33', margin: '12px 0 0' }}>{error}</div>}
+            </Paragraph>
+            {error && <Alert type="error" showIcon message={error} style={{ marginTop: 12 }} />}
             {footer(
-              <button
-                className="btn btn-primary" disabled={!mayOnboard || busy === 'extract'} title={gate}
-                onClick={doExtract}
-              >
-                {busy === 'extract' ? 'Starting…' : 'Extract rules →'}
-              </button>,
+              <Tooltip title={gate}>
+                <Button
+                  type="primary" loading={busy === 'extract'}
+                  disabled={!mayOnboard || busy === 'extract'}
+                  onClick={doExtract}
+                >
+                  Extract rules →
+                </Button>
+              </Tooltip>,
             )}
           </>
         )}
 
         {wizard.step === 3 && (
           <>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14 }}>
-              <h4>Extract candidate rules</h4>
-              <span className="k">Derive rules with confidence and citations</span>
-            </div>
+            {stepHeader(3)}
             {status?.status === 'error' ? (
-              <Blueprint style={{ padding: '22px 24px' }}>
-                <div style={{ fontSize: 13, color: '#a33' }}>{status.error ?? 'Extraction failed.'}</div>
-              </Blueprint>
+              <Alert type="error" showIcon message={status.error ?? 'Extraction failed.'} />
             ) : extractRunning || (!wizard.approved && status?.status !== 'done') ? (
-              <Blueprint style={{ padding: '22px 24px' }}>
-                <div style={{ fontSize: 13, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>
-                  <span className="mono" style={{ fontSize: 12 }}>Sentinel is reading the document…</span>
-                  {' '}polling <span className="mono" style={{ fontSize: 11.5 }}>/extract/status</span> — this
-                  is an LLM pass and can take a couple of minutes. Safe to Save and exit; the job keeps running.
-                </div>
-              </Blueprint>
+              <Alert
+                type="info"
+                icon={<LoadingOutlined />} showIcon
+                message="Sentinel is reading the document…"
+                description={(
+                  <>
+                    polling <Text code style={{ fontSize: 11.5 }}>/extract/status</Text> — this is an LLM pass
+                    and can take a couple of minutes. Safe to Save and exit; the job keeps running.
+                  </>
+                )}
+              />
             ) : (
               <>
-                <Blueprint style={{ padding: '18px 20px', marginBottom: 20 }}>
-                  {kickerRow(`${fmt(bandTotal)} candidate rules by confidence`, !bandsLive, 'projected')}
+                <Card
+                  size="small"
+                  title={<Text type="secondary" style={K_LABEL}>{fmt(bandTotal)} candidate rules by confidence</Text>}
+                  extra={!bandsLive && <DemoTag reason="extraction payload carries no confidence values — the CA design story">projected</DemoTag>}
+                  style={{ marginBottom: 16 }}
+                >
                   {bands.map((b) => (
-                    <div key={b.band} style={{ display: 'grid', gridTemplateColumns: '150px 130px 1fr 70px', gap: 14, alignItems: 'center', padding: '7px 0' }}>
-                      <span style={{ fontSize: 13 }}>{b.band}</span>
-                      <span className="mono" style={{ fontSize: 11.5, color: 'color-mix(in srgb,var(--color-text) 55%,transparent)' }}>{b.range}</span>
-                      <span style={{ height: 9, background: 'color-mix(in srgb,var(--color-text) 9%,transparent)', position: 'relative', display: 'block' }}>
-                        <span style={{ position: 'absolute', inset: '0 auto 0 0', width: `${bandTotal ? Math.round((b.count / bandTotal) * 100) : 0}%`, background: b.color }} />
-                      </span>
-                      <span className="mono" style={{ fontSize: 13, textAlign: 'right' }}>{fmt(b.count)}</span>
-                    </div>
+                    <Row key={b.band} gutter={12} align="middle" style={{ padding: '5px 0' }}>
+                      <Col flex="150px" style={{ fontSize: 13 }}>{b.band}</Col>
+                      <Col flex="130px">
+                        <Text type="secondary" style={{ ...MONO, fontSize: 11.5 }}>{b.range}</Text>
+                      </Col>
+                      <Col flex="auto">
+                        <Progress
+                          percent={bandTotal ? Math.round((b.count / bandTotal) * 100) : 0}
+                          showInfo={false} size="small" strokeColor={b.color}
+                        />
+                      </Col>
+                      <Col flex="70px" style={{ ...MONO, fontSize: 13, textAlign: 'right' }}>{fmt(b.count)}</Col>
+                    </Row>
                   ))}
-                </Blueprint>
-                <div style={{ fontSize: 13, lineHeight: 1.7, maxWidth: '78ch', marginBottom: 12 }}>
+                </Card>
+                <Paragraph style={{ fontSize: 13, lineHeight: 1.7, maxWidth: '78ch', marginBottom: 10 }}>
                   {bandsLive && status?.result?.summary ? status.result.summary : story.extractNote}
-                </div>
-                <div style={{ fontSize: 12.5, color: 'color-mix(in srgb,var(--color-text) 58%,transparent)' }}>
+                </Paragraph>
+                <Text type="secondary" style={{ fontSize: 12.5, display: 'block' }}>
                   {wizard.approved
                     ? 'Approved — the extraction is materialized in the knowledge graph as draft rules.'
                     : 'Mapping the fields approves the extraction into the knowledge graph — the rules land as drafts and go through the human approval gate on the Rulebook screen.'}
-                </div>
-                <div style={{ marginTop: 10, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+                </Text>
+                <Space size={14} wrap style={{ marginTop: 10 }}>
                   {deepLink('Review the queued proposals first →', go('extract'))}
-                  <button
-                    className="btn btn-secondary"
-                    style={reArm ? { borderColor: 'var(--color-accent)', color: 'var(--color-accent-700)' } : undefined}
-                    disabled={!mayOnboard || busy === 'extract'}
-                    title="extraction is non-deterministic — a re-run produces a different proposal set and orphans recorded verdicts"
-                    onClick={doReExtract}
-                    onBlur={() => setReArm(false)}
-                  >
-                    {reArm ? 'Replaces all proposals + verdicts — click again to confirm' : 'Re-extract…'}
-                  </button>
-                </div>
+                  <Tooltip title="extraction is non-deterministic — a re-run produces a different proposal set and orphans recorded verdicts">
+                    <Button
+                      danger={reArm}
+                      disabled={!mayOnboard || busy === 'extract'}
+                      onClick={doReExtract}
+                      onBlur={() => setReArm(false)}
+                    >
+                      {reArm ? 'Replaces all proposals + verdicts — click again to confirm' : 'Re-extract…'}
+                    </Button>
+                  </Tooltip>
+                </Space>
               </>
             )}
-            {error && status?.status !== 'error' && <div style={{ fontSize: 12.5, color: '#a33', margin: '12px 0 0' }}>{error}</div>}
+            {error && status?.status !== 'error' && (
+              <Alert type="error" showIcon message={error} style={{ marginTop: 12 }} />
+            )}
             {footer(
               status?.status === 'error' ? (
-                <button className="btn btn-primary" disabled={!mayOnboard || busy === 'extract'} title={gate} onClick={doExtract}>
-                  Retry extraction
-                </button>
+                <Tooltip title={gate}>
+                  <Button type="primary" loading={busy === 'extract'}
+                    disabled={!mayOnboard || busy === 'extract'} onClick={doExtract}>
+                    Retry extraction
+                  </Button>
+                </Tooltip>
               ) : (
-                <button
-                  className="btn btn-primary"
-                  disabled={!mayOnboard || busy === 'approve' || (!wizard.approved && status?.status !== 'done')}
-                  title={gate ?? (!wizard.approved && status?.status !== 'done' ? 'waiting for the extraction to finish' : !wizard.approved ? 'approves the extraction into the canon' : undefined)}
-                  onClick={doApprove}
-                >
-                  {busy === 'approve' ? 'Approving…' : 'Map fields →'}
-                </button>
+                <Tooltip title={gate ?? (!wizard.approved && status?.status !== 'done'
+                  ? 'waiting for the extraction to finish'
+                  : !wizard.approved ? 'approves the extraction into the canon' : undefined)}>
+                  <Button
+                    type="primary" loading={busy === 'approve'}
+                    disabled={!mayOnboard || busy === 'approve' || (!wizard.approved && status?.status !== 'done')}
+                    onClick={doApprove}
+                  >
+                    Map fields →
+                  </Button>
+                </Tooltip>
               ),
             )}
           </>
         )}
 
-        {wizard.step >= 4 && (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14 }}>
-            <h4>{WIZ_STEPS[wizard.step - 1][0]}</h4>
-            <span className="k">{WIZ_STEPS[wizard.step - 1][1]}</span>
-          </div>
-        )}
-
         {/* Step 4 — Map to the silver contract. No live backend yet: the CA
-            story renders under a demo-projection chip; the real work happens
-            on the Mapping review screen (deep link below). */}
+            story renders under a demo-data Tag; the real work happens on the
+            Mapping review screen (deep link below). */}
         {wizard.step === 4 && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 18, marginBottom: 22 }}>
+            {stepHeader(4)}
+            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
               {story.mapSummary.map((m) => (
-                <Blueprint key={m.k} style={{ padding: '12px 14px' }}>
-                  <div style={{ fontFamily: 'var(--font-heading)', fontSize: 30, lineHeight: 1 }}>{m.v}</div>
-                  <div style={{ fontSize: 11, lineHeight: 1.4, color: 'color-mix(in srgb,var(--color-text) 58%,transparent)', marginTop: 4 }}>{m.k}</div>
-                </Blueprint>
+                <Col key={m.k} flex="1 1 120px">
+                  <Card size="small">
+                    <Statistic value={m.v} title={<span style={{ fontSize: 11, lineHeight: 1.4 }}>{m.k}</span>} valueStyle={{ fontSize: 28 }} />
+                  </Card>
+                </Col>
               ))}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>{projChip()}</div>
-            <table className="table">
-              <thead>
-                <tr><th>CDI field</th><th>Silver column</th><th>Resolution</th><th>Status</th></tr>
-              </thead>
-              <tbody>
-                {story.map.map((m) => (
-                  <tr key={m.field} className="row">
-                    <td className="mono" style={{ fontSize: 12 }}>{m.field}</td>
-                    <td className="mono" style={{ fontSize: 12, color: 'color-mix(in srgb,var(--color-text) 65%,transparent)' }}>{m.silver}</td>
-                    <td style={{ fontSize: 12.5 }}>{m.how}</td>
-                    <td><span className={'tag ' + m.tagClass}>{m.state}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 14, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>
+            </Row>
+            <Card
+              size="small"
+              title={<Text type="secondary" style={K_LABEL}>Field mapping</Text>}
+              extra={<DemoTag reason="no live mapping backend yet — the CA design story">demo projection</DemoTag>}
+              styles={{ body: { padding: 0 } }}
+            >
+              <Table
+                rowKey="field"
+                dataSource={story.map}
+                pagination={false} size="middle"
+                columns={[
+                  { title: 'CDI field', dataIndex: 'field', key: 'field', width: 180, render: (v: string) => <span style={{ ...MONO, fontSize: 12 }}>{v}</span> },
+                  { title: 'Silver column', dataIndex: 'silver', key: 'silver', width: 240, render: (v: string) => <Text type="secondary" style={{ ...MONO, fontSize: 12 }}>{v}</Text> },
+                  { title: 'Resolution', dataIndex: 'how', key: 'how', render: (v: string) => <span style={{ fontSize: 12.5 }}>{v}</span> },
+                  { title: 'Status', dataIndex: 'state', key: 'state', width: 140, render: (v: string, m) => <Tag color={m.color}>{v}</Tag> },
+                ]}
+              />
+            </Card>
+            <Paragraph type="secondary" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 14 }}>
               Field mapping is operator-reviewed today: the schema-mapper agent proposes, a human
               accepts or overrides. {deepLink('Open mapping review →', go('mapping'))}
-            </div>
+            </Paragraph>
             {footer(
-              <button className="btn btn-primary" onClick={() => patch({ step: 5 })}>
-                Compile &amp; dry run →
-              </button>,
+              <Button type="primary" onClick={() => patch({ step: 5 })}>
+                Compile & dry run →
+              </Button>,
             )}
           </>
         )}
 
-        {/* Step 5 — Compile edits & dry run. Fixture shadow cycle, honest chip,
-            deep link to the real Validation workbench. */}
+        {/* Step 5 — Compile edits & dry run. Fixture shadow cycle, honest demo
+            Tag, deep link to the real Validation workbench. */}
         {wizard.step === 5 && (
           <>
-            <Blueprint style={{ padding: '18px 20px', marginBottom: 20 }}>
-              {kickerRow(`Shadow cycle ${story.dryCycle}`, true)}
+            {stepHeader(5)}
+            <Card
+              size="small"
+              title={<Text type="secondary" style={K_LABEL}>Shadow cycle {story.dryCycle}</Text>}
+              extra={<DemoTag reason="no dry-run backend yet — the CA design story">demo projection</DemoTag>}
+              style={{ marginBottom: 16 }}
+            >
               {story.dry.map((d) => (
-                <div key={d.k} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '7px 0', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
-                  <span style={{ flex: 1, fontSize: 13, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>{d.k}</span>
-                  <span className="mono" style={{ fontSize: 13 }}>{d.v}</span>
-                  <span className={'tag ' + d.tagClass} style={{ width: 64, justifyContent: 'center' }}>{d.tag}</span>
+                <div key={d.k} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(5,5,5,0.06)' }}>
+                  <Text type="secondary" style={{ flex: 1, fontSize: 13 }}>{d.k}</Text>
+                  <span style={{ ...MONO, fontSize: 13 }}>{d.v}</span>
+                  <Tag color={d.color} style={{ width: 64, textAlign: 'center', marginInlineEnd: 0 }}>{d.tag}</Tag>
                 </div>
               ))}
-            </Blueprint>
-            <div style={{ fontSize: 13, lineHeight: 1.7, maxWidth: '78ch' }}>{story.dryNote}</div>
-            <div style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 12, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>
+            </Card>
+            <Paragraph style={{ fontSize: 13, lineHeight: 1.7, maxWidth: '78ch' }}>{story.dryNote}</Paragraph>
+            <Paragraph type="secondary" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 12 }}>
               Compiled validation edits run as a shadow cycle against last year&rsquo;s data.{' '}
               {deepLink('Open validation triage →', go('val'))}
-            </div>
+            </Paragraph>
             {footer(
-              <button className="btn btn-primary" onClick={() => patch({ step: 6 })}>
+              <Button type="primary" onClick={() => patch({ step: 6 })}>
                 Send to compliance →
-              </button>,
+              </Button>,
             )}
           </>
         )}
@@ -1075,37 +1117,40 @@ function Wizard({ wizard, patch, go, mayOnboard, onExit }: {
             mock-only until a real filing-obligation endpoint exists. */}
         {wizard.step === 6 && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-              <Blueprint style={{ padding: '18px 20px' }}>
-                {kickerRow('Certification manifest', true)}
-                {story.cert.map((c) => (
-                  <div key={c.k} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)', fontSize: 12.5 }}>
-                    <span style={{ flex: 1, color: 'color-mix(in srgb,var(--color-text) 55%,transparent)' }}>{c.k}</span>
-                    <span className="mono" style={{ fontSize: 11.5, textAlign: 'right' }}>{c.v}</span>
-                  </div>
-                ))}
-              </Blueprint>
-              <Blueprint className="gridwash" style={{ padding: '20px 22px' }}>
-                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 21, marginBottom: 8 }}>
-                  What going live changes
-                </div>
-                <div style={{ fontSize: 13, lineHeight: 1.75 }}>{story.goLiveNote}</div>
-              </Blueprint>
-            </div>
-            {error && <div style={{ fontSize: 12.5, color: '#a33', margin: '12px 0 0' }}>{error}</div>}
+            {stepHeader(6)}
+            <Row gutter={[16, 16]}>
+              <Col xs={24} lg={12}>
+                <Card
+                  size="small"
+                  title={<Text type="secondary" style={K_LABEL}>Certification manifest</Text>}
+                  extra={<DemoTag reason="no certification backend yet — the CA design story">demo projection</DemoTag>}
+                >
+                  {story.cert.map((c) => <KV key={c.k} k={c.k} v={c.v} />)}
+                </Card>
+              </Col>
+              <Col xs={24} lg={12}>
+                <Card size="small" title="What going live changes">
+                  <Paragraph style={{ fontSize: 13, lineHeight: 1.75, marginBottom: 0 }}>
+                    {story.goLiveNote}
+                  </Paragraph>
+                </Card>
+              </Col>
+            </Row>
+            {error && <Alert type="error" showIcon message={error} style={{ marginTop: 12 }} />}
             {footer(
-              <button
-                className="btn btn-primary"
-                disabled={!mayOnboard || busy === 'golive'}
-                title={gate ?? 'creates the filing obligation — the jurisdiction goes live'}
-                onClick={doGoLive}
-              >
-                {busy === 'golive' ? 'Going live…' : 'Go live →'}
-              </button>,
+              <Tooltip title={gate ?? 'creates the filing obligation — the jurisdiction goes live'}>
+                <Button
+                  type="primary" loading={busy === 'golive'}
+                  disabled={!mayOnboard || busy === 'golive'}
+                  onClick={doGoLive}
+                >
+                  Go live →
+                </Button>
+              </Tooltip>,
             )}
           </>
         )}
-      </section>
-    </div>
+      </Col>
+    </Row>
   );
 }

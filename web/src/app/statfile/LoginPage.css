@@ -1,0 +1,44 @@
+/* Split login — brand narrative panel left, sign-in form right. Scoped under
+   .lp; tokens inherit from .sf on the root. */
+.lp { min-height: 100vh; display: grid; grid-template-columns: minmax(340px, 46%) 1fr; }
+
+.lp-brand {
+  display: flex; flex-direction: column; padding: 44px 56px; color: #fff;
+  background: linear-gradient(180deg, #061178 0%, #10239e 48%, #1d39c4 100%);
+}
+.lp-logo { display: flex; align-items: center; gap: 10px; }
+.lp-logo .lp-mark { font-size: 22px; color: #85a5ff; }
+.lp-logo .lp-name {
+  font-family: var(--font-heading); font-weight: 600; font-size: 21px; letter-spacing: 0.02em;
+}
+.lp-hero { margin: auto 0; max-width: 460px; }
+.lp-hero h1 {
+  font-family: var(--font-heading); font-weight: 600; font-size: 46px;
+  line-height: 1.08; margin: 0 0 22px; color: #fff;
+}
+.lp-hero p { font-size: 15px; line-height: 1.6; color: rgba(255, 255, 255, 0.82); margin: 0 0 30px; }
+.lp-words { font-size: 14px; line-height: 1.9; color: #85a5ff; }
+.lp-foot {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.lp-form { background: #fff; display: grid; place-items: center; padding: 40px 32px; }
+.lp-form-col { width: min(400px, 100%); }
+.lp-form-col h2 {
+  font-family: var(--font-heading); font-weight: 600; font-size: 34px; margin: 0 0 10px;
+}
+.lp-sub { font-size: 14px; line-height: 1.55; color: rgba(29, 31, 32, 0.6); margin: 0 0 30px; }
+.lp-caps {
+  margin-top: 24px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(29, 31, 32, 0.45);
+}
+.lp-alt {
+  margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--color-divider);
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+@media (max-width: 880px) {
+  .lp { grid-template-columns: 1fr; }
+  .lp-brand { display: none; }
+}

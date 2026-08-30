@@ -1,8 +1,17 @@
-// STATFILE — the Statistical Filing Platform experience, ported from the
-// claude.ai/design mock. Shell: sidebar nav + header; each screen is its own
-// component. Cross-screen navigation goes through `go`.
-import { useState } from 'react';
-import { can, canSee, GUEST, useFilings, useLogin, useLogout, useMe, useRunCycle, whoCan, type AppUser } from './api';
+// RegAssure — the statistical filing platform (module heritage: STATFILE).
+// Shell: antd Layout — dark Sider with grouped Menu, header with cycle
+// actions and the session identity; each screen is its own component.
+// Cross-screen navigation goes through `go`.
+import { useState, type ReactNode } from 'react';
+import {
+  ApartmentOutlined, AuditOutlined, BookOutlined, DashboardOutlined,
+  DiffOutlined, FileDoneOutlined, FileProtectOutlined, LoginOutlined,
+  LogoutOutlined, NodeIndexOutlined, SettingOutlined,
+} from '@ant-design/icons';
+import { Avatar, Badge, Button, ConfigProvider, Dropdown, Layout, Menu, Segmented, Tag, Tooltip, Typography } from 'antd';
+import { can, canSee, GUEST, useFilings, useLogout, useMe, useRunCycle, whoCan, type AppUser } from './api';
+import { LoginPage } from './LoginPage';
+import { BRAND, BRAND_TAG, REGASSURE_THEME } from './theme';
 import { NAV_SECTIONS, TITLES, type ScreenId } from './data';
 import { DashboardScreen } from './screens/Dashboard';
 import { RulesScreen } from './screens/Rules';
@@ -33,6 +42,12 @@ const NAV_PARENT: Partial<Record<ScreenId, ScreenId>> = {
   record: 'val', graph: 'rules', extract: 'rules', agents: 'pipe', users: 'config',
 };
 
+const NAV_ICONS: Partial<Record<ScreenId, ReactNode>> = {
+  dash: <DashboardOutlined />, val: <AuditOutlined />, filing: <FileDoneOutlined />,
+  amend: <DiffOutlined />, rules: <BookOutlined />, mapping: <NodeIndexOutlined />,
+  pipe: <ApartmentOutlined />, config: <SettingOutlined />,
+};
+
 // Segmented tab strip for screens that share a nav item. The tab state IS the
 // screen id, so deep links and existing go('agents')-style calls keep working.
 // Tabs the role can't see are hidden; a lone tab renders no control at all.
@@ -43,14 +58,12 @@ function ScreenTabs({ tabs, screen, go, user }: {
   const visible = tabs.filter(([id]) => canSee(user, id));
   if (visible.length < 2) return null;
   return (
-    <div className="seg" style={{ marginBottom: 18 }}>
-      {visible.map(([id, label]) => (
-        <label key={id} className="seg-opt">
-          <input type="radio" name="screen-tabs" checked={screen === id} onChange={go(id)} />
-          {label}
-        </label>
-      ))}
-    </div>
+    <Segmented
+      style={{ marginBottom: 18 }}
+      value={screen}
+      onChange={(v) => go(v as ScreenId)()}
+      options={visible.map(([id, label]) => ({ label, value: id }))}
+    />
   );
 }
 
@@ -66,8 +79,8 @@ export function StatFileApp() {
 
   const cycleMut = useRunCycle();
 
-  // Session identity: /auth/me resolves the stored token; the login card
-  // below the header signs in; gating flows from the resolved user's role.
+  // Session identity: /auth/me resolves the stored token; the LoginPage
+  // gate signs in; gating flows from the resolved user's role.
   const meQ = useMe();
   const user: AppUser = meQ.data?.user ?? GUEST;
   const signedIn = user.user_id !== 'guest';
@@ -78,14 +91,7 @@ export function StatFileApp() {
     try { sessionStorage.setItem('regulai-guest', '1'); } catch { /* fine */ }
     setGuest(true);
   };
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const loginMut = useLogin();
   const logoutMut = useLogout();
-  const doLogin = () =>
-    loginMut.mutate({ email: email.trim(), password }, {
-      onSuccess: () => { setEmail(''); setPassword(''); },
-    });
   const doLogout = () => {
     try { sessionStorage.removeItem('regulai-guest'); } catch { /* fine */ }
     setGuest(false);
@@ -116,156 +122,160 @@ export function StatFileApp() {
   // avoid flashing the gate at signed-in users.
   if (meQ.isLoading) return <div className="sf" />;
   if (!signedIn && !guest) {
-    return (
-      <div className="sf" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
-        <div style={{ width: 340, border: '1px solid var(--color-divider)', padding: '30px 32px', background: 'var(--color-bg, #fff)' }}>
-          <div className="wordmark" style={{ fontSize: 26 }}>STATFILE</div>
-          <div className="k" style={{ margin: '4px 0 22px' }}>Regulatory reporting fabric · sign in</div>
-          <input
-            value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" autoFocus
-            style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', fontSize: 13, marginBottom: 10, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}
-          />
-          <input
-            type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password"
-            onKeyDown={(e) => { if (e.key === 'Enter') doLogin(); }}
-            style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', fontSize: 13, marginBottom: 14, border: '1px solid var(--color-divider)', borderRadius: 0, background: 'transparent', color: 'var(--color-text)' }}
-          />
-          <button className="btn btn-primary btn-block" disabled={loginMut.isPending || !email.trim() || !password}
-            onClick={doLogin}>
-            {loginMut.isPending ? 'Signing in…' : 'Sign in'}
-          </button>
-          {loginMut.error != null && (
-            <div className="k" style={{ marginTop: 10, color: 'var(--color-accent-700)' }}>
-              {(loginMut.error as Error).message}
-            </div>
-          )}
-          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--color-divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="k">no account? ask your admin</span>
-            <button
-              onClick={browseAsGuest}
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, color: 'var(--color-accent-700)', textDecoration: 'underline' }}
-            >
-              browse as guest
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoginPage onGuest={browseAsGuest} />;
   }
 
+  // Sections filtered per role; a section with nothing visible renders no
+  // group header.
+  const menuItems = NAV_SECTIONS
+    .map((s) => ({ title: s.title, items: s.items.filter(([id]) => canSee(user, id)) }))
+    .filter((s) => s.items.length > 0)
+    .map((s) => ({
+      type: 'group' as const,
+      label: s.title,
+      children: s.items.map(([id, label]) => ({ key: id, icon: NAV_ICONS[id], label })),
+    }));
+  const navActive = NAV_PARENT[screen] ?? screen;
+
+  const initials = user.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  const userMenu = {
+    items: signedIn
+      ? [
+          { key: 'who', label: <span className="k">{user.title}</span>, disabled: true },
+          { type: 'divider' as const },
+          { key: 'out', icon: <LogoutOutlined />, label: 'Sign out' },
+        ]
+      : [{ key: 'out', icon: <LoginOutlined />, label: 'Sign in' }],
+    onClick: ({ key }: { key: string }) => { if (key === 'out') doLogout(); },
+  };
+
   return (
-    <div className="sf">
-      <Toaster position="bottom-right" toastOptions={{
-        style: { borderRadius: 0, fontFamily: 'var(--font-body)', fontSize: 13 },
-      }} />
-      <div className="shell">
-        <aside className="side">
-          <div className="side-brand">
-            <div className="wordmark">STATFILE</div>
-            <div className="k" style={{ marginTop: 4 }}>Regulatory reporting fabric</div>
-          </div>
-          <nav className="side-nav">
-            {(() => {
-              // Sections filtered per role; a section with nothing visible
-              // renders no header. Numbering runs 01–08 across sections.
-              const sections = NAV_SECTIONS
-                .map((s) => ({ title: s.title, items: s.items.filter(([id]) => canSee(user, id)) }))
-                .filter((s) => s.items.length > 0);
-              const navActive = NAV_PARENT[screen] ?? screen;
-              let n = 0;
-              return sections.map((sec) => (
-                <div key={sec.title} className="side-sec">
-                  <div className="side-sec-title">{sec.title}</div>
-                  {sec.items.map(([id, label]) => (
-                    <button key={id} className={'navbtn' + (navActive === id ? ' on' : '')} onClick={go(id)}>
-                      <span className="num">{String(++n).padStart(2, '0')}</span>
-                      <span>{label}</span>
-                    </button>
-                  ))}
+    <ConfigProvider theme={REGASSURE_THEME}>
+      <div className="sf">
+        <Toaster position="bottom-right" toastOptions={{
+          style: { borderRadius: 0, fontFamily: 'var(--font-body)', fontSize: 13 },
+        }} />
+        <Layout style={{ minHeight: '100vh' }}>
+          <Layout.Sider width={260} style={{ position: 'sticky', top: 0, height: '100vh' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.12)', color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                  <FileProtectOutlined style={{ fontSize: 19, color: '#85a5ff' }} />
+                  <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 19, letterSpacing: '0.02em' }}>
+                    {BRAND}
+                  </span>
                 </div>
-              ));
-            })()}
-          </nav>
-          <div className="side-cycle">
-            <div className="k">Active cycle</div>
-            <div className="cycle-name">{active ? active.id : 'TX HO · 2026 ANNUAL'}</div>
-            <div className="cycle-due">
-              {active ? `Due ${active.due_date} · ${dueDays} days` : 'Due 15 Sep 2026 · 42 days'}
+                <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', marginTop: 5 }}>
+                  {BRAND_TAG}
+                </div>
+              </div>
+              <Menu
+                theme="dark" mode="inline" items={menuItems}
+                selectedKeys={[navActive]}
+                onClick={({ key }) => setScreen(key as ScreenId)}
+                style={{ flex: 1, overflow: 'auto', background: 'transparent', borderInlineEnd: 0, paddingTop: 6 }}
+              />
+              <div style={{ padding: '14px 20px 18px', borderTop: '1px solid rgba(255,255,255,0.12)', color: '#fff' }}>
+                <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)' }}>
+                  Active cycle
+                </div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontSize: 16, marginTop: 3 }}>
+                  {active ? active.id : 'TX HO · 2026 ANNUAL'}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+                  {active ? `Due ${active.due_date} · ${dueDays} days` : 'Due 15 Sep 2026 · 42 days'}
+                </div>
+              </div>
             </div>
-          </div>
-        </aside>
+          </Layout.Sider>
 
-        <main className="work">
-          <header className="tophead">
-            <div>
-              <div className="k">{crumb}</div>
-              <h3>{title}</h3>
-            </div>
-            <div className="actions">
-              <span className="tag tag-outline" title={user.title}>{user.name} · {user.role}</span>
-              <button className="btn btn-secondary" onClick={doLogout}>
-                {signedIn ? 'Sign out' : 'Sign in'}
-              </button>
-              <span className={'tag ' + (live ? 'tag-accent' : 'tag-neutral')}>
-                <span style={{
-                  width: 7, height: 7, borderRadius: '50%', marginRight: 6,
-                  background: live ? 'var(--color-accent)' : 'var(--color-neutral-500)',
-                }} />
-                {pill}
-              </span>
-              <span className="tag tag-outline">TDI Stat Plan v2026.1</span>
-              <button className="btn btn-secondary">Export</button>
-              <button
-                className="btn btn-primary"
-                disabled={cycleMut.isPending || !can(user, 'run_pipeline')}
-                onClick={() => cycleMut.mutate()}
-                title={can(user, 'run_pipeline')
+          <Layout>
+            <Layout.Header style={{
+              height: 'auto', lineHeight: 'normal', padding: '13px 28px',
+              borderBottom: '1px solid var(--color-divider)',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <div style={{ minWidth: 0 }}>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>{crumb}</Typography.Text>
+                <Typography.Title level={4} style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {title}
+                </Typography.Title>
+              </div>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                <Badge
+                  status={!wired ? 'default' : filingsQ.isLoading ? 'processing' : live ? 'success' : 'warning'}
+                  text={<Typography.Text type="secondary" style={{ fontSize: 13 }}>{pill}</Typography.Text>}
+                />
+                <Tag style={{ marginInlineEnd: 0 }}>TDI Stat Plan v2026.1</Tag>
+                <Button>Export</Button>
+                <Tooltip title={can(user, 'run_pipeline')
                   ? 'Bronze→Silver→Gold, then re-validate'
-                  : `requires ${whoCan('run_pipeline')}`}
-              >
-                {cycleMut.isPending ? 'Running cycle…'
-                  : cycleMut.isError ? 'Run failed — retry'
-                  : 'Run cycle'}
-              </button>
-            </div>
-          </header>
+                  : `requires ${whoCan('run_pipeline')}`}>
+                  <Button
+                    type="primary" danger={cycleMut.isError}
+                    disabled={!can(user, 'run_pipeline')}
+                    loading={cycleMut.isPending}
+                    onClick={() => cycleMut.mutate()}
+                  >
+                    {cycleMut.isPending ? 'Running cycle…'
+                      : cycleMut.isError ? 'Run failed — retry'
+                      : 'Run cycle'}
+                  </Button>
+                </Tooltip>
+                <Dropdown menu={userMenu} trigger={['click']}>
+                  <button style={{
+                    background: 'none', border: 'none', padding: '4px 6px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'inherit', fontSize: 13,
+                  }} title={user.title}>
+                    <Avatar size={30} style={{ background: signedIn ? '#1677ff' : '#98989b' }}>
+                      {initials}
+                    </Avatar>
+                    <span style={{ lineHeight: 1.2, textAlign: 'left' }}>
+                      {user.name}
+                      <span className="k" style={{ display: 'block' }}>{user.role}</span>
+                    </span>
+                  </button>
+                </Dropdown>
+              </div>
+            </Layout.Header>
 
-          <div className="content">
-            <ErrorBoundary screen={screen}>
-            {screen === 'dash' && <DashboardScreen go={go} />}
-            {(screen === 'rules' || screen === 'graph' || screen === 'extract') && (
-              <>
-                <ScreenTabs tabs={[['rules', 'Rulebook'], ['extract', 'Extraction review'], ['graph', 'Knowledge graph']]}
-                  screen={screen} go={go} user={user} />
-                {screen === 'rules' ? <RulesScreen user={user} />
-                  : screen === 'extract' ? <ExtractionReviewScreen user={user} />
-                  : <GraphScreen />}
-              </>
-            )}
-            {(screen === 'pipe' || screen === 'agents') && (
-              <>
-                <ScreenTabs tabs={[['pipe', 'Medallion pipeline'], ['agents', 'Agent console']]}
-                  screen={screen} go={go} user={user} />
-                {screen === 'pipe' ? <PipelineScreen /> : <AgentsScreen />}
-              </>
-            )}
-            {screen === 'val' && <ValidationScreen onTrace={traceTo} user={user} />}
-            {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} user={user} />}
-            {screen === 'filing' && <FilingScreen user={user} go={go} />}
-            {screen === 'amend' && <AmendmentsScreen user={user} />}
-            {screen === 'mapping' && <MappingReviewScreen />}
-            {screen === 'iso' && <IsoScreen />}
-            {(screen === 'config' || screen === 'users') && (
-              <>
-                <ScreenTabs tabs={[['config', 'Jurisdictions'], ['users', 'Users & access']]}
-                  screen={screen} go={go} user={user} />
-                {screen === 'config' ? <ConfigScreen go={go} user={user} /> : <UsersScreen user={user} />}
-              </>
-            )}
-            </ErrorBoundary>
-          </div>
-        </main>
+            <Layout.Content className="content" style={{ background: 'var(--color-bg)' }}>
+              <ErrorBoundary screen={screen}>
+              {screen === 'dash' && <DashboardScreen go={go} />}
+              {(screen === 'rules' || screen === 'graph' || screen === 'extract') && (
+                <>
+                  <ScreenTabs tabs={[['rules', 'Rulebook'], ['extract', 'Extraction review'], ['graph', 'Knowledge graph']]}
+                    screen={screen} go={go} user={user} />
+                  {screen === 'rules' ? <RulesScreen user={user} />
+                    : screen === 'extract' ? <ExtractionReviewScreen user={user} />
+                    : <GraphScreen />}
+                </>
+              )}
+              {(screen === 'pipe' || screen === 'agents') && (
+                <>
+                  <ScreenTabs tabs={[['pipe', 'Medallion pipeline'], ['agents', 'Agent console']]}
+                    screen={screen} go={go} user={user} />
+                  {screen === 'pipe' ? <PipelineScreen /> : <AgentsScreen />}
+                </>
+              )}
+              {screen === 'val' && <ValidationScreen onTrace={traceTo} user={user} />}
+              {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} user={user} />}
+              {screen === 'filing' && <FilingScreen user={user} go={go} />}
+              {screen === 'amend' && <AmendmentsScreen user={user} />}
+              {screen === 'mapping' && <MappingReviewScreen />}
+              {screen === 'iso' && <IsoScreen />}
+              {(screen === 'config' || screen === 'users') && (
+                <>
+                  <ScreenTabs tabs={[['config', 'Jurisdictions'], ['users', 'Users & access']]}
+                    screen={screen} go={go} user={user} />
+                  {screen === 'config' ? <ConfigScreen go={go} user={user} /> : <UsersScreen user={user} />}
+                </>
+              )}
+              </ErrorBoundary>
+            </Layout.Content>
+          </Layout>
+        </Layout>
       </div>
-    </div>
+    </ConfigProvider>
   );
 }

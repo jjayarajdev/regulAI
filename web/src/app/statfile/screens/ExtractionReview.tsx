@@ -1,31 +1,40 @@
 // Extraction review — "agent proposes, human governs" for the rule
-// extraction itself. Sentinel proposed every node in the extraction; a
-// reviewer triages the proposals and records a verdict per proposal: accept,
-// reject with a reason, or override individual fields. Approve-to-canon then
-// materializes only what survived review.
+// extraction itself, reimagined as a native Ant Design workbench. Sentinel
+// proposed every node in the extraction; a reviewer triages the proposals and
+// records a verdict per proposal: accept, reject with a reason, or override
+// individual fields. Approve-to-canon then materializes only what survived
+// review.
 //
-// Layout is a fixed-height workbench (no page scrolling): document picker →
-// band-filter chips → master list (own scroll) beside a sticky detail pane
-// (own scroll). Approve lives in the header so it's always reachable.
-// Live: /regulations/{slug}/review (file-backed sidecar next to the
-// extraction JSON).
+// Layout is a fixed-height workbench (no page scrolling): Select document
+// picker → Segmented band filter → master List (own scroll) beside a sticky
+// detail Card with an always-visible verdict footer (own scroll). Approve
+// lives in the header so it's always reachable. Live:
+// /regulations/{slug}/review (file-backed sidecar next to the extraction
+// JSON).
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Blueprint } from '../Blueprint';
+import {
+  Alert, Badge, Button, Card, Empty, Input, List, Segmented, Select, Space,
+  Tag, Tooltip, Typography,
+} from 'antd';
 import {
   approveRegulation, can, useExtractionReview, useExtractStatus, useRegulations,
   useSetProposalVerdict, whoCan,
   type AppUser, type ReviewProposal,
 } from '../api';
-import { ACC, ACC9, NEU } from '../data';
+
+const { Text } = Typography;
+const MONO: CSSProperties = { fontFamily: "ui-monospace,'SFMono-Regular',Menlo,monospace" };
 
 const fmt = (n: number) => n.toLocaleString('en-US');
-const confDot = (c: number) => (c >= 0.9 ? NEU : c >= 0.7 ? ACC : ACC9);
+// Confidence bands by meaning: auto ≥0.90 green, queued 0.70–0.89 orange,
+// escalated <0.70 red.
+const confColor = (c: number) => (c >= 0.9 ? 'green' : c >= 0.7 ? 'orange' : 'red');
 
-const VERDICT_TAG: Record<ReviewProposal['verdict'], [string, string]> = {
-  accepted: ['tag-neutral', 'Accepted'],
-  overridden: ['tag-accent', 'Overridden'],
-  rejected: ['tag-outline', 'Rejected'],
+const VERDICT_TAG: Record<ReviewProposal['verdict'], [string | undefined, string]> = {
+  accepted: ['green', 'Accepted'],
+  overridden: ['purple', 'Overridden'],
+  rejected: ['red', 'Rejected'],
 };
 
 // The fields a reviewer can correct in place. Everything else the agent
@@ -55,22 +64,7 @@ const matches = (p: ReviewProposal, f: Filter): boolean =>
 // The workbench height: everything below the app header fits the viewport.
 const PANE_H = 'max(420px, calc(100vh - 322px))';
 
-function ConfidenceCell({ c }: { c: number }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-      <span className="mono" style={{ fontSize: 11.5 }}>{c.toFixed(2)}</span>
-      <span style={{ width: 8, height: 8, background: confDot(c), flex: 'none' }} />
-    </span>
-  );
-}
-
-const inputStyle: CSSProperties = {
-  display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4,
-  padding: '7px 9px', fontSize: 12.5, fontFamily: 'var(--font-body)',
-  border: '1px solid var(--color-divider)', borderRadius: 0,
-  background: 'color-mix(in srgb,var(--color-text) 4%,transparent)',
-  color: 'var(--color-text)',
-};
+const fieldLabel: CSSProperties = { fontSize: 12, display: 'block' };
 
 // The right pane: one proposal's evidence + the verdict editor.
 function ProposalDetail({ slug, p, mayReview, actor }: {
@@ -113,25 +107,28 @@ function ProposalDetail({ slug, p, mayReview, actor }: {
     put({ slug, tempId: p.temp_id, verdict: 'overridden', overrides, reason: reason.trim(), actor });
   };
 
-  const [tagClass, tagLabel] = VERDICT_TAG[p.verdict];
+  const [tagColor, tagLabel] = VERDICT_TAG[p.verdict];
   const rejected = p.verdict === 'rejected';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', opacity: rejected ? 0.85 : 1 }}>
       {/* header — proposal identity + verdict state */}
-      <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid var(--color-divider)', flex: 'none' }}>
+      <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid rgba(5,5,5,0.06)', flex: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span className="mono" style={{ fontSize: 14, color: 'var(--color-accent-700)', textDecoration: rejected ? 'line-through' : undefined }}>
+          <Text strong delete={rejected} style={{ ...MONO, fontSize: 14 }}>
             {String(p.overrides?.name ?? p.name)}
-          </span>
-          <span className="tag tag-outline">{p.type}</span>
-          <span className={'tag ' + tagClass}>{tagLabel}</span>
-          <span style={{ marginLeft: 'auto' }}><ConfidenceCell c={p.confidence} /></span>
+          </Text>
+          <Tag>{p.type}</Tag>
+          <Tag color={tagColor}>{tagLabel}</Tag>
+          <Tag color={confColor(p.confidence)} style={{ marginLeft: 'auto', marginInlineEnd: 0 }}
+            title={`confidence ${p.confidence.toFixed(2)}`}>
+            conf {p.confidence.toFixed(2)}
+          </Tag>
         </div>
         {p.actor && (
-          <div className="mono muted" style={{ fontSize: 10.5, marginTop: 5 }}>
+          <Text type="secondary" style={{ ...MONO, display: 'block', fontSize: 10.5, marginTop: 5 }}>
             reviewed by {p.actor} · {(p.at ?? '').replace('T', ' ')}
-          </div>
+          </Text>
         )}
       </div>
 
@@ -143,12 +140,12 @@ function ProposalDetail({ slug, p, mayReview, actor }: {
               const over = p.overrides?.[k] !== undefined;
               return (
                 <div key={k} style={{ fontSize: 12, display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                  <span className="k" style={{ flex: 'none' }}>{k}</span>
-                  <span className="mono" style={{ fontSize: 11.5, overflowWrap: 'anywhere' }}>
+                  <Text type="secondary" style={{ flex: 'none', fontSize: 12 }}>{k}</Text>
+                  <span style={{ ...MONO, fontSize: 11.5, overflowWrap: 'anywhere' }}>
                     {over ? (
                       <>
-                        <s style={{ opacity: 0.55 }}>{String(v)}</s>{' '}
-                        <span style={{ color: 'var(--color-accent-700)' }}>{String(p.overrides![k])}</span>
+                        <Text delete type="secondary" style={{ fontSize: 11.5 }}>{String(v)}</Text>{' '}
+                        <span style={{ color: '#1677ff' }}>{String(p.overrides![k])}</span>
                       </>
                     ) : String(v)}
                   </span>
@@ -159,74 +156,68 @@ function ProposalDetail({ slug, p, mayReview, actor }: {
         )}
 
         {p.citations.map((c, i) => (
-          <div key={i} style={{ marginBottom: 10, paddingLeft: 12, borderLeft: `3px solid ${NEU}` }}>
-            <div className="k" style={{ marginBottom: 4 }}>
+          <div key={i} style={{ marginBottom: 10, paddingLeft: 12, borderLeft: '3px solid #d9d9d9' }}>
+            <Text type="secondary" style={{ display: 'block', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
               Cited · {c.kind} · chars {fmt(c.char_start)}–{fmt(c.char_end)}
-            </div>
-            <div style={{ fontSize: 12.5, lineHeight: 1.6, fontStyle: 'italic', opacity: 0.85 }}>
+            </Text>
+            <Text italic style={{ fontSize: 12.5, lineHeight: 1.6, opacity: 0.85 }}>
               “{c.excerpt}”
-            </div>
+            </Text>
           </div>
         ))}
         {p.citations.length === 0 && (
-          <div className="mono muted" style={{ fontSize: 10.5, marginBottom: 10 }}>
+          <Text type="warning" style={{ display: 'block', fontSize: 12, marginBottom: 10 }}>
             ⚑ no citation — the agent proposed this without a supporting span
-          </div>
+          </Text>
         )}
 
         {mode === 'view' && p.reason && (
-          <div style={{
-            margin: '4px 0 12px', padding: '11px 13px',
-            borderLeft: '3px solid var(--color-accent)',
-            background: 'color-mix(in srgb,var(--color-accent) 7%,transparent)',
-          }}>
-            <div className="k" style={{ marginBottom: 5 }}>Reviewer</div>
-            <div style={{ fontSize: 12.5, lineHeight: 1.6 }}>{p.reason}</div>
-          </div>
+          <Alert type="info" showIcon message="Reviewer" description={p.reason}
+            style={{ margin: '4px 0 12px' }} />
         )}
       </div>
 
       {/* action footer — always visible, no scrolling to reach a verdict */}
-      <div style={{ padding: '12px 18px 14px', borderTop: '1px solid var(--color-divider)', flex: 'none' }}>
+      <div style={{ padding: '12px 18px 14px', borderTop: '1px solid rgba(5,5,5,0.06)', flex: 'none' }}>
         {mode === 'view' && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Space size={8}>
             {rejected || p.verdict === 'overridden' ? (
-              <button className="btn btn-secondary" disabled={!mayReview || verdictMut.isPending}
-                title={mayReview ? 'back to accepted-as-proposed' : `requires ${whoCan('bulletin')}`}
-                onClick={doAccept}>
-                Reset to accepted
-              </button>
+              <Tooltip title={mayReview ? 'back to accepted-as-proposed' : `requires ${whoCan('bulletin')}`}>
+                <Button disabled={!mayReview} loading={verdictMut.isPending} onClick={doAccept}>
+                  Reset to accepted
+                </Button>
+              </Tooltip>
             ) : (
               <>
-                <button className="btn btn-secondary" disabled={!mayReview}
-                  title={mayReview ? undefined : `requires ${whoCan('bulletin')}`}
-                  onClick={() => open('edit')}>
-                  Edit fields…
-                </button>
-                <button className="btn btn-secondary" disabled={!mayReview}
-                  title={mayReview ? undefined : `requires ${whoCan('bulletin')}`}
-                  onClick={() => open('reject')}>
-                  Reject…
-                </button>
+                <Tooltip title={mayReview ? undefined : `requires ${whoCan('bulletin')}`}>
+                  <Button disabled={!mayReview} onClick={() => open('edit')}>Edit fields…</Button>
+                </Tooltip>
+                <Tooltip title={mayReview ? undefined : `requires ${whoCan('bulletin')}`}>
+                  <Button disabled={!mayReview} onClick={() => open('reject')}>Reject…</Button>
+                </Tooltip>
               </>
             )}
-            {verdictMut.isPending && <span className="k">saving…</span>}
-          </div>
+            {verdictMut.isPending && <Text type="secondary" style={{ fontSize: 12 }}>saving…</Text>}
+          </Space>
         )}
 
         {mode === 'reject' && (
           <div>
-            <label style={{ fontSize: 12, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' }}>
-              Why is this proposal wrong? (goes on the review record)
-              <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2}
-                style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
+            <label style={fieldLabel}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Why is this proposal wrong? (goes on the review record)
+              </Text>
+              <Input.TextArea
+                value={reason} rows={2} autoFocus style={{ marginTop: 4 }}
+                onChange={(e) => setReason(e.target.value)}
+              />
             </label>
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button className="btn btn-primary" disabled={!reason.trim() || verdictMut.isPending} onClick={doReject}>
-                {verdictMut.isPending ? 'Saving…' : 'Reject proposal'}
-              </button>
-              <button className="btn btn-secondary" onClick={close}>Cancel</button>
-            </div>
+            <Space size={8} style={{ marginTop: 10 }}>
+              <Button type="primary" danger disabled={!reason.trim()} loading={verdictMut.isPending} onClick={doReject}>
+                Reject proposal
+              </Button>
+              <Button onClick={close}>Cancel</Button>
+            </Space>
           </div>
         )}
 
@@ -234,35 +225,40 @@ function ProposalDetail({ slug, p, mayReview, actor }: {
           <div style={{ maxHeight: 300, overflow: 'auto' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: 10 }}>
               {EDITABLE.map(([k, label, kind]) => (
-                <label key={k} style={{ fontSize: 12, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)', gridColumn: kind === 'area' ? '1 / -1' : undefined }}>
-                  {label}
+                <label key={k} style={{ ...fieldLabel, gridColumn: kind === 'area' ? '1 / -1' : undefined }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>{label}</Text>
                   {kind === 'area' ? (
-                    <textarea value={draft[k] ?? ''} rows={2}
+                    <Input.TextArea
+                      value={draft[k] ?? ''} rows={2} style={{ marginTop: 4 }}
                       onChange={(e) => setDraft((d) => ({ ...d, [k]: e.target.value }))}
-                      style={{ ...inputStyle, resize: 'vertical' }} />
+                    />
                   ) : (
-                    <input value={draft[k] ?? ''} type={kind === 'number' ? 'number' : 'text'}
+                    <Input
+                      value={draft[k] ?? ''} type={kind === 'number' ? 'number' : 'text'}
+                      style={{ marginTop: 4 }}
                       onChange={(e) => setDraft((d) => ({ ...d, [k]: e.target.value }))}
-                      style={inputStyle} />
+                    />
                   )}
                 </label>
               ))}
             </div>
-            <label style={{ fontSize: 12, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)', display: 'block', marginBottom: 10 }}>
-              Reason for the correction
-              <input value={reason} onChange={(e) => setReason(e.target.value)} style={inputStyle} />
+            <label style={{ ...fieldLabel, marginBottom: 10 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>Reason for the correction</Text>
+              <Input value={reason} style={{ marginTop: 4 }} onChange={(e) => setReason(e.target.value)} />
             </label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary" disabled={!reason.trim() || verdictMut.isPending} onClick={doOverride}>
-                {verdictMut.isPending ? 'Saving…' : 'Save override'}
-              </button>
-              <button className="btn btn-secondary" onClick={close}>Cancel</button>
-            </div>
+            <Space size={8}>
+              <Button type="primary" disabled={!reason.trim()} loading={verdictMut.isPending} onClick={doOverride}>
+                Save override
+              </Button>
+              <Button onClick={close}>Cancel</Button>
+            </Space>
           </div>
         )}
 
         {verdictMut.error != null && (
-          <div style={{ fontSize: 12, color: '#a33', marginTop: 8 }}>{(verdictMut.error as Error).message}</div>
+          <Text type="danger" style={{ display: 'block', fontSize: 12, marginTop: 8 }}>
+            {(verdictMut.error as Error).message}
+          </Text>
         )}
       </div>
     </div>
@@ -332,127 +328,126 @@ export function ExtractionReviewScreen({ user }: { user: AppUser }) {
   ] : [];
 
   return (
-    <div className="sc">
+    <div>
       {/* ── header: document picker + review stats + approve ───────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12, flexWrap: 'wrap' }}>
-        <select
+        <Select
           value={doc?.slug ?? ''}
-          onChange={(e) => { setSelSlug(e.target.value); setSelId(null); setFilter('all'); setApproveMsg(null); }}
-          style={{
-            padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-body)',
-            border: '1px solid var(--color-divider)', borderRadius: 0,
-            background: 'var(--color-bg, transparent)', color: 'var(--color-text)',
-            maxWidth: 420,
-          }}
-        >
-          {docs.map((m) => <option key={m.slug} value={m.slug}>{m.label}</option>)}
-          {docs.length === 0 && <option value="">no extractions on disk yet</option>}
-        </select>
+          onChange={(slug) => { setSelSlug(slug); setSelId(null); setFilter('all'); setApproveMsg(null); }}
+          style={{ minWidth: 260, maxWidth: 420 }}
+          options={docs.length > 0
+            ? docs.map((m) => ({ value: m.slug, label: m.label }))
+            : [{ value: '', label: 'no extractions on disk yet' }]}
+        />
 
         {d && (
-          <span className="mono muted" style={{ fontSize: 11 }} title={d.summary}>
+          <Text type="secondary" title={d.summary} style={{ ...MONO, fontSize: 11 }}>
             {fmt(d.totals.proposals)} proposals · avg {d.totals.avg_confidence?.toFixed(2) ?? '—'}
-            {d.totals.overridden > 0 && <> · <span style={{ color: 'var(--color-accent-700)' }}>{d.totals.overridden} overridden</span></>}
-            {d.totals.rejected > 0 && <> · <span style={{ color: 'var(--color-accent-700)' }}>{d.totals.rejected} rejected</span></>}
-          </span>
+            {d.totals.overridden > 0 && <> · <span style={{ color: '#1677ff' }}>{d.totals.overridden} overridden</span></>}
+            {d.totals.rejected > 0 && <> · <span style={{ color: '#1677ff' }}>{d.totals.rejected} rejected</span></>}
+          </Text>
         )}
 
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          {approveMsg && <span style={{ fontSize: 12 }}>{approveMsg}</span>}
+          {approveMsg && <Text style={{ fontSize: 12 }}>{approveMsg}</Text>}
           {d && (
-            <button className="btn btn-primary" disabled={!mayReview || approving}
-              title={mayReview
-                ? `Materializes ${fmt(d.totals.accepted)} proposals to the knowledge graph`
-                  + (d.totals.rejected ? `, drops ${d.totals.rejected} rejected` : '')
-                  + '. Re-approving is safe — materialization dedupes.'
-                : `requires ${whoCan('bulletin')}`}
-              onClick={doApprove}>
-              {approving ? 'Materializing…' : `Approve ${fmt(d.totals.accepted)} to canon →`}
-            </button>
+            <Tooltip title={mayReview
+              ? `Materializes ${fmt(d.totals.accepted)} proposals to the knowledge graph`
+                + (d.totals.rejected ? `, drops ${d.totals.rejected} rejected` : '')
+                + '. Re-approving is safe — materialization dedupes.'
+              : `requires ${whoCan('bulletin')}`}>
+              <Button type="primary" disabled={!mayReview} loading={approving} onClick={doApprove}>
+                Approve {fmt(d.totals.accepted)} to canon →
+              </Button>
+            </Tooltip>
           )}
         </span>
       </div>
 
-      {/* ── band filter chips ───────────────────────────────────────────── */}
+      {/* ── band filter ─────────────────────────────────────────────────── */}
       {d && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-          {chips.map(([f, label, count]) => (
-            <button key={f} onClick={() => { setFilter(f); setSelId(null); }}
-              style={{
-                padding: '4px 11px', fontSize: 11.5, cursor: 'pointer', borderRadius: 0,
-                fontFamily: 'var(--font-body)',
-                border: '1px solid ' + (filter === f ? 'var(--color-accent)' : 'var(--color-divider)'),
-                background: filter === f ? 'color-mix(in srgb,var(--color-accent) 10%,transparent)' : 'transparent',
-                color: 'var(--color-text)',
-              }}>
-              {label} <span className="mono" style={{ fontSize: 10.5, opacity: 0.7 }}>{count}</span>
-            </button>
-          ))}
-        </div>
+        <Segmented
+          value={filter}
+          onChange={(f) => { setFilter(f as Filter); setSelId(null); }}
+          style={{ marginBottom: 12 }}
+          options={chips.map(([f, label, count]) => ({
+            value: f,
+            label: <span>{label} <Text type="secondary" style={{ fontSize: 11 }}>{count}</Text></span>,
+          }))}
+        />
       )}
 
       {extracting && (
-        <div style={{
-          marginBottom: 12, padding: '10px 14px', fontSize: 12.5,
-          borderLeft: '3px solid var(--color-accent)',
-          background: 'color-mix(in srgb,var(--color-accent) 8%,transparent)',
-        }}>
-          <span className="mono" style={{ fontSize: 11.5 }}>Sentinel is re-extracting this document…</span>
-          {' '}the proposal set is being rewritten, so review actions are locked until it finishes.
-        </div>
+        <Alert
+          type="warning" showIcon style={{ marginBottom: 12 }}
+          message="Sentinel is re-extracting this document…"
+          description="The proposal set is being rewritten, so review actions are locked until it finishes."
+        />
       )}
 
-      {loading && <div className="k">loading extraction…</div>}
+      {loading && <Card loading />}
       {!loading && !d && (
-        <div className="muted" style={{ fontSize: 13, lineHeight: 1.6, maxWidth: 520 }}>
-          No extraction on disk yet — upload and extract a document from
-          Administration → Add a jurisdiction, then review the proposals here.
-        </div>
+        <Empty
+          style={{ marginTop: 48 }}
+          description={
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              No extraction on disk yet — upload and extract a document from
+              Administration → Add a jurisdiction, then review the proposals here.
+            </Text>
+          }
+        />
       )}
 
       {/* ── the workbench: list (own scroll) beside detail (own scroll) ── */}
       {!loading && d && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px,2fr) 3fr', gap: 18, alignItems: 'stretch', height: PANE_H }}>
-          <Blueprint style={{ overflow: 'auto', padding: 0 }}>
-            {shown.map((p) => {
-              const on = p.temp_id === active?.temp_id;
-              const [tagClass, tagLabel] = VERDICT_TAG[p.verdict];
-              return (
-                <div key={p.temp_id} className="rowlink" onClick={() => setSelId(p.temp_id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px',
-                    borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)',
-                    borderLeft: '3px solid ' + (on ? 'var(--color-accent)' : 'transparent'),
-                    background: on ? 'color-mix(in srgb,#5980a6 10%,transparent)' : undefined,
-                  }}>
-                  <span title={`confidence ${p.confidence.toFixed(2)}`}
-                    style={{ width: 8, height: 8, background: confDot(p.confidence), flex: 'none' }} />
-                  <span style={{
-                    flex: 1, minWidth: 0, fontSize: 12.5,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    textDecoration: p.verdict === 'rejected' ? 'line-through' : undefined,
-                    opacity: p.verdict === 'rejected' ? 0.6 : 1,
-                  }}>
-                    {String(p.overrides?.name ?? p.name)}
-                  </span>
-                  <span className="mono muted" style={{ fontSize: 9.5, flex: 'none' }}>{p.type}</span>
-                  <span className={'tag ' + tagClass} style={{ flex: 'none', fontSize: 9.5 }}>{tagLabel}</span>
-                </div>
-              );
-            })}
-            {shown.length === 0 && (
-              <div className="k" style={{ padding: 16 }}>nothing in this band</div>
-            )}
-          </Blueprint>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px,2fr) 3fr', gap: 16, alignItems: 'stretch', height: PANE_H }}>
+          <Card style={{ height: '100%' }} styles={{ body: { padding: 0, height: '100%', overflow: 'auto' } }}>
+            <List
+              size="small"
+              dataSource={shown}
+              locale={{ emptyText: 'nothing in this band' }}
+              renderItem={(p) => {
+                const on = p.temp_id === active?.temp_id;
+                const [tagColor, tagLabel] = VERDICT_TAG[p.verdict];
+                return (
+                  <List.Item
+                    onClick={() => setSelId(p.temp_id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px',
+                      cursor: 'pointer',
+                      borderLeft: '3px solid ' + (on ? '#1677ff' : 'transparent'),
+                      background: on ? 'rgba(22,119,255,0.08)' : undefined,
+                    }}
+                  >
+                    <span title={`confidence ${p.confidence.toFixed(2)}`} style={{ flex: 'none', lineHeight: 1 }}>
+                      <Badge color={confColor(p.confidence)} />
+                    </span>
+                    <span style={{
+                      flex: 1, minWidth: 0, fontSize: 12.5,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      textDecoration: p.verdict === 'rejected' ? 'line-through' : undefined,
+                      opacity: p.verdict === 'rejected' ? 0.6 : 1,
+                    }}>
+                      {String(p.overrides?.name ?? p.name)}
+                    </span>
+                    <Text type="secondary" style={{ ...MONO, fontSize: 9.5, flex: 'none' }}>{p.type}</Text>
+                    <Tag color={tagColor} style={{ flex: 'none', fontSize: 9.5, lineHeight: '16px', marginInlineEnd: 0 }}>
+                      {tagLabel}
+                    </Tag>
+                  </List.Item>
+                );
+              }}
+            />
+          </Card>
 
-          <Blueprint style={{ overflow: 'hidden', padding: 0 }}>
+          <Card style={{ height: '100%' }} styles={{ body: { padding: 0, height: '100%', overflow: 'hidden' } }}>
             {active && doc ? (
               <ProposalDetail key={active.temp_id} slug={doc.slug} p={active}
                 mayReview={mayReview} actor={user.name} />
             ) : (
-              <div className="k" style={{ padding: 16 }}>select a proposal</div>
+              <Text type="secondary" style={{ display: 'block', padding: 16 }}>select a proposal</Text>
             )}
-          </Blueprint>
+          </Card>
         </div>
       )}
     </div>

@@ -60,6 +60,37 @@ export const handlers = [
     return HttpResponse.json({ ok: true });
   }),
 
+  // Admin console over the same seed personas — mutations persist for the
+  // session (module state), mirroring the warehouse-backed endpoints.
+  http.get(`${API_BASE}/auth/admin/users`, async () => {
+    await delay(150);
+    return HttpResponse.json({ users: MOCK_USERS });
+  }),
+
+  http.post(`${API_BASE}/auth/admin/users`, async ({ request }) => {
+    await delay(200);
+    const b = (await request.json()) as { name: string; email: string; role?: string; title?: string };
+    const user = {
+      user_id: 'u-' + b.email.split('@')[0].replace(/\W+/g, '-'),
+      name: b.name, email: b.email, role: b.role ?? 'analyst',
+      title: b.title ?? '', active: true,
+    };
+    MOCK_USERS.push(user);
+    return HttpResponse.json({ ok: true, user });
+  }),
+
+  http.patch(`${API_BASE}/auth/admin/users/:id`, async ({ request, params }) => {
+    await delay(200);
+    const b = (await request.json()) as { role?: string; active?: boolean; name?: string; title?: string };
+    const user = MOCK_USERS.find((u) => u.user_id === params.id);
+    if (!user) return HttpResponse.json({ detail: 'unknown user' }, { status: 404 });
+    if (b.role != null) user.role = b.role;
+    if (typeof b.active === 'boolean') user.active = b.active;
+    if (b.name != null) user.name = b.name;
+    if (b.title != null) user.title = b.title;
+    return HttpResponse.json({ ok: true, user });
+  }),
+
   http.get(`${API_BASE}/filings`, async () => {
     await delay();
     return HttpResponse.json(db.filings);

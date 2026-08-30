@@ -1,13 +1,26 @@
-// Knowledge graph — lineage chain with satellite nodes + detail rail.
-// Live: pick a rule from the canon (/kg/rules), render its Neo4j neighborhood
-// (/kg/neighborhood/{id}) laid out in the design's columns:
-// Clause/Section → Rule → CodeValue → other nodes. Demo chain when the KG is
-// unreachable.
+// Knowledge graph — reimagined as a native Ant Design page: rule Select +
+// pager in the toolbar, the lineage SVG (layout engine and data wiring
+// unchanged) framed in a Card with a column legend, and the node detail rail
+// as Cards — Descriptions for properties, mono relationship list, and an
+// impact Alert. Live: pick a rule from the canon (/kg/rules), render its
+// Neo4j neighborhood (/kg/neighborhood/{id}) laid out in the design's
+// columns: Clause/Section → Rule → CodeValue → other nodes. Demo chain when
+// the KG is unreachable.
 import { useMemo, useState } from 'react';
-import { Blueprint } from '../Blueprint';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Col, Descriptions, Row, Select, Space, Tag, Typography } from 'antd';
 import { useKgRules, useNeighborhood } from '../api';
-import { ACC, GRAPH_NODES } from '../data';
+import { GRAPH_NODES } from '../data';
 import type { KgGraphEdge, KgGraphNode } from '../../../api/types';
+
+const { Text, Title, Paragraph } = Typography;
+
+const MONO = "ui-monospace,'SFMono-Regular',Menlo,monospace";
+const K: React.CSSProperties = { fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' };
+
+// Active node/edge color inside the SVG — graph node colors are data, mapped
+// to the antd primary.
+const ACTIVE = '#1677ff';
 
 interface Box { id?: string; x: number; y: number; w: number; t: string; s: string }
 
@@ -42,7 +55,7 @@ function Edge({ x1, y1, x2, y2, on }: { x1: number; y1: number; x2: number; y2: 
   return (
     <path
       d={`M${x1} ${y1} C${x1 + 34} ${y1} ${x2 - 34} ${y2} ${x2} ${y2}`}
-      fill="none" stroke={on ? ACC : 'rgba(29,31,32,.22)'} strokeWidth={on ? 1.6 : 1}
+      fill="none" stroke={on ? ACTIVE : 'rgba(29,31,32,.22)'} strokeWidth={on ? 1.6 : 1}
     />
   );
 }
@@ -50,11 +63,11 @@ function Edge({ x1, y1, x2, y2, on }: { x1: number; y1: number; x2: number; y2: 
 function NodeBox({ n, active, onSelect }: { n: Box; active: boolean; onSelect?: () => void }) {
   return (
     <g transform={`translate(${n.x},${n.y})`} style={{ cursor: onSelect ? 'pointer' : 'default' }} onClick={onSelect}>
-      <rect width={n.w} height={H} fill={active ? ACC : 'rgba(242,242,243,.92)'} stroke={active ? ACC : 'rgba(29,31,32,.3)'} strokeWidth={1} />
-      <text x={9} y={15} fontSize={12} fontFamily="ui-monospace, Menlo, monospace" fill={active ? '#f2f2f3' : '#1d1f20'}>
+      <rect width={n.w} height={H} rx={4} fill={active ? ACTIVE : 'rgba(242,242,243,.92)'} stroke={active ? ACTIVE : 'rgba(29,31,32,.3)'} strokeWidth={1} />
+      <text x={9} y={15} fontSize={12} fontFamily="ui-monospace, Menlo, monospace" fill={active ? '#fff' : '#1d1f20'}>
         {n.t.length > 28 ? n.t.slice(0, 27) + '…' : n.t}
       </text>
-      <text x={9} y={27} fontSize={9.5} letterSpacing=".06em" fill={active ? 'rgba(242,242,243,.8)' : 'rgba(29,31,32,.5)'}>
+      <text x={9} y={27} fontSize={9.5} letterSpacing=".06em" fill={active ? 'rgba(255,255,255,.82)' : 'rgba(29,31,32,.5)'}>
         {/* tail-truncate: the distinguishing part (col ref, layout) is at the end */}
         {n.s.length > 34 ? '…' + n.s.slice(-33) : n.s}
       </text>
@@ -148,46 +161,51 @@ export function GraphScreen() {
   }, [live, nbQ.data, selId, centerRule]);
 
   return (
-    <div className="sc" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 30, alignItems: 'start' }}>
-      <div>
+    <Row gutter={[16, 16]}>
+      <Col xs={24} xl={17} style={{ minWidth: 0 }}>
         {pickable.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span className="k">Rule</span>
-            <select
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Text type="secondary" style={K}>Rule</Text>
+            <Select
               value={ruleIdx}
-              onChange={(e) => { setRuleIdx(Number(e.target.value)); setSelId(null); }}
-              style={{
-                flex: 1, minWidth: 0, padding: '5px 8px', fontSize: 12,
-                fontFamily: 'ui-monospace, Menlo, monospace',
-                border: '1px solid var(--color-divider)', borderRadius: 0,
-                background: 'transparent', color: 'var(--color-text)',
-              }}
-            >
-              {pickable.map((r, i) => (
-                <option key={r.id} value={i}>
-                  {(r.executable ? '⚙ ' : '') + (r.jurisdiction_code ? r.jurisdiction_code.replace('US-', '') + ' · ' : '') + r.name}
-                </option>
-              ))}
-            </select>
-            <span style={{ display: 'flex', gap: 6 }}>
-              <button className="btn btn-secondary" disabled={ruleIdx === 0}
-                onClick={() => { setRuleIdx((i) => i - 1); setSelId(null); }}>← Prev</button>
-              <button className="btn btn-secondary" disabled={ruleIdx >= pickable.length - 1}
-                onClick={() => { setRuleIdx((i) => i + 1); setSelId(null); }}>Next →</button>
-            </span>
+              onChange={(v) => { setRuleIdx(v); setSelId(null); }}
+              showSearch
+              optionFilterProp="label"
+              style={{ flex: 1, minWidth: 0 }}
+              options={pickable.map((r, i) => ({
+                value: i,
+                label: (r.executable ? '⚙ ' : '') + (r.jurisdiction_code ? r.jurisdiction_code.replace('US-', '') + ' · ' : '') + r.name,
+              }))}
+            />
+            <Space size={6}>
+              <Button icon={<LeftOutlined />} disabled={ruleIdx === 0}
+                onClick={() => { setRuleIdx((i) => i - 1); setSelId(null); }}>Prev</Button>
+              <Button disabled={ruleIdx >= pickable.length - 1}
+                onClick={() => { setRuleIdx((i) => i + 1); setSelId(null); }}>Next <RightOutlined /></Button>
+            </Space>
           </div>
         )}
-        <Blueprint className="gridwash" style={{ padding: 20 }}>
-          <div style={{ display: 'flex', gap: 14, marginBottom: 10 }}>
-            {live
-              ? ['Source document', '→ Rule', '→ Codes & fields', '→ Related'].map((l) => <span key={l} className="k">{l}</span>)
-              : ['Clause', '→ Rule', '→ Stat field', '→ Silver column', '→ Guidewire source'].map((l) => <span key={l} className="k">{l}</span>)}
-            {live && nbQ.data?.truncated && Object.keys(nbQ.data.truncated).length > 0 && (
-              <span className="k" style={{ marginLeft: 'auto', opacity: 0.7 }}>
+        <Card
+          title={
+            <Space size={14} wrap>
+              {(live
+                ? ['Source document', '→ Rule', '→ Codes & fields', '→ Related']
+                : ['Clause', '→ Rule', '→ Stat field', '→ Silver column', '→ Guidewire source']
+              ).map((l) => (
+                <Text key={l} type="secondary" style={{ ...K, fontWeight: 400 }}>{l}</Text>
+              ))}
+            </Space>
+          }
+          extra={
+            !live ? (
+              <Tag color="orange" title="knowledge graph unreachable — showing the design chain">demo data</Tag>
+            ) : nbQ.data?.truncated && Object.keys(nbQ.data.truncated).length > 0 ? (
+              <Text type="secondary" style={{ ...K, opacity: 0.7 }}>
                 capped: {Object.entries(nbQ.data.truncated).map(([l, n]) => `+${n} ${l}`).join(' · ')}
-              </span>
-            )}
-          </div>
+              </Text>
+            ) : null
+          }
+        >
           {live && layout ? (
             <svg viewBox={`0 0 1140 ${layout.height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
               <g>
@@ -230,41 +248,53 @@ export function GraphScreen() {
               ))}</g>
             </svg>
           )}
-        </Blueprint>
-      </div>
+        </Card>
+      </Col>
 
-      <aside style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <Blueprint style={{ padding: '15px 17px' }}>
-          <div className="k">{detail.kind}</div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 21, margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{detail.title}</div>
+      {/* ── detail rail ──────────────────────────────────────────────────── */}
+      <Col xs={24} xl={7}>
+        <Card>
+          <Text type="secondary" style={K}>{detail.kind}</Text>
+          <Title level={4} style={{ margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{detail.title}</Title>
           {detail.desc && (
-            <div style={{ fontSize: 13, lineHeight: 1.6, color: 'color-mix(in srgb,var(--color-text) 78%,transparent)', whiteSpace: 'pre-wrap' }}>{detail.desc}</div>
+            <Paragraph style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: 0 }}>
+              {detail.desc}
+            </Paragraph>
           )}
-        </Blueprint>
-        <Blueprint style={{ padding: '15px 17px' }}>
-          <div className="k" style={{ marginBottom: 9 }}>Properties</div>
-          {detail.props.map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', gap: 10, padding: '5px 0', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)', fontSize: 12.5 }}>
-              <span className="muted" style={{ width: 104, flex: 'none' }}>{k}</span>
-              <span className="mono" style={{ fontSize: 11.5, overflowWrap: 'anywhere' }}>{v}</span>
-            </div>
-          ))}
-        </Blueprint>
+        </Card>
+        <Card title="Properties" style={{ marginTop: 16 }}>
+          <Descriptions
+            size="small"
+            column={1}
+            colon={false}
+            styles={{ label: { width: 110 } }}
+            items={detail.props.map(([k, v]) => ({
+              key: k,
+              label: <Text type="secondary" style={{ fontSize: 12 }}>{k}</Text>,
+              children: <span style={{ fontFamily: MONO, fontSize: 11.5, overflowWrap: 'anywhere' }}>{v}</span>,
+            }))}
+          />
+        </Card>
         {detail.rels.length > 0 && (
-          <Blueprint style={{ padding: '15px 17px' }}>
-            <div className="k" style={{ marginBottom: 9 }}>Relationships</div>
+          <Card title="Relationships" style={{ marginTop: 16 }}>
             {detail.rels.map((r, i) => (
-              <div key={i} className="mono" style={{ fontSize: 11, padding: '4px 0', lineHeight: 1.5, borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)', overflowWrap: 'anywhere' }}>
+              <div key={i} style={{
+                fontFamily: MONO, fontSize: 11, padding: '4px 0', lineHeight: 1.5,
+                borderBottom: '1px solid rgba(5,5,5,0.06)', overflowWrap: 'anywhere',
+              }}>
                 {r}
               </div>
             ))}
-          </Blueprint>
+          </Card>
         )}
-        <Blueprint style={{ padding: '15px 17px' }}>
-          <div className="k" style={{ marginBottom: 9 }}>Impact if changed</div>
-          <div style={{ fontSize: 12.5, lineHeight: 1.6 }}>{detail.impact}</div>
-        </Blueprint>
-      </aside>
-    </div>
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginTop: 16 }}
+          message="Impact if changed"
+          description={<span style={{ fontSize: 12.5, lineHeight: 1.6 }}>{detail.impact}</span>}
+        />
+      </Col>
+    </Row>
   );
 }

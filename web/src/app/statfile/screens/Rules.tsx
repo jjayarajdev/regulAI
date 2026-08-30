@@ -1,17 +1,41 @@
-// Rulebook & rules — source document viewer anchored to the selected rule's
-// clause, beside the extracted-rules review queue with approve/reject.
+// Rulebook & rules — reimagined as a native Ant Design page: canon status as
+// an Alert banner, the 30-day canon diff as a Card grid, the extraction queue
+// as a searchable/filterable Table with confidence Progress bars, and the
+// selected rule's source clause + logic + approve/reject actions in a
+// right-side Drawer. Executable-form authoring is an antd Modal form.
 // Live: /kg/rules for the queue, /reg/citation resolves the selected rule's
 // citation to real regulator text. Demo fixtures when the canon is empty.
-import { useMemo, useState } from 'react';
-import { Blueprint } from '../Blueprint';
-import { DetailModal } from '../DetailModal';
-import { DemoTag } from '../ui';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  Alert, Button, Card, Col, Divider, Drawer, Input, Modal, Progress, Row,
+  Segmented, Select, Space, Table, Tag, Tooltip, Typography,
+} from 'antd';
 import {
   can, useAuthorExecutable, useCitation, useKgDiff, useKgRules, useRuleDecision,
   whoCan, type AppUser,
 } from '../api';
-import { ACC, ACC9, CLAUSES, RULES } from '../data';
+import { CLAUSES, RULES } from '../data';
 import type { KgRule } from '../../../api/types';
+
+const { Text, Paragraph } = Typography;
+const MONO: CSSProperties = { fontFamily: "ui-monospace,'SFMono-Regular',Menlo,monospace" };
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      {children}
+    </Text>
+  );
+}
+
+function Field({ label, children }: { label: ReactNode; children: ReactNode }) {
+  return (
+    <label style={{ display: 'block' }}>
+      <Text type="secondary" style={{ fontSize: 12 }}>{label}</Text>
+      <div style={{ marginTop: 4 }}>{children}</div>
+    </label>
+  );
+}
 
 // In-product authoring of a rule's executable form — the edit-package fields
 // that scripts.attach_validation_rules used to require a JSON file for.
@@ -33,84 +57,100 @@ function ExecutableFormModal({ rule, onClose }: { rule: KgRule; onClose: () => v
   const valid = f.target_table.trim().length > 5 && f.target_id_expr.trim()
     && f.violation_sql.trim() && f.violation_reason.trim();
 
-  const inp = (v: string, on: (x: string) => void, mono = false, rows = 0) => rows > 0 ? (
-    <textarea value={v} rows={rows} onChange={(e) => on(e.target.value)}
-      style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4, padding: '8px 10px',
-        fontSize: 12, fontFamily: mono ? 'var(--font-mono, monospace)' : 'var(--font-body)',
-        border: '1px solid var(--color-divider)', borderRadius: 0, resize: 'vertical',
-        background: 'color-mix(in srgb,var(--color-text) 4%,transparent)', color: 'var(--color-text)' }} />
-  ) : (
-    <input value={v} onChange={(e) => on(e.target.value)}
-      style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4, padding: '8px 10px',
-        fontSize: 12, fontFamily: mono ? 'var(--font-mono, monospace)' : 'var(--font-body)',
-        border: '1px solid var(--color-divider)', borderRadius: 0,
-        background: 'color-mix(in srgb,var(--color-text) 4%,transparent)', color: 'var(--color-text)' }} />
-  );
-  const lbl = { fontSize: 11.5, color: 'color-mix(in srgb,var(--color-text) 62%,transparent)' } as const;
+  const monoInput: CSSProperties = { ...MONO, fontSize: 12 };
 
   return (
-    <DetailModal open onClose={onClose} width={720}
-      kicker={`executable form · ${rule.jurisdiction_code ?? '—'} · runs in /validate once saved`}
-      title={rule.name}
-      tags={<span className={'tag ' + (rule.violation_sql ? 'tag-neutral' : 'tag-outline')}>
-        {rule.violation_sql ? 'editing' : 'not yet executable'}
-      </span>}
+    <Modal
+      open
+      onCancel={onClose}
+      width={720}
+      title={
+        <div>
+          <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>
+            executable form · {rule.jurisdiction_code ?? '—'} · runs in /validate once saved
+          </Text>
+          <div>
+            {rule.name}{' '}
+            <Tag color={rule.violation_sql ? 'geekblue' : undefined}>
+              {rule.violation_sql ? 'editing' : 'not yet executable'}
+            </Tag>
+          </div>
+        </div>
+      }
       footer={
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className="btn btn-primary" disabled={!valid || mut.isPending}
+        <Space>
+          {mut.error != null && (
+            <Text type="danger" style={{ fontSize: 12 }}>{(mut.error as Error).message}</Text>
+          )}
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            type="primary" disabled={!valid} loading={mut.isPending}
             onClick={() => mut.mutate(
               { ruleId: rule.id, ...f, citation: f.citation || undefined },
               { onSuccess: onClose },
-            )}>
-            {mut.isPending ? 'Saving…' : 'Save — compile into the edit package'}
-          </button>
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          {mut.error != null && (
-            <span style={{ fontSize: 11.5, color: '#a33' }}>{(mut.error as Error).message}</span>
-          )}
-        </div>
-      }>
+            )}
+          >
+            Save — compile into the edit package
+          </Button>
+        </Space>
+      }
+    >
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px 16px', marginBottom: 12 }}>
-        <label style={lbl}>Target table{inp(f.target_table, set('target_table'), true)}</label>
-        <label style={lbl}>Record id expression{inp(f.target_id_expr, set('target_id_expr'), true)}</label>
+        <Field label="Target table">
+          <Input value={f.target_table} style={monoInput} onChange={(e) => set('target_table')(e.target.value)} />
+        </Field>
+        <Field label="Record id expression">
+          <Input value={f.target_id_expr} style={monoInput} onChange={(e) => set('target_id_expr')(e.target.value)} />
+        </Field>
       </div>
-      <label style={{ ...lbl, display: 'block', marginBottom: 12 }}>
-        Violation SQL — predicate over alias <span className="mono">j</span>; TRUE means the record violates the rule
-        {inp(f.violation_sql, set('violation_sql'), true, 5)}
-      </label>
+      <div style={{ marginBottom: 12 }}>
+        <Field label={<>Violation SQL — predicate over alias <Text code>j</Text>; TRUE means the record violates the rule</>}>
+          <Input.TextArea
+            value={f.violation_sql} rows={5} style={monoInput}
+            onChange={(e) => set('violation_sql')(e.target.value)}
+          />
+        </Field>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px 16px', marginBottom: 12 }}>
-        <label style={lbl}>Violation reason (analyst-facing){inp(f.violation_reason, set('violation_reason'))}</label>
-        <label style={lbl}>Severity
-          <select value={f.severity} onChange={(e) => setF((s) => ({ ...s, severity: e.target.value as 'ERROR' | 'WARNING' }))}
-            style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', fontSize: 12,
-              border: '1px solid var(--color-divider)', borderRadius: 0,
-              background: 'var(--color-bg, transparent)', color: 'var(--color-text)' }}>
-            <option value="ERROR">ERROR — blocks sealing</option>
-            <option value="WARNING">WARNING — flagged only</option>
-          </select>
-        </label>
+        <Field label="Violation reason (analyst-facing)">
+          <Input value={f.violation_reason} onChange={(e) => set('violation_reason')(e.target.value)} />
+        </Field>
+        <Field label="Severity">
+          <Select
+            value={f.severity} style={{ width: '100%' }}
+            onChange={(severity) => setF((s) => ({ ...s, severity }))}
+            options={[
+              { value: 'ERROR', label: 'ERROR — blocks sealing' },
+              { value: 'WARNING', label: 'WARNING — flagged only' },
+            ]}
+          />
+        </Field>
       </div>
-      <label style={{ ...lbl, display: 'block' }}>Citation{inp(f.citation, set('citation'))}</label>
+      <Field label="Citation">
+        <Input value={f.citation} onChange={(e) => set('citation')(e.target.value)} />
+      </Field>
 
-      <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--color-divider)' }}>
-        <div className="k" style={{ marginBottom: 8 }}>
-          Automated remedy · optional — only where the rule text dictates the correction
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: 12 }}>
-          <label style={lbl}>Field to correct{inp(f.fix_target_field, set('fix_target_field'), true)}</label>
-          <label style={lbl}>Corrected value (SQL over <span className="mono">j</span>){inp(f.fix_expr, set('fix_expr'), true)}</label>
-        </div>
-        <label style={{ ...lbl, display: 'block' }}>
-          Remedy description (shown on the Apply-fix button)
-          {inp(f.fix_description, set('fix_description'))}
-        </label>
+      <Divider style={{ margin: '16px 0 12px' }} />
+      <div style={{ marginBottom: 8 }}>
+        <SectionLabel>Automated remedy · optional — only where the rule text dictates the correction</SectionLabel>
       </div>
-      <p className="muted" style={{ fontSize: 11.5, lineHeight: 1.6, marginTop: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: 12 }}>
+        <Field label="Field to correct">
+          <Input value={f.fix_target_field} style={monoInput} onChange={(e) => set('fix_target_field')(e.target.value)} />
+        </Field>
+        <Field label={<>Corrected value (SQL over <Text code>j</Text>)</>}>
+          <Input value={f.fix_expr} style={monoInput} onChange={(e) => set('fix_expr')(e.target.value)} />
+        </Field>
+      </div>
+      <Field label="Remedy description (shown on the Apply-fix button)">
+        <Input value={f.fix_description} onChange={(e) => set('fix_description')(e.target.value)} />
+      </Field>
+      <Paragraph type="secondary" style={{ fontSize: 12, lineHeight: 1.6, marginTop: 14, marginBottom: 0 }}>
         Saving writes the executable properties onto the KG rule (audited as a manual edit),
         bumps its validation version, and refreshes the jurisdiction's validation reference —
         the edit runs on the next validation pass. No scripts, no JSON files.
-      </p>
-    </DetailModal>
+      </Paragraph>
+    </Modal>
   );
 }
 
@@ -130,6 +170,14 @@ interface RuleCard {
   raw?: KgRule;
   preDecided?: Decision;
 }
+
+const kindColor = (kind: string): string | undefined =>
+  kind === 'Amended' ? 'orange' : kind === 'Validation edit' ? 'purple' : undefined;
+
+const decisionTag = (d?: Decision) =>
+  d === 'approved' ? <Tag color="green">Approved</Tag>
+  : d === 'rejected' ? <Tag color="red">Sent back</Tag>
+  : <Tag color="orange">Pending</Tag>;
 
 export function RulesScreen({ user }: { user?: AppUser }) {
   const mayDecide = can(user, 'rule_decision');
@@ -162,6 +210,7 @@ export function RulesScreen({ user }: { user?: AppUser }) {
   const live = (rulesQ.data?.rules.length ?? 0) > 0;
 
   const [selIdx, setSelIdx] = useState(0);
+  const [open, setOpen] = useState(false);
   const [page, setPage] = useState(47);
   const [filter, setFilter] = useState<Filter>(live ? 'all' : 'pending');
   const [decided, setDecided] = useState<Record<string, Decision>>({});
@@ -234,7 +283,7 @@ export function RulesScreen({ user }: { user?: AppUser }) {
     if (live) decideMut.mutate({ ruleId: id, decision: d });
   };
 
-  // Executable-form authoring modal — opened from the expanded rule card.
+  // Executable-form authoring modal — opened from the drawer's action footer.
   const [authorRule, setAuthorRule] = useState<KgRule | null>(null);
 
   // Canon diff panel — last 30 days of KG mutations, fetched on demand.
@@ -246,244 +295,261 @@ export function RulesScreen({ user }: { user?: AppUser }) {
   const diffQ = useKgDiff(showDiff ? since : null);
   const diff = diffQ.data;
 
+  const pick = (r: RuleCard) => {
+    const i = cards.indexOf(r);
+    setSelIdx(i);
+    if (r.page) setPage(r.page);
+    setOpen(true);
+  };
+
+  const columns = [
+    {
+      title: 'Rule', dataIndex: 'id', key: 'id', width: 120,
+      render: (v: string) => <Text code title={v}>{v.length > 14 ? v.slice(0, 8) + '…' : v}</Text>,
+    },
+    {
+      title: '', key: 'jur', width: 56,
+      render: (_: unknown, r: RuleCard) => r.raw?.jurisdiction_code
+        ? <Tag color="geekblue" style={{ marginInlineEnd: 0 }}>{r.raw.jurisdiction_code.replace('US-', '')}</Tag>
+        : null,
+    },
+    { title: 'Title', dataIndex: 'title', key: 'title', ellipsis: true },
+    {
+      title: 'Kind', dataIndex: 'kind', key: 'kind', width: 130,
+      render: (v: string) => <Tag color={kindColor(v)}>{v}</Tag>,
+    },
+    {
+      title: 'Confidence', dataIndex: 'conf', key: 'conf', width: 150,
+      render: (v: number | null) => v == null
+        ? <Text type="secondary">—</Text>
+        : <Progress percent={v} size="small" status={v < 70 ? 'exception' : 'normal'} />,
+    },
+    {
+      title: 'Status', key: 'status', width: 110, align: 'right' as const,
+      render: (_: unknown, r: RuleCard) => decisionTag(decisionOf(r)),
+    },
+  ];
+
   return (
-    <div className="sc">
-      <Blueprint style={{ padding: '12px 16px', marginBottom: 22, display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ width: 6, height: 34, background: 'var(--color-accent-900)' }} />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 17 }}>
-            {live
-              ? `Canon loaded — ${rulesQ.data!.counts.total} rules (${rulesQ.data!.counts.executable} executable, ${rulesQ.data!.counts.descriptive} descriptive)`
-              : 'Rulebook version change detected — v2025.2 → v2026.1'}
-          </div>
-          <div className="muted" style={{ fontSize: 12 }}>
-            {live
-              ? `${pending} rules are not currently active — superseded versions or drafts awaiting approval.`
-              : 'Parser found 9 amended clauses and 2 new clauses. 17 derived rules require re-approval before the cycle can close.'}
-          </div>
-        </div>
-        <button className="btn btn-secondary" onClick={() => setShowDiff((v) => !v)}>
-          {showDiff ? 'Hide diff' : 'View full diff'}
-        </button>
-      </Blueprint>
+    <div>
+      <Alert
+        type="info" showIcon style={{ marginBottom: 16 }}
+        message={live
+          ? <>Canon loaded — <Text strong>{rulesQ.data!.counts.total}</Text> rules ({rulesQ.data!.counts.executable} executable, {rulesQ.data!.counts.descriptive} descriptive)</>
+          : <>Rulebook version change detected — <Text strong>v2025.2 → v2026.1</Text></>}
+        description={live
+          ? `${pending} rules are not currently active — superseded versions or drafts awaiting approval.`
+          : 'Parser found 9 amended clauses and 2 new clauses. 17 derived rules require re-approval before the cycle can close.'}
+        action={
+          <Button size="small" onClick={() => setShowDiff((v) => !v)}>
+            {showDiff ? 'Hide diff' : 'View full diff'}
+          </Button>
+        }
+      />
 
       {showDiff && (
-        <Blueprint style={{ padding: '16px 18px', marginBottom: 22 }}>
-          <div className="k" style={{ marginBottom: 10 }}>
-            Canon changes — last 30 days
-            {diff ? ` · ${diff.total_changes} changes` : diffQ.isLoading ? ' · loading…' : diffQ.isError ? ' · KG unreachable' : ''}
-          </div>
+        <Card
+          title="Canon changes — last 30 days"
+          extra={
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {diff ? `${diff.total_changes} changes`
+                : diffQ.isLoading ? 'loading…'
+                : diffQ.isError ? 'KG unreachable' : ''}
+            </Text>
+          }
+          style={{ marginBottom: 16 }}
+        >
           {diff && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <Row gutter={[16, 16]}>
               {([['Added', diff.added_nodes], ['Modified', diff.modified_nodes], ['Superseded', diff.superseded_nodes]] as const)
                 .filter(([, ns]) => ns.length > 0)
                 .map(([label, ns]) => (
-                  <div key={label}>
-                    <div className="k" style={{ marginBottom: 6 }}>{label} · {ns.length}</div>
+                  <Col xs={24} md={12} key={label}>
+                    <SectionLabel>{label} · {ns.length}</SectionLabel>
                     {ns.slice(0, 8).map((n) => (
-                      <div key={n.id} style={{ fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
-                        <span className="mono" style={{ fontSize: 10.5, color: 'var(--color-accent-700)', marginRight: 8 }}>{n.type}</span>
+                      <div key={n.id} style={{ fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid rgba(5,5,5,0.06)' }}>
+                        <Text type="secondary" style={{ ...MONO, fontSize: 10.5, marginRight: 8 }}>{n.type}</Text>
                         {n.name.length > 64 ? n.name.slice(0, 63) + '…' : n.name}
                       </div>
                     ))}
-                    {ns.length > 8 && <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>+{ns.length - 8} more</div>}
-                  </div>
+                    {ns.length > 8 && (
+                      <Text type="secondary" style={{ display: 'block', fontSize: 11, marginTop: 4 }}>+{ns.length - 8} more</Text>
+                    )}
+                  </Col>
                 ))}
-              <div>
-                <div className="k" style={{ marginBottom: 6 }}>Audit trail · {diff.audit_entries.length}</div>
+              <Col xs={24} md={12}>
+                <SectionLabel>Audit trail · {diff.audit_entries.length}</SectionLabel>
                 {diff.audit_entries.slice(0, 8).map((a) => (
-                  <div key={a.id} style={{ fontSize: 12, padding: '4px 0', borderBottom: '1px solid color-mix(in srgb,var(--color-text) 7%,transparent)' }}>
-                    <span className="mono" style={{ fontSize: 10.5, marginRight: 8 }}>{a.occurred_at?.slice(0, 16)}</span>
+                  <div key={a.id} style={{ fontSize: 12, padding: '4px 0', borderBottom: '1px solid rgba(5,5,5,0.06)' }}>
+                    <Text type="secondary" style={{ ...MONO, fontSize: 10.5, marginRight: 8 }}>{a.occurred_at?.slice(0, 16)}</Text>
                     {a.actor} · {a.summary.length > 56 ? a.summary.slice(0, 55) + '…' : a.summary}
                   </div>
                 ))}
                 {diff.audit_entries.length > 8 && (
-                  <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>+{diff.audit_entries.length - 8} more</div>
+                  <Text type="secondary" style={{ display: 'block', fontSize: 11, marginTop: 4 }}>+{diff.audit_entries.length - 8} more</Text>
                 )}
-              </div>
-            </div>
+              </Col>
+            </Row>
           )}
-        </Blueprint>
+        </Card>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.05fr', gap: 30, alignItems: 'start' }}>
-        <section>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <h4>Source document</h4>
-            <span className="k">
-              {match ? `${match.title} · ${match.citation_label}`
-                : live ? 'no source clause resolved'
-                : `TDI-HO-STATPLAN-2026.pdf · p. ${page} of 214`}
+      <Card
+        title="Extracted rules"
+        extra={
+          <Space>
+            {!live && (
+              <Tag color="orange" title="the canon is empty or unreachable — showing design fixtures">demo data</Tag>
+            )}
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {pending} awaiting review · showing {filtered.length} of {cards.length}
+            </Text>
+          </Space>
+        }
+        styles={{ body: { padding: 0 } }}
+      >
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '12px 16px', borderBottom: '1px solid rgba(5,5,5,0.06)' }}>
+          <Input
+            allowClear placeholder="Search rules…" value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{ flex: 1, minWidth: 200, maxWidth: 320 }}
+          />
+          <Segmented
+            value={filter}
+            onChange={(f) => setFilter(f as Filter)}
+            options={[
+              { value: 'pending', label: 'Pending' },
+              { value: 'low', label: 'Low confidence' },
+              { value: 'all', label: 'All' },
+            ]}
+          />
+          <Select
+            value={section}
+            onChange={setSection}
+            style={{ width: 170, marginLeft: 'auto' }}
+            options={[
+              { value: 'all', label: `All sections · ${cards.length}` },
+              ...sections.map(([s, n]) => ({
+                value: s, label: `${s === 'Other' ? 'Other' : '§' + s} · ${n}`,
+              })),
+            ]}
+          />
+        </div>
+        <Table
+          rowKey="id"
+          dataSource={filtered}
+          columns={columns}
+          pagination={false} size="middle"
+          onRow={(r) => ({ onClick: () => pick(r), style: { cursor: 'pointer' } })}
+        />
+      </Card>
+
+      {/* Row click → clause text, rule logic and the decision footer in a drawer. */}
+      <Drawer
+        open={open && !!sel}
+        onClose={() => setOpen(false)}
+        width={920}
+        title={sel && (
+          <div>
+            <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>{sel.cite} · {sel.agent}</Text>
+            <div style={{ fontSize: 16 }}>{sel.title}</div>
+          </div>
+        )}
+        extra={sel && (
+          <Space size={4}>
+            {sel.raw?.jurisdiction_code && (
+              <Tag color="geekblue">{sel.raw.jurisdiction_code.replace('US-', '')}</Tag>
+            )}
+            <Tag color={kindColor(sel.kind)}>{sel.kind}</Tag>
+            {decisionTag(decisionOf(sel))}
+          </Space>
+        )}
+      >
+        {sel && (
+        <>
+          <Row gutter={24}>
+            <Col span={12}>
+              <SectionLabel>Source clause</SectionLabel>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, margin: '6px 0 12px' }}>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {match ? match.issuing_body
+                    : live ? (jurName ? `${jurName} · ${raw?.jurisdiction_code}` : 'Jurisdiction not recorded')
+                    : 'Texas Department of Insurance'}
+                </Text>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {match ? match.document_type
+                    : live ? (raw?.source_kind ?? 'extracted rule')
+                    : 'Residential Property Statistical Plan'}
+                </Text>
+              </div>
+              <Text strong style={{ display: 'block', fontSize: 16 }}>{clause.t}</Text>
+              <div style={{ ...MONO, fontSize: 11, color: '#1677ff', margin: '2px 0 12px' }}>{clause.r}</div>
+              <Paragraph style={{ fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: 360, overflow: 'auto' }}>
+                {citQ.isLoading ? 'Resolving citation…' : clause.b}
+              </Paragraph>
+              <Alert type="info" message={<span style={{ fontSize: 12.5, lineHeight: 1.6 }}>{clause.h}</span>} />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 14 }}>
+                <Button size="small" onClick={() => setPage((p) => Math.max(1, p - 1))}>← Prev</Button>
+                <Button size="small" onClick={() => setPage((p) => Math.min(214, p + 1))}>Next →</Button>
+                <Text type="secondary" style={{ marginLeft: 'auto', fontSize: 11 }}>
+                  {match ? `${match.title} · ${match.citation_label}`
+                    : live ? 'no source clause resolved'
+                    : `TDI-HO-STATPLAN-2026.pdf · p. ${page} of 214`}
+                </Text>
+              </div>
+            </Col>
+            <Col span={12}>
+              <SectionLabel>What the rule says</SectionLabel>
+              <Paragraph style={{ marginTop: 6, fontSize: 13, lineHeight: 1.65 }}>{sel.text}</Paragraph>
+              <SectionLabel>Logic</SectionLabel>
+              <pre style={{
+                ...MONO, fontSize: 11.5, lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: '6px 0 12px',
+                padding: '9px 11px', background: 'rgba(5,5,5,0.04)', borderRadius: 6,
+              }}>
+                {sel.logic}
+              </pre>
+              <SectionLabel>Citation</SectionLabel>
+              <div style={{ margin: '6px 0 12px' }}><Text code>{sel.cite}</Text></div>
+              {sel.conf != null && (
+                <>
+                  <SectionLabel>Extraction confidence</SectionLabel>
+                  <Progress
+                    percent={sel.conf} size="small"
+                    status={sel.conf < 70 ? 'exception' : 'normal'}
+                    style={{ maxWidth: 220, display: 'block', margin: '6px 0 12px' }}
+                  />
+                </>
+              )}
+              <Text type="secondary" style={{ ...MONO, fontSize: 11 }}>{sel.agent}</Text>
+            </Col>
+          </Row>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 20, paddingTop: 14, borderTop: '1px solid rgba(5,5,5,0.06)' }}>
+            {decisionTag(decisionOf(sel))}
+            <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8 }}>
+              {sel.raw && (
+                <Tooltip title={mayDecide
+                  ? "author the rule's edit-package fields — target table, violation SQL, severity"
+                  : `requires ${whoCan('rule_decision')}`}>
+                  <Button disabled={!mayDecide} onClick={() => setAuthorRule(sel.raw!)}>
+                    {sel.raw.violation_sql ? 'Edit executable…' : 'Make executable…'}
+                  </Button>
+                </Tooltip>
+              )}
+              <Tooltip title={mayDecide ? undefined : `requires ${whoCan('rule_decision')}`}>
+                <Button danger disabled={!mayDecide} onClick={() => decide(sel.id, 'rejected')}>Reject</Button>
+              </Tooltip>
+              <Tooltip title={mayDecide ? undefined : `requires ${whoCan('rule_decision')}`}>
+                <Button type="primary" disabled={!mayDecide} loading={decideMut.isPending}
+                  onClick={() => decide(sel.id, 'approved')}>
+                  Approve
+                </Button>
+              </Tooltip>
             </span>
           </div>
-          <Blueprint style={{ padding: '34px 38px', background: '#fff' }}>
-            <div style={{
-              fontSize: 10, letterSpacing: '.09em', textTransform: 'uppercase',
-              color: 'color-mix(in srgb,var(--color-text) 45%,transparent)',
-              borderBottom: '1px solid var(--color-divider)', paddingBottom: 8, marginBottom: 20,
-              display: 'flex', justifyContent: 'space-between',
-            }}>
-              <span>
-                {match ? match.issuing_body
-                  : live && sel ? (jurName ? `${jurName} · ${raw?.jurisdiction_code}` : 'Jurisdiction not recorded')
-                  : 'Texas Department of Insurance'}
-              </span>
-              <span>
-                {match ? match.document_type
-                  : live && sel ? (raw?.source_kind ?? 'extracted rule')
-                  : 'Residential Property Statistical Plan'}
-              </span>
-            </div>
-            <div style={{ fontFamily: 'var(--font-heading)', fontSize: 19, marginBottom: 4 }}>{clause.t}</div>
-            <div className="mono" style={{ fontSize: 11, color: 'var(--color-accent-700)', marginBottom: 16 }}>{clause.r}</div>
-            <div style={{ fontSize: 13.5, lineHeight: 1.75, textWrap: 'pretty', whiteSpace: 'pre-wrap', color: '#25282a', maxHeight: 420, overflow: 'auto' }}>
-              {citQ.isLoading ? 'Resolving citation…' : clause.b}
-            </div>
-            <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--color-accent-100)', borderLeft: '2px solid var(--color-accent)', fontSize: 13, lineHeight: 1.7 }}>
-              {clause.h}
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 26, paddingTop: 14, borderTop: '1px solid var(--color-divider)' }}>
-              <button className="btn btn-secondary" onClick={() => setPage((p) => Math.max(1, p - 1))}>← Prev</button>
-              <button className="btn btn-secondary" onClick={() => setPage((p) => Math.min(214, p + 1))}>Next →</button>
-              <span className="muted" style={{ marginLeft: 'auto', fontSize: 11, alignSelf: 'center' }}>
-                Anchored to clause the selected rule cites
-              </span>
-            </div>
-          </Blueprint>
-        </section>
-
-        <section>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <h4>Extracted rules</h4>
-            {!live && <DemoTag reason="the canon is empty or unreachable — showing design fixtures" />}
-            <span className="k">{pending} awaiting review · showing {filtered.length} of {cards.length}</span>
-            <div className="seg" style={{ marginLeft: 'auto' }}>
-              {([['pending', 'Pending'], ['low', 'Low confidence'], ['all', 'All']] as Array<[Filter, string]>).map(([f, label]) => (
-                <label key={f} className="seg-opt">
-                  <input type="radio" name="rf" checked={filter === f} onChange={() => setFilter(f)} />
-                  <span>{label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search rules…"
-              style={{
-                flex: 1, padding: '6px 10px', fontSize: 12.5, fontFamily: 'var(--font-body)',
-                border: '1px solid var(--color-divider)', borderRadius: 0,
-                background: 'transparent', color: 'var(--color-text)', outline: 'none',
-              }}
-            />
-            <div className="seg">
-              {[['all', `All ${cards.length}`] as [string, string],
-                ...sections.map(([s, n]) => [s, `${s === 'Other' ? 'Other' : '§' + s} ${n}`] as [string, string])]
-                .map(([s, label]) => (
-                  <label key={s} className="seg-opt">
-                    <input type="radio" name="rsec" checked={section === s} onChange={() => setSection(s)} />
-                    <span>{label}</span>
-                  </label>
-                ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 900, overflow: 'auto' }}>
-            {filtered.map((r) => {
-              const i = cards.indexOf(r);
-              const d = decisionOf(r);
-              // Compact one-line row for everything but the selected rule —
-              // 139 full cards is a wall; the detail lives on selection.
-              if (i !== selIdx) {
-                return (
-                  <Blueprint
-                    key={r.id}
-                    className="rowlink"
-                    style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}
-                    onClick={() => { setSelIdx(i); if (r.page) setPage(r.page); }}
-                  >
-                    <span className="mono" style={{ fontSize: 10.5, color: 'var(--color-accent-700)', flex: 'none' }}>
-                      {r.id.length > 14 ? r.id.slice(0, 8) : r.id}
-                    </span>
-                    {r.raw?.jurisdiction_code && (
-                      <span className="mono" style={{ fontSize: 10, flex: 'none', color: 'color-mix(in srgb,var(--color-text) 55%,transparent)' }}>
-                        {r.raw.jurisdiction_code.replace('US-', '')}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 13, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {r.title}
-                    </span>
-                    <span className={'tag ' + (r.kind === 'Amended' ? 'tag-outline' : 'tag-neutral')}>{r.kind}</span>
-                    <span className={'tag ' + (d === 'approved' ? 'tag-accent' : d === 'rejected' ? 'tag-neutral' : 'tag-outline')}>
-                      {d === 'approved' ? 'Approved' : d === 'rejected' ? 'Sent back' : 'Pending'}
-                    </span>
-                  </Blueprint>
-                );
-              }
-              return (
-                <Blueprint
-                  key={r.id}
-                  style={{
-                    padding: '16px 18px', cursor: 'pointer',
-                    borderColor: ACC,
-                  }}
-                  onClick={() => { setSelIdx(i); if (r.page) setPage(r.page); }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <span className="mono" style={{ fontSize: 11, color: 'var(--color-accent-700)' }}>{r.id}</span>
-                    <span className={'tag ' + (r.kind === 'Amended' ? 'tag-outline' : 'tag-neutral')}>{r.kind}</span>
-                    {r.conf != null && (
-                      <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <span className="k">confidence</span>
-                        <span style={{ width: 56, height: 6, background: 'color-mix(in srgb,var(--color-text) 10%,transparent)', position: 'relative', display: 'inline-block' }}>
-                          <span style={{
-                            position: 'absolute', inset: '0 auto 0 0', width: r.conf + '%',
-                            background: r.conf >= 90 ? ACC : r.conf >= 75 ? '#94bce3' : ACC9,
-                          }} />
-                        </span>
-                        <span className="mono" style={{ fontSize: 12 }}>{r.conf}%</span>
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontFamily: 'var(--font-heading)', fontSize: 18, lineHeight: 1.25, marginBottom: 6 }}>{r.title}</div>
-                  <div style={{ fontSize: 13, lineHeight: 1.6, color: 'color-mix(in srgb,var(--color-text) 78%,transparent)' }}>{r.text}</div>
-                  <div className="mono" style={{ marginTop: 10, padding: '9px 11px', background: 'color-mix(in srgb,var(--color-text) 5%,transparent)', fontSize: 11.5, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
-                    {r.logic}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 11, borderTop: '1px solid var(--color-divider)' }}>
-                    <span className="mono muted" style={{ fontSize: 11 }}>◱ {r.cite}</span>
-                    <span className="mono" style={{ fontSize: 11, color: 'color-mix(in srgb,var(--color-text) 45%,transparent)' }}>{r.agent}</span>
-                    <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                      <span className={'tag ' + (d === 'approved' ? 'tag-accent' : d === 'rejected' ? 'tag-neutral' : 'tag-outline')}>
-                        {d === 'approved' ? 'Approved' : d === 'rejected' ? 'Sent back' : 'Pending'}
-                      </span>
-                      {mayDecide ? (
-                        <>
-                          {r.raw && (
-                            <button className="btn btn-secondary"
-                              title="author the rule's edit-package fields — target table, violation SQL, severity"
-                              onClick={(e) => { e.stopPropagation(); setAuthorRule(r.raw!); }}>
-                              {r.raw.violation_sql ? 'Edit executable…' : 'Make executable…'}
-                            </button>
-                          )}
-                          <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); decide(r.id, 'rejected'); }}>Reject</button>
-                          <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); decide(r.id, 'approved'); }}>Approve</button>
-                        </>
-                      ) : (
-                        <span className="k" title={`sign in as ${whoCan('rule_decision')} to review`}>
-                          review requires {whoCan('rule_decision')}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                </Blueprint>
-              );
-            })}
-          </div>
-        </section>
-      </div>
+        </>
+        )}
+      </Drawer>
 
       {authorRule && (
         <ExecutableFormModal key={authorRule.id} rule={authorRule}

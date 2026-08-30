@@ -1,28 +1,37 @@
-// Amendments & impact — commissioner's bulletins on the left, and for the
-// selected one the KG-computed impact on the executable canon: per-rule
-// before/after diffs, dry-run record impact, and the gated apply. Live:
-// /bulletins + /bulletin/{name}/impact; when the knowledge graph is offline
+// Amendments & impact — reimagined as a native Ant Design page: bulletin
+// master list as a selectable Card+List rail, impact totals as Statistic
+// cards, per-rule before/after diffs as two-column Cards with Badge
+// severities, and the RBAC-gated apply bar. Live: /bulletins +
+// /bulletin/{name}/impact; when the knowledge graph is offline
 // (503 / kg_offline) the screen degrades to the bundled demo impact.
-import { useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { toast } from 'sonner';
-import { Blueprint } from '../Blueprint';
-import { SelectList } from '../SelectList';
-import { DemoTag, Stat, StatRow } from '../ui';
+import {
+  Alert, Badge, Button, Card, Col, Input, List, Row, Skeleton, Space, Tag,
+  Tooltip, Typography,
+} from 'antd';
 import {
   can, useApplyBulletin, useBulletinImpact, useBulletins, whoCan, type AppUser,
 } from '../api';
 import { ApiError } from '../../../api/client';
 import type { Bulletin, BulletinImpact, RuleChange, RuleChangeSide } from '../../../api/types';
-import { ACC, ACC9, NEU } from '../data';
 
-const sevDot = (s: string) => (s === 'ERROR' ? ACC9 : s === 'WARNING' ? ACC : NEU);
+const { Text, Title, Paragraph } = Typography;
+
+const MONO: CSSProperties = { fontFamily: "ui-monospace,'SFMono-Regular',Menlo,monospace" };
+const KICKER: CSSProperties = { fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' };
+
+const sevBadge = (s: string): 'error' | 'warning' | 'default' =>
+  s === 'ERROR' ? 'error' : s === 'WARNING' ? 'warning' : 'default';
 const juris = (code?: string | null) => (code ?? '').replace(/^US-/, '') || '—';
 const fmt = (n: number) => n.toLocaleString('en-US');
 
-const KIND_TAG: Record<RuleChange['change_kind'], [string, string]> = {
-  modified: ['tag-outline', 'Modified'],
-  added: ['tag-accent', 'Added'],
-  retired: ['tag-neutral', 'Retired'],
+// change_kind → [Tag color, label] mapped by meaning: added lands new canon
+// (green), modified is active change (blue), retired reads neutral.
+const KIND_TAG: Record<RuleChange['change_kind'], [string | undefined, string]> = {
+  modified: ['blue', 'Modified'],
+  added: ['green', 'Added'],
+  retired: [undefined, 'Retired'],
 };
 
 // ── design-demo fixtures — fallback when the API/KG is unavailable ─────────
@@ -151,7 +160,70 @@ const DEMO_IMPACTS: Record<string, BulletinImpact> = {
   },
 };
 
-// One side of a before/after diff. `changed` gets the accent left-border;
+// ── bulletin master rail — Card + selectable List, filterable at scale ─────
+function BulletinRail({ bulletins, value, onChange }: {
+  bulletins: Bulletin[];
+  value: string | null;
+  onChange: (name: string) => void;
+}) {
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return bulletins;
+    return bulletins.filter((b) =>
+      `${b.name} ${b.title} ${juris(b.jurisdiction_code)} ${b.status}`.toLowerCase().includes(needle));
+  }, [bulletins, q]);
+
+  return (
+    <Card title="Commissioner's bulletins" size="small" styles={{ body: { padding: 0 } }}>
+      {bulletins.length > 6 && (
+        <div style={{ padding: '8px 12px 0' }}>
+          <Input allowClear size="small" placeholder="filter…"
+            value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+      )}
+      <List
+        size="small"
+        dataSource={filtered}
+        locale={{ emptyText: 'no matches' }}
+        style={{ maxHeight: 'max(360px, calc(100vh - 320px))', overflow: 'auto' }}
+        renderItem={(b) => {
+          const on = b.name === value;
+          return (
+            <List.Item
+              onClick={() => onChange(b.name)}
+              style={{
+                cursor: 'pointer', paddingInline: 13,
+                borderInlineStart: `3px solid ${on ? '#1677ff' : 'transparent'}`,
+                background: on ? 'rgba(22,119,255,0.06)' : undefined,
+              }}
+            >
+              <List.Item.Meta
+                title={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ ...MONO, flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: on ? 600 : 400 }}>
+                      {b.name}
+                    </span>
+                    <Tag color={b.status === 'applied' ? 'green' : 'blue'} style={{ marginInlineEnd: 0 }}>
+                      {b.status === 'applied' ? 'Applied' : 'Pending'}
+                    </Tag>
+                  </div>
+                }
+                description={
+                  <Text type="secondary" style={{ ...MONO, fontSize: 10.5 }}>
+                    {juris(b.jurisdiction_code)} · eff {b.effective_date} · {b.targets} target{b.targets === 1 ? '' : 's'}
+                  </Text>
+                }
+              />
+            </List.Item>
+          );
+        }}
+      />
+    </Card>
+  );
+}
+
+// One side of a before/after diff. `changed` gets the primary left-border;
 // a null side renders as a dashed ghost.
 function SideCol({ label, side, changed, ghostText }: {
   label: string;
@@ -162,40 +234,40 @@ function SideCol({ label, side, changed, ghostText }: {
   if (!side) {
     return (
       <div style={{
-        border: '1px dashed color-mix(in srgb,var(--color-text) 25%,transparent)',
+        border: '1px dashed rgba(5,5,5,0.25)', borderRadius: 6,
         minHeight: 130, display: 'grid', placeItems: 'center', padding: 12,
       }}>
-        <span className="muted" style={{ fontSize: 11.5, textAlign: 'center' }}>{ghostText}</span>
+        <Text type="secondary" style={{ fontSize: 11.5, textAlign: 'center' }}>{ghostText}</Text>
       </div>
     );
   }
   return (
     <div style={changed
-      ? { borderLeft: '3px solid var(--color-accent)', paddingLeft: 12 }
+      ? { borderLeft: '3px solid #1677ff', paddingLeft: 12 }
       : { paddingLeft: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-        <span className="k">{label}</span>
-        <span style={{ width: 8, height: 8, background: sevDot(side.severity), flex: 'none' }} />
-        <span className="mono" style={{ fontSize: 10.5 }}>{side.severity}</span>
-      </div>
+      <Space size={8} style={{ marginBottom: 7 }}>
+        <Text type="secondary" style={KICKER}>{label}</Text>
+        <Badge status={sevBadge(side.severity)} />
+        <span style={{ ...MONO, fontSize: 10.5 }}>{side.severity}</span>
+      </Space>
       <div style={{ fontSize: 12.5, lineHeight: 1.55, marginBottom: 8 }}>{side.violation_reason}</div>
-      <div className="mono" style={{
-        fontSize: 11, lineHeight: 1.65, padding: '9px 11px', whiteSpace: 'pre-wrap',
-        background: 'color-mix(in srgb,var(--color-text) 5%,transparent)',
+      <pre style={{
+        ...MONO, fontSize: 11, lineHeight: 1.65, padding: '9px 11px', margin: 0,
+        whiteSpace: 'pre-wrap', background: 'rgba(5,5,5,0.04)', borderRadius: 6,
       }}>
         {side.violation_sql}
-      </div>
+      </pre>
     </div>
   );
 }
 
 function SampleChips({ ids }: { ids: string[] }) {
   return (
-    <span style={{ display: 'inline-flex', gap: 5, flexWrap: 'wrap' }}>
+    <Space size={4} wrap>
       {ids.map((id) => (
-        <span key={id} className="tag tag-outline mono" style={{ fontSize: 10 }}>{id}</span>
+        <Tag key={id} style={{ ...MONO, fontSize: 10, marginInlineEnd: 0 }}>{id}</Tag>
       ))}
-    </span>
+    </Space>
   );
 }
 
@@ -220,182 +292,197 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
 
   const applyMut = useApplyBulletin();
 
-  const kpis = impact ? [
+  const kpis: Array<{ label: string; value: string; note: string; tone?: 'red' | 'green' }> = impact ? [
     { label: 'Rules affected', value: String(impact.totals.rules_affected), note: 'in the executable canon' },
-    { label: 'Newly failing', value: fmt(impact.totals.newly_failing), note: 'records caught by the amendment' },
-    { label: 'Newly passing', value: fmt(impact.totals.newly_passing), note: 'exceptions the amendment clears' },
+    { label: 'Newly failing', value: fmt(impact.totals.newly_failing), note: 'records caught by the amendment', tone: impact.totals.newly_failing > 0 ? 'red' : undefined },
+    { label: 'Newly passing', value: fmt(impact.totals.newly_passing), note: 'exceptions the amendment clears', tone: impact.totals.newly_passing > 0 ? 'green' : undefined },
     { label: 'Filings affected', value: String(impact.totals.filings_affected.length), note: impact.totals.filings_affected.join(' · ') || '—' },
   ] : [];
 
   return (
-    <div className="sc" style={{ display: 'grid', gridTemplateColumns: '292px 1fr', gap: 28, alignItems: 'start' }}>
+    <Row gutter={[16, 16]} wrap={false} align="top">
       {/* ── bulletin master list — compact, searchable, scales to 50 states ── */}
-      <SelectList
-        label="Commissioner's bulletins"
-        items={bulletins.map((b) => ({
-          id: b.name,
-          title: b.name,
-          meta: `${juris(b.jurisdiction_code)} · eff ${b.effective_date} · ${b.targets} target${b.targets === 1 ? '' : 's'}`,
-          tag: b.status === 'applied' ? 'Applied' : 'Pending',
-          tagClass: b.status === 'applied' ? 'tag-neutral' : 'tag-accent',
-        }))}
-        value={B?.name ?? null}
-        onChange={setSelName}
-      />
+      <Col flex="300px" style={{ minWidth: 0 }}>
+        <BulletinRail bulletins={bulletins} value={B?.name ?? null} onChange={setSelName} />
+      </Col>
 
       {/* ── impact analysis ────────────────────────────────────────────── */}
-      <section>
-        {!live && !bulQ.isLoading && <div style={{ marginBottom: 10 }}><DemoTag reason="bulletins API empty or unreachable — showing design fixtures" /></div>}
-        {!live && bulQ.isLoading && <span className="k">loading bulletins…</span>}
+      <Col flex="auto" style={{ minWidth: 0 }}>
+        {!live && !bulQ.isLoading && (
+          <div style={{ marginBottom: 10 }}>
+            <Tag color="orange" title="bulletins API empty or unreachable — showing design fixtures">demo data</Tag>
+          </div>
+        )}
+        {!live && bulQ.isLoading && <Text type="secondary" style={KICKER}>loading bulletins…</Text>}
         {B && (
           <>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-              <h4>{B.title}</h4>
-              <span className="k">impact on the executable canon</span>
+            <Space size={10} align="baseline" wrap style={{ marginBottom: 4 }}>
+              <Title level={4} style={{ margin: 0 }}>{B.title}</Title>
+              <Text type="secondary" style={KICKER}>impact on the executable canon</Text>
+            </Space>
+            <div style={{ ...MONO, fontSize: 11, margin: '4px 0 8px', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <Text type="secondary" style={{ fontSize: 11 }}>eff. {B.effective_date}</Text>
+              <Text type="secondary" style={{ fontSize: 11 }}>{juris(B.jurisdiction_code)}</Text>
+              <Text type="secondary" style={{ fontSize: 11 }}>{B.targets} rule target{B.targets === 1 ? '' : 's'}</Text>
             </div>
-            <div className="mono muted" style={{ fontSize: 11, marginBottom: 8, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <span>eff. {B.effective_date}</span>
-              <span>{juris(B.jurisdiction_code)}</span>
-              <span>{B.targets} rule target{B.targets === 1 ? '' : 's'}</span>
-            </div>
-            <p style={{ fontSize: 12.5, lineHeight: 1.65, maxWidth: '92ch', margin: '0 0 18px', color: 'color-mix(in srgb,var(--color-text) 72%,transparent)' }}>
+            <Paragraph type="secondary" style={{ fontSize: 12.5, lineHeight: 1.65, maxWidth: '92ch', marginBottom: 16 }}>
               {B.summary}
-            </p>
+            </Paragraph>
           </>
         )}
 
         {kgOffline && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', marginBottom: 16,
-            fontSize: 12.5, background: 'color-mix(in srgb,var(--color-text) 5%,transparent)',
-            borderLeft: '3px solid var(--color-neutral-500, #98989b)',
-          }}>
-            Knowledge graph offline — start Neo4j to compute live impact. Showing the bundled demo analysis.
-          </div>
+          <Alert
+            type="warning" showIcon style={{ marginBottom: 16 }}
+            message="Knowledge graph offline — start Neo4j to compute live impact. Showing the bundled demo analysis."
+          />
         )}
 
         {loading && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 22, marginBottom: 24 }}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
             {[0, 1, 2, 3].map((i) => (
-              <Blueprint key={i} style={{ padding: '14px 16px 12px', minHeight: 74 }}>
-                <div className="k">computing…</div>
-                <div style={{ height: 30, marginTop: 8, background: 'color-mix(in srgb,var(--color-text) 7%,transparent)' }} />
-              </Blueprint>
+              <Col xs={12} xl={6} key={i}>
+                <Card size="small">
+                  <Skeleton active title={false} paragraph={{ rows: 2 }} />
+                </Card>
+              </Col>
             ))}
-          </div>
+          </Row>
         )}
 
         {/* No resolved rule targets → nothing to diff or apply. Say so
             instead of rendering four zeros and a live Apply button. */}
         {!loading && impact && impact.totals.rules_affected === 0 && impact.rule_changes.length === 0 && (
-          <Blueprint className="gridwash" style={{ padding: '26px 30px', maxWidth: 720 }}>
-            <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 18, marginBottom: 8 }}>
-              No impact on the executable canon
-            </div>
-            <div style={{ fontSize: 13, lineHeight: 1.7 }}>
+          <Card style={{ maxWidth: 720 }}>
+            <Title level={5} style={{ marginTop: 0 }}>No impact on the executable canon</Title>
+            <Paragraph style={{ fontSize: 13, lineHeight: 1.7 }}>
               None of this bulletin's provisions resolve to an executable rule —
-              its extracted rules are descriptive (no compiled <span className="mono" style={{ fontSize: 12 }}>violation_sql</span>),
+              its extracted rules are descriptive (no compiled <Text code>violation_sql</Text>),
               so there is nothing to diff against the validation reference and
               nothing for an amendment to materialize.
-            </div>
-            <div className="muted" style={{ fontSize: 12, lineHeight: 1.65, marginTop: 12 }}>
+            </Paragraph>
+            <Paragraph type="secondary" style={{ fontSize: 12, lineHeight: 1.65 }}>
               A bulletin gains impact here once its target rules are compiled into
               the edit package. Until then, review its extracted provisions on the
               Rulebook screen — apply is disabled because it would be a no-op.
-            </div>
-            <button className="btn btn-secondary" disabled style={{ marginTop: 16 }}
-              title="no resolved rule targets — nothing to materialize">
-              Apply amendment
-            </button>
-          </Blueprint>
+            </Paragraph>
+            <Tooltip title="no resolved rule targets — nothing to materialize">
+              <Button disabled style={{ marginTop: 4 }}>Apply amendment</Button>
+            </Tooltip>
+          </Card>
         )}
 
         {!loading && impact && !(impact.totals.rules_affected === 0 && impact.rule_changes.length === 0) && (
           <>
-            {/* KPI row */}
-            <StatRow>
+            {/* KPI row — Statistic cards for the dry-run totals */}
+            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
               {kpis.map((k) => (
-                <Stat key={k.label} label={k.label} value={k.value} note={k.note} />
+                <Col xs={12} xl={6} key={k.label}>
+                  <Card size="small">
+                    <Text type="secondary" style={KICKER}>{k.label}</Text>
+                    <div style={{
+                      fontSize: 28, lineHeight: 1.15, marginTop: 4,
+                      color: k.tone === 'red' ? '#cf1322' : k.tone === 'green' ? '#3f8600' : undefined,
+                    }}>
+                      {k.value}
+                    </div>
+                    <Text type="secondary" ellipsis style={{ display: 'block', fontSize: 11, marginTop: 2 }}>
+                      {k.note}
+                    </Text>
+                  </Card>
+                </Col>
               ))}
-            </StatRow>
+            </Row>
 
             {/* per-rule diffs */}
             {impact.rule_changes.map((rc) => {
-              const [kindTag, kindLabel] = KIND_TAG[rc.change_kind];
+              const [kindColor, kindLabel] = KIND_TAG[rc.change_kind];
               return (
-                <Blueprint key={rc.rule_number} style={{ padding: '16px 18px', marginBottom: 18 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                    <span className="mono" style={{ fontSize: 12, color: 'var(--color-accent-700)' }}>{rc.rule_number}</span>
-                    <h4 style={{ fontSize: 15 }}>{rc.name}</h4>
-                    <span className={'tag ' + kindTag} style={{ marginLeft: 'auto' }}>{kindLabel}</span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                    <SideCol label="Before" side={rc.before}
-                      changed={rc.change_kind === 'retired'}
-                      ghostText="no prior rule — introduced by this bulletin" />
-                    <SideCol label="After" side={rc.after}
-                      changed={rc.change_kind !== 'retired'}
-                      ghostText="retired — no successor rule" />
-                  </div>
+                <Card
+                  key={rc.rule_number}
+                  size="small"
+                  style={{ marginBottom: 16 }}
+                  title={
+                    <Space size={10}>
+                      <Text code>{rc.rule_number}</Text>
+                      <span style={{ fontSize: 14 }}>{rc.name}</span>
+                    </Space>
+                  }
+                  extra={<Tag color={kindColor} style={{ marginInlineEnd: 0 }}>{kindLabel}</Tag>}
+                >
+                  <Row gutter={[20, 16]}>
+                    <Col xs={24} md={12}>
+                      <SideCol label="Before" side={rc.before}
+                        changed={rc.change_kind === 'retired'}
+                        ghostText="no prior rule — introduced by this bulletin" />
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <SideCol label="After" side={rc.after}
+                        changed={rc.change_kind !== 'retired'}
+                        ghostText="retired — no successor rule" />
+                    </Col>
+                  </Row>
 
                   {rc.records ? (
                     <div style={{
                       display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10,
-                      marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--color-divider)', fontSize: 12.5,
+                      marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(5,5,5,0.06)', fontSize: 12.5,
                     }}>
                       <span>
-                        <strong>{fmt(rc.records.newly_failing)}</strong> record{rc.records.newly_failing === 1 ? '' : 's'} newly failing
+                        <Text strong>{fmt(rc.records.newly_failing)}</Text> record{rc.records.newly_failing === 1 ? '' : 's'} newly failing
                       </span>
                       {rc.records.sample_newly_failing.length > 0 && <SampleChips ids={rc.records.sample_newly_failing} />}
                       {rc.records.newly_passing > 0 && (
                         <>
                           <span style={{ marginLeft: 8 }}>
-                            <strong>{fmt(rc.records.newly_passing)}</strong> newly passing
+                            <Text strong>{fmt(rc.records.newly_passing)}</Text> newly passing
                           </span>
                           {rc.records.sample_newly_passing.length > 0 && <SampleChips ids={rc.records.sample_newly_passing} />}
                         </>
                       )}
                     </div>
                   ) : rc.sql_error ? (
-                    <div className="muted" style={{ marginTop: 12, fontSize: 11.5 }}>
-                      ⚠ record impact unavailable — {rc.sql_error}
-                    </div>
+                    <Text type="warning" style={{ display: 'block', marginTop: 12, fontSize: 11.5 }}>
+                      record impact unavailable — {rc.sql_error}
+                    </Text>
                   ) : null}
-                </Blueprint>
+                </Card>
               );
             })}
 
             {/* apply bar */}
             {B?.status === 'pending' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
-                <button className="btn btn-primary"
-                  disabled={!live || !mayApply || applyMut.isPending}
-                  title={mayApply ? undefined : `requires ${whoCan('bulletin')}`}
-                  onClick={() => applyMut.mutate(undefined, {
-                    onSuccess: () => toast(`${B.name} applied — canon rebuilt, validation re-running`),
-                  })}>
-                  {applyMut.isPending ? 'Applying amendment…' : 'Apply amendment'}
-                </button>
-                <span className="k">materializes the rule changes into the canon and re-runs validation</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+                <Tooltip title={mayApply ? undefined : `requires ${whoCan('bulletin')}`}>
+                  <Button
+                    type="primary" loading={applyMut.isPending}
+                    disabled={!live || !mayApply}
+                    onClick={() => applyMut.mutate(undefined, {
+                      onSuccess: () => toast(`${B.name} applied — canon rebuilt, validation re-running`),
+                    })}>
+                    Apply amendment
+                  </Button>
+                </Tooltip>
+                <Text type="secondary" style={KICKER}>materializes the rule changes into the canon and re-runs validation</Text>
                 {applyMut.error != null && (
-                  <span className="k" style={{ marginLeft: 'auto', color: 'var(--color-accent-700)' }}>
+                  <Text type="danger" style={{ marginLeft: 'auto', fontSize: 12 }}>
                     {applyMut.error instanceof ApiError ? applyMut.error.message : 'apply failed'}
-                  </span>
+                  </Text>
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-                <span className="tag tag-neutral">Applied — validation reference updated</span>
-                <span className="k">the executable canon carries these changes</span>
-              </div>
+              <Space size={10} style={{ marginTop: 6 }}>
+                <Tag color="green">Applied — validation reference updated</Tag>
+                <Text type="secondary" style={KICKER}>the executable canon carries these changes</Text>
+              </Space>
             )}
           </>
         )}
 
         {!loading && !impact && !impactQ.isError && (
-          <span className="k">select a bulletin to compute its impact</span>
+          <Text type="secondary" style={KICKER}>select a bulletin to compute its impact</Text>
         )}
-      </section>
-    </div>
+      </Col>
+    </Row>
   );
 }

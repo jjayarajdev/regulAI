@@ -35,7 +35,7 @@
   min-height: 100vh;
 }
 .sf *, .sf *::before, .sf *::after { box-sizing: border-box; }
-.sf h1, .sf h2, .sf h3, .sf h4, .sf h5 {
+.sf :is(h1, h2, h3, h4, h5):not(.ant-typography) {
   font-family: var(--font-heading); font-weight: var(--font-heading-weight);
   line-height: 1.12; letter-spacing: -0.015em; margin: 0;
 }
@@ -224,3 +224,11 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* ── RegAssure antd shell overrides ───────────────────────────────────────── */
+.sf .ant-menu-item-group-title {
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 14px 20px 4px;
+}
+.sf .ant-menu-dark .ant-menu-item { margin-inline: 8px; width: calc(100% - 16px); }
