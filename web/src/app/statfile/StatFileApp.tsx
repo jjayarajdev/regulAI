@@ -1,18 +1,22 @@
 // RegAssure — the statistical filing platform (module heritage: STATFILE).
-// Shell: antd Layout — dark Sider with grouped Menu, header with cycle
-// actions and the session identity; each screen is its own component.
-// Cross-screen navigation goes through `go`.
+// Shell: antd Layout — dark Sider with the journey-ordered Menu, header with
+// the screen title, the journey rail for filing-work screens, cycle actions
+// and the session identity; each screen is its own component. Cross-screen
+// navigation goes through `go`; the active filing is shell state so the
+// rail, the dashboard hero and the sign-off screen all agree.
 import { useState, type ReactNode } from 'react';
 import {
   ApartmentOutlined, AuditOutlined, BookOutlined, DashboardOutlined,
-  DiffOutlined, FileDoneOutlined, FileProtectOutlined, LoginOutlined,
+  DiffOutlined, FileDoneOutlined, FileProtectOutlined, FileSearchOutlined, LoginOutlined,
   LogoutOutlined, NodeIndexOutlined, SettingOutlined,
 } from '@ant-design/icons';
-import { Avatar, Badge, Button, ConfigProvider, Dropdown, Layout, Menu, Segmented, Tag, Tooltip, Typography } from 'antd';
+import { Avatar, Badge, Button, ConfigProvider, Dropdown, Layout, Menu, Segmented, Select, Tag, Tooltip, Typography } from 'antd';
 import { can, canSee, GUEST, useFilings, useLogout, useMe, useRunCycle, whoCan, type AppUser } from './api';
 import { LoginPage } from './LoginPage';
 import { BRAND, BRAND_TAG, REGASSURE_THEME } from './theme';
-import { NAV_SECTIONS, TITLES, type ScreenId } from './data';
+import { JOURNEY_SCREENS, NAV_SECTIONS, TITLES, type ScreenId } from './data';
+import { useJourney } from './journey/useJourney';
+import { JourneyRail } from './journey/JourneyRail';
 import { DashboardScreen } from './screens/Dashboard';
 import { RulesScreen } from './screens/Rules';
 import { GraphScreen } from './screens/Graph';
@@ -39,13 +43,13 @@ const LIVE_SCREENS: ScreenId[] = ['dash', 'rules', 'val', 'pipe', 'mapping', 're
 // reached from Validation, the knowledge graph is the Rulebook's second tab,
 // the agent console lives under Operations, users under Administration.
 const NAV_PARENT: Partial<Record<ScreenId, ScreenId>> = {
-  record: 'val', graph: 'rules', extract: 'rules', agents: 'pipe', users: 'config',
+  record: 'val', graph: 'rules', agents: 'pipe', users: 'config',
 };
 
 const NAV_ICONS: Partial<Record<ScreenId, ReactNode>> = {
   dash: <DashboardOutlined />, val: <AuditOutlined />, filing: <FileDoneOutlined />,
   amend: <DiffOutlined />, rules: <BookOutlined />, mapping: <NodeIndexOutlined />,
-  pipe: <ApartmentOutlined />, config: <SettingOutlined />,
+  extract: <FileSearchOutlined />, pipe: <ApartmentOutlined />, config: <SettingOutlined />,
 };
 
 // Segmented tab strip for screens that share a nav item. The tab state IS the
@@ -69,7 +73,7 @@ function ScreenTabs({ tabs, screen, go, user }: {
 
 export function StatFileApp() {
   const [screen, setScreen] = useState<ScreenId>('dash');
-  const go = (s: ScreenId) => () => setScreen(s);
+  const go = (s: ScreenId) => () => { setScreen(s); window.scrollTo(0, 0); };
   const [crumb, title] = TITLES[screen];
 
   // "Trace to Guidewire" on the validation screen lands the record inspector
@@ -107,9 +111,12 @@ export function StatFileApp() {
     : filingsQ.isLoading ? 'connecting…'
     : live ? 'live data' : 'demo data (warehouse offline)';
 
-  // Sidebar cycle: first active live filing, else the design's fiction.
-  const active = filingsQ.data?.filings.find((f) => f.is_active);
-  const dueDays = active ? Math.max(0, Math.round((+new Date(active.due_date) - Date.now()) / 86400000)) : null;
+  // The active filing — the one the journey is about. Chosen in the sider;
+  // defaults to the server's default filing.
+  const [filingId, setFilingId] = useState<string | null>(null);
+  const journey = useJourney(filingId);
+  const active = journey.filing;
+  const activeFilings = journey.filings.filter((f) => f.is_active);
 
   // If the open screen isn't visible to this role (sign-out, role change),
   // fall back to the dashboard.
@@ -125,15 +132,32 @@ export function StatFileApp() {
     return <LoginPage onGuest={browseAsGuest} />;
   }
 
+  // Count chips on the journey items: blockers on Validation, the pending
+  // bulletin on Amendments, "ready" on Sign-off once the path is clear.
+  const navCount: Partial<Record<ScreenId, [string, string]>> = {
+    ...(journey.blockers ? { val: [journey.blockers.toLocaleString(), 'crit'] } : {}),
+    ...(journey.bulletin ? { amend: ['1', 'warn'] } : {}),
+    ...(!journey.blockers && !journey.acked ? { filing: ['ready', 'ok'] } : {}),
+  };
+
   // Sections filtered per role; a section with nothing visible renders no
   // group header.
   const menuItems = NAV_SECTIONS
-    .map((s) => ({ title: s.title, items: s.items.filter(([id]) => canSee(user, id)) }))
+    .map((s) => ({ title: s.title, items: s.items.filter((i) => canSee(user, i.id)) }))
     .filter((s) => s.items.length > 0)
     .map((s) => ({
       type: 'group' as const,
       label: s.title,
-      children: s.items.map(([id, label]) => ({ key: id, icon: NAV_ICONS[id], label })),
+      children: s.items.map((i) => ({
+        key: i.id,
+        icon: i.step ? <span className="navstep">{i.step}</span> : NAV_ICONS[i.id],
+        label: (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.label}</span>
+            {navCount[i.id] && <span className={`navcnt ${navCount[i.id]![1]}`}>{navCount[i.id]![0]}</span>}
+          </span>
+        ),
+      })),
     }));
   const navActive = NAV_PARENT[screen] ?? screen;
 
@@ -148,6 +172,8 @@ export function StatFileApp() {
       : [{ key: 'out', icon: <LoginOutlined />, label: 'Sign in' }],
     onClick: ({ key }: { key: string }) => { if (key === 'out') doLogout(); },
   };
+
+  const showRail = JOURNEY_SCREENS.includes(screen);
 
   return (
     <ConfigProvider theme={REGASSURE_THEME}>
@@ -172,18 +198,35 @@ export function StatFileApp() {
               <Menu
                 theme="dark" mode="inline" items={menuItems}
                 selectedKeys={[navActive]}
-                onClick={({ key }) => setScreen(key as ScreenId)}
+                onClick={({ key }) => go(key as ScreenId)()}
                 style={{ flex: 1, overflow: 'auto', background: 'transparent', borderInlineEnd: 0, paddingTop: 6 }}
               />
               <div style={{ padding: '14px 20px 18px', borderTop: '1px solid rgba(255,255,255,0.12)', color: '#fff' }}>
                 <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)' }}>
                   Active cycle
                 </div>
-                <div style={{ fontFamily: 'var(--font-heading)', fontSize: 16, marginTop: 3 }}>
-                  {active ? active.id : 'TX HO · 2026 ANNUAL'}
-                </div>
+                {activeFilings.length > 1 ? (
+                  <Select
+                    variant="borderless" size="small"
+                    value={active?.id}
+                    onChange={(id) => setFilingId(id)}
+                    popupMatchSelectWidth={false}
+                    style={{ marginLeft: -7, marginTop: 1 }}
+                    options={activeFilings.map((f) => ({
+                      value: f.id,
+                      label: f.id,
+                      title: `${f.plan_name} · due ${f.due_date}`,
+                    }))}
+                  />
+                ) : (
+                  <div style={{ fontFamily: 'var(--font-heading)', fontSize: 16, marginTop: 3 }}>
+                    {active ? active.id : 'TX HO · 2026 ANNUAL'}
+                  </div>
+                )}
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
-                  {active ? `Due ${active.due_date} · ${dueDays} days` : 'Due 15 Sep 2026 · 42 days'}
+                  {active
+                    ? `${active.plan_name} · due ${active.due_date} · ${journey.daysToDue} days`
+                    : 'Due 15 Sep 2026 · 42 days'}
                 </div>
               </div>
             </div>
@@ -193,64 +236,65 @@ export function StatFileApp() {
             <Layout.Header style={{
               height: 'auto', lineHeight: 'normal', padding: '13px 28px',
               borderBottom: '1px solid var(--color-divider)',
-              display: 'flex', alignItems: 'center', gap: 10,
             }}>
-              <div style={{ minWidth: 0 }}>
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>{crumb}</Typography.Text>
-                <Typography.Title level={4} style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {title}
-                </Typography.Title>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ minWidth: 0 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>{crumb}</Typography.Text>
+                  <Typography.Title level={4} style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {title}
+                  </Typography.Title>
+                </div>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                  <Badge
+                    status={!wired ? 'default' : filingsQ.isLoading ? 'processing' : live ? 'success' : 'warning'}
+                    text={<Typography.Text type="secondary" style={{ fontSize: 13 }}>{pill}</Typography.Text>}
+                  />
+                  <Tag style={{ marginInlineEnd: 0 }}>TDI Stat Plan {journey.canon}</Tag>
+                  <Button>Export</Button>
+                  <Tooltip title={can(user, 'run_pipeline')
+                    ? 'Bronze→Silver→Gold, then re-validate'
+                    : `requires ${whoCan('run_pipeline')}`}>
+                    <Button
+                      type="primary" danger={cycleMut.isError}
+                      disabled={!can(user, 'run_pipeline')}
+                      loading={cycleMut.isPending}
+                      onClick={() => cycleMut.mutate()}
+                    >
+                      {cycleMut.isPending ? 'Running cycle…'
+                        : cycleMut.isError ? 'Run failed — retry'
+                        : 'Run cycle'}
+                    </Button>
+                  </Tooltip>
+                  <Dropdown menu={userMenu} trigger={['click']}>
+                    <button style={{
+                      background: 'none', border: 'none', padding: '4px 6px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'inherit', fontSize: 13,
+                    }} title={user.title}>
+                      <Avatar size={30} style={{ background: signedIn ? '#1677ff' : '#98989b' }}>
+                        {initials}
+                      </Avatar>
+                      <span style={{ lineHeight: 1.2, textAlign: 'left' }}>
+                        {user.name}
+                        <span className="k" style={{ display: 'block' }}>{user.role}</span>
+                      </span>
+                    </button>
+                  </Dropdown>
+                </div>
               </div>
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                <Badge
-                  status={!wired ? 'default' : filingsQ.isLoading ? 'processing' : live ? 'success' : 'warning'}
-                  text={<Typography.Text type="secondary" style={{ fontSize: 13 }}>{pill}</Typography.Text>}
-                />
-                <Tag style={{ marginInlineEnd: 0 }}>TDI Stat Plan v2026.1</Tag>
-                <Button>Export</Button>
-                <Tooltip title={can(user, 'run_pipeline')
-                  ? 'Bronze→Silver→Gold, then re-validate'
-                  : `requires ${whoCan('run_pipeline')}`}>
-                  <Button
-                    type="primary" danger={cycleMut.isError}
-                    disabled={!can(user, 'run_pipeline')}
-                    loading={cycleMut.isPending}
-                    onClick={() => cycleMut.mutate()}
-                  >
-                    {cycleMut.isPending ? 'Running cycle…'
-                      : cycleMut.isError ? 'Run failed — retry'
-                      : 'Run cycle'}
-                  </Button>
-                </Tooltip>
-                <Dropdown menu={userMenu} trigger={['click']}>
-                  <button style={{
-                    background: 'none', border: 'none', padding: '4px 6px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'inherit', fontSize: 13,
-                  }} title={user.title}>
-                    <Avatar size={30} style={{ background: signedIn ? '#1677ff' : '#98989b' }}>
-                      {initials}
-                    </Avatar>
-                    <span style={{ lineHeight: 1.2, textAlign: 'left' }}>
-                      {user.name}
-                      <span className="k" style={{ display: 'block' }}>{user.role}</span>
-                    </span>
-                  </button>
-                </Dropdown>
-              </div>
+              {showRail && <JourneyRail journey={journey} screen={screen} go={go} user={user} />}
             </Layout.Header>
 
             <Layout.Content className="content" style={{ background: 'var(--color-bg)' }}>
               <ErrorBoundary screen={screen}>
-              {screen === 'dash' && <DashboardScreen go={go} />}
-              {(screen === 'rules' || screen === 'graph' || screen === 'extract') && (
+              {screen === 'dash' && <DashboardScreen go={go} filingId={filingId} onSelectFiling={setFilingId} />}
+              {(screen === 'rules' || screen === 'graph') && (
                 <>
-                  <ScreenTabs tabs={[['rules', 'Rulebook'], ['extract', 'Extraction review'], ['graph', 'Knowledge graph']]}
+                  <ScreenTabs tabs={[['rules', 'Rulebook'], ['graph', 'Knowledge graph']]}
                     screen={screen} go={go} user={user} />
-                  {screen === 'rules' ? <RulesScreen user={user} />
-                    : screen === 'extract' ? <ExtractionReviewScreen user={user} />
-                    : <GraphScreen />}
+                  {screen === 'rules' ? <RulesScreen user={user} filingId={filingId} go={go} /> : <GraphScreen />}
                 </>
               )}
+              {screen === 'extract' && <ExtractionReviewScreen user={user} />}
               {(screen === 'pipe' || screen === 'agents') && (
                 <>
                   <ScreenTabs tabs={[['pipe', 'Medallion pipeline'], ['agents', 'Agent console']]}
@@ -258,10 +302,10 @@ export function StatFileApp() {
                   {screen === 'pipe' ? <PipelineScreen /> : <AgentsScreen />}
                 </>
               )}
-              {screen === 'val' && <ValidationScreen onTrace={traceTo} user={user} />}
+              {screen === 'val' && <ValidationScreen onTrace={traceTo} user={user} go={go} filingId={filingId} />}
               {screen === 'record' && <RecordScreen initialPolicy={tracePolicy} user={user} />}
-              {screen === 'filing' && <FilingScreen user={user} go={go} />}
-              {screen === 'amend' && <AmendmentsScreen user={user} />}
+              {screen === 'filing' && <FilingScreen user={user} go={go} filingId={filingId} onSelectFiling={setFilingId} />}
+              {screen === 'amend' && <AmendmentsScreen user={user} go={go} filingId={filingId} />}
               {screen === 'mapping' && <MappingReviewScreen />}
               {screen === 'iso' && <IsoScreen />}
               {(screen === 'config' || screen === 'users') && (

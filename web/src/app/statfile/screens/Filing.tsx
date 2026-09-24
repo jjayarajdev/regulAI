@@ -14,6 +14,8 @@ import {
 } from '../api';
 import type { Filing, SubmissionState } from '../../../api/types';
 import type { ScreenId } from '../data';
+import { useJourney } from '../journey/useJourney';
+import { StageHead } from '../journey/StageHead';
 
 const { Text } = Typography;
 
@@ -102,13 +104,21 @@ function AttachmentChip({ name, bytes }: { name: string; bytes: number }) {
   );
 }
 
-export function FilingScreen({ user, go }: { user?: AppUser; go?: (s: ScreenId) => () => void }) {
+export function FilingScreen({ user, go, filingId, onSelectFiling }: {
+  user?: AppUser; go?: (s: ScreenId) => () => void;
+  filingId?: string | null; onSelectFiling?: (id: string) => void;
+}) {
   const filingsQ = useFilings();
   const filings = (filingsQ.data?.filings ?? DEMO_FILINGS).filter((f) => f.is_active);
-  const [selId, setSelId] = useState<string | null>(null);
+  // The shell owns the active filing when it passes one; a local pick is the
+  // fallback for the demo journey.
+  const [localId, setLocalId] = useState<string | null>(null);
+  const selId = filingId ?? localId;
+  const setSelId = (id: string) => { setLocalId(id); onSelectFiling?.(id); };
   const filing = filings.find((f) => f.id === selId)
     ?? filings.find((f) => f.id === filingsQ.data?.default)
     ?? filings[0];
+  const j = useJourney(filing?.id ?? null);
 
   const subQ = useSubmissionState(filing?.id ?? null);
   const live = !!subQ.data;
@@ -150,8 +160,52 @@ export function FilingScreen({ user, go }: { user?: AppUser; go?: (s: ScreenId) 
     borderBottom: '1px solid rgba(5,5,5,0.06)',
   };
 
+  const blockers = live ? a.open_blockers : j.blockers;
+  const stepN = j.sent ? 6 : j.signed >= 3 ? 5 : 4;
+  const headline = j.acked ? 'Acknowledged and on the record'
+    : j.sent ? 'Sent — waiting on the regulator'
+    : j.signed >= 3 ? 'Seal the bytes and send them'
+    : 'Three people sign, in order';
+
   return (
     <div>
+      <StageHead
+        n={stepN}
+        title={headline}
+        summary={<>
+          {blockers > 0
+            ? <Tag color="red" style={{ marginInlineEnd: 0 }}>blocked · {fmt(blockers)} exception{blockers === 1 ? '' : 's'}</Tag>
+            : j.acked ? <Tag color="green" style={{ marginInlineEnd: 0 }}>✓ acknowledged</Tag>
+            : j.sent ? <Tag color="green" style={{ marginInlineEnd: 0 }}>sent</Tag>
+            : sub.submission ? <Tag color="green" style={{ marginInlineEnd: 0 }}>sealed</Tag>
+            : <Tag color="green" style={{ marginInlineEnd: 0 }}>✓ validated</Tag>}
+          <span>· {filing.id} · {j.signed}/3 signatures · canon {j.canon}</span>
+        </>}
+      />
+
+      {blockers > 0 ? (
+        <Alert
+          type="error" showIcon style={{ marginBottom: 16 }}
+          message={<Text strong style={{ fontSize: 15 }}>Sign-off is blocked.</Text>}
+          description={<>{fmt(blockers)} blocking exception{blockers === 1 ? '' : 's'} must clear before the analyst can sign.
+            {j.bulletin && j.bulletinClears ? ` A pending bulletin clears ${j.bulletinClears} of them.` : ''}</>}
+          action={go && (
+            <span style={{ display: 'inline-flex', gap: 8 }}>
+              {j.bulletin && j.bulletinClears > 0 && <Button size="small" onClick={go('amend')}>Review bulletin →</Button>}
+              <Button size="small" type="primary" onClick={go('val')}>Go to blockers →</Button>
+            </span>
+          )}
+        />
+      ) : j.acked ? (
+        <Alert type="success" showIcon style={{ marginBottom: 16 }}
+          message={<Text strong style={{ fontSize: 15 }}>Filing complete.</Text>}
+          description={<>The regulator acknowledged{sub.ack ? ` at ${stamp(sub.ack.acked_at)} under receipt ${sub.ack.receipt}` : ''}. Receipt and sealed hash are in the audit log.</>} />
+      ) : j.signed < 3 ? (
+        <Alert type="success" showIcon style={{ marginBottom: 16 }}
+          message={<Text strong style={{ fontSize: 15 }}>Validation passed.</Text>}
+          description={<>0 blocking{j.warnings ? ` · ${fmt(j.warnings)} warning${j.warnings === 1 ? '' : 's'} to acknowledge` : ''} · canon {j.canon}. The package is ready for the approval chain.</>} />
+      ) : null}
+
       {/* ── filing selector ─────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <Segmented
@@ -187,14 +241,6 @@ export function FilingScreen({ user, go }: { user?: AppUser; go?: (s: ScreenId) 
             title="Approval chain"
             extra={<Text type="secondary" style={{ ...MONO, fontSize: 11 }}>state {sub.status}</Text>}
           >
-            {a.open_blockers > 0 && (
-              <Alert
-                type="warning" showIcon style={{ marginBottom: 12 }}
-                message={<><Text strong>{a.open_blockers}</Text> blocking exception{a.open_blockers > 1 ? 's' : ''} hold the chain</>}
-                action={<Button size="small" onClick={go ? go('val') : undefined}>Open validation triage</Button>}
-              />
-            )}
-
             {ROLES.map(({ role, label, perm, doneAt }) => {
               const isDone = (STATUS_DONE[sub.status] ?? 0) >= doneAt;
               const isNext = a.next_role === role;

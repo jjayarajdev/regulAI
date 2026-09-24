@@ -10,37 +10,49 @@ export type ScreenId =
   | 'dash' | 'rules' | 'amend' | 'graph' | 'pipe' | 'mapping' | 'agents'
   | 'val' | 'record' | 'filing' | 'iso' | 'config' | 'users' | 'extract';
 
-// Sidebar navigation: 8 items in 3 labeled sections. Every ScreenId stays
-// routable — 'record', 'graph', 'agents' and 'users' are drill-ins reached
-// from their parent nav item ('iso' stays routable by direct state too).
-export const NAV_SECTIONS: Array<{ title: string; items: Array<[ScreenId, string]> }> = [
-  { title: 'Filing work', items: [
-    ['dash', 'Filing dashboard'], ['val', 'Validation triage'],
-    ['filing', 'Filing & submission'], ['amend', 'Amendments & impact'],
+// Sidebar navigation, ordered as the filing journey reads: the numbered
+// items are the stages a filing moves through (rules → validate → resolve →
+// sign-off); the canon and system groups sit behind them. Every ScreenId
+// stays routable — 'record', 'graph', 'agents' and 'users' are drill-ins
+// reached from their parent nav item ('iso' stays routable by direct state).
+export interface NavItem { id: ScreenId; label: string; step?: number }
+export const NAV_SECTIONS: Array<{ title: string; items: NavItem[] }> = [
+  { title: 'Filing journey', items: [
+    { id: 'dash', label: 'Dashboard' },
+    { id: 'rules', label: 'Rules & lineage', step: 1 },
+    { id: 'val', label: 'Validation triage', step: 2 },
+    { id: 'amend', label: 'Amendments & impact', step: 3 },
+    { id: 'filing', label: 'Sign-off & submission', step: 4 },
   ] },
-  { title: 'Regulatory knowledge', items: [
-    ['rules', 'Rulebook & rules'], ['mapping', 'Mapping review'],
+  { title: 'Regulatory canon', items: [
+    { id: 'mapping', label: 'Mapping review' },
+    { id: 'extract', label: 'Extraction review' },
   ] },
   { title: 'System', items: [
-    ['pipe', 'Operations'], ['config', 'Administration'],
+    { id: 'pipe', label: 'Operations' },
+    { id: 'config', label: 'Administration' },
   ] },
 ];
 
+// Screens that belong to the filing journey — the header shows the journey
+// rail on these (drill-ins included).
+export const JOURNEY_SCREENS: ScreenId[] = ['dash', 'rules', 'graph', 'extract', 'val', 'record', 'amend', 'filing'];
+
 // Flat view of the sectioned nav, for anything that just wants the items.
-export const NAV: Array<[ScreenId, string]> = NAV_SECTIONS.flatMap((s) => s.items);
+export const NAV: Array<[ScreenId, string]> = NAV_SECTIONS.flatMap((s) => s.items.map((i) => [i.id, i.label] as [ScreenId, string]));
 
 export const TITLES: Record<ScreenId, [string, string]> = {
-  dash: ['Cycle overview', 'Texas residential property — 2026 annual call'],
-  rules: ['Rulebook — ingestion', 'TDI Residential Property Statistical Plan'],
-  extract: ['Rulebook — Extraction review', 'Agent-proposed rules · human governed'],
-  graph: ['Rulebook — Knowledge graph', 'Clause → rule → field → source'],
+  dash: ['What happens next, per filing', 'Filing journey'],
+  rules: ['Regulation → rule → record', 'Rules & lineage'],
+  extract: ['Agent-proposed rules · human governed', 'Extraction review'],
+  graph: ['Clause → rule → field → source', 'Knowledge graph'],
   pipe: ['Operations — Medallion pipeline', 'Bronze · Silver · Gold'],
-  mapping: ['Mapping review', 'Agent-proposed field mappings · human governed'],
+  mapping: ['Agent-proposed field mappings · human governed', 'Mapping review'],
   agents: ['Operations — Agent console', 'Extraction, mapping and validation runs'],
-  val: ['Validation triage', 'Edit-package exceptions'],
-  record: ['Record inspector', 'TDI HO statistical record'],
-  filing: ['Submission journey', 'Seal · transmit · acknowledge · archive'],
-  amend: ['Regulatory amendments', 'Bulletin impact on the executable canon'],
+  val: ['Exceptions on the active filing', 'Validation triage'],
+  record: ['TDI HO statistical record', 'Record inspector'],
+  filing: ['Approve · seal · transmit · acknowledge', 'Sign-off & submission'],
+  amend: ['Bulletin impact on the executable canon', 'Amendments & impact'],
   iso: ['Standard projection', 'ISO Personal Lines Statistical Plan'],
   config: ['Administration — Jurisdictions', 'Jurisdictions & reporting standards'],
   users: ['Administration — Users & access', 'Users, roles & permissions'],

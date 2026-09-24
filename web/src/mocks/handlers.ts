@@ -101,6 +101,13 @@ export const handlers = [
     return HttpResponse.json(db.state);
   }),
 
+  // Every filing's validation in one call — the shape the workstation and the
+  // journey rail read (suppressions/assignments keyed by rule number).
+  http.get(`${API_BASE}/validate/all`, async () => {
+    await delay(600);
+    return HttpResponse.json({ by_filing: db.validate, suppressions: {}, assignments: {} });
+  }),
+
   http.get(`${API_BASE}/validate`, async ({ request }) => {
     await delay(600); // validation is the slow endpoint in real life too
     const filing = new URL(request.url).searchParams.get('filing');

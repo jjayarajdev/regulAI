@@ -12,10 +12,13 @@ import {
 } from 'antd';
 import {
   can, useAuthorExecutable, useCitation, useKgDiff, useKgRules, useRuleDecision,
-  whoCan, type AppUser,
+  useValidateAll, whoCan, type AppUser,
 } from '../api';
-import { CLAUSES, RULES } from '../data';
+import { CLAUSES, RULES, type ScreenId } from '../data';
 import type { KgRule } from '../../../api/types';
+import { useJourney } from '../journey/useJourney';
+import { StageHead } from '../journey/StageHead';
+import { Lineage } from '../journey/Lineage';
 
 const { Text, Paragraph } = Typography;
 const MONO: CSSProperties = { fontFamily: "ui-monospace,'SFMono-Regular',Menlo,monospace" };
@@ -179,9 +182,13 @@ const decisionTag = (d?: Decision) =>
   : d === 'rejected' ? <Tag color="red">Sent back</Tag>
   : <Tag color="orange">Pending</Tag>;
 
-export function RulesScreen({ user }: { user?: AppUser }) {
+export function RulesScreen({ user, filingId, go }: {
+  user?: AppUser; filingId?: string | null; go?: (s: ScreenId) => () => void;
+}) {
   const mayDecide = can(user, 'rule_decision');
   const rulesQ = useKgRules();
+  const j = useJourney(filingId ?? null);
+  const valQ = useValidateAll();
 
   const cards: RuleCard[] = useMemo(() => {
     const kg = rulesQ.data?.rules ?? [];
@@ -295,12 +302,23 @@ export function RulesScreen({ user }: { user?: AppUser }) {
   const diffQ = useKgDiff(showDiff ? since : null);
   const diff = diffQ.data;
 
-  const pick = (r: RuleCard) => {
-    const i = cards.indexOf(r);
-    setSelIdx(i);
+  const select = (r: RuleCard) => {
+    setSelIdx(cards.indexOf(r));
     if (r.page) setPage(r.page);
-    setOpen(true);
   };
+  const pick = (r: RuleCard) => { select(r); setOpen(true); };
+
+  // ── lineage of the selected rule: source → rule → records ────────────────
+  // Records: the active filing's violations on this rule (matched by the
+  // TSPR rule number in the rule's name, e.g. "Rule A.34 — …").
+  const ruleNo = citNum ? `${citNum[1]}.${citNum[2]}` : null;
+  const fv = j.filing && valQ.data ? valQ.data.by_filing[j.filing.id] : undefined;
+  const ruleViolations = ruleNo && fv ? fv.violations.filter((v) => v.rule_number === ruleNo) : [];
+  const ruleRow = ruleNo && fv ? fv.rules.find((r) => r.rule_number === ruleNo) : undefined;
+  const failing = ruleViolations.length;
+  const executable = raw ? raw.executable : sel?.kind === 'Validation edit';
+  const sourceTitle = match ? match.title : raw?.source_doc ?? (live ? 'Source document' : 'TDI Residential Property Statistical Plan');
+  const sourceRef = match ? match.citation_label : raw?.clause_ref ? `§${raw.clause_ref}` : sel?.cite ?? '';
 
   const columns = [
     {
@@ -328,10 +346,72 @@ export function RulesScreen({ user }: { user?: AppUser }) {
       title: 'Status', key: 'status', width: 110, align: 'right' as const,
       render: (_: unknown, r: RuleCard) => decisionTag(decisionOf(r)),
     },
+    {
+      title: '', key: 'open', width: 90, align: 'right' as const,
+      render: (_: unknown, r: RuleCard) => (
+        <Button size="small" type="link" onClick={(e) => { e.stopPropagation(); pick(r); }}>Details →</Button>
+      ),
+    },
   ];
 
   return (
     <div>
+      <StageHead
+        n={1}
+        title="The regulation becomes the rules"
+        summary={<>
+          <span>Every rule the filing is checked against traces back to a page of the published plan. Nothing is hand-coded.</span>
+          <Tag color="green" style={{ marginInlineEnd: 0 }}>canon {j.canon} · in force</Tag>
+        </>}
+        actions={go && <Button onClick={go('dash')}>Back to journey →</Button>}
+      />
+
+      {sel && (
+        <Card
+          title={<>Regulation → rule → records · <Text code>{sel.id.length > 24 ? sel.id.slice(0, 22) + '…' : sel.id}</Text></>}
+          extra={<Text type="secondary" style={{ fontSize: 12 }}>select any rule below to follow its chain</Text>}
+          style={{ marginBottom: 16 }}
+        >
+          <Lineage cols={[
+            {
+              kind: 'source', title: 'Regulation', badge: 'source',
+              body: <><b>{sourceTitle}</b>{sourceRef ? <> · {sourceRef}</> : null}{sel.page ? <> · page {sel.page}</> : null}<br />{clause.t}</>,
+              excerpt: citQ.isLoading ? 'Resolving citation…' : (clause.b.length > 260 ? clause.b.slice(0, 258) + '…' : clause.b),
+              provenance: match ? <>{match.issuing_body} · {match.document_type} · {match.edition}</> : raw?.source_url ? raw.source_url : clause.r,
+            },
+            {
+              kind: 'rule', title: 'Rule', badge: executable ? `canon ${j.canon} · executable` : (decisionOf(sel) === 'approved' ? 'approved · descriptive' : 'draft'),
+              tone: executable ? 'neutral' : 'pending',
+              body: executable
+                ? <>Extracted{sel.conf != null ? <> at <b>{sel.conf}%</b> confidence</> : null}{raw?.created_by ? <> by {raw.created_by}</> : null}{raw?.created_at ? <> on {raw.created_at.slice(0, 10)}</> : null}. Stored as a row in <b>REFERENCE.TSPR_VALIDATION_RULES</b>; the pipeline reads it at run time. Nothing about the rule lives in code.</>
+                : <>Proposed by the extraction agent{sel.conf != null ? <> at <b>{sel.conf}%</b> confidence</> : null}, awaiting a person. It is <b>not enforced</b> until approved and compiled.</>,
+              excerpt: raw?.violation_sql ? `-- TRUE means the record violates\n${raw.violation_sql}` : !live ? sel.logic : undefined,
+              provenance: <>rule <span style={{ ...MONO, fontSize: 11 }}>{sel.id}</span> · version {raw?.version ?? 1} · {raw?.status ?? 'draft'}{raw?.target_table ? <> · {raw.target_table}</> : null}</>,
+            },
+            {
+              kind: 'records', title: 'Filing records', badge: j.filing?.id ?? '—',
+              tone: failing ? 'hurt' : 'neutral',
+              body: !executable
+                ? <>Not run against any filing — the rule has no executable form yet.</>
+                : !fv
+                ? <>No validation run loaded for {j.filing?.id ?? 'this filing'}.</>
+                : !ruleNo
+                ? <>This rule carries no TSPR rule number, so its records cannot be matched to the validation run.</>
+                : failing
+                ? <><b>{failing} record{failing === 1 ? '' : 's'} fail</b> this rule on {j.filing?.id}.{ruleRow?.severity === 'ERROR' ? ' They block the package.' : ' Warning only.'}</>
+                : <><b>All records pass</b> this rule on {j.filing?.id}.</>,
+              excerpt: failing ? ruleViolations.slice(0, 4).map((v) => `${v.policy_number} ✗ ${v.violation_reason}`).join('\n') + (failing > 4 ? `\n+${failing - 4} more` : '') : undefined,
+              provenance: fv ? <>validation run {fv.run_id}</> : undefined,
+            },
+          ]} />
+          {failing > 0 && go && (
+            <div style={{ marginTop: 12 }}>
+              <Button size="small" onClick={go('val')}>Open these {failing} in validation triage →</Button>
+            </div>
+          )}
+        </Card>
+      )}
+
       <Alert
         type="info" showIcon style={{ marginBottom: 16 }}
         message={live
@@ -440,11 +520,14 @@ export function RulesScreen({ user }: { user?: AppUser }) {
           dataSource={filtered}
           columns={columns}
           pagination={false} size="middle"
-          onRow={(r) => ({ onClick: () => pick(r), style: { cursor: 'pointer' } })}
+          onRow={(r) => ({
+            onClick: () => select(r),
+            style: { cursor: 'pointer', background: r.id === sel?.id ? 'rgba(22,119,255,0.06)' : undefined },
+          })}
         />
       </Card>
 
-      {/* Row click → clause text, rule logic and the decision footer in a drawer. */}
+      {/* Details → clause text, rule logic and the decision footer in a drawer. */}
       <Drawer
         open={open && !!sel}
         onClose={() => setOpen(false)}

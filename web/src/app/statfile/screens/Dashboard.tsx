@@ -1,216 +1,237 @@
-// Filing dashboard — reimagined as a native Ant Design page: Statistic KPI
-// cards with tinted icon wells, a Card-framed Table with Badge statuses for
-// the filing cycles, dashboard-gauge Progress for medallion freshness, and
-// the human queue as a List with severity avatars.
-// Live: /filings + /validate/all + /pipeline/state + /kg/rules; falls back to
-// the design fixtures per section while loading or when the warehouse is cold.
-import type { ReactNode } from 'react';
-import {
-  AuditOutlined, ClockCircleOutlined, DatabaseOutlined, ExceptionOutlined,
-  NodeIndexOutlined, RightOutlined, RocketOutlined, WarningOutlined,
-} from '@ant-design/icons';
-import { Avatar, Badge, Card, Col, List, Progress, Row, Statistic, Table, Tag, Typography } from 'antd';
-import {
-  cyclesFromFilings, groupViolations, kpisFrom, layersFrom, queueFrom,
-  useFilings, useKgRules, usePipelineState, useValidateAll,
-} from '../api';
-import type { Cycle, ScreenId } from '../data';
+// Filing dashboard — "what happens next, per filing". The active filing's
+// journey is the hero: its stage in a sentence, the numbers that matter, and
+// one next action. Below it the review queue grouped by stage (blocking first,
+// rulebook approvals muted because they gate nothing) and every filing cycle
+// with a mini journey bar. Live: /filings + /validate/all + /bulletins +
+// /filing/{id}/submission + /kg/rules via useJourney; design fixtures when
+// the warehouse is cold.
+import { RightOutlined } from '@ant-design/icons';
+import { Badge, Button, Card, Col, Row, Table, Tag, Typography } from 'antd';
+import { groupViolations, useKgRules, useValidateAll, type GroupedError } from '../api';
+import type { Filing } from '../../../api/types';
+import type { ScreenId } from '../data';
+import { useJourney, type Journey } from '../journey/useJourney';
 
 const { Text } = Typography;
+const juris = (code?: string | null) => (code ?? '').replace(/^US-/, '') || '—';
+const MONO: React.CSSProperties = { fontFamily: "ui-monospace,'SFMono-Regular',Menlo,monospace" };
 
-// KPI dressing by position: staged volume, exceptions, approvals, deadline.
-const KPI_META: Array<{ icon: ReactNode; color: string }> = [
-  { icon: <DatabaseOutlined />, color: '#1677ff' },
-  { icon: <ExceptionOutlined />, color: '#fa541c' },
-  { icon: <AuditOutlined />, color: '#722ed1' },
-  { icon: <ClockCircleOutlined />, color: '#13c2c2' },
-];
+// Six-segment journey bar for a filing row. 1 = done, 2 = current, 0 = ahead.
+function MiniJourney({ prog, blocked }: { prog: number[]; blocked: boolean }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
+      {prog.map((p, i) => (
+        <i key={i} style={{
+          display: 'block', width: 14, height: 6, borderRadius: 2,
+          background: p === 1 ? '#52c41a' : p === 2 ? (blocked ? '#cf1322' : '#1677ff') : 'rgba(5,5,5,0.15)',
+        }} />
+      ))}
+    </span>
+  );
+}
 
-// The design's three tag intensities → Badge semantics: accent is the active
-// working state, outline is in progress elsewhere, neutral is settled.
-const BADGE_STATUS: Record<string, 'processing' | 'warning' | 'success'> = {
-  'tag-accent': 'processing', 'tag-outline': 'warning', 'tag-neutral': 'success',
-};
+// A non-active filing's journey, approximated from what the list endpoints
+// know (validation per filing; submission state only loads for the active
+// one). Settled filings read as complete.
+function rowJourney(f: Filing, blockers: number, j: Journey): { prog: number[]; next: string; goTo: ScreenId } {
+  if (j.filing?.id === f.id) {
+    const s = j.stages.map((st) => (st.state === 'done' ? 1 : st.key === j.current ? 2 : 0));
+    return { prog: s, next: j.next.label, goTo: j.next.goTo };
+  }
+  if (!f.is_active) return { prog: [1, 1, 1, 1, 1, 1], next: 'Filed', goTo: 'dash' };
+  if (blockers > 0) return { prog: [1, 2, 0, 0, 0, 0], next: `Triage ${blockers.toLocaleString()}`, goTo: 'val' };
+  return { prog: [1, 1, 1, 2, 0, 0], next: 'Start sign-off', goTo: 'filing' };
+}
 
-// Review-queue dressing by kicker.
-const QUEUE_META: Record<string, { icon: ReactNode; color: string }> = {
-  'Approval gate': { icon: <AuditOutlined />, color: '#722ed1' },
-  'Exception': { icon: <WarningOutlined />, color: '#fa541c' },
-  'Mapping gap': { icon: <NodeIndexOutlined />, color: '#fa8c16' },
-  'Onboarding': { icon: <RocketOutlined />, color: '#1677ff' },
-};
-
-export function DashboardScreen({ go }: { go: (s: ScreenId) => () => void }) {
-  const filingsQ = useFilings();
+export function DashboardScreen({ go, filingId, onSelectFiling }: {
+  go: (s: ScreenId) => () => void;
+  filingId: string | null;
+  onSelectFiling: (id: string) => void;
+}) {
+  const j = useJourney(filingId);
   const valQ = useValidateAll();
-  const pipeQ = usePipelineState();
   const rulesQ = useKgRules();
+  const F = j.filing;
 
-  const filings = filingsQ.data?.filings ?? [];
-  // Rules genuinely awaiting a decision — drafts only (superseded/rejected
-  // versions are history, not work).
+  // Blocking exceptions on the active filing, grouped by rule.
+  const errors: GroupedError[] = (() => {
+    if (!valQ.data || !F) return groupViolations(undefined).filter((e) => e.sev === 2);
+    const only = { ...valQ.data, by_filing: { [F.id]: valQ.data.by_filing[F.id] } };
+    if (!only.by_filing[F.id]) return [];
+    return groupViolations(only).filter((e) => e.sev === 2 && !e.suppressed && e.violations.length > 0);
+  })();
+
   const pendingRules = rulesQ.data?.rules.filter((r) => r.status === 'draft') ?? [];
-  const rulesPending = rulesQ.data ? pendingRules.length : undefined;
-  const pendingBreakdown = pendingRules.length
-    ? Object.entries(pendingRules.reduce<Record<string, number>>((m, r) => {
-        const j = (r.jurisdiction_code ?? '—').replace(/^US-/, '') || 'US';
-        m[j] = (m[j] ?? 0) + 1;
-        return m;
-      }, {}))
-      .sort((a, b) => b[1] - a[1])
-      .map(([j, n]) => `${n} ${j}`)
-      .join(' · ')
-    : undefined;
+  const pendingBreakdown = Object.entries(pendingRules.reduce<Record<string, number>>((m, r) => {
+    const k = juris(r.jurisdiction_code) || 'US';
+    m[k] = (m[k] ?? 0) + 1;
+    return m;
+  }, {})).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${k}`).join(' · ');
 
-  const kpis = kpisFrom(filings, valQ.data, pipeQ.data, rulesPending);
-  const cycles = cyclesFromFilings(filings, valQ.data);
-  const layers = layersFrom(pipeQ.data);
-  const queue = queueFrom(groupViolations(valQ.data), rulesPending, pendingBreakdown);
+  // Stage sentence for the hero.
+  const stageLine = j.blockers
+    ? <><b>Validation.</b> {j.blockers.toLocaleString()} blocking exception{j.blockers === 1 ? '' : 's'} hold the package.</>
+    : j.signed < 3 ? <><b>Validated.</b> Ready for sign-off.</>
+    : !j.sealed ? <><b>Officer approved.</b> Ready to seal.</>
+    : !j.sent ? <><b>Sealed.</b> Ready to transmit.</>
+    : !j.acked ? <><b>Sent.</b> Awaiting acknowledgement.</>
+    : <><b>Acknowledged.</b> Filing complete.</>;
 
+  // Every filing, active one first.
+  const rows = [...j.filings].sort((a, b) => Number(b.id === F?.id) - Number(a.id === F?.id) || Number(b.is_active) - Number(a.is_active));
   const cycleColumns = [
     {
-      title: 'Jurisdiction', dataIndex: 'state', key: 'state', width: 110,
-      render: (s: string) => <Tag color="geekblue">{s}</Tag>,
-    },
-    { title: 'Line', dataIndex: 'line', key: 'line', ellipsis: true },
-    {
-      title: 'Standard', dataIndex: 'std', key: 'std',
-      render: (v: string) => <Text code style={{ fontSize: 12 }}>{v}</Text>,
-    },
-    { title: 'Period', dataIndex: 'period', key: 'period' },
-    { title: 'Due', dataIndex: 'due', key: 'due' },
-    {
-      title: 'Exceptions', dataIndex: 'records', key: 'records', align: 'right' as const,
-      render: (v: string) => <Text strong>{v}</Text>,
-    },
-    {
-      title: 'Status', dataIndex: 'status', key: 'status', width: 150,
-      render: (_: string, c: Cycle) => (
-        <Badge status={BADGE_STATUS[c.tagClass] ?? 'default'} text={c.status} />
+      title: 'Filing', key: 'id', width: 190,
+      render: (_: unknown, f: Filing) => (
+        <div style={{ minWidth: 0 }}>
+          <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ ...MONO, fontSize: 12.5 }}>{f.id}</span>
+            {f.id === F?.id && <Tag color="blue" style={{ marginInlineEnd: 0 }}>active</Tag>}
+          </span>
+          <Text type="secondary" ellipsis style={{ display: 'block', fontSize: 11.5, maxWidth: 220 }}>
+            {juris(f.jurisdiction_code)} · {f.plan_name}
+          </Text>
+        </div>
       ),
     },
+    { title: 'Due', dataIndex: 'due_date', key: 'due', width: 110, render: (v: string) => <span style={{ ...MONO, fontSize: 12 }}>{v}</span> },
+    {
+      title: 'Journey', key: 'journey', width: 120,
+      render: (_: unknown, f: Filing) => {
+        const b = blockersFor(f);
+        return <MiniJourney prog={rowJourney(f, b, j).prog} blocked={b > 0} />;
+      },
+    },
+    {
+      title: 'Blk', key: 'blk', width: 60, align: 'right' as const,
+      render: (_: unknown, f: Filing) => {
+        const b = blockersFor(f);
+        return <span style={{ color: b ? '#cf1322' : 'rgba(0,0,0,0.35)', fontVariantNumeric: 'tabular-nums' }}>{b.toLocaleString()}</span>;
+      },
+    },
+    {
+      title: 'Next', key: 'next', width: 200,
+      render: (_: unknown, f: Filing) => <Text style={{ color: '#1677ff', fontSize: 12.5 }}>{rowJourney(f, blockersFor(f), j).next} →</Text>,
+    },
   ];
+  function blockersFor(f: Filing): number {
+    if (f.id === F?.id) return j.blockers;
+    const fv = valQ.data?.by_filing[f.id];
+    const sup = valQ.data?.suppressions ?? {};
+    return (fv?.violations ?? []).filter((v) => v.severity === 'ERROR' && !v.suppressed && !sup[v.rule_number]).length;
+  }
 
   return (
     <div>
-      {/* KPI row */}
+      {/* ── hero: the active filing and its one next action ────────────── */}
+      <div className="hero">
+        <div>
+          <span className="k">Active filing</span>
+          <div className="hero-id">
+            {F?.id ?? '—'}
+            {F && <Tag>{juris(F.jurisdiction_code)} · {F.plan_name} · {F.plan_code} · canon {j.canon}</Tag>}
+            {!j.live && <Tag title="warehouse offline — showing design fixtures">demo data</Tag>}
+          </div>
+          <div className="hero-stage">{stageLine}</div>
+          <div className="hero-facts">
+            <div className={`hero-f ${j.blockers ? 'crit' : 'ok'}`}><div className="v">{j.blockers.toLocaleString()}</div><div className="l">blocking</div></div>
+            <div className="hero-f"><div className="v">{j.warnings.toLocaleString()}</div><div className="l">warnings</div></div>
+            <div className="hero-f"><div className="v">{j.bulletin ? 1 : 0}</div><div className="l">pending bulletin</div></div>
+            <div className="hero-f"><div className="v">{j.signed}<small>/3</small></div><div className="l">signatures</div></div>
+            <div className="hero-f"><div className="v">{j.daysToDue ?? '—'}</div><div className="l">days to due</div></div>
+          </div>
+        </div>
+        <div className="hero-next">
+          <span className="k">Next action</span>
+          <Button type="primary" size="large" onClick={go(j.next.goTo)}>{j.next.label} →</Button>
+          <div className="hero-why">{j.next.why}</div>
+        </div>
+      </div>
+
       <Row gutter={[16, 16]}>
-        {kpis.map((k, i) => {
-          const meta = KPI_META[i % KPI_META.length];
-          return (
-            <Col key={k.label} xs={12} xl={6}>
-              <Card hoverable onClick={go(k.goTo)}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                  <Avatar
-                    shape="square" size={44}
-                    style={{ background: `${meta.color}1a`, color: meta.color, fontSize: 20, flexShrink: 0 }}
-                    icon={meta.icon}
-                  />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <Statistic
-                      title={k.label} value={k.value}
-                      valueStyle={{ fontSize: 26, lineHeight: 1.15 }}
-                    />
-                  </div>
-                  <RightOutlined style={{ color: 'rgba(0,0,0,0.25)', fontSize: 12, marginTop: 4 }} />
-                </div>
-                {k.note != null && (
-                  <div style={{ borderTop: '1px solid rgba(5,5,5,0.06)', marginTop: 12, paddingTop: 8 }}>
-                    <Text type="secondary" style={{ fontSize: 12 }} ellipsis>{k.note}</Text>
-                  </div>
-                )}
-              </Card>
-            </Col>
-          );
-        })}
-      </Row>
+        {/* ── review queue, grouped by stage ──────────────────────────────── */}
+        <Col xs={24} xl={13}>
+          <Card title="Requires review" extra={<Text type="secondary" style={{ fontSize: 12 }}>grouped by stage · most urgent first</Text>} styles={{ body: { padding: 0 } }}>
+            <QueueGroup tone="error" title="Blocking the package" count={j.blockers}>
+              {errors.length ? errors.map((e) => (
+                <QueueItem key={e.code} hot onClick={go('val')}
+                  title={`${e.code} — ${e.field}`}
+                  desc={<>{e.count} record{e.count === '1' ? '' : 's'} · {e.origin}{j.bulletinRules.has(e.code) && j.bulletin
+                    ? <> · <Tag color="orange" style={{ marginInlineStart: 4 }}>clears with bulletin</Tag></>
+                    : ' · manual fix or memo'}</>} />
+              )) : <QueueEmpty>Nothing blocking. The package can move to sign-off.</QueueEmpty>}
+            </QueueGroup>
+            <QueueGroup tone="warning" title="Pending bulletin" count={j.bulletin ? 1 : 0}>
+              {j.bulletin ? (
+                <QueueItem onClick={go('amend')}
+                  title={`${j.bulletin.name} — ${j.bulletin.title}`}
+                  desc={<>{juris(j.bulletin.jurisdiction_code)} · effective {j.bulletin.effective_date} · {j.bulletinLoading ? 'computing impact…' : j.bulletinClears ? `clears ${j.bulletinClears} exception${j.bulletinClears === 1 ? '' : 's'} on ${F?.id}` : `${j.bulletin.targets} rule target${j.bulletin.targets === 1 ? '' : 's'}`}</>} />
+              ) : <QueueEmpty>No bulletin pending. The canon is current.</QueueEmpty>}
+            </QueueGroup>
+            <QueueGroup tone="default" title="Rulebook approvals" count={j.rulesPending ?? 0} muted>
+              <QueueItem muted onClick={go('rules')}
+                title="Draft rules awaiting human approval"
+                desc={<>{pendingBreakdown || 'none pending'} — not enforced until approved; does not block any filing</>} />
+            </QueueGroup>
+          </Card>
+        </Col>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} xl={15}>
-          <Card
-            title="Filing cycles"
-            extra={
-              <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-                {!filingsQ.data?.filings.length && (
-                  <Tag color="orange" title="warehouse filings unavailable — showing design fixtures">demo data</Tag>
-                )}
-                <Text type="secondary" style={{ fontSize: 13 }}>
-                  {filings.length ? 'live · all jurisdictions' : 'All jurisdictions · all standards'}
-                </Text>
-              </span>
-            }
-            styles={{ body: { padding: 0 } }}
-          >
+        {/* ── every cycle with a mini journey ─────────────────────────────── */}
+        <Col xs={24} xl={11}>
+          <Card title="All filing cycles" extra={<Text type="secondary" style={{ fontSize: 12 }}>{j.live ? `live · ${rows.length}` : 'demo'}</Text>} styles={{ body: { padding: 0 } }}>
             <Table
-              dataSource={cycles.map((c, i) => ({ ...c, key: i }))}
+              rowKey="id"
+              dataSource={rows}
               columns={cycleColumns}
-              pagination={false} size="middle"
-              onRow={(c) => ({ onClick: go(c.goTo), style: { cursor: 'pointer' } })}
-            />
-          </Card>
-
-          <Card title="Medallion freshness" style={{ marginTop: 16 }}>
-            <Row gutter={16} justify="space-around">
-              {layers.map((l) => (
-                <Col key={l.name} style={{ textAlign: 'center' }}>
-                  <Progress
-                    type="dashboard" size={104}
-                    percent={parseInt(l.pct, 10)}
-                    strokeColor={parseInt(l.pct, 10) === 100 ? '#52c41a' : '#1677ff'}
-                  />
-                  <div style={{ marginTop: 4 }}>
-                    <Text strong>{l.name}</Text>
-                    <br />
-                    <Text type="secondary" style={{ fontSize: 12 }}>{l.meta}</Text>
-                  </div>
-                </Col>
-              ))}
-            </Row>
-          </Card>
-        </Col>
-
-        <Col xs={24} xl={9}>
-          <Card title="Requires review" styles={{ body: { padding: 0 } }}>
-            <List
-              itemLayout="horizontal"
-              dataSource={queue}
-              renderItem={(q) => {
-                const meta = QUEUE_META[q.kicker] ?? { icon: <ExceptionOutlined />, color: '#1677ff' };
-                return (
-                  <List.Item
-                    onClick={go(q.goTo)}
-                    style={{ cursor: 'pointer', padding: '14px 20px' }}
-                    extra={<RightOutlined style={{ color: 'rgba(0,0,0,0.25)', fontSize: 12 }} />}
-                  >
-                    <List.Item.Meta
-                      avatar={
-                        <Avatar shape="square" size={38}
-                          style={{ background: `${meta.color}1a`, color: meta.color, fontSize: 17 }}
-                          icon={meta.icon}
-                        />
-                      }
-                      title={
-                        <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                          {q.title}
-                          <Tag style={{ marginInlineEnd: 0 }} color={meta.color}>{q.meta}</Tag>
-                        </span>
-                      }
-                      description={
-                        <>
-                          <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                            {q.kicker}
-                          </Text>
-                          <div style={{ fontSize: 13 }}>{q.body}</div>
-                        </>
-                      }
-                    />
-                  </List.Item>
-                );
-              }}
+              pagination={false} size="small"
+              onRow={(f) => ({
+                onClick: () => { onSelectFiling(f.id); if (f.id === F?.id) go(j.next.goTo)(); },
+                style: { cursor: 'pointer' },
+              })}
             />
           </Card>
         </Col>
       </Row>
+    </div>
+  );
+}
+
+function QueueGroup({ tone, title, count, muted, children }: {
+  tone: 'error' | 'warning' | 'default'; title: string; count: number; muted?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 6px' }}>
+        <Badge status={tone} />
+        <span style={{ fontFamily: 'var(--font-heading)', fontSize: 15, fontWeight: 600, color: muted ? 'rgba(0,0,0,0.45)' : undefined }}>{title}</span>
+        <Tag color={tone === 'error' ? 'red' : tone === 'warning' ? 'orange' : undefined} style={{ marginInlineEnd: 0 }}>{count.toLocaleString()}</Tag>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function QueueItem({ title, desc, hot, muted, onClick }: {
+  title: string; desc: React.ReactNode; hot?: boolean; muted?: boolean; onClick: () => void;
+}) {
+  return (
+    <div onClick={onClick} style={{
+      display: 'flex', gap: 12, padding: '10px 16px', borderTop: '1px solid rgba(5,5,5,0.06)', alignItems: 'flex-start',
+      cursor: 'pointer', background: hot ? '#fff1f0' : undefined,
+    }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontWeight: 600, fontSize: 13, color: muted ? 'rgba(0,0,0,0.45)' : undefined }}>{title}</div>
+        <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)' }}>{desc}</div>
+      </div>
+      <RightOutlined style={{ color: 'rgba(0,0,0,0.25)', fontSize: 11, marginTop: 4 }} />
+    </div>
+  );
+}
+
+function QueueEmpty({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ padding: '8px 16px 10px', borderTop: '1px solid rgba(5,5,5,0.06)', fontSize: 12, color: 'rgba(0,0,0,0.55)' }}>
+      {children}
     </div>
   );
 }

@@ -6,16 +6,19 @@
 import { useMemo, useState } from 'react';
 import { CloseOutlined, EditOutlined } from '@ant-design/icons';
 import {
-  Alert, Badge, Button, Card, Col, Drawer, Input, Row, Space, Table, Tag,
+  Alert, Badge, Button, Card, Col, Drawer, Input, Row, Segmented, Space, Table, Tag,
   Tooltip, Typography,
 } from 'antd';
 import {
-  can, groupViolations, useApplyFix, useAssign, useBronzeFix, useClaims,
+  can, canSee, groupViolations, useApplyFix, useAssign, useBronzeFix, useClaims,
   useFilings, usePolicyFields, useReasonCodes, useSuppress, useUnsuppress,
   useValidateAll, whoCan, type AppUser, type GroupedError,
 } from '../api';
 import { ApiError } from '../../../api/client';
-import { ERR_DETAIL } from '../data';
+import { ERR_DETAIL, type ScreenId } from '../data';
+import { useJourney } from '../journey/useJourney';
+import { StageHead } from '../journey/StageHead';
+import { LineageStrip } from '../journey/Lineage';
 
 const { Text, Paragraph } = Typography;
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -27,13 +30,30 @@ const sevBadge = (sev: number, suppressed?: boolean): 'error' | 'warning' | 'def
 const sevTagColor = (sev: number, suppressed?: boolean) =>
   suppressed ? undefined : sev === 2 ? 'red' : sev === 1 ? 'orange' : undefined;
 
-export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string) => void; user?: AppUser }) {
+export function ValidationScreen({ onTrace, user, go, filingId }: {
+  onTrace?: (policy: string) => void; user?: AppUser;
+  go?: (s: ScreenId) => () => void; filingId?: string | null;
+}) {
   const maySuppress = can(user, 'suppress');
   const mayFix = can(user, 'fix');
   const mayAssign = can(user, 'assign');
   const valQ = useValidateAll();
-  const errors = useMemo(() => groupViolations(valQ.data), [valQ.data]);
-  const live = errors.some((e) => e.violations.length > 0);
+  const j = useJourney(filingId ?? null);
+  // Scope: the active filing's exceptions (the journey's numbers), or every
+  // filing's.
+  const [scope, setScope] = useState<'active' | 'all'>('active');
+  const scoped = useMemo(() => {
+    if (!valQ.data || scope === 'all' || !j.filing) return valQ.data;
+    const fv = valQ.data.by_filing[j.filing.id];
+    return { ...valQ.data, by_filing: fv ? { [j.filing.id]: fv } : {} };
+  }, [valQ.data, scope, j.filing]);
+  // A live run with no violations is an empty table, not the design fixtures.
+  const errors = useMemo(() => {
+    const any = scoped ? Object.values(scoped.by_filing).some((f) => f.violations.length > 0) : false;
+    return valQ.data && !any ? [] : groupViolations(scoped);
+  }, [scoped, valQ.data]);
+  const live = !!valQ.data && errors.length > 0;
+  const liveEmpty = !!valQ.data && errors.length === 0;
 
   const [sev, setSev] = useState('all');
   const [errCode, setErrCode] = useState<string | null>(null);
@@ -158,8 +178,30 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
       render: (v: string) => <Text strong>{v}</Text>,
     },
     {
-      title: 'Origin', dataIndex: 'origin', key: 'origin', width: 180,
-      render: (v: string) => <Text type="secondary" style={{ fontSize: 12 }}>{v}</Text>,
+      title: 'Source', dataIndex: 'origin', key: 'origin', width: 180,
+      render: (v: string) => (
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#b23a2a', marginRight: 6, verticalAlign: 'middle' }} />
+          {v}
+        </Text>
+      ),
+    },
+    {
+      title: 'Remedy', key: 'remedy', width: 200,
+      render: (_: unknown, e: GroupedError) => {
+        if (e.suppressed) return <Text type="secondary" style={{ fontSize: 12 }}>suppressed</Text>;
+        if (j.bulletin && j.bulletinRules.has(e.code) && go) {
+          return (
+            <Button type="link" size="small" style={{ padding: 0 }}
+              onClick={(ev) => { ev.stopPropagation(); go('amend')(); }}>
+              Apply bulletin {j.bulletin.name} →
+            </Button>
+          );
+        }
+        if (e.violations[0]?.fix_available) return <Tag color="geekblue">agent fix available</Tag>;
+        if (e.sev === 2) return <Text type="secondary" style={{ fontSize: 12 }}>manual fix or memo</Text>;
+        return <Text type="secondary" style={{ fontSize: 12 }}>acknowledge at sign-off</Text>;
+      },
     },
     {
       title: 'Status', key: 'status', width: 190, align: 'right' as const,
@@ -179,25 +221,50 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
 
   return (
     <div>
-      {counts[2] > 0 && (
-        <Alert
-          type="error" showIcon style={{ marginBottom: 16 }}
-          message={<><Text strong>{fmt(counts[2])}</Text> records are held from the package until blocking edits clear.</>}
-        />
-      )}
+      <StageHead
+        n={2}
+        title="Validate every record against the canon"
+        summary={<>
+          {j.blockers
+            ? <Tag color="red" style={{ marginInlineEnd: 0 }}><Badge status="error" /> {fmt(j.blockers)} blocking</Tag>
+            : <Tag color="green" style={{ marginInlineEnd: 0 }}>✓ all blocking edits pass</Tag>}
+          <Tag color="orange" style={{ marginInlineEnd: 0 }}>{fmt(j.warnings)} warn</Tag>
+          <span>· {j.filing?.id ?? '—'} · canon {j.canon} · next: sign-off</span>
+        </>}
+        actions={<>
+          {j.bulletin && j.bulletinClears > 0 && go && (
+            <Button onClick={go('amend')}>Pending bulletin clears {j.bulletinClears} →</Button>
+          )}
+          <Tooltip title={j.blockers ? `${fmt(j.blockers)} blocking exception${j.blockers === 1 ? '' : 's'} must clear before the analyst can sign` : undefined}>
+            <Button type="primary" size="large" disabled={j.blockers > 0 || !go} onClick={go ? go('filing') : undefined}>
+              {j.blockers ? `Sign-off blocked by ${fmt(j.blockers)}` : 'Continue to sign-off →'}
+            </Button>
+          </Tooltip>
+        </>}
+      />
 
       <Card
         tabList={facetTabs}
         activeTabKey={sev}
         onTabChange={setSev}
-        tabBarExtraContent={!live
-          ? <Tag color="orange" title="no live violations — showing design fixtures">demo data</Tag>
-          : <Text type="secondary" style={{ fontSize: 13 }}>live · edit-package exceptions</Text>}
+        tabBarExtraContent={
+          <Space size={10}>
+            <Segmented
+              size="small" value={scope}
+              onChange={(v) => setScope(v as 'active' | 'all')}
+              options={[{ value: 'active', label: j.filing?.id ?? 'active filing' }, { value: 'all', label: 'All filings' }]}
+            />
+            {!live && !liveEmpty
+              ? <Tag color="orange" title="no live violations — showing design fixtures" style={{ marginInlineEnd: 0 }}>demo data</Tag>
+              : <Text type="secondary" style={{ fontSize: 13 }}>live · edit-package exceptions</Text>}
+          </Space>
+        }
         styles={{ body: { padding: 0 } }}
       >
         <Table
           rowKey="code"
-          dataSource={shown}
+          locale={{ emptyText: liveEmpty ? `No exceptions on ${scope === 'active' ? j.filing?.id ?? 'this filing' : 'any filing'} — the package is clean.` : 'No exceptions in this view.' }}
+          dataSource={liveEmpty ? [] : shown}
           columns={columns}
           pagination={false} size="middle"
           onRow={(e) => ({ onClick: () => pickError(e.code), style: { cursor: 'pointer' } })}
@@ -225,6 +292,15 @@ export function ValidationScreen({ onTrace, user }: { onTrace?: (policy: string)
       >
         {E && (
         <>
+          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid rgba(5,5,5,0.06)' }}>
+            <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Where this rule came from</Text>
+            <LineageStrip
+              source={E.origin}
+              rule={<>rule {E.code} · canon {j.canon}</>}
+              records={<>{E.count} record{E.count === '1' ? '' : 's'} on {j.filing?.id ?? 'this filing'}</>}
+              onOpenRule={go && canSee(user, 'rules') ? go('rules') : undefined}
+            />
+          </div>
           {E.suppressed && E.memo && (
             <Alert type="info" showIcon style={{ marginBottom: 16 }} message="Suppressed" description={E.memo} />
           )}

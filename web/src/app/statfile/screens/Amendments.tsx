@@ -15,6 +15,10 @@ import {
 } from '../api';
 import { ApiError } from '../../../api/client';
 import type { Bulletin, BulletinImpact, RuleChange, RuleChangeSide } from '../../../api/types';
+import type { ScreenId } from '../data';
+import { useJourney } from '../journey/useJourney';
+import { StageHead } from '../journey/StageHead';
+import { Lineage } from '../journey/Lineage';
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -271,8 +275,11 @@ function SampleChips({ ids }: { ids: string[] }) {
   );
 }
 
-export function AmendmentsScreen({ user }: { user?: AppUser }) {
+export function AmendmentsScreen({ user, go, filingId }: {
+  user?: AppUser; go?: (s: ScreenId) => () => void; filingId?: string | null;
+}) {
   const mayApply = can(user, 'bulletin');
+  const j = useJourney(filingId ?? null);
   const bulQ = useBulletins();
   const live = !!bulQ.data;
   const bulletins = bulQ.data?.bulletins?.length ? bulQ.data.bulletins : DEMO_BULLETINS;
@@ -299,7 +306,88 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
     { label: 'Filings affected', value: String(impact.totals.filings_affected.length), note: impact.totals.filings_affected.join(' · ') || '—' },
   ] : [];
 
+  const applied = B?.status === 'applied';
+  const closedTotal = applyMut.data
+    ? Object.values(applyMut.data.deltas).reduce((n, d) => n + d.closed_count, 0) : 0;
+  const firstChange = impact?.rule_changes[0];
+  const passing = impact?.totals.newly_passing ?? 0;
+  const failing = impact?.totals.newly_failing ?? 0;
+
   return (
+    <div>
+    <StageHead
+      n={3}
+      title="A bulletin changes the rule, as data"
+      summary={B && (applied
+        ? <><Tag color="green" style={{ marginInlineEnd: 0 }}>✓ {B.name} applied</Tag><span>· the executable canon carries the change</span></>
+        : <><Tag color="orange" style={{ marginInlineEnd: 0 }}>{B.name} pending</Tag>
+            <span>· {impact ? <>clears <b>{fmt(passing)}</b>{j.blockers ? <> of {fmt(j.blockers)} blockers on {j.filing?.id}</> : null}{failing ? <> · catches {fmt(failing)} new</> : null}</> : 'computing impact…'} · effective {B.effective_date}</span></>)}
+      actions={go && <Button onClick={go('val')}>← Back to blockers</Button>}
+    />
+
+    {B && impact && !(impact.totals.rules_affected === 0 && impact.rule_changes.length === 0) && (
+      <Card
+        title={<>Bulletin → rule → records</>}
+        extra={<Text type="secondary" style={{ fontSize: 12 }}>{applied ? 'after apply' : 'before apply · what will change'}</Text>}
+        style={{ marginBottom: 16 }}
+      >
+        <Lineage cols={[
+          {
+            kind: 'source', title: 'Bulletin', badge: applied ? 'ingested' : 'pending', tone: applied ? 'neutral' : 'pending',
+            body: <><b>{B.name}</b> · {juris(B.jurisdiction_code)} · effective {B.effective_date}<br />{B.title}</>,
+            excerpt: B.summary,
+            provenance: <>{B.targets} rule target{B.targets === 1 ? '' : 's'} in the canon</>,
+          },
+          {
+            kind: 'rule', title: impact.totals.rules_affected === 1 ? 'Rule' : `${impact.totals.rules_affected} rules`,
+            badge: applied ? 'regenerated' : 'will version',
+            tone: applied ? 'changed' : 'pending',
+            body: applied
+              ? <><b>{impact.rule_changes.map((rc) => rc.rule_number).join(', ')}</b> now carr{impact.rule_changes.length === 1 ? 'ies' : 'y'} the amended predicate. The prior version stays in the canon for audit; the reference table was regenerated. No code changed.</>
+              : <>Apply versions <b>{impact.rule_changes.map((rc) => rc.rule_number).join(', ')}</b> and regenerates the reference rows the pipeline reads. Nothing is deleted; the prior version stays for audit.</>,
+            excerpt: firstChange?.after?.violation_sql ?? firstChange?.before?.violation_sql,
+            provenance: firstChange ? <>{firstChange.rule_number} · {firstChange.change_kind}{firstChange.after ? <> · {firstChange.after.violation_reason}</> : null}</> : undefined,
+          },
+          {
+            kind: 'records', title: 'Filing records', badge: applied ? 're-validated' : 'will re-validate',
+            tone: applied ? 'changed' : passing ? 'hurt' : 'neutral',
+            body: applied
+              ? <>Re-validated {impact.totals.filings_affected.join(', ') || 'the open filings'}.{closedTotal ? <> <b>{fmt(closedTotal)} exception{closedTotal === 1 ? '' : 's'} closed</b> by the bulletin, no human fix recorded.</> : null}</>
+              : <><b>{fmt(passing)}</b> record{passing === 1 ? '' : 's'} flip invalid → valid{failing ? <>, <b>{fmt(failing)}</b> newly fail</> : null} across {impact.totals.filings_affected.join(', ') || 'no filings'}.</>,
+            excerpt: (() => {
+              const ids = impact.rule_changes.flatMap((rc) => rc.records?.sample_newly_passing ?? []).slice(0, 4);
+              return ids.length ? ids.map((id) => `${id} ${applied ? '✓' : '✗ → ✓'}`).join('\n') : undefined;
+            })(),
+            provenance: <>dry-run against the warehouse · {impact.totals.filings_affected.length} filing{impact.totals.filings_affected.length === 1 ? '' : 's'}</>,
+          },
+        ]} />
+      </Card>
+    )}
+
+    {applyMut.isSuccess && applyMut.data && (
+      <Card style={{ marginBottom: 16, borderColor: '#b7eb8f', background: '#f6ffed' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 28, alignItems: 'center' }}>
+          <div>
+            <div style={{ fontFamily: 'var(--font-heading)', fontSize: 40, lineHeight: 1, color: '#389e0d', fontWeight: 700 }}>{fmt(closedTotal)} cleared</div>
+            <Text type="secondary" style={KICKER}>by the bulletin, not by a person</Text>
+          </div>
+          <div style={{ fontSize: 13 }}>
+            <b>What changed</b>
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18, color: 'rgba(0,0,0,0.65)' }}>
+              {applyMut.data.steps.map((st) => <li key={st.step}>{st.step.replace(/_/g, ' ')} {st.ok ? '✓' : '✗'}</li>)}
+              {Object.entries(applyMut.data.deltas).filter(([, d]) => d.closed_count > 0).map(([fid, d]) => (
+                <li key={fid}><span style={MONO}>{fid}</span> · {d.closed_count} exception{d.closed_count === 1 ? '' : 's'} closed · <span style={MONO}>resolution_action = 'bulletin'</span></li>
+              ))}
+              <li>{j.filing?.id} now has <b style={{ color: j.blockers ? '#cf1322' : '#389e0d' }}>{fmt(j.blockers)} blocking</b>{j.blockers ? ' · manual fixes remain' : ' · ready for sign-off'}</li>
+            </ul>
+          </div>
+          {go && (j.blockers
+            ? <Button type="primary" size="large" onClick={go('val')}>Fix remaining {fmt(j.blockers)} →</Button>
+            : <Button type="primary" size="large" onClick={go('filing')}>Go to sign-off →</Button>)}
+        </div>
+      </Card>
+    )}
+
     <Row gutter={[16, 16]} wrap={false} align="top">
       {/* ── bulletin master list — compact, searchable, scales to 50 states ── */}
       <Col flex="300px" style={{ minWidth: 0 }}>
@@ -460,10 +548,10 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
                     onClick={() => applyMut.mutate(undefined, {
                       onSuccess: () => toast(`${B.name} applied — canon rebuilt, validation re-running`),
                     })}>
-                    Apply amendment
+                    Apply bulletin · re-run validation
                   </Button>
                 </Tooltip>
-                <Text type="secondary" style={KICKER}>materializes the rule changes into the canon and re-runs validation</Text>
+                <Text type="secondary" style={KICKER}>versions the rules, regenerates the reference table, re-validates every open filing · no code change, no deploy</Text>
                 {applyMut.error != null && (
                   <Text type="danger" style={{ marginLeft: 'auto', fontSize: 12 }}>
                     {applyMut.error instanceof ApiError ? applyMut.error.message : 'apply failed'}
@@ -484,5 +572,6 @@ export function AmendmentsScreen({ user }: { user?: AppUser }) {
         )}
       </Col>
     </Row>
+    </div>
   );
 }

@@ -105,9 +105,12 @@ ENV PATH="/app/.venv/bin:${PATH}" \
     DAGSTER_HOME=/app/.dagster_home \
     REGULAI_UPLOADS_ROOT=/app/materialized/uploads
 
-# Pre-create writable dirs the app expects.
+# Pre-create writable dirs the app expects. /app itself must belong to the
+# service user: docker_entry.sh replaces /app/materialized with a symlink into
+# the persistent volume (REGULAI_STATE_DIR), which needs write on the parent.
 RUN mkdir -p ${DAGSTER_HOME} ${REGULAI_UPLOADS_ROOT} \
-    && chown -R regulai:regulai ${DAGSTER_HOME} ${REGULAI_UPLOADS_ROOT}
+    && chown -R regulai:regulai ${DAGSTER_HOME} ${REGULAI_UPLOADS_ROOT} \
+    && chown regulai:regulai /app
 
 USER regulai
 
